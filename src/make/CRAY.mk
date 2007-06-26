@@ -1,0 +1,2 @@
+CXX:=CC
+CXXFLAGS:=-h new_for_init -O2 -D__STL_NO_EXCEPTION_HEADER

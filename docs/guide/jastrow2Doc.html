@@ -1,0 +1,220 @@
+/*! \page Jastrow2_wfDoc Jastrow
+
+Keyword: JASTROW or JASTROW2
+
+\section description Description
+
+This is a multi-layered object:  the calculation goes like:
+<pre>
+Jastrow2_wf_data
+   group 1
+     one_body
+     two_body
+     (eventually three-body)
+   group 2
+     one_body
+     two_body
+   ...
+</pre>
+
+The Jastrow_group 's are something like namespaces, 
+where one defines electron-electron and
+electron-ion basis functions.  These functions are then used in 
+the one-body and two-body objects to calculate the relevant terms 
+in the Jastrow factor.  The Jastrow_wf object takes
+the results of these calculations and stores it in its state 
+to support updates.  I separated
+it into logical groups so that the user can specify to, for 
+example, optimize the basis in one and freeze the coefficients in 
+another when doing an optimization.
+
+\section options Options
+
+\subsection reqopt Required 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
+<tr> <td> GROUP  <td> Section <td> input for \ref Jastrow_groupDoc  
+</table>
+
+<!--
+\subsection optopt Optional
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b> Default </b> 
+     <td> <b>Description</b>
+<tr> <td> FOO  <td> Section <td> AOSPLINE <td> specifies a Basis section 
+<tr> <td> BAR  <td> Float <td>  4.5 <td> follows a foo
+</table>
+
+\subsection expopt Experimental 
+-->
+
+*/
+
+
+/*! \page Jastrow_groupDoc Jastrow Group
+
+Keyword: None
+
+\section description Description
+
+\section options Options
+
+\subsection reqopt Required 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
+<tr> <td> EIBASIS <td> Section <td> input for \ref Basis_functionDoc centered around an atom
+<tr> <td> EEBASIS <td> Section <td> input for \ref Basis_functionDoc centered around each electron
+<tr> <td> ONEBODY <td> Section <td> input for \ref Jastrow_onebody_pieceDoc
+<tr> <td> TWOBODY <td> Section <td> input for \ref Jastrow_twobody_pieceDoc
+<tr> <td> TWOBODY_SPIN <td> Section <td> input for \ref Jastrow_twobody_piece_diffspinDoc
+<tr> <td> THREEBODY <td> Section <td> input for \ref Jastrow_threebody_pieceDoc
+</table>
+
+\subsection optopt Optional
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b> Default </b> 
+     <td> <b>Description</b>
+<tr> <td> OPTIMIZEBASIS  <td> Keyword <td> off <td>  signals (nonlinear) 
+          optimization of the basis function within this group.
+</table>
+
+*/
+
+
+/*! \page Jastrow_twobody_pieceDoc  Jastrow Two-body interaction
+
+\section description Description
+
+The correlation function \f$ \sum_m { c_m b_m(r_{ij}) } \f$ where 
+i and j are indices of electronic coordinates.
+
+\section options Options
+
+\subsection reqopt Required 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
+<tr> <td> COEFFICIENTS <td> Section <td> List of expansion coefficients(floats)
+ 
+</table>
+
+\subsection optopt Optional
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b> Default </b> 
+     <td> <b>Description</b>
+<tr> <td> FREEZE  <td> Keyword <td> off 
+     <td> do not optimize the coefficients
+</table>
+
+*/
+
+
+/*! \page Jastrow_twobody_piece_diffspinDoc Jastrow Two-body interaction, spin difference
+
+\section description Description
+
+The correlation function \f$ \sum_m { c_m b_m(r_{ij}) } \f$ where 
+i and j are indices of electronic coordinates. b is allowed to be 
+different depending on the spin.
+
+\section options Options
+
+\subsection reqopt Required 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
+<tr> <td> LIKE_COEFFICIENTS <td> Section <td> List of expansion coefficients(floats) for like spins
+<tr> <td> UNLIKE_COEFFICIENTS <td> Section <td> List of expansion coefficients(floats) for unlike spins
+ 
+</table>
+
+\subsection optopt Optional
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b> Default </b> 
+     <td> <b>Description</b>
+<tr> <td> FREEZE  <td> Keyword <td> off 
+     <td> do not optimize the coefficients
+</table>
+
+
+
+*/
+
+
+
+
+
+/*! \page Jastrow_onebody_pieceDoc  Jastrow One-body interaction
+
+\section description Description
+
+The correlation function \f$ \sum_m { c_m a_m(r_{iI}) } \f$ where 
+i is an electron index and I is an ion index.  a is allowed to be 
+different depending on the ionic type.
+
+\section options Options
+
+\subsection reqopt Required 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
+<tr> <td> COEFFICIENTS <td> Section 
+    <td> List of expansion coefficients(floats).  There must be one section 
+         for each atom type, each beginning with the name of the atom.
+          (for example, COEFFICIENTS { Li 3.4 2.3 }
+ 
+</table>
+
+\subsection optopt Optional
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b> Default </b> 
+     <td> <b>Description</b>
+<tr> <td> SCALE  <td> Float <td> 1.0 
+     <td> Multiply all the coefficients by the value given
+</table>
+
+*/
+
+
+/*! \page Jastrow_threebody_pieceDoc  Jastrow Three-body interaction
+
+\section description Description
+
+
+
+\section options Options
+
+\subsection reqopt Required 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
+<tr> <td> COEFFICIENTS <td> Section 
+    <td> List of expansion coefficients(floats).  There must be one section 
+         for each atom type, each beginning with the name of the atom.
+          (for example, COEFFICIENTS { Li 3.4 2.3 }  There are a maximum
+	  of 12 parameters currently, and they have requirements on the number of basis functions as follows:<br>
+          3 parms: 1 EE and 1 EI function<br>
+	  5 parms: 1 EE and 2 EI <br>
+	  7 parms: 2 EE and 2 EI <br>
+	  12 parms: 2 EE and 3 EI <br>
+          
+ 
+</table>
+
+\subsection optopt Optional
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b> Default </b> 
+     <td> <b>Description</b>
+<tr> <td> FREEZE  <td> Float <td> 1.0 
+     <td> Multiply all the coefficients by the value given
+</table>
+
+*/

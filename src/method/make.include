@@ -1,0 +1,21 @@
+
+MY_SOURCES:= \
+	Dmc_method.cpp \
+	Force_fitter.cpp \
+	Levenberg_Marquardt.cpp \
+	Nodes_method.cpp \
+        Newton_opt_method.cpp \
+	Optimize_method2.cpp \
+	Optimize_method.cpp \
+	Plot_method.cpp \
+        Postprocess_method.cpp \
+	Qmc_method.cpp \
+	Reptation_method.cpp \
+	Split_sample.cpp \
+	Test_method.cpp \
+	Vmc_method.cpp 
+
+
+SOURCES:= $(SOURCES) $(addprefix method/,$(MY_SOURCES))
+
+

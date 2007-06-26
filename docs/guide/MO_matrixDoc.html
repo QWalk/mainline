@@ -1,0 +1,59 @@
+/*! \page MO_matrixDoc Molecular Orbital calculator
+
+Keyword: CUTOFF_MO, STANDARD_MO, BLAS_MO, and MO_1D
+
+\section description Description
+
+There are several plugins that both calculate molecular orbitals.  The main 
+one, which should usually be used, is the cutoff MO, which takes advantage
+of short-range basis functions and symmetry in the wavefunction to 
+drastically reduce the computation time, at least by a factor of N, in 
+some cases a factor of N<sup>2</sup>.  The STANDARD_MO calculates exactly
+the wave function given in the input, which is useful for sanity checking
+and wavefunctions like plane waves, where almost no coefficients are zero
+and the basis range is infinite.  BLAS_MO is only usable if you compile
+the BLAS linear algebra libraries into the code, and cuts off the basis
+functions, but uses linear algebra routines to fill the molecular orbital
+matrix.  This gives formal scaling as O(N<sup>2</sup>), but can be much
+faster than CUTOFF_MO in some circumstances(especially on Itanium processors).
+These all take the same input.
+
+MO_1D is a special MO evaluator for one-dimensional systems, and takes
+special input.
+
+\section options Options
+
+\subsection reqopt Required 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
+<tr> <td> ORBFILE  <td> String <td> A file containing the orbitals in format:
+<br>
+MO#  AO#(for center)  Center#  Coeff# <br>
+for all the MO's, then the keyword COEFFICIENTS, and a sequential
+listing of all the values of the coefficients.
+
+<tr> <td> NMO  <td> Integer <td> Number of molecular orbitals to read from the orb file.
+
+<tr> <td> BASIS <td> Section <td> input for a \ref Basis_functionDoc .  Place as many of these as there are bases.
+
+</table>
+
+\subsection optopt Optional
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b> Default </b> 
+     <td> <b>Description</b>
+<tr> <td> CENTERS  <td> Section <td> CENTERS { USEATOMS } <td> input for a \ref CenterDoc  
+</table>
+
+\subsection expopt Experimental 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> 
+     <td> <b>Description</b>
+<tr> <td> OLDSOFILE  <td> String <td> Read a basis function from an SO file from Lubos's qmc program.  This overwrites a gaussian basis input, and is not robust enough to be useful except for debugging purposes.
+</table>
+
+
+*/

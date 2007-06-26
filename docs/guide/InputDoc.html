@@ -1,0 +1,35 @@
+/*! \page InputDoc Input Overview
+
+
+<H1>Input Files</H1>
+Basic rules: <br>
+<ul>
+<li>Comments are '#', and extend until the end of the line.</li>
+
+<li>Whitespace is ignored.  A space is the same as a tab is the same as a newline.  The only exception is the comment,
+which is terminated by a newline. </li>
+
+<li>Input is keyword-based, with the keywords case-insensitive.  In this manual, keywords will always be listed in
+ all caps in a hope of clarity.
+ There are three basic types of keywords: flags, single-value and sections.  Flags simply turn a feature on or off.  They're
+ only a keyword with no options following them, for example CDMC, which enables continuous DMC.  Single-value 
+ keywords have exactly one
+ value following them, for example NCONFIG 1000, which calls for 1000 configurations.  Section keywords are followed
+ by an open brace, a whitespace-delimited list of values, and a close brace, for example: STATES { 1 2 3 4 }.</li>
+
+<li>Keywords are (almost) order-independent; in the case of a keyword appearing several times when only one is needed,
+    the first instance will be selected.  There are a few exceptions to the order-independent rule:
+  <ul>
+    <li> Several METHOD sections will be executed in the order they appear in the file.  For example, 
+	 one could list a VMC method, then OPTIMIZE, then VMC again to do a complete wave function optimization. </li>
+    <li> The type of a section must be the first word in the section.  For example, to run a VMC calculation, one
+         must enter METHOD { VMC  (other options) } </li>
+  </ul>
+</li>
+
+<li>The architecture is pluggable.  There are several places that contain a Basis_function object--a molecular orbital
+set, Jastrow factor, or a pseudopotential.  These are all interchangeable.  Molecular orbitals can be plugged into
+either a slater determinant or enclosed in a PLOT method. </li>
+
+</ul>
+*/

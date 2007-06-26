@@ -1,0 +1,14 @@
+
+MY_SOURCES:= average.cpp \
+	jeep_utils.cpp \
+	MatrixAlgebrac.cpp  \
+	ooqmc.cpp  \
+	qmc_io.cpp  \
+	Qmc_std.cpp  \
+	ulec.cpp
+
+
+SOURCES:= $(SOURCES) $(addprefix program_utils/,$(MY_SOURCES))
+
+
+

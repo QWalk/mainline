@@ -1,0 +1,349 @@
+
+/*
+Let's mostly put the basis function references here, since they should
+be relatively short
+*/
+
+
+/*! \page Basis_functionDoc Basis function 
+
+
+\section description Description
+
+Basis_function is the base category for a number of simple three-dimensional 
+functions that can be used in many places throughout the code, usually as 
+expansions.  The first keyword in each section is taken as the name 
+of the origin of the function, and the second is the type of function.
+Further keywords are specific to the type of function.
+
+\section plugins Plugins
+
+\ref Cubic_splineDoc
+
+\ref Cutoff_cuspDoc
+
+\ref Exponent_cuspDoc
+
+\ref Gaussian_functionDoc
+
+\ref Mesh_functionDoc
+
+\ref Pade_functionDoc
+
+\ref Planewave_functionDoc
+
+\ref Poly_pade_functionDoc
+
+\ref Rgaussian_functionDoc
+
+\ref Step_functionDoc
+
+*/
+
+
+//######################################################################
+
+
+/*! \page Cubic_splineDoc Cubic spline
+
+Keyword: AOSPLINE
+
+\section description Description
+
+
+\section options Options
+
+One of GAMESS or SPLINE is required
+
+\subsection reqopt Required 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
+<tr> <td> GAMESS  <td> Section 
+   <td> input in roughly gamess format, as an expansion in Gaussians. There
+is no normalization, though, so it looks like 
+<br> S 1 <br> 1.0 2.0 <br>
+but not like
+<br> S 1 1.0 <br> 1.0 2.0 <br>
+ 
+
+<tr> <td> SPLINE  <td> Section <td> A listing of (x,y) pairs to fit to a spline
+</table>
+
+\subsection optopt Optional
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b> Default </b> 
+     <td> <b>Description</b>
+<tr> <td> NORENORMALIZE  <td> Keyword <td> off <td> prevents normalization of the basis functions to the GAMESS standard.
+<tr> <td> CUTOFF  <td> Float <td> infinity 
+     <td> forces a cutoff at a specified distance, with a smooth 
+          cutoff function.  Otherwise, a safe cutoff is calculated 
+          automatically.
+<tr> <td> NORMTYPE <td> string <td> GAMESSNORM
+     <td> specify the normalization (GAMESSNORM or CRYSTAL)
+</table>
+
+*/
+
+//######################################################################
+
+
+/*! \page Cutoff_cuspDoc Cutoff cusp
+
+Keyword: CUTOFF_CUSP
+
+\section description Description
+
+The function \f$ f(r)=c*p/(1+\gamma*p) \f$, where 
+\f$ p=z-z^2+z^3/3 \f$, \f$ z=r/{rcut} \f$, \f$ \gamma \f$ is the
+curvature, and c is the cusp.
+
+\section options Options
+
+\subsection reqopt Required 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
+<tr> <td> CUSP  <td> Float 
+   <td> What the derivative should be at r=0
+<tr> <td> GAMMA  <td> Float 
+     <td> a measure of the curvature, allowed to be (-1, infinity)
+<tr> <td> RCUT  <td> Float 
+     <td> Distance where the function should be zero.
+
+</table>
+
+*/
+
+//######################################################################
+
+/*! \page Exponent_cuspDoc Exponent cusp
+
+Keyword: EXPONENTIAL_CUSP
+
+\section description Description
+
+The function \f$ f(r)=-c*exp(-\gamma*r) \f$, where \f$ \gamma \f$ is the 
+curvature and c is the cusp
+
+\section options Options
+
+\subsection reqopt Required 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
+<tr> <td> CUSP  <td> Float 
+   <td> What the derivative should be at r=0
+<tr> <td> GAMMA  <td> Float 
+     <td> a measure of the curvature, allowed to be (0, infinity)
+</table>
+
+*/
+
+//######################################################################
+
+/*! \page Gaussian_functionDoc Gaussian function
+
+Keyword: GAUSSIAN
+
+\section description Description
+
+The function \f$ f(r)= e^{-\alpha*r^2} \f$
+
+\section options Options
+
+\subsection reqopt Required 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
+<tr> <td> ALPHA  <td> Section 
+     <td> List of exponents to use(floats).  These are treated as uncontracted 
+          Gaussians in an optimization.
+</table>
+
+\subsection optopt Optional
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b> Default </b> 
+     <td> <b>Description</b>
+<tr> <td> CUTOFF <td> Float <td> infinity
+     <td> force cutoff of the gaussians to some distance
+<tr> <td> SMOOTHING <td> Float <td> 1.2 
+     <td> control the distance over which we smooth the cutoff
+</table>
+
+*/
+
+//######################################################################
+
+/*! \page Mesh_functionDoc Mesh function
+
+Keyword: MESH
+
+\section description Description
+
+Three-dimensional mesh with on-the-fly interpolation
+
+\section options Options
+
+\subsection reqopt Required 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
+<tr> <td> VALPLT  <td> Section 
+     <td> List of value plot files from JEEP
+<tr> <td> DXPLT  <td> Section 
+     <td> List of x-derivative plot files from JEEP
+<tr> <td> DXPLT  <td> Section 
+     <td> List of y-derivative plot files from JEEP
+<tr> <td> DXPLT  <td> Section 
+     <td> List of z-derivative plot files from JEEP
+<tr> <td> LAPPLT  <td> Section 
+     <td> List of laplacian plot files from JEEP
+
+</table>
+
+*/
+
+//######################################################################
+
+/*! \page Pade_functionDoc Pade function
+
+Keyword: PADE
+
+\section description Description
+
+Function of the form:
+\f[
+a_n(r) = \left( \frac{\alpha_nr}{1+\alpha_nr} \right)^2
+\f]
+where \f$ \alpha_n = \alpha_0 / 2^{k}, 0 < n < nmax \f$
+
+
+\section options Options
+
+\subsection reqopt Required 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
+<tr> <td> ALPHA0  <td> Float 
+     <td> alpha_0 in the above equation
+<tr> <td> NFUNC   <td> Integer <td> Number of functions to create
+</table>
+
+*/
+
+//######################################################################
+
+
+/*! \page Planewave_functionDoc Plane wave function
+
+Keyword: PLANEWAVE
+
+\section description Description
+
+Interleaves cos(g*r) and sin(g*r) for a set of g-vectors.
+
+\section options Options
+
+\subsection reqopt Required 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
+<tr> <td> GVECTOR  <td> Section 
+     <td> List of triples of g-vectors to be used.
+</table>
+
+*/
+
+//######################################################################
+
+/*! \page Poly_pade_functionDoc Polynomial Pade function
+
+Keyword: POLYPADE
+
+\section description Description
+
+Function of the form:
+\f[
+a_n(r) = \frac{1-zpp(r/b_0)}{1+\beta zpp(r/b_0)}
+\f]
+where
+\f[
+zpp(x)=x^2(6-8x+3x^2)
+\f]
+ 
+\f$ b_0 \f$ is the cutoff radius.
+ 
+
+\section options Options
+
+\subsection reqopt Required 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
+<tr> <td> RCUT  <td> Float 
+     <td> Cutoff radius
+<tr> <td> BETA0 <td> Float
+     <td> Base curvature
+<tr> <td> NFUNC <td> Integer
+     <td> Number of functions to generate
+</table>
+
+*/
+
+//######################################################################
+
+/*! \page Rgaussian_functionDoc Rgaussian function
+
+Keyword: RGAUSSIAN
+
+\section description Description
+
+ Function of the form:
+\f[
+a_n(r) = \sum c_i r^{n_i} e^{-\alpha_i*r^2}
+\f]
+
+
+\section options Options
+
+\subsection reqopt Required 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
+<tr> <td> OLDQMC <td> Section 
+     <td> A section from Lubos's psp format, ie, <br>
+zeff number_l_vals <br>
+num_s num_p num_local <br>
+c  n+2  alpha      #for s channel <br>
+...  <br>
+..                #for p channel <br>
+...               ...  <br>
+..                #local channel <br>
+</table>
+
+*/
+
+//######################################################################
+
+/*! \page Step_functionDoc Step function
+
+Keyword: STEP
+
+\section description Description
+
+Unit step function that is one until some distance
+
+\section options Options
+
+\subsection reqopt Required 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
+<tr> <td> Cutoff <td> Float 
+     <td> distance after which this function is zero
+</table>
+
+*/

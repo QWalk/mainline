@@ -1,0 +1,95 @@
+/*! \page Dmc_methodDoc Diffusion Monte Carlo method
+
+Keyword: DMC
+
+\section description Description
+
+In this implementation of DMC, we use something similar to the Umrigar
+Nightingale, Runge paper, with some modifications.  Electrons are moved 
+one-by-one, and there is an effective timestep for the branching part of 
+the green's function.  We use a modification of the branching algorithm 
+that ensures a constant number of walkers as follows:
+
+Every few DMC steps, search for high weights.  If one with greater than 
+some threshold(1.8) do:
+<ul>
+<li> Search for the walker with the lowest weight(w2) that hasn't already 
+branched</li>
+<li> Branch the first walker and kill the second walker with probability 
+\f$ p=\frac{w_1}{w_1+w_2}\f$.  Otherwise branch the second walker and 
+kill the first walker.
+</ul>
+
+This ensures a constant number of walkers.  This algorithm is done on each
+processor independently, so there can be nodes with all high weight walkers
+and with all low-weight walkers.  To mitigate this problem, we periodically
+exchange walkers between nodes so that the total weight is more or less 
+evenly distributed.
+
+
+\section options Options
+
+\subsection reqopt Required 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
+
+<tr> <td> NCONFIG  <td> Integer <td> The desired average number of walkers 
+per node
+<tr> <td> NSTEP <td> Integer <td>  Number of average points to take in a block.
+ Should be such that NSTEP*TIMESTEP is approximately 1.
+<tr> <td> NBLOCK <td> Integer <td>  Number of blocks to take
+<tr> <td> TIMESTEP <td> Float <td>  A measure of how large each move 
+should be.  Adjust such that the acceptance ratio is about .99. Acceptance ratio
+is just a general guide, however, and it's useful to do several time steps if you
+need highly accurate results.
+<tr> <td> READCONFIG <td> String <td> Read from a configuration file
+previously written by STORECONFIG.  If there are more  configurations 
+than NCONFIG, DMC will read NCONFIG.  This should either be from a VMC 
+run or a previous DMC run.
+</table>
+
+\subsection optopt Optional
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b> Default </b> 
+     <td> <b>Description</b>
+<tr> <td> STORECONFIG <td> String <td> none <td> Write the configurations and DMC 
+weights to this file every block.  In parallel, each processor will write its configurations to this file with _n appended, where n is the processor number.
+<tr> <td> DYNAMICS <td> Section <td> SPLIT 
+     <td> choose a dynamics generator.  possible options are { SPLIT }, {UNR } Use UNR when you don't have pseudopotentials
+</table>
+
+The following options are advanced, and can be left as they are with no ill effects.
+In other words, don't change these unless you know what you're doing!
+
+<table>
+
+
+<tr> <td> LOW_IO <td> Flag <td> Off <td> Try to limit the amount of I/O, which
+is useful when the run is faster than the I/O, or in the case of writing to
+flaky NFS servers that are so prevalent.  Currently it just turns off writing 
+configurations in intermediate blocks, only writing at the end of the run.
+<tr> <td> FEEDBACK <td> Float <td> 1.0 
+     <td> The strength of the population control.  Set it to roughly 1/n, 
+where n is the number of steps that it should take to return the population
+to the average value.
+<tr> <td> START_FEEDBACK <td> Float <td> 1.0
+     <td> The strength of the population control when reading in from 
+          a checkpoint file.  This is mostly useful for CDMC, where it should
+          be set to 10.
+<tr> <td> FEEDBACK_INTERVAL <td> Integer <td> 5
+     <td> Number of steps to wait before doing population control.
+
+<tr> <td> BRANCH_START_CUTOFF <td> Float <td> 10
+     <td> When a walker's energy is very low, we slow down the accumulation 
+          of weights, eventually cutting it off.  The cutoff starts at 
+          BRANCH_START_CUTOFF*sigma, where sigma is the standard deviation
+          of the local energy.  When doing highly accurate calculations, it's 
+          sometimes the case that eref appears to be biased.  One can increase
+          this value, which should alleviate the problem.
+</table>
+
+
+
+*/

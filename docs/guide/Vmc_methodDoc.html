@@ -1,0 +1,55 @@
+/*! \page Vmc_methodDoc Variational Monte Carlo method
+
+Keyword: VMC
+
+\section description Description
+
+Evaluates the expectation value \f$ <\Psi|H|\Psi>/<\Psi|\Psi> \f$
+stochastically.
+
+
+\section options Options
+
+\subsection reqopt Required 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
+<tr> <td> NCONFIG  <td> Integer <td> Number of sample points to use at one time
+<tr> <td> NSTEP <td> Integer <td>  Number of average points to take in a block.
+<tr> <td> NBLOCK <td> Integer <td>  Number of blocks to take
+<tr> <td> TIMESTEP <td> Float <td>  A measure of how large each Metropolis move
+should be.  Adjust such that the acceptance ratio is somewhat greater than
+0.5
+</table>
+
+\subsection optopt Optional
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b> Default </b> 
+     <td> <b>Description</b>
+<tr> <td> NDECORR   <td> Integer <td> 2 
+     <td>  Number of Metropolis steps to take before evaluating the energy.
+           Since VMC steps don't require an energy evaluation, this serves
+           to decorrelate the averaging points before doing an expensive
+           evaluation of the energy(mostly pseudopotentials).
+
+<tr> <td> STORECONFIG <td> String <td> none <td> Write the configurations to 
+this file every block.  In parallel, each processor will write its configurations to this file with _n appended, where n is the processor number.
+<tr> <td> READCONFIG <td> String <td> none <td> Read from a configuration file
+previously written by STORECONFIG.  If there are more or less configurations 
+than NCONFIG, new configurations will be generated or old ones left out to
+make the number exactly NCONFIG.
+<tr> <td> GUIDETYPE <td> String <td> SUMSQUARES 
+     <td> Possible options: SUMSQUARES(\f$ \Psi_T^2 = \Psi_1^2+\Psi_2^2 \f$), 
+      SUM(\f$ (\Psi_1 + \Psi_2)^2 \f$), FIRST(\f$ \Psi_T = \Psi_1 \f$). Specify
+the importance-sampling function. This will importance-sample <b> only</b>
+with respect to wave functions defined in the TRIALFUNC section.  Ones
+defined in AUX_WF/AUX_SYS will not be used, since they are auxillary, not
+guiding functions.
+<tr> <td> DYNAMICS <td> Section <td> SPLIT 
+     <td> Control the pseudo-dynamics of the sampling.  Insert a 
+          \ref DynamicsDoc section here.
+</table>
+
+
+*/

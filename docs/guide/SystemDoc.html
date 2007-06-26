@@ -1,0 +1,54 @@
+/*! \page SystemDoc System
+
+Keyword: MOLECULE or PERIODIC
+
+\section description Description
+
+Here we specify the Hamiltonian of the calculation, which includes 
+the atomic coordinates and the boundary conditions.  Since there's a 
+lot of overlap between the choices, we'll list the options together, with 
+a note on the differences.
+
+\section options Options
+
+\subsection reqopt Required 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
+<tr> <td> NSPIN  <td> Section <td> Two integers, the first the number of spin u
+electrons and the second the number of spin down.
+
+<tr> <td> ATOM   <td >Section <td>   Add an atom to the system.  The format of
+the section is { [label]  [charge] COOR x y z }.  For example, a Lithium atom 
+with atomic charge 3 at (.5, 0, -.5) would be ATOM { Li 3 COOR .5 0 -.5 }.
+
+<tr> <td> LATTICEVEC <td> Section <td> (only for PERIODIC) Enforce the 
+periodic boundary conditions as a parallelpiped, with three vectors specifying
+the edges.  For example, a cubic cell with sides 1.0 a.u. is: <br>
+LATTICEVEC { <br>
+1.0 0.0 0.0 <br>
+0.0 1.0 0.0 <br>
+0.0 0.0 1.0 <br>
+}
+</table>
+
+\subsection optopt Optional
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b> Default </b> 
+     <td> <b>Description</b>
+
+<tr> <td> CUTOFF_DIVIDER <td> Float <td> 1.0 
+      <td> Only in PERIODIC.  Control how many unit cells to generate ghost 
+          centers around the simulation cell.  1 is one unit cell, 2 is one 
+          half a unit cell, and .5 is 2 unit cells.
+<tr> <td> BOUNDING_BOX  <td> Section <td> None 
+     <td> Only in MOLECULE.  Enforce periodic boundary conditions without using
+          the Ewald summation or ghost atoms.  The format is the same as LATTICEVEC.
+<tr> <td> ORIGIN        <td> Section <td> { 0 0 0 } 
+     <td> Change the origin of the periodic boundary conditions(in BOUNDING_BOX or LATVEC)
+
+</table>
+
+
+*/

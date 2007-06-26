@@ -1,0 +1,13 @@
+
+MY_SOURCES:= \
+	Properties.cpp \
+        Properties_point.cpp \
+        Properties_average.cpp \
+        Properties_gather.cpp \
+        Properties_block.cpp \
+	Space_warper.cpp 
+
+
+SOURCES:= $(SOURCES) $(addprefix properties/,$(MY_SOURCES))
+
+

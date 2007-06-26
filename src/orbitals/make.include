@@ -1,0 +1,12 @@
+
+MY_SOURCES:= Center_set.cpp \
+	MO_1d.cpp \
+	MO_matrix_blas.cpp \
+	MO_matrix.cpp \
+	MO_matrix_cutoff.cpp \
+	MO_matrix_standard.cpp 
+
+
+SOURCES:= $(SOURCES) $(addprefix orbitals/,$(MY_SOURCES))
+
+

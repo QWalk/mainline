@@ -1,0 +1,67 @@
+/*! \page WavefunctionDoc Wavefunction
+
+\section description Description
+
+A wavefunction is a function of all the electronic and ionic coordinates
+(the many-body wavefunction).  With this section, we can build a trial function.
+
+\section plugins Plugins
+
+\ref Slat_JastrowDoc
+
+\ref Slat_wfDoc
+
+\ref Pfaff_wfDoc
+
+\ref Jastrow2_wfDoc
+
+
+
+*/
+
+//######################################################################
+
+/*! \page Slat_JastrowDoc Slater-Jastrow
+
+Keyword: SLATER-JASTROW or MULTIPLY
+
+\section description Description
+
+Multiply two wave functions
+
+\section options Options
+
+\subsection reqopt Required 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
+<tr> <td> WF1  <td> Section <td> a \ref WavefunctionDoc section 
+<tr> <td> WF2  <td> Section <td> a \ref WavefunctionDoc section
+</table>
+
+*/
+
+
+//######################################################################
+
+/*! \page Cat_wfDoc Concatenate Wavefunction
+
+Keyword: CONCATENATE
+
+\section description Description
+
+Append wavefunctions into a vector
+
+\section options Options
+
+\subsection reqopt Required 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
+<tr> <td> WF  <td> Section <td> a \ref WavefunctionDoc section 
+<tr> <td> ORDER  <td> Section <td> choose the ordering of the wave functions.  
+For example, ORDER { 0 0 1 } puts the first function twice and the second one 
+in the third slot.  This is for matching multiplications, for example.
+</table>
+
+*/

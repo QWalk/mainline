@@ -1,0 +1,1423 @@
+/*
+ 
+Copyright (C) 2007 Burkhard Militzer
+ with modifications by Lucas K. Wagner
+ and extensions to Pfaffian algebra by Michal Bajdich
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along
+with this program; if not, write to the Free Software Foundation, Inc.,
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ 
+*/
+//--------------------------------------------------------------------------
+// src/MatrixAlgebrac.cpp
+//
+//
+// Matrix operations
+//
+// Burkhard Militzer                                    Urbana 4-1-99
+//
+#include <math.h>
+#include "Array.h"
+#include "Qmc_std.h"
+#include "MatrixAlgebra.h"
+
+const doublevar TINY=1.0e-20;
+
+Array2 <doublevar> tmp2;
+Array1 <doublevar> tmp11,tmp12;
+Array1 <int> itmp1;
+
+// LU decomposition of matrix a, which is overwritten
+//Modified to return 1 if successful, 0 if not.
+int ludcmp(Array2 <doublevar> & a, const int n, Array1 <int> & indx, doublevar & d)
+{
+  //	cout << "ludcmp" << endl;
+  Array1 <doublevar>& vv(tmp11);
+  vv.Resize(n);
+
+  //cout << "start " << endl;
+  d=1.0;
+  for (int i=0;i<n;++i)
+  {
+    doublevar big=0.0;
+    for (int j=0;j<n;++j)
+    {
+      //doublevar temp;
+      //if ((temp=fabs(a(i,j))) > big) big=temp;
+      doublevar temp=fabs(a(i,j));
+      if(temp>big)
+        big=temp;
+    }
+    if (big == 0.0)
+      return 0;//error("Singular matrix in routine ludcmp");
+    vv[i]=1.0/big;
+  }
+
+  //cout << "middle " << endl;
+  for (int j=0;j<n;++j)
+  {
+    int imax;
+    //cout << "j " << j << endl;
+    for (int i=0;i<j;++i)
+    {
+      //cout << "1i " << i << endl;
+      doublevar sum=a(i,j);
+      for (int k=0;k<i;++k)
+      {
+        sum -= a(i,k)*a(k,j);
+      }
+      a(i,j)=sum;
+    }
+    //cout << "imax " << imax << endl;
+    doublevar big(0.0);
+    for (int i=j;i<n;++i)
+    {
+      //cout << " i " << i << endl;
+      doublevar sum=a(i,j);
+      for (int k=0;k<j;++k)
+        sum -= a(i,k)*a(k,j);
+      a(i,j)=sum;
+      //doublevar dum;
+      //cout << "dum part " << endl;
+      //if ( (dum=vv[i]*fabs(sum)) >= big) {
+      doublevar dum=vv[i]*fabs(sum);
+      if(dum >=big)
+      {
+        big=dum;
+        imax=i;
+      }
+    }
+    //cout << "3 " << endl;
+    if (j != imax)
+    {
+      for (int k=0;k<n;++k)
+      {
+        doublevar dum(a(imax,k));
+        a(imax,k)=a(j,k);
+        a(j,k)=dum;
+      }
+      d = -d;
+      vv[imax]=vv[j];
+    }
+    indx[j]=imax;
+    if (a(j,j) == 0.0)
+    {
+      a(j,j)=TINY;
+      //Write(n);
+      for (int q=0;q<n;++q)
+        for (int qq=0;qq<n;++qq)
+          //Write3(q,qq,a(q,qq));
+          //error("Singular matrix in routine ludcmp II.");
+          return 0;
+    }
+    //cout << "5 " << endl;
+    if (j != n-1)
+    {
+      doublevar dum=1.0/(a(j,j));
+      for (int i=j+1;i<n;++i)
+        a(i,j) *= dum;
+    }
+  }
+  return 1;
+}
+
+void lubksb(Array2 <doublevar> & a, int n, Array1 <int> & indx, Array1 <doublevar> & b)
+{
+  int ii(-1);
+  for (int i=0;i<n;++i)
+  {
+    int ip=indx[i];
+    doublevar sum(b[ip]);
+    b[ip]=b[i];
+    if (ii>=0)
+      for (int j=ii;j<i;++j)
+        sum -= a(i,j)*b[j];
+    else
+      if (sum!=0.0)
+        ii=i;
+    b[i]=sum;
+  }
+
+  for (int i=n-1;i>=0;--i)
+  {
+    doublevar sum(b[i]);
+    for (int j=i+1;j<n;++j)
+      sum -= a(i,j)*b[j];
+    b[i]=sum/a(i,i);
+  }
+}
+
+// Invert matrix a, but do not change a
+// Inverse in a1
+void InvertMatrix(const Array2 <doublevar> & a, Array2 <doublevar> & a1, const int n)
+{
+  Array2 <doublevar>& temp(tmp2);
+  temp.Resize(n,n);
+  Array1 <int>& indx(itmp1);
+  indx.Resize(n);
+  doublevar d;
+
+  // a(i,j) first index i is row index (convention)
+  // elements of column vectors are stored contiguous in memory in C style arrays
+  // a(i) refers to a column vector
+
+  // calculate the inverse of the transposed matrix because this
+  // allows to pass a column vector to lubksb() instead of a row
+
+  // put the transposed matrix in temp
+  for(int i=0;i<n;++i)
+  {
+    for(int j=0;j<n;++j)
+    {
+      temp(i,j)=a(j,i);
+      a1(i,j)=0.0;
+    }
+    a1(i,i)=1.0;
+  }
+
+  if(!ludcmp(temp,n,indx,d)) error("singular matrix in inversion");
+
+  for(int j=0;j<n;++j)
+  {
+    // get column vector
+    Array1 <doublevar> yy;//(a1(j));
+    yy.refer(a1(j));
+    lubksb(temp,n,indx,yy);
+  }
+}
+
+
+int InvertPfaffianMatrix(const Array2 <doublevar> & a, Array2 <doublevar> & a1, const int n)
+{
+  Array2 <doublevar>& temp(tmp2);
+  temp.Resize(n,n);
+  Array1 <int>& indx(itmp1);
+  indx.Resize(n);
+  doublevar d;
+
+  // a(i,j) first index i is row index (convention)
+  // elements of column vectors are stored contiguous in memory in C style arrays
+  // a(i) refers to a column vector
+
+  // calculate the inverse of the transposed matrix because this
+  // allows to pass a column vector to lubksb() instead of a row
+
+  // put the transposed matrix in temp
+  for(int i=0;i<n;++i)
+  {
+    for(int j=0;j<n;++j)
+    {
+      temp(i,j)=a(j,i);
+      a1(i,j)=0.0;
+    }
+    a1(i,i)=1.0;
+  }
+
+  if(!ludcmp(temp,n,indx,d)) {
+    cout <<"ERROR: singular matrix in inversion\n";
+    return 0;
+  }
+
+  for(int j=0;j<n;++j)
+  {
+    // get column vector
+    Array1 <doublevar> yy;//(a1(j));
+    yy.refer(a1(j));
+    lubksb(temp,n,indx,yy);
+  }
+  return 1;
+}
+
+
+
+// Calculate the transpose inverse of matrix a
+// and return the determinant
+doublevar TransposeInverseMatrix(const Array2 <doublevar> & a, Array2 <doublevar> & a1, const int n)
+{
+  Array2 <doublevar> &temp(tmp2);
+  temp.Resize(n,n);
+  Array1 <int>& indx(itmp1);
+  indx.Resize(n);
+  doublevar d;
+
+  // a(i,j) first index i is row index (convention)
+  // elements of column vectors are stored contiguous in memory in C style arrays
+  // a(i) refers to a column vector
+
+  // calculate the inverse of the transposed matrix because this
+  // allows to pass a column vector to lubksb() instead of a row
+
+  // put the transposed matrix in temp
+  //cout << "temp " << endl;
+  for(int i=0;i<n;++i)
+  {
+    for(int j=0;j<n;++j)
+    {
+      temp(i,j)=a(i,j);
+      a1(i,j)=0.0;
+    }
+    a1(i,i)=1.0;
+  }
+
+  //cout << "ludcmp" << endl;
+  //if the matrix is singular, the determinant is zero.
+  if(ludcmp(temp,n,indx,d)==0)
+    return 0;
+
+  //cout << "lubksb" << endl;
+
+  for(int j=0;j<n;++j)
+  {
+    // get column vector
+    Array1 <doublevar> yy;//(a1(j));
+    yy.refer(a1(j));
+    lubksb(temp,n,indx,yy);
+  }
+
+  //cout << "determinant" << endl;
+  // return the determinante as well
+  for(int j=0;j<n;++j)
+  {
+    d *= temp(j,j);
+  }
+  return d;
+}
+
+// Return det|a| and leave matrix a constant
+doublevar Determinant(const Array2 <doublevar> & a, const int n)
+{
+  Array2 <doublevar>& temp(tmp2);
+  temp.Resize(n,n);
+  Array1 <int>& indx(itmp1);
+  indx.Resize(n);
+  doublevar d;
+
+  // a(i,j) first index i is row index (convention)
+  // elements of column vectors are stored contiguous in memory in C style arrays
+  // a(i) refers to a column vector
+
+  // calculate the inverse of the transposed matrix because this
+  // allows to pass a column vector to lubksb() instead of a row
+
+  // put the transposed matrix in temp
+  for(int i=0;i<n;++i)
+  {
+    for(int j=0;j<n;++j)
+    {
+      temp(i,j)=a(i,j);
+    }
+  }
+
+  ludcmp(temp,n,indx,d);
+
+  for(int j=0;j<n;++j)
+  {
+    d *= temp(j,j);
+  }
+  return d;
+}
+
+
+// Return det|a| and leave matrix a constant(complex version)
+dcomplex Determinant(const Array2 <dcomplex> & a, const int n)
+{
+  Array2 <dcomplex> temp(n,n);
+  temp.Resize(n,n);
+  Array1 <int>& indx(itmp1);
+  indx.Resize(n);
+  dcomplex d;
+
+  // a(i,j) first index i is row index (convention)
+  // elements of column vectors are stored contiguous in memory in C style arrays
+  // a(i) refers to a column vector
+
+  // calculate the inverse of the transposed matrix because this
+  // allows to pass a column vector to lubksb() instead of a row
+
+  // put the transposed matrix in temp
+  for(int i=0;i<n;++i)
+  {
+    for(int j=0;j<n;++j)
+    {
+      temp(i,j)=a(i,j);
+    }
+  }
+
+  doublevar det_sign;
+  ludcmp(temp,n,indx,det_sign);
+
+  d=det_sign;
+  for(int j=0;j<n;++j)
+  {
+    d *= temp(j,j);
+  }
+  return d;
+}
+
+
+// transpose matrix a
+void TransposeMatrix(Array2 <doublevar> & a, const int n)
+{
+  for(int i=0;i<n;++i)
+  {
+    for(int j=i+1;j<n;++j)
+    {
+      doublevar & r(a(i,j));
+      doublevar & rt(a(j,i));
+      doublevar x=r;
+      r=rt;
+      rt=x;
+    }
+  }
+}
+
+// multiply c=a*b
+void MultiplyMatrices(const Array2 <doublevar> & a, const Array2 <doublevar> & b,
+                      Array2 <doublevar> & c, int n)
+{
+  for(int i=0;i<n;++i)
+  {
+    for(int j=0;j<n;++j)
+    {
+      doublevar & cc(c(i,j));
+      cc=0.0;
+      for(int k=0;k<n;++k)
+      {
+        cc +=a(i,k)*b(k,j);
+      }
+    }
+  }
+}
+
+//////////////////////// Update Inverse /////////////////////
+
+
+// Update inverse a1 after row in matrix a has changed
+// get new row  out of matrix a
+//
+// a1 = old inverse
+// a  = new matrix with new row lRow
+// returns Det(a_old)/Det(a_new)
+doublevar InverseUpdateRow(Array2 <doublevar> & a1, const Array2 <doublevar> & a,
+                           const int lRow, const int n)
+{
+  Array1 <doublevar> & tmpColL(tmp11);
+  tmpColL.Resize(n);
+  Array1 <doublevar> & prod(tmp12);
+  prod.Resize(n);
+
+  doublevar f=0.0;
+  for(int i=0;i<n;++i)
+  {
+    f += a(lRow,i)*a1(i,lRow);
+  }
+  f =-1.0/f;
+
+  for(int j=0;j<n;++j)
+  {
+    prod[j]   =0.0;
+    tmpColL[j]=a1(j,lRow);
+    for(int i=0;i<n;++i)
+    {
+      prod[j] += a(lRow,i)*a1(i,j);
+    }
+    prod[j] *= f;
+  }
+
+  for(int ii=0;ii<n;++ii)
+  {
+    doublevar & t(tmpColL[ii]);
+    for(int j=0;j<n;++j)
+    {
+      a1(ii,j) += t*prod[j];
+    }
+  }
+
+  f = -f;
+  for(int i=0;i<n;++i)
+  {
+    a1(i,lRow) = f*tmpColL[i];
+  }
+  return f;
+}
+
+// Update inverse a1 after row in matrix a has changed
+// get new row out of array1 newRow
+//
+// a1 = old inverse
+// newRow  = new row lRow in new matrix a_new
+// returns Det(a_old)/Det(a_new)
+doublevar InverseUpdateRow(Array2 <doublevar> & a1, const Array1 <doublevar> & newRow,
+                           const int lRow, const int n)
+{
+  Array1 <doublevar> & tmpColL(tmp11);
+  tmpColL.Resize(n);
+  Array1 <doublevar> & prod(tmp12);
+  prod.Resize(n);
+
+  doublevar f=0.0;
+  for(int i=0;i<n;++i)
+  {
+    f += newRow[i]*a1(i,lRow);
+  }
+  f =-1.0/f;
+
+  for(int j=0;j<n;++j)
+  {
+    prod[j]   =0.0;
+    tmpColL[j]=a1(j,lRow);
+    for(int i=0;i<n;++i)
+    {
+      prod[j] += newRow[i]*a1(i,j);
+    }
+    prod[j] *= f;
+  }
+
+  for(int i=0;i<n;++i)
+  {
+    doublevar & t(tmpColL[i]);
+    for(int j=0;j<n;++j)
+    {
+      a1(i,j) += t*prod[j];
+    }
+  }
+
+  f = -f;
+  for(int i=0;i<n;++i)
+  {
+    a1(i,lRow) = f*tmpColL[i];
+  }
+  return f;
+}
+
+
+// Update inverse a1 after column in matrix a has changed
+// get new column out of matrix a
+//
+// a1= old inverse
+// a = new matrix with new column lCol
+// returns Det(a_old)/Det(a_new)
+doublevar InverseUpdateColumn(Array2 <doublevar> & a1, const Array2 <doublevar> & a,
+                              const int lCol, const int n)
+{
+  Array1 <doublevar> & tmpColL(tmp11);
+  tmpColL.Resize(n);
+  Array1 <doublevar> & prod(tmp12);
+  prod.Resize(n);
+
+  doublevar f=0.0;
+  for(int i=0;i<n;++i)
+  {
+    f += a1(lCol,i)*a(i,lCol);
+  }
+  f =-1.0/f;
+
+  for(int j=0;j<n;++j)
+  {
+    tmpColL[j]=a1(lCol,j);
+    prod[j]   =0.0;
+    for(int i=0;i<n;++i)
+    {
+      prod[j] += a1(j,i)*a(i,lCol);
+    }
+    prod[j] *= f;
+  }
+
+  for(int i=0;i<n;++i)
+  {
+    doublevar & p(prod[i]);
+    for(int j=0;j<n;++j)
+    {
+      a1(i,j) += tmpColL[j]*p;
+    }
+  }
+
+  f = -f;
+  for(int j=0;j<n;++j)
+  {
+    a1(lCol,j) = f*tmpColL[j];
+  }
+  return f;
+}
+
+// Update inverse a1 after column in matrix a has changed
+// get new column out of array1 newCol
+//
+// a1= old inverse
+// newCol = new column lCol in the new matrix a_new
+// returns Det(a_old)/Det(a_new)
+doublevar InverseUpdateColumn(Array2 <doublevar> & a1, const Array1 <doublevar> & newCol,
+                              const int lCol, const int n)
+{
+  Array1 <doublevar> & tmpColL(tmp11);
+  tmpColL.Resize(n);
+  Array1 <doublevar> & prod(tmp12);
+  prod.Resize(n);
+
+  doublevar f=0.0;
+
+#ifdef USE_BLAS
+  int a1size=a1.GetDim(1);
+
+  doublevar * a1col=a1.v+lCol*a1size;
+
+  f=cblas_ddot(n,a1col, 1, newCol.v, 1);
+  f=-1.0/f;
+
+  cblas_dcopy(n,a1col,1,tmpColL.v,1);
+  
+  cblas_dgemv(CblasRowMajor,CblasNoTrans,n,n,
+              1.0,a1.v,a1size,
+              newCol.v,1,
+              0.0,prod.v,1);
+
+  cblas_dscal(n,f,prod.v,1);
+
+  cblas_dger(CblasRowMajor, n,n,1.0,
+             prod.v,1,
+             tmpColL.v,1,
+             a1.v,a1size);
+  f=-f;
+  cblas_dcopy(n,tmpColL.v,1,a1col,1);
+  cblas_dscal(n,f,a1col,1);
+
+#else 
+
+  for(int i=0;i<n;++i)
+  {
+    f += a1(lCol,i)*newCol[i];
+  }
+  f =-1.0/f;
+
+  for(int j=0;j<n;++j)
+  {
+    tmpColL[j]=a1(lCol,j);
+    prod[j]   =0.0;
+    for(int i=0;i<n;++i)
+    {
+      prod[j] += a1(j,i)*newCol[i];
+    }
+    prod[j] *= f;
+  }
+
+  for(int i=0;i<n;++i)
+  {
+    doublevar & p(prod[i]);
+    for(int j=0;j<n;++j)
+    {
+      a1(i,j) += tmpColL[j]*p;
+    }
+  }
+
+  f = -f;
+  for(int j=0;j<n;++j)
+  {
+    a1(lCol,j) = f*tmpColL[j];
+  }
+
+#endif
+
+  return f;
+}
+
+///////////////// Update Transpose Inverse /////////////////////
+
+
+// Update transpose inverse a1 after row in matrix a has changed
+// get new row out of matrix a
+// (This is actually the modified routine InverseUpdateColumn)
+//
+// a1= old inverse
+// a = new matrix with new column lCol
+// returns Det(a_old)/Det(a_new)
+doublevar TransposeInverseUpdateRow(Array2 <doublevar> & a1, const Array2 <doublevar> & a,
+                                    const int lCol, const int n)
+{
+  Array1 <doublevar> & tmpColL(tmp11);
+  tmpColL.Resize(n);
+  Array1 <doublevar> & prod(tmp12);
+  prod.Resize(n);
+
+  doublevar f=0.0;
+  for(int i=0;i<n;++i)
+  {
+    f += a1(lCol,i)*a(lCol,i);
+  }
+  f =-1.0/f;
+
+  for(int j=0;j<n;++j)
+  {
+    tmpColL[j]=a1(lCol,j);
+    prod[j]   =0.0;
+    for(int i=0;i<n;++i)
+    {
+      prod[j] += a1(j,i)*a(lCol,i);
+    }
+    prod[j] *= f;
+  }
+
+  for(int i=0;i<n;++i)
+  {
+    doublevar & p(prod[i]);
+    for(int j=0;j<n;++j)
+    {
+      a1(i,j) += tmpColL[j]*p;
+    }
+  }
+
+  f = -f;
+  for(int j=0;j<n;++j)
+  {
+    a1(lCol,j) = f*tmpColL[j];
+  }
+  return f;
+}
+
+// Update inverse a1 after column in matrix a has changed
+// get new column out of matrix a
+// (This is actually the modified routine InverseUpdateRow)
+//
+// a1 = old inverse
+// a  = new matrix with new row lRow
+// returns Det(a_old)/Det(a_new)
+doublevar TransposeInverseUpdateColumn(Array2 <doublevar> & a1, const Array2 <doublevar> & a,
+                                       const int lRow, const int n)
+{
+  Array1 <doublevar> & tmpColL(tmp11);
+  tmpColL.Resize(n);
+  Array1 <doublevar> & prod(tmp12);
+  prod.Resize(n);
+
+  doublevar f=0.0;
+  for(int i=0;i<n;++i)
+  {
+    f += a(i,lRow)*a1(i,lRow);
+  }
+  f =-1.0/f;
+
+  for(int j=0;j<n;++j)
+  {
+    prod[j]   =0.0;
+    tmpColL[j]=a1(j,lRow);
+    for(int i=0;i<n;++i)
+    {
+      prod[j] += a(i,lRow)*a1(i,j);
+    }
+    prod[j] *= f;
+  }
+
+  for(int i=0;i<n;++i)
+  {
+    doublevar & t(tmpColL[i]);
+    for(int j=0;j<n;++j)
+    {
+      a1(i,j) += t*prod[j];
+    }
+  }
+
+  f = -f;
+  for(int i=0;i<n;++i)
+  {
+    a1(i,lRow) = f*tmpColL[i];
+  }
+  return f;
+}
+/*
+doublevar ulec() {
+  static long int is1=12345;
+  static long int is2=56789;
+  long int k,iz;
+  k=is1/53668;
+  is1=is1-k*53668;
+  is1=40014*is1-k*12211;
+  if (is1<0) is1 +=2147483563;
+  k=is2/52774;
+  is2=is2-k*52774;
+  is2=40692*is2-k*3791;
+  if (is2<0) is2 +=2147483399;
+  iz=is1-is2;
+  if (iz<0) iz +=2147483562;
+  return (4.656613057e-10*iz);
+}
+*/
+//--------------------------------------------------------------------------
+
+
+doublevar Pfaffian_nopivot(const Array2 <doublevar> & in){
+  //  calculate the pfaffian of skew-symmetric matrix
+  //  no pivoting
+  assert(in.dim[0]==in.dim[1]);
+  if (in.dim[0]%2!=0) return 0.0;
+  int n=in.dim[0]/2;
+  Array2 <doublevar> tmp(2*n,2*n);
+  doublevar PF=1.0;
+  doublevar fac;
+  for (int i=0;i<2*n;i=i++)
+    for (int l=0;l<2*n;l++)
+      tmp(i,l)=in(i,l);
+ 
+  
+  for (int i=0;i<2*n;i=i+2){
+    for (int j=i+2;j<2*n;j++){
+      fac=-tmp(i,j)/tmp(i,i+1);
+      for (int k=i+1;k<2*n;k++){
+        tmp(k,j)=tmp(k,j)+fac*tmp(k,i+1);
+        tmp(j,k)=tmp(j,k)+fac*tmp(i+1,k);
+      }
+    }
+    PF=PF*tmp(i,i+1);
+  }
+  return PF;
+}
+
+
+
+int RowPivoting(Array2 <doublevar> & tmp, int i, int n){
+  doublevar big;
+  doublevar temp;
+  doublevar TINY=1e-20;
+  Array1 <doublevar> backup(2*n) ;
+  int d=1;
+  int k=0;
+  big=0.0;
+  for (int j=i+1;j<2*n;j++){
+    temp=fabs(tmp(i,j));
+    if(temp > big){
+      big=temp;
+      k=j;
+      // cout <<"found one";
+    }
+  }
+  if (big<TINY){
+    cout <<"Singular row in matrix!!! "<<endl;
+    tmp(i,i+1)=TINY;
+  }
+  
+  // cout <<"row: "<<i+1<<"   element: "<<k+1<<"    value: "<<big<<endl;
+  
+  if (k!=i+1){
+    //exchange k-th column with 2-nd column;
+     for (int j=i;j<2*n;j++){
+       backup(j)=tmp(j,i+1);
+       tmp(j,i+1)=tmp(j,k);
+       tmp(j,k)=backup(j);
+     }
+     //exchange k-th row with 2-nd row;
+     for (int j=i;j<2*n;j++){
+       backup(j)=tmp(i+1,j);
+       tmp(i+1,j)=tmp(k,j);
+       tmp(k,j)=backup(j);
+     }
+     
+     d*=-1; //sign change of pfaffian
+  }
+  return d;
+}
+
+
+doublevar Pfaffian_partialpivot(const Array2 <doublevar> & in){
+  //cout << "Pfaffian_partialpivot start"<<endl;
+  //  calculate the pfaffian of skew-symmetric matrix
+  //  partial pivoting
+  assert(in.dim[0]==in.dim[1]);
+  if (in.dim[0]%2!=0) return 0.0;
+  int n=in.dim[0]/2;
+  Array2 <doublevar> tmp(2*n,2*n);
+  doublevar PF=1.0;
+  doublevar fac;
+  for (int i=0;i<2*n;i++)
+    for (int l=0;l<2*n;l++)
+      tmp(i,l)=in(i,l);
+
+  
+  
+ 
+  int d=1;
+  for (int i=0;i<2*n;i=i+2){
+    //for given row look for pivoting element
+    //exchange if needed
+    d*=RowPivoting(tmp, i, n);
+    // printout_matrix(tmp);
+
+    for (int j=i+2;j<2*n;j++){
+      fac=-tmp(i,j)/tmp(i,i+1);
+      for (int k=i+1;k<2*n;k++){
+        tmp(k,j)=tmp(k,j)+fac*tmp(k,i+1);
+        tmp(j,k)=tmp(j,k)+fac*tmp(i+1,k);
+      }
+    }
+    PF=PF*tmp(i,i+1);
+  }
+  //cout << "Pfaffian_partialpivot end"<<endl;
+  return PF*d;
+  
+}
+
+doublevar UpdateInversePfaffianMatrix(Array2 <doublevar> & in, 
+                                      Array1 <doublevar> & row, 
+                                      Array1 <doublevar> & column, 
+                                      int e)
+{
+  //update row and collum of skew-symmetric inverse matrix
+  assert(in.dim[0]==in.dim[1]);
+  int n=in.dim[0]/2;
+
+  assert(e<=2*n);
+
+  for (int i=0;i<2*n;i++){
+    column(i)=0.0;
+    for (int j=0;j<2*n;j++)
+      column(i)+=row(j)*in(j,i);
+  }
+
+  //to avoid the catastrophe in later division
+  if (column(e)==0)
+    column(e)=1e-20;
+
+  for(int i=0;i<2*n;i++){
+    if (i==e){
+      in(i,i)=0.0;
+    }
+    else {
+      in(e,i)=+in(e,i)/column(e);
+      in(i,e)=-in(e,i);
+    }
+  }
+
+  for(int j=0;j<2*n;j++){
+    if (j!=e){
+      for (int k=0;k<2*n;k++){
+        if (k==j) {
+          in(k,k)=0.0;
+        }
+        else {
+          in(k,j)-=column(j)*in(k,e);
+          in(j,k)=-in(k,j);
+        }
+      }
+    }
+  }
+
+  /*
+  for (int i=0;i<2*n;i++){
+    for (int j=0;j<2*n;j++)
+      cout << in(i,j)<< " ";
+    cout <<endl;
+  }
+  */
+  return  column(e);
+}
+
+doublevar GetUpdatedPfaffianValue(Array2 <doublevar> & in, 
+                                      Array1 <doublevar> & row, 
+                                      int e)
+{
+  //update row and collum of skew-symmetric inverse matrix
+  assert(in.dim[0]==in.dim[1]);
+  int n=in.dim[0]/2;
+
+  assert(e<=2*n);
+
+  doublevar new_val_tmp=0.0;
+  for (int j=0;j<2*n;j++)
+      new_val_tmp+=row(j)*in(j,e);
+  
+
+  return  new_val_tmp;
+}
+
+
+/*
+doublevar UpdateInversePfaffianMatrix(Array2 <doublevar> & in, 
+                                      Array1 <doublevar> & row, 
+                                      Array1 <doublevar> & column, 
+                                      int ii)
+{
+  //update row and collum of skew-symmetric matrix
+  assert(in.dim[0]==in.dim[1]);
+  int n=in.dim[0]/2;
+
+  for (int i=0;i<2*n;i++){
+    column(i)=0.0;
+    for (int j=0;j<2*n;j++)
+      column(i)+=row(j)*in(j,i);
+  }
+
+  if (fabs(column(ii))<1e-10) {
+    cout <<"Ratio of pfaffians is essentially zero!!!\n";
+    return 0.0;
+  }
+  else {
+
+    for(int i=0;i<2*n;i++){
+      in(ii,i)=-in(ii,i)/column(ii);
+      in(i,ii)=-in(i,ii)/column(ii);
+    }
+
+    for(int j=0;j<2*n;j++){
+      if (j!=ii){
+        for (int k=0;k<2*n;k++){
+          in(j,k)=in(j,k)+column(j)*in(ii,k);
+          in(k,j)=in(k,j)+column(j)*in(k,ii);
+        }
+      }
+    }
+    return column(ii);
+  }
+}
+*/
+
+
+doublevar PfaffianInverseMatrix(const Array2 <doublevar> & a, Array2 <doublevar> & a1){
+  if(!InvertPfaffianMatrix(a,a1,a.dim[0]))
+    return 0.0;
+  else
+    return  Pfaffian_partialpivot(a);
+}
+
+
+
+//----------------------------------------------------------------------
+
+int ludcmp(Array2 <complex  < doublevar> > & a, const int n, 
+           Array1 <int> & indx, doublevar & d)
+{
+
+  const doublevar TINY=1.0e-20;
+  //	cout << "ludcmp" << endl;
+  Array1 <doublevar> vv(n);
+
+  //cout << "start " << endl;
+  d=1.0;
+  for (int i=0;i<n;++i)
+  {
+    doublevar big=0.0;
+    for (int j=0;j<n;++j)
+    {
+      //doublevar temp;
+      //if ((temp=fabs(a(i,j))) > big) big=temp;
+      doublevar temp=cabs(a(i,j));
+      if(temp>big)
+        big=temp;
+    }
+    if (big == 0.0)
+      return 0;//error("Singular matrix in routine ludcmp");
+    vv[i]=1.0/big;
+  }
+
+  //cout << "middle " << endl;
+  for (int j=0;j<n;++j)
+  {
+    int imax;
+    //cout << "j " << j << endl;
+    for (int i=0;i<j;++i)
+    {
+      //cout << "1i " << i << endl;
+      complex <double>  sum=a(i,j);
+      for (int k=0;k<i;++k)
+      {
+        sum -= a(i,k)*a(k,j);
+      }
+      a(i,j)=sum;
+    }
+    //cout << "imax " << imax << endl;
+    doublevar big(0.0);
+    for (int i=j;i<n;++i)
+    {
+      //cout << " i " << i << endl;
+      complex < double>  sum=a(i,j);
+      for (int k=0;k<j;++k)
+        sum -= a(i,k)*a(k,j);
+      a(i,j)=sum;
+      //doublevar dum;
+      //cout << "dum part " << endl;
+      //if ( (dum=vv[i]*fabs(sum)) >= big) {
+      doublevar dum=vv[i]*cabs(sum);
+      if(dum >=big)
+      {
+        big=dum;
+        imax=i;
+      }
+    }
+    //cout << "3 " << endl;
+    if (j != imax)
+    {
+      for (int k=0;k<n;++k)
+      {
+        complex <double> dum(a(imax,k));
+        a(imax,k)=a(j,k);
+        a(j,k)=dum;
+      }
+      d = -d;
+      vv[imax]=vv[j];
+    }
+    indx[j]=imax;
+    if (a(j,j) == 0.0)
+    {
+      a(j,j)=TINY;
+      //Write(n);
+      for (int q=0;q<n;++q)
+        for (int qq=0;qq<n;++qq)
+          //Write3(q,qq,a(q,qq));
+          //error("Singular matrix in routine ludcmp II.");
+          return 0;
+    }
+    //cout << "5 " << endl;
+    if (j != n-1)
+    {
+      complex < double>  dum=1.0/(a(j,j));
+      for (int i=j+1;i<n;++i)
+        a(i,j) *= dum;
+    }
+  }
+  return 1;
+}
+
+//----------------------------------------------------------------------
+
+void lubksb(Array2 < complex <doublevar> > & a, int n, 
+            Array1 <int> & indx, Array1 <complex <doublevar> > & b) {
+  int ii(-1);
+  for (int i=0;i<n;++i)
+  {
+    int ip=indx[i];
+    complex < doublevar > sum(b[ip]);
+    b[ip]=b[i];
+    if (ii>=0)
+      for (int j=ii;j<i;++j)
+        sum -= a(i,j)*b[j];
+    else
+      if (sum!=0.0)
+        ii=i;
+    b[i]=sum;
+  }
+
+  for (int i=n-1;i>=0;--i)
+  {
+    complex < doublevar > sum(b[i]);
+    for (int j=i+1;j<n;++j)
+      sum -= a(i,j)*b[j];
+    b[i]=sum/a(i,i);
+  }
+}
+
+
+
+//----------------------------------------------------------------------
+
+complex <doublevar> 
+TransposeInverseMatrix(const Array2 < complex <doublevar> > & a, 
+                       Array2 < complex <doublevar> > & a1, 
+                       const int n)
+{
+  Array2 <complex <doublevar> >  temp(n,n);
+  Array1 <int> indx(n);
+  doublevar d;
+
+  // a(i,j) first index i is row index (convention)
+  // elements of column vectors are stored contiguous in memory in C style arrays
+  // a(i) refers to a column vector
+
+  // calculate the inverse of the transposed matrix because this
+  // allows to pass a column vector to lubksb() instead of a row
+
+  // put the transposed matrix in temp
+  //cout << "temp " << endl;
+  for(int i=0;i<n;++i)
+  {
+    for(int j=0;j<n;++j)
+    {
+      temp(i,j)=a(i,j);
+      a1(i,j)=complex <doublevar> (0.0,0.0);
+    }
+    a1(i,i)=complex <doublevar> (1.0,0.0);
+  }
+
+  //cout << "ludcmp" << endl;
+  //if the matrix is singular, the determinant is zero.
+  if(ludcmp(temp,n,indx,d)==0)
+    return 0;
+
+  //cout << "lubksb" << endl;
+
+  for(int j=0;j<n;++j)
+  {
+    // get column vector
+    Array1 <complex <doublevar> > yy;//(a1(j));
+    yy.refer(a1(j));
+    lubksb(temp,n,indx,yy);
+  }
+
+
+  complex <doublevar> det(d,0);
+  for(int j=0;j<n;++j)
+  {
+    det *= temp(j,j);
+  }
+  return det;
+}
+
+//----------------------------------------------------------------------
+// Update inverse a1 after column in matrix a has changed
+// get new column out of array1 newCol
+//
+// a1= old inverse
+// newCol = new column lCol in the new matrix a_new
+// returns Det(a_old)/Det(a_new)
+complex <doublevar> 
+InverseUpdateColumn(Array2 <complex <doublevar> > & a1, 
+                    const Array1 <complex <doublevar> > & newCol,
+                              const int lCol, const int n)
+{
+  Array1 <complex <doublevar> >  tmpColL(n);
+  Array1 <complex <doublevar> >  prod(n);
+
+  complex <doublevar> f=0.0;
+  for(int i=0;i<n;++i)
+  {
+    f += a1(lCol,i)*newCol[i];
+  }
+  f =-1.0/f;
+
+  for(int j=0;j<n;++j)
+  {
+    tmpColL[j]=a1(lCol,j);
+    prod[j]   =0.0;
+    for(int i=0;i<n;++i)
+    {
+      prod[j] += a1(j,i)*newCol[i];
+    }
+    prod[j] *= f;
+  }
+
+  for(int i=0;i<n;++i)
+  {
+    complex <doublevar> & p(prod[i]);
+    for(int j=0;j<n;++j)
+    {
+      a1(i,j) += tmpColL[j]*p;
+    }
+  }
+
+  f = -f;
+  for(int j=0;j<n;++j)
+  {
+    a1(lCol,j) = f*tmpColL[j];
+  }
+  return f;
+}
+
+
+//----------------------------------------------------------------------
+
+void Jacobi(const Array2 <doublevar > & Ain, Array1 <doublevar> & evals, Array2 <doublevar> & evecs){
+  const int n = Ain.dim[0];
+  Array2 < dcomplex > Ain_complex(n,n);
+  Array2 <dcomplex> evecs_complex(n,n);
+  for (int i=0; i < n; i++)
+    for (int j=0; j < n; j++) {
+      Ain_complex(i,j)=dcomplex(Ain(i,j),0.0);
+    }
+  Jacobi(Ain_complex, evals, evecs_complex);
+   for (int i=0; i < n; i++)
+     for (int j=0; j < n; j++){
+       evecs(i,j)=real(evecs_complex(i,j));
+     }
+}
+
+
+void Jacobi(const Array2 < dcomplex > & Ain, Array1 <doublevar> & evals, Array2 < dcomplex > & evecs)
+{
+  //assert(Ain.nr == Ain.nc);
+  //assert(Ain.hermitian);
+
+  const int n = Ain.dim[0];
+  
+  int p,q;
+  doublevar fabsApq,fabsApp,fabsAqq;
+  doublevar a,c,blen,sitheta;
+  dcomplex b;
+  doublevar t,zeta;
+  doublevar alpha,stau;
+  dcomplex beta,betastar;
+  dcomplex  zp,zq;
+
+  const int MAXSWEEP=100;
+
+  /* local copy to work on */
+  Array2 < dcomplex > A(n,n);
+
+  /* Copy Ain to A */
+  for (int i=0; i < n; i++)
+    for (int j=0; j < n; j++) {
+      A(i,j) = Ain(i,j);
+      //cout <<  A(i,j).imag()<<endl;
+    }
+
+  /* Set evecs to identity */
+  for (int i=0; i < n; i++)
+    for (int j=0; j < n; j++) {
+      if (i==j) evecs(i,j) = 1.0;
+      else evecs(i,j) = 0.0;
+    }
+
+  int sweep;
+  for (sweep=0; sweep < MAXSWEEP; sweep++) {
+    /* S = sum of abs of real and imag of off diag terms */
+    /* maxoffdiag is maximum size of off-diagonal element, and (p,q)
+     * will contain its coordinates in the matrix A */
+    doublevar maxoffdiag = 0.0;
+    doublevar S = 0.0;
+    for (int i=0; i < n; i++)
+      for (int j=i+1; j < n; j++) {
+        const doublevar temp = fabs(real(A(i,j)))+fabs(imag(A(i,j)));
+        S += temp;
+        if (temp >= maxoffdiag) {
+          maxoffdiag = temp;
+          p = i;
+          q = j;
+        }
+      }
+    if (maxoffdiag == 0.0) break;
+    // If we're done to machine precision, go home!
+    fabsApp = fabs(real(A(p,p)))+fabs(imag(A(p,p)));
+    fabsAqq = fabs(real(A(q,q)))+fabs(imag(A(q,q)));
+    if ( (maxoffdiag+fabsApp==fabsApp) && (maxoffdiag+fabsAqq==fabsAqq) )
+      break;
+
+    // set threshold
+    doublevar thresh = 0.0;
+    if (sweep < 5) thresh = 0.4*S/(n*n);
+
+    // Loop over off diagonal terms of A in upper triangle: p < q
+    for (int p=0; p < n; p++)
+      for (int q=p+1; q < n; q++) {
+        // If A(p,q) is too small compared to A(p,p) and A(q,q),
+        // skip the rotation
+        fabsApq = fabs(real(A(p,q)))+fabs(imag(A(p,q)));
+        fabsApp = fabs(real(A(p,p)))+fabs(imag(A(p,p)));
+        fabsAqq = fabs(real(A(q,q)))+fabs(imag(A(q,q)));
+        if ( (fabsApq+fabsApp==fabsApp) && (fabsApq+fabsAqq==fabsAqq) )
+          continue;
+      
+        // If A(p,q) is smaller than the threshold, then also skip
+        // the rotation
+        if (fabsApq <= thresh)
+          continue;
+
+        // the 2x2 matrix we diagonalize is [ [a b] ; [conj(b) a] ]
+        a = real(A(p,p));
+        c = real(A(q,q));
+        b = A(p,q);
+        blen = abs(b);
+        zeta = (c-a)/(2.0*blen);
+
+        // t = sgn(zeta)/(|zeta|+sqrt(zeta^2+1)), but if zeta is too
+        // huge, then we set t = 1/(2*zeta)
+        if ( fabs(zeta)>1.0e200 )
+          t = 1/(2.0*zeta);
+        else {
+          t = 1.0/(fabs(zeta)+sqrt(zeta*zeta+1.0));
+          if (zeta<0.0) t = -t;
+        }
+
+        /* The matrix we use to diagonalize the 2x2 block above is
+         * [ [alpha beta] ; [-conj(beta) alpha] ] 
+         * where alpha is real and positive and alpha = cos(theta)
+         * and beta = sin(theta)*b/|b|.
+         * The angle theta is chosen to diagonalize the 2x2 block.
+         * The relevant formula are sin(theta)=cos(theta)*t and
+         * cos(theta)=1/sqrt(1+t^2).
+         * stau = (1-alpha) cleverly written. */
+        alpha = 1.0/sqrt(t*t+1.0);
+        sitheta = t*alpha;
+        stau = sitheta*sitheta/(1.0+alpha);
+        beta = b*sitheta/blen;
+        betastar = conj(beta);
+
+        /* Now we update the elements of A: */
+        /* This involves chaning the p'th and q'th column of A */
+        for (int i=0; i < n; i++) {
+          if (i==p) {
+            A(i,p) -= blen*t;
+            A(i,q) = 0.0;
+          }
+          else if (i==q) {
+            A(i,p) = 0.0;
+            A(i,q) += blen*t;
+          }
+          else {
+            zp = A(i,p);
+            zq = A(i,q);
+            A(i,p) -= stau*zp + betastar*zq;
+            A(i,q) += beta*zp - stau*zq;
+            A(p,i) = conj(A(i,p));
+            A(q,i) = conj(A(i,q));
+          }
+        }
+        /*
+        for (int i=0; i < n; i++){
+          for (int j=i; j < n; j++) {
+            if(fabs(A(i,j).real())>1e-6)
+              cout <<  A(i,j).real()<<"  ";
+            else 
+              cout <<"0  ";
+          }
+          cout << endl;
+        }
+        */
+
+        /* Now we must update the eigenvector matrix with this
+         * rotation:  evecs <- evecs*P_pq.
+         * Update p'th and q'th column of evecs */
+        for (int i=0; i < n; i++) {
+          zp = evecs(i,p);
+          zq = evecs(i,q);
+          evecs(i,p) = alpha*zp - betastar*zq;
+          evecs(i,q) = beta*zp  + alpha*zq;
+        }
+      } /* (p,q) rotation loop */
+  } /* end of sweep loop */
+    
+  if (sweep == MAXSWEEP) {
+    cout << endl <<"Warning:  Jacobi() needs more than "<<MAXSWEEP <<" sweeps "<<endl;
+  }
+  
+  for (int i=0; i < n; i++) {
+    evals[i] = real(A(i,i));
+    //cout << evals[i]<<endl;
+  }
+
+  // sort eigs and evecs by ascending eigenvalue
+  Array1 <int> list(n); 
+  for (int i=0; i < n; i++) 
+    list[i] = i;
+  
+  for (int i=1; i < n; i++) {
+    const double temp = evals[i];
+    int j;
+    for (j=i-1; j>=0 && evals[j]<temp; j--) {
+      evals[j+1] = evals[j];
+      list[j+1] = list[j];
+    }
+    evals[j+1] = temp;
+    list[j+1] = i;
+  }
+  
+  A = evecs;
+  for (int i=0; i < n; i++)
+    for (int j=0; j < n; j++)
+      evecs(i,j) = A(i,list[j]);
+}
+//----------------------------------------------------------------------

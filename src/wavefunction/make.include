@@ -1,0 +1,18 @@
+
+MY_SOURCES:= \
+	Cslat_wf.cpp \
+	Jastrow2_wf.cpp \
+        Jastrow2_one.cpp \
+        Jastrow2_two.cpp \
+        Jastrow2_three.cpp \
+        Jastrow2_three_diffspin.cpp \
+	Slat_Jastrow.cpp \
+	Slat_Jastrow_data.cpp \
+	Slat_wf_calc.cpp \
+	Slat_wf_data.cpp \
+	Wavefunction.cpp \
+	Wavefunction_data.cpp
+
+
+SOURCES:= $(SOURCES) $(addprefix wavefunction/,$(MY_SOURCES))
+

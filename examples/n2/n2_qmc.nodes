@@ -1,0 +1,20 @@
+METHOD {
+  NODES 
+  #uncomment the following to scan by specified electron  
+  #CONTOURS { 1 5   2 6   5 10 }
+  
+  MINMAX { -4. 4. -4. 4. -5. 5. }
+  
+  RESOLUTION 0.1
+
+  #uncomment the following to read a configuration file
+  #READCONFIG  n2_qmc.config.nodes
+  
+  #uncomment the following to proceed with double scanning with relative traslation of
+  # { x y z } of electron in pair as specified in CONTOURS 
+  #DOUBLEMOVES { 0.0 0.0 0.3  0.0 0.0 0.3 0.0 0.0 0.3 }
+}
+
+INCLUDE n2_qmc.sys  
+TRIALFUNC { INCLUDE n2_qmc.slater }
+

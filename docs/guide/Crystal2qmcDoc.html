@@ -1,0 +1,119 @@
+/*! \page crystal2qmcDoc Crystal to qmc
+
+
+\section description Description
+
+Basic usage:  crystal2qmc -o [outputroot]  [crystal output file] <br>
+Additional options: <br>
+-fort10file [filename]  :  Read from the output created by the 
+readcrys10.f utility and match the orbitals to the one in
+the crystal output file.  These are generally more accurate than the ones
+in the output file. <br>
+
+
+
+\section options Options
+
+\subsection crys98 Crystal98
+
+One needs to put the options: <br>
+<pre>
+COORPRT
+</pre>
+at the end of the geometry section, and <br>
+
+<pre>
+PRINTOUT
+BASISSET
+EIGENVAL
+-1
+EIGENVEC
+-1
+END
+</pre>
+in the third section(the one after the basis set section). 
+
+\subsection crys03 Crystal2003
+
+ For crystal 2003, put <br>
+<pre>
+PRINTOUT
+EIGENVAL
+-1
+EIGENVEC
+-100
+END
+</pre>
+in the third section as above.  To get the correct basis set, use the properties input: <br>
+<pre>
+BASISSET
+0
+END
+</pre>
+and cat the output into the end of the output file.  A script to do this is at the end of this section.
+The -100 under EIGENVEC prints out the first 100 k-points used.  If you end up with more k-points, 
+increase the absolute value of this number.  At least for 2003(and maybe 98), crystal2qmc can find all the
+real k-points and prepare an input file for qwalk at non-zero k-points.  This can reduce the finite
+size error in the kinetic energy significantly if you choose your k-point well(in a cubic supercell, the 
+111 direction minimizes the error, for example).
+
+To use the fort10file option with crystal98 or 2003, one must use NOSYMADA in
+the last section.  This turns off a feature that boosts the speed quite a bit in certain circumstances, but
+mangles the wavefunction in fort.10.  <br>
+</p>
+<p>
+Further considerations:<br>
+Finite size errors are a bit more problematic within QMC, since we do the calculation for only one
+k-point, and there are finite size effects related to the electron correlation hole that (as far as I know)
+aren't as bad in LDA/HF.  See some papers by the group at Cambridge about this(need to add references).
+So, we have to use a supercell, <i>at least </i> 2x2x2.
+</p>
+
+
+\subsection script Script to run crystal2003
+
+Make sure to put the PRINTOUT, etc in the input file..  Also, you may need to change SCRATCH, CRYSTAL, and 
+PROPERTIES to reflect the location of these files/directories on your system.
+<pre>
+#!/bin/bash
+
+
+SCRATCH=/state/partition1/scratch/$USER
+if [ ! -e $SCRATCH ]
+    then
+    #first try to make the scratch directory.
+    mkdir $SCRATCH
+    #if it's still not there, error
+    if [ ! -e $SCRATCH ]
+    then echo "Scratch directory $SCRATCH doesn't exist and I couldn't make it"
+    exit 1;
+    fi
+fi
+
+CRYSTAL=/home/apps/crystal2003/crystal
+PROPERTIES=/home/apps/crystal2003/properties
+CURRDIR=`pwd`
+echo $CURRDIR
+
+inputfile=$(basename $1)
+echo $inputfile
+mkdir $SCRATCH/$inputfile
+cp $1 $SCRATCH/$inputfile/
+
+if [ -e fort.20 ]
+    then cp fort.20 $SCRATCH/$inputfile
+fi
+
+cd $SCRATCH/$inputfile
+
+$CRYSTAL < $inputfile > $CURRDIR/$inputfile.o
+echo "BASISSET" > prop.in
+echo "0" >> prop.in
+echo "END" >> prop.in
+echo "" >> prop.in
+$PROPERTIES < prop.in >> $CURRDIR/$inputfile.o
+cp fort.9 $CURRDIR/$inputfile.9
+cp fort.10 $CURRDIR/$inputfile.10
+rm -Rf $SCRATCH/$inputfile
+</pre>
+*/

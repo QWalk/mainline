@@ -1,0 +1,41 @@
+/*! \page Slat_wfDoc Slater determinant
+
+Keyword: SLATER
+
+\section description Description
+
+A Slater determinant or several determinants.  Also can use the same
+molecular orbitals to create several separate combinations of determinants.
+
+\section options Options
+
+\subsection reqopt Required 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
+<tr> <td> DETWT  <td> Section <td> list of the weights of the determinants 
+<tr> <td> STATES  <td> Section <td> List of the occupations of the molecular orbitals, first
+spin up, then spin down.  For example, a RHF determinant might be <br>
+1 2 3 <br>
+1 2 3 <br>
+and a UHF might be <br>
+1 2 3 <br>
+4 5 6 <br>
+If there are more than one determinant, simply continue listing up and 
+down occupations.<br>  Also, list several STATES functions, and they
+will be added as separate guiding functions. 
+<tr> <td> ORBITALS <td> Section <td> input for a \ref MO_matrixDoc
+</table>
+
+\subsection optopt Optional
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b> Default </b> 
+     <td> <b>Description</b>
+<tr> <td> NSPIN  <td> Section <td> same as in SYSTEM <td>  Override the global parameter.
+<tr> <td> OPTIMIZE_DET <td> Flag <td> off <td> Optimize the determinantal coefficients.  For a single 
+determinant, this does nothing.
+</table>
+
+
+*/

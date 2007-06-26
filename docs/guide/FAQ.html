@@ -1,0 +1,24 @@
+/*! \page FAQ FAQ
+
+\section faq FAQ
+
+\ref faq1
+
+\subsection faq1 How do I choose the timestep?
+<p>
+In VMC, the only concern with the timestep is the time it takes to decorrelate
+each point in the random walk.  There are two competing effects that prevent
+this: 1) if the steps are too small, then the adjoining points are too close
+and 2) if they are too large, then the rejection rate increases, causing a 
+repetition of a point in the walk.  A general rule of thumb is to make the
+acceptance ratio around 0.60, although the ideal number can change from system
+to system.
+</p>
+<p>
+In DMC, the propagator only works in short timesteps, so you should
+choose the time step so that the acceptance ratio is roughly 0.99.  For 
+very accurate calculations, more might be necessary; you may need to do
+several calculations at different time steps to get a feel for the bias.
+</p>
+
+*/

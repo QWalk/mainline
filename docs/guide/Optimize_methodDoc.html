@@ -1,0 +1,64 @@
+/*! \page Optimize_methodDoc Optimize method
+
+Keyword: OPTIMIZE
+
+\section description Description
+
+
+\section options Options
+
+\subsection reqopt Required 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
+<tr> <td> NCONFIG  <td> Integer <td> Number of configurations
+<tr> <td> READCONFIG <td> String <td> Read configurations from a file
+</table>
+
+\subsection optopt Optional
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b> Default </b> 
+     <td> <b>Description</b>
+<tr> <td> ITERATIONS  <td> Float <td> 30 
+     <td>  Number of optimization iterations. 30 is a pretty good default,
+     which should work except in special cases.
+<tr> <td> EREF  <td> Float <td> special <td> A best guess at the optimized energy.  If you don't put this keyword, QWalk will make a good guess at the proper value, which should be good enough unless the system is rather large.
+<tr> <td> PSEUDOTEMP  <td> String <td> runid.pseudo 
+     <td> Choose the filename for the temporary pseudopotential values.  
+Should be on a fast disk with lots of space
+<tr> <td> WFOUTPUT <td> String <td>  runid.wfout 
+     <td> Choose the filename to place an input deck for the final 
+wavefunction and intermediate ones as the optimization
+continues.
+</table>
+
+\subsection expopt Experimental 
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b> Default </b> 
+     <td> <b>Description</b>
+<tr> <td> USE_WEIGHTS  <td> Keyword <td> off 
+     <td> Turn on correlated-sampling type reweighting
+<tr> <td> MIXING  <td> Float <td> 0.95 <td> Mixing weight for energy contribution in mixed minimization
+<tr> <td> EXTENDED_WFOUTPUT <td> Keyword <td>  off 
+     <td> Turn on printout of wavefunction after each step of optimization into a different file
+<tr> <td> MINFUNCTION  <td> String <td>  VARIANCE 
+     <td> Choose the minimization function.  Options are:
+ 
+VARIANCE (default) : \f$ \sum{(E_l - E_{ref})^2} \f$
+ 
+ABSOLUTE : \f$ \sum{ | E_l - E_{ref} | } \f$
+ 
+LORENTZ : \f$ \sum{ log(1+(E_l-E_{ref})^2/2) } \f$
+
+ENERGY : \f$ \frac{1}{N} \sum { E_l }  \f$
+
+MIXED : \f$ mixing \frac{1}{N} \sum { E_l } + (1-mixing) \sum{(E_l - E_{ref})^2}  \f$
+
+For an energy minimization, it's advisable to also use USE_WEIGHTS, since
+it's usually unstable otherwise.
+</table>
+
+
+
+*/

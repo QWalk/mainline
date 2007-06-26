@@ -1,0 +1,10 @@
+
+MY_SOURCES:= \
+	     macopt.cpp \
+	     nrutil.cpp \
+	     r.cpp 
+
+
+SOURCES:= $(SOURCES) $(addprefix macopt/,$(MY_SOURCES))
+
+

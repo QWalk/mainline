@@ -1,0 +1,293 @@
+/*! \page Tutorial Tutorial
+
+
+\ref compiling
+
+\ref ch4
+
+\ref excited_state
+
+\ref force
+
+\ref densities
+
+\section compiling Compiling
+
+For a basic compile, with no parallel libraries and no special options, just get the source distribution, change directory to src, and type make(or perhaps gmake).  On Linux, AIX, IRIX, and some alphas, that should work immediately.  If this doesn't work, or you want to compile with the libraries, etc, look at the README file in the qwalk/ directory, which will explain how to modify the makefile(it's pretty easy, don't worry).  There may also be some already made makefiles for specific machines, which you can access by typing make PLATFORM=ARCH.
+
+After a few minutes, you should see three new executables in the src/ directory: qwalk-ARCH, gosling-ARCH, and pw2lcao-ARCH, where ARCH is probably 'Linux'.  The suffix is so you can do multiple compiles on the same source tree with different options or even on different computers.  'qwalk' is the main number-cruching program that will be eating up your computer time. 'gosling' is a tool that allows you to analyze the log files that 'qwalk' generates, and we won't worry about 'pw2lcao' for the moment.  
+
+Now change directory to utils/converter and type make, which will not take too much time, and should produce 'gamess2qmc', 'crystal2qmc', and 'jeep2qmc'.  For this tutorial, we'll need 'qwalk', 'gosling', 'gamess2qmc', and 'crystal2qmc', so put them somewhere in your PATH (like /home/yourname/bin/) under the names given here.(ie, do 'cp qwalk-Linux ~/bin/qwalk')
+
+\section ch4  CH4 molecule
+
+\subsection ch4_conversion Conversion
+
+Change to qwalk/examples/ch4.  There you should see the results of a GAMESS run: ch4.inp ch4.pun, and ch4.out.  Type:
+<pre>
+$ gamess2qmc ch4
+</pre>
+It will produce several files:
+
+<b>ch4.sys</b>: This holds the 'system' information in QWalk format, which in this case consists of the atomic positions and charges, the fact that our simulation is being done on a molecule, and the pseudopotentials being used to represent the atoms.  These things are held constant throughout the calculation.  More on this at \ref SystemDoc
+
+<b>ch4.slater</b>: This file encapsulates the main result of a GAMESS calculation, which is the Hartree-Fock solution, AKA 'Slater determinant'.  The basis and orbital coefficients are encoded in the auxillary files 'ch4.basis' and 'ch4.orb'.  These files are generally set up when you do the conversion, and you won't have to worry about them much, but a good place to start is \ref Slat_wfDoc
+
+
+<b>ch4.jast2</b>: This is the Jastrow correlation factor that we'll add onto the Slater determinant.  More about that at \ref Jastrow2_wfDoc.
+
+\subsection ch4_hf  Hartree-Fock 
+<pre>
+method { VMC
+   nconfig 500 nstep 10 nblock 10
+   timestep 1.0 storeconfig ch4.config
+}
+
+include ch4.sys
+
+trialfunc { include ch4.slater }
+
+</pre>
+
+\subsection ch4_opt Optimizing the correlation factor
+
+<pre>
+method { OPTIMIZE
+   iterations 30  nconfig 500
+   eref -7.85
+   readconfig ch4.config
+}
+
+include ch4.sys
+
+trialfunc { SLATER-JASTROW
+  wf1 { include ch4.slater }
+  wf2 { include ch4.jast2 }
+}
+</pre>
+
+\subsection ch4_vmc VMC total energy
+
+<pre>
+method { VMC
+   nconfig 500 nstep 10 nblock 10
+   timestep 1.0 
+   readconfig ch4.config
+   storeconfig ch4.config
+}
+
+include ch4.sys
+
+trialfunc { include ch4.opt.wfout }
+
+</pre>
+
+\subsection ch4_dmc DMC total energy
+
+<pre>
+method { DMC
+  nconfig 500 nstep 100 timestep .01
+  nblock 10
+  readconfig ch4.config
+  storeconfig ch4.config
+}
+
+include ch4.sys
+
+trialfunc { include ch4.opt.wfout }
+
+</pre>
+
+\subsection ch4_rmc RMC energy and properties
+
+<pre>
+method { REPTATION
+   nblock 10 nstep 50000
+   timestep .01 length 301
+   readconfig ch4.config
+   storeconfig ch4_rmc.config
+}
+
+include ch4.sys
+
+trialfunc { include ch4.opt.wfout }
+</pre>
+
+
+\section excited_state  Excited States
+
+
+\section force Forces and Energy derivatives
+
+<p>
+
+I'll take you through doing an entire force calculation on H<sub>2</sub>.  
+This is doable in real time on any workstation made in the past few years.  First,
+ download the files <a href=h2.inp>h2.inp</a> and <a href=h2b.inp>h2b.inp</a>.  
+h2.inp is the 'base' system, and h2b is the perturbed system, with one hydrogen displaced by .001 Bohr.
+Run gamess with these two files, making sure the output(log) goes into h2.out and 
+the punch(dat) file goes into h2.pun(and likewise for h2b).  Now, execute:
+<pre>
+gamess2qmc h2
+gamess2qmc h2b
+</pre>
+In QWalk, we can test that we get the right energy difference.  Create an input 
+file called 'h2.hf' with the following contents:
+<pre>
+method { VMC
+   nconfig 1 nstep 1000 nblock 30
+   timestep 1.0
+   properties {
+      aux_sys { include h2b.sys }
+      aux_wf { include h2b.slater }
+   }
+}
+
+include h2.sys
+trialfunc { include h2.slater }
+</pre>
+This is the normal VMC section, with only the addition of the perturbed geometry(which we call aux_sys and aux_wf)
+in a properties { } section.  You can list more than one set of system and wave 
+function sections, and they will be matched in the order they're given.  Run this
+file with QWalk, and when it's done, run
+<pre>
+gosling h2.hf.log
+</pre>
+It will print out the normal gosling things, with the addition of the energy
+difference between the two geometries we gave it.  It should be in a line like:
+<pre>
+final_auxdiff0-0   -0.000192185083  +/-   3.938383729e-06   (sigma 0.0005672261411 )
+</pre>
+Check it versus the energy difference in GAMESS total energies; they should be the
+same within the error bars.  To get the force, simply divide the energy difference
+by the displacement; in this case, we get a force of -0.192 +/- .004 atomic 
+units--pretty big, because the h2 is very compressed.
+</p>
+
+<p>
+Now we're ready to perform a correlated calculation of the force.  We need a 
+Jastrow factor, so let's optimize one.  Write the following to h2.opt:
+<pre>
+method { VMC
+   nconfig 500 nstep 10 nblock 10
+   timestep 1.0
+   storeconfig h2.config
+}
+
+method { OPTIMIZE
+   nconfig 500 readconfig h2.config
+   iterations 30 eref -1.12
+}
+
+method { VMC
+   nconfig 500 nstep 10 nblock 10
+   timestep 1.0
+   storeconfig h2.config
+   readconfig h2.config
+   label vmc2 
+}
+
+
+include h2.sys
+trialfunc { slater-jastrow
+   wf1 { include h2.slater }
+   wf2 { include h2.jast2 }
+}
+</pre>
+Note that I concatenated several method sections together, like a script.  QWalk
+will first generate the configurations for the optimization using the first VMC
+section, evaluating the energy along the way, then optimize the Jastrow factor
+using those configurations, and finally evaluate the energy of the new wave 
+function in the second VMC section.  Run this, and look at the gosling output, 
+making sure that we did improve the wave function(there should be lower variance
+and energy).  
+</p>
+
+<p>
+We want to use the same Jastrow on both the base and perturbed wave functions,
+so we need to separate the output in h2.opt.wfout.  Copy h2.opt.wfout to opt.jast
+and edit it.  The large structure will look like:
+<pre>
+SLATER-JASTROW
+WF1 { SLATER 
+     ......
+     .....
+}
+WF2 { JASTROW2
+  GROUP { 
+     ......
+  }
+  GROUP {
+     ......
+  }
+}
+</pre>
+Edit opt.jast so that it looks like:
+<pre>
+JASTROW2
+ GROUP { 
+   .....
+ }
+ GROUP { 
+   .....
+ }
+</pre>
+Now we're ready to perform a new energy difference calculation.  Write to the file h2.vmc:
+<pre>
+method { VMC
+   nconfig 1 nstep 1000 nblock 30
+   timestep 1.0
+   properties {
+      aux_sys { include h2b.sys }
+      aux_wf { slater-jastrow
+           wf1 { include h2b.slater }
+           wf2 { include opt.jast }
+      }
+   }
+}
+
+include h2.sys
+trialfunc { slater-jastrow
+     wf1 { include h2.slater }
+     wf2 { include opt.jast }
+}
+</pre>
+and run it.  It will give the same gosling output as before, but the energy
+difference will change somewhat, and it should have a smaller error bar, since
+the variance of the wave function is smaller.  To do the same in Diffusion Monte
+Carlo, use a file like:
+<pre>
+method { VMC 
+   nconfig 500 nstep 10 nblock 10 
+   timestep 1.0 storeconfig h2.config
+}
+
+method { DMC
+   nconfig 500 nstep 50 nblock 30 
+   timestep .02 
+   readconfig h2.config 
+   storeconfig h2.config
+   properties {
+      aux_sys { include h2b.sys }
+      aux_wf { slater-jastrow
+           wf1 { include h2b.slater }
+           wf2 { include opt.jast }
+      }
+   }
+}
+
+include h2.sys
+trialfunc { slater-jastrow
+     wf1 { include h2.slater }
+     wf2 { include opt.jast }
+}   
+</pre>
+The first VMC section is just to generate the configurations that DMC needs to 
+start with.
+</p>
+
+
+\section densities One particle density and other functions
+
+
+*/
