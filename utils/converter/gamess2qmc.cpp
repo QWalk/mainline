@@ -356,7 +356,27 @@ void read_gamess_output(string & outputfilename,
         }
         atoms.push_back(tempatom);
       }
-    }//---done atoms
+    }
+    //If we did a geometry optimization, pick up the last one 
+    //(just read them in until there aren't any more)
+    if(words.size() > 3 && words[0]=="ATOM" && words[1]=="CHARGE" && words[2]=="X") { 
+      atoms.clear();
+      is.ignore(180,'\n');  //ignore the line of ------'s
+      Atom tempatom;
+      while(getline(is, line)) {
+        words.clear();
+        split(line, space, words);
+        if(words.size()==0) break;
+        tempatom.name=words[0];
+        tempatom.charge=atof(words[1].c_str());
+        //GAMESS prints out this section in angstroms for some reason
+        for(int i=0; i< 3; i++) { 
+          tempatom.pos[i]=atof(words[i+2].c_str())/0.529177249;
+        }
+        atoms.push_back(tempatom);
+      }
+    }      
+    //---done atoms
     else if(words.size() > 4 && words[2]=="OCCUPIED" && words[3] == "ORBITALS") {
       if(words[4] == "(ALPHA)" && words[5] == "=") {
         //cout << line << endl;
