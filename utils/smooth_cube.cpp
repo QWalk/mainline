@@ -47,7 +47,32 @@ public:
 };
 
 
+void usage() { 
+  cout << "smooth_cube [options] < input.cube > output.cube\n";
+  cout << "------------------------------------------------\n";
+  cout << "Where [options] can be any of the following:\n";
+  cout << "-smooth                  Smooth the file to remove jaggies\n";
+  cout << "-sub  [cubefile]         Subtract the given cube file from the one from the input \n";
+  cout << "                         (both are normalized before this is done)\n";
+  cout << "-add  [cubefile]         Add the two cube files together (also normalizes here)\n";
+  cout << "-fold  [integer]         Fold the density back onto itself.  Useful for supercells of nxnxn\n";
+  cout << "                         Currently only works for orthorhombic cells\n";
+  cout << "-proj  [x y z]           Project on the line given by [x,y,z].  \n";
+  cout << "\nIn all cases, the cube file will be 'enhanced' to make the largest value equal to one.\n"
+       << "This presumably makes the field easier to deal with in a visualization program\n";
+  cout << "\nThe options are interpreted in order, so one can do several smooths by putting \n"
+       << "-smooth -smooth, or one can smooth,  then subtract, etc.  Some things are\n"
+       << "better ideas than others, of course.\n";
+}
+
+
 int main(int argc, char ** argv) { 
+  for(int i=1; i< argc; i++) { 
+    if(!strcmp(argv[i],"-h") || !strcmp(argv[i],"--help")) { 
+      usage();
+      exit(0);
+    }
+  }
   Cube_info cube;
   cube.read_cube(cin);
   cube.normalize();
@@ -111,6 +136,7 @@ int main(int argc, char ** argv) {
       ofstream projout(argv[++i]);
       cube.write_projection(proj,projout);
     }
+
   }
 
   cerr << "enhancing " << endl;
