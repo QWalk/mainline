@@ -99,8 +99,6 @@ private:
   int have_attached_variables;
 
   Dynamics_generator * sampler;
-  //  Split_sampler split;
-
 
   int nblock;
   int nstep;
@@ -111,16 +109,16 @@ private:
   string readconfig;
   string pathfile;
   string log_label;
+  
 
-  //string oldstoreconfig;
-  //string oldreadconfig;
+
 
   doublevar timestep;
   int nelectrons;
 
   int ndim;
   int print_wf_vals; //!< whether or not to put the values of the wavefunction to cout
-
+  int low_io; //!< Only output the configurations and any Density objects at the end of the run, not every block
   string config_trace; //!< where to lay down a trace of configurations
 
 

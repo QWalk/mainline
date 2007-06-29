@@ -124,6 +124,8 @@ void Vmc_method::read(vector <string> words,
     cout << " enabling wf printing " << endl;
   }
 
+  low_io=0;
+  if(haskeyword(words,pos=0,"LOW_IO")) low_io=1;
  
 }
 
@@ -432,9 +434,12 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
     }   //walker
 
     prop.endBlock();
-    storecheck(storeconfig);
-    for(int i=0; i< densplt.GetDim(0); i++)
-      densplt(i)->write();
+    
+    if(!low_io || block==nblock-1) { 
+      storecheck(storeconfig);
+      for(int i=0; i< densplt.GetDim(0); i++)
+        densplt(i)->write();
+    }
 
 
 

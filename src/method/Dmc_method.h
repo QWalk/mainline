@@ -150,7 +150,7 @@ public:
   int have_allocated_variables;
   int have_read_options;
   int do_cdmc;
-
+  int low_io; //!< write out configs and densities only at the end.
   int aux_converge; //!< Number of projection lengths at which to evaluate correlated sampling 
 
   int nblock, nstep;
@@ -165,7 +165,7 @@ public:
   int nelectrons;
   int ndim;
   int nwf;
-
+  
   doublevar feedback;
   int feedback_interval;
   doublevar start_feedback;

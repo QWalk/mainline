@@ -110,6 +110,9 @@ void Dmc_method::read(vector <string> words,
   if(!readsection(words, pos=0, dynamics_words, "DYNAMICS") ) 
     dynamics_words.push_back("SPLIT");
 
+  low_io=0;
+  if(haskeyword(words, pos=0,"LOW_IO")) low_io=1;
+  
   allocate(dynamics_words, dyngen);
   dyngen->enforceNodes(1);
 
@@ -408,12 +411,14 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
 
     ///----Finished block
     
-    savecheckpoint(storeconfig,sample);
-      
+    if(!low_io || block==nblock-1) {
+      savecheckpoint(storeconfig,sample);
+      for(int i=0; i< densplt.GetDim(0); i++)
+        densplt(i)->write();      
+    }
     prop.endBlock();
 
-    for(int i=0; i< densplt.GetDim(0); i++)
-      densplt(i)->write();
+
     //loadbalance(); //not needed with global branching
 
 
