@@ -62,8 +62,8 @@ void One_particle_density::init(vector<string> & words, System * sys,
     min_=0; max=0;
     for(int d=0; d< ndim; d++) {
       for(int i=0; i< ndim; i++) {
-	if(latvec(i,d)>0) max(d)+=latvec(i,d);
-	if(latvec(i,d)<0) min_(d)+=latvec(i,d);
+        if(latvec(i,d)>0) max(d)+=latvec(i,d);
+        if(latvec(i,d)<0) min_(d)+=latvec(i,d);
       }
     }
   }
