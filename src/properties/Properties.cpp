@@ -273,6 +273,67 @@ void One_particle_density::write() {
     }
     os << endl;
     os.close();
+    string outputfile2 = outputfile+".dx";
+    os.clear();
+    os.open(outputfile2.c_str());
+    
+    /////////////######### DX FILE WRITING ###########
+    
+    /////##### DX FILE - Probabilities ##########
+    //
+    //    os << "  " << nions << "   " << min_(0) << "   "
+    //       << min_(1) << "   " << min_(2) << endl;
+    
+    
+    os << "object 1 class gridpositions counts " << npoints(0) << " "
+      << npoints(1) << " " << npoints(2) << "\n";
+    os << "origin " << min_(0) << " "
+      << min_(1) << " " << min_(2) << " " << endl;
+    
+    os << "delta " << resolution << "   0.0   0.0" << endl;
+    os << "delta 0.0   " << resolution << "   0.0" << endl;
+    os << "delta 0.0   0.0   " << resolution << endl;
+    
+    os << endl;
+    os << "object 2 class gridconnections counts " << npoints(0) << " "
+      << npoints(1) << " " << npoints(2) << "\n";
+    os << "attribute \"element type\" string \"cubes\" " << endl;
+    os << "attribute \"ref\" string \"positions\" " << endl;
+    
+    
+    os << endl;
+    os << "object 3 class array type float rank 0 items " << (npoints(0) * npoints(1) * npoints(2)) <<
+      " data follows" << endl;
+    os << endl;
+    
+    
+    counter=0;
+    for(int x=0; x < npoints(0); x++) {
+      for(int y=0; y < npoints(1); y++) {
+        for(int z=0; z< npoints(2); z++) {
+          os << norm*bin_tmp(x,y,z)/nsample_tmp << "   ";
+          if((counter++)%6==5) os << endl;
+        }
+      }
+    }
+    os << endl;
+    
+    os << "#attribute \"dep\" string \"positions\" " << endl;
+    os << "object \"regular positions regular connections\" class field" << endl;
+    os << "component \"positions\" value 1" << endl;
+    os << "component \"connections\" value 2" << endl;
+    os << "component \"data\" value 3" << endl;
+    os << "end" << endl;
+    
+    
+    os.close();
+    
+    //////// ######### ion .dx write #############
+    /* This needs to utilize the format for .dx code which specifies
+      * the attributes of each point based on a non-uniform grid.
+      */
+    ///////////// ############## end .dx write ########    
+    
   }
         
   
