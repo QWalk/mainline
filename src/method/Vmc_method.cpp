@@ -420,6 +420,13 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
         pt.nchildren=1; pt.children(0)=1;
         prop.insertPoint(step, walker, pt);
 
+        //--temporary debug stuff..
+        //if(fabs(pt.energy(0)+3.6) > 6.0) { 
+        //  cout << "large deviation " << pt.energy(0) 
+        //  << " kinetic " << pt.kinetic(0) << " nonlocal " << pt.nonlocal(0)
+        //  << "  pot " << pt.potential(0) << endl;
+        //}
+        
         //This may screw up if we have >1 walker!
         if(config_trace!="" && block >0) {
           if(nconfig !=1) error("trace only works with nconfig=1");

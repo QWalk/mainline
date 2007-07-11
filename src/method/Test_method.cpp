@@ -190,6 +190,14 @@ void Test_method::run(Program_options & options, ostream & output)
   
 
   if(basis!=NULL) { 
+    for(double r=0; r < 10.0; r+=.05) { 
+      Array1 <double> rscan(5); rscan=0.0;
+      rscan(0)=r; rscan(1)=r*r; rscan(2)=r;
+      Array2 <doublevar> vals(basis->nfunc(),5);
+      basis->calcLap(rscan,vals);
+      cout << "basisplot " << r << "  " << vals(0,0)  << " " << vals(0,4) << endl;
+    }
+    
     Array2 <doublevar> finite_der(basis->nfunc(),3,0.0);
     Array3 <doublevar> finite_hessian(basis->nfunc(),3,3,0.0);
     Array2 <doublevar> hessian(basis->nfunc(),10);
@@ -210,10 +218,10 @@ void Test_method::run(Program_options & options, ostream & output)
       basis->calcHessian(dist,tmp_hess);
       for(int f=0; f< basis->nfunc(); f++) { 
 	  
-	finite_der(f,d)=(tmp_hess(f,0)-hessian(f,0))/del;
-	for(int d1=0; d1 < 3; d1++) { 
-	  finite_hessian(f,d,d1)=(tmp_hess(f,d1+1)-hessian(f,d1+1))/del;
-	}
+        finite_der(f,d)=(tmp_hess(f,0)-hessian(f,0))/del;
+        for(int d1=0; d1 < 3; d1++) { 
+          finite_hessian(f,d,d1)=(tmp_hess(f,d1+1)-hessian(f,d1+1))/del;
+        }
       }
     }
 

@@ -65,6 +65,12 @@ void append_number(string & str, int num)
   str+=strbuff;
 }
 
+void append_number(string & str, double num) { 
+  char strbuff[180];
+  sprintf(strbuff, "%g.15", num);
+  str+=strbuff;
+}
+
 
 
 int haskeyword(vector <string> & input, unsigned int & pos,

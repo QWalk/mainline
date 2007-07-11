@@ -28,19 +28,25 @@ using namespace std;
 //###############################################
 
 //----------------------------------------------------------------------
+int nfunction_symmetry(string & str) { 
+  if     (str=="S") return 1;
+  else if(str=="P") return  3;
+  //else if(types[i]=="L") tot+=4;
+  else if(str=="5D" || str=="D_siesta") return 5;
+  else if(str=="6D") return 6;
+  else if(str=="7F") return 7;
+  else if(str=="10F") return 10;
+  else if(str=="15G") return 15;
+   std::cout << "WARNING! Unknown type '" << str << "'" << std::endl;
+  return 1;
+}
+
+
 
 int Gaussian_basis_set::nfunc() { //number of functions that this set has.
   int tot=0;
   for(unsigned int i=0; i< types.size(); i++) {
-    if     (types[i]=="S") tot+=1;
-    else if(types[i]=="P") tot+=3;
-    //else if(types[i]=="L") tot+=4;
-    else if(types[i]=="5D") tot+=5;
-    else if(types[i]=="6D") tot+=6;
-    else if(types[i]=="7F") tot+=7;
-    else if(types[i]=="10F") tot+=10;
-    else if(types[i]=="15G") tot+=15;
-    else std::cout << "WARNING! Unknown type '" << types[i] << "'" << std::endl;
+    tot+=nfunction_symmetry(types[i]);
   }
   return tot;
 }
@@ -70,6 +76,36 @@ void Gaussian_basis_set::print_basis(ostream & os) {
         }
     }
     os << "}\n";
+}
+
+//######################################################################
+void Spline_basis_writer::print_basis(ostream & os) { 
+  assert(vals.size()==rad.size());
+  assert(vals.size()==types.size());
+  
+  os << label << "\nAOSPLINE\n";
+  os << endl;
+  os << endl;
+  int nf=vals.size();
+  for(int i=0; i< nf; i++) { 
+    os << "SPLINE { \n";
+    os << types[i] << endl;
+    int ntot=rad[i].size();
+    assert(ntot==vals[i].size());
+    for(int j=0; j< ntot; j++) { 
+      os << rad[i][j] << "  " << vals[i][j] << endl;
+    }
+    os << " } ";
+  }
+  
+}
+
+int Spline_basis_writer::nfunc() { 
+  int tot=0;
+  for(unsigned int i=0; i< types.size(); i++) {
+    tot+=nfunction_symmetry(types[i]);
+  }
+  return tot;
 }
 
 //######################################################################

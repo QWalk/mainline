@@ -30,13 +30,19 @@ to be used for the radial part of an atomic orbital, and will return
 symmetry-adjusted values for the calculation methods.
 
 */
+
+
 class Cubic_spline: public Basis_function
 {
 private:
 
   //Overall symmetry type of a spline
   enum symmetry_type { sym_S, sym_P, sym_6D, sym_10F, sym_5D, sym_7F, sym_15G };
-
+  
+  string symmetry_lookup(symmetry_type );
+  symmetry_type symmetry_lookup(string &);
+  void assign_indiv_symmetries();
+  
   //symmetry type of the expansion(all functions.)
   enum indiv_symm_type {
     isym_S, isym_Px, isym_Py, isym_Pz,
@@ -50,7 +56,7 @@ private:
 };
 
   Array1 <symmetry_type> symmetry;
-  //!< angular momentum(s=0, p=1, d=2, etc)
+//!< The overall symmetry of a spline
 
   Array1 <indiv_symm_type> indiv_symmetry;
   //!< The orbital expansion of each function(S, Px, Py, etc..)

@@ -42,6 +42,7 @@ class Spline_fitter {
   
   int getInterval(doublevar r) {
     int interval=int(r/spacing);
+    //if(r >= threshold) cout << "r " << r << " threshold " << threshold << endl;
     assert(r < threshold);
     assert(interval*spacing <=r);
     assert((interval+1)*spacing >= r);    
@@ -72,6 +73,7 @@ class Spline_fitter {
   }
 
   int readspline(vector <string> & words);
+  int writeinput(string & indent, ostream & os); 
 
 
   /*!

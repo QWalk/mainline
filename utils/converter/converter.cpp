@@ -37,6 +37,13 @@ void split
   }
 }
 
+void append_number(string & str, int num)
+{
+  char strbuff[40];
+  sprintf(strbuff, "%d", num);
+  str+=strbuff;
+}
+
 //--------------------------------------------------------
 
 

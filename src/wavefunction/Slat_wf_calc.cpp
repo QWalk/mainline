@@ -568,6 +568,7 @@ void Slat_wf::calcVal(Slat_wf_data * dataptr, Sample_point * sample)
 */
 void Slat_wf::updateVal( Slat_wf_data * dataptr, Sample_point * sample,int e)
 {
+  
   assert(dataptr != NULL);
   sample->updateEIDist();
   int s=dataptr->spin(e);
@@ -725,7 +726,7 @@ void Slat_wf::getDensity(Wavefunction_data * wfdata, int e,
 
 void Slat_wf::calcLap(Slat_wf_data * dataptr, Sample_point * sample)
 {
-
+  //cout << "calcLap nelec " << nelectrons(0) << "  " << nelectrons(1) << endl;
   for(int e=0; e< nelectrons(0)+nelectrons(1); e++)  {
     int s=dataptr->spin(e);
     sample->updateEIDist();
@@ -734,6 +735,7 @@ void Slat_wf::calcLap(Slat_wf_data * dataptr, Sample_point * sample)
     //Slat_wf_data(one for each spin).
     dataptr->molecorb->updateLap(sample, e, s,
                                 updatedMoVal);
+    
     for(int d=0; d< 5; d++)  {
       for(int i=0; i< updatedMoVal.GetDim(0); i++) {
         moVal(d,e,i)=updatedMoVal(i,d);
@@ -758,10 +760,12 @@ void Slat_wf::calcLap(Slat_wf_data * dataptr, Sample_point * sample)
         
         detVal(f,det,s)=
           TransposeInverseMatrix(modet,inverse(f,det,s), nelectrons(s));
+        //cout << "detVal " << detVal(f,det,s) << endl;
   
       }
     }
   }
+  //cout << endl;
 }
 
 //------------------------------------------------------------------------

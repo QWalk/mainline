@@ -73,9 +73,9 @@ void Spline_pseudo_writer::print_pseudo(ostream & os) {
     pseudofile.precision(15);
     int numL=psp_pos.size();
     for(int i=0; i< numL; i++) {
-      pseudofile << "SPLINE { # l= " << i << "\n";
+      pseudofile << "SPLINE { \n";
       int npoints=psp_pos[i].size();
-      pseudofile << npoints << endl;
+      pseudofile << "S"  << endl;
       for(int p=0; p < npoints; p++) {
         pseudofile << "     " << psp_pos[i][p] << "  "
         << psp_val[i][p] << endl;

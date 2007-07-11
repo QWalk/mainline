@@ -193,23 +193,7 @@ void One_particle_density::accumulate(Sample_point * sample, double weight) {
   }
 }
 
-//void One_particle_density::accumulate(Array1 < Array1 <doublevar> > & epos) { 
-  //  int nelectrons=epos.GetDim(0);
-//  Array1 <int> place(3);
-//  for(int e=start_electron; e< end_electron; e++) {
-//    int use=1;
-//    for(int d=0; d< 3; d++) {
-//      place(d)=int( (epos(e)(d)-min_(d))/resolution+0.5);
-//      if(place(d) <0 || place(d) >= npoints(d))
-//        use=0;
-//    }
-//    if(use) { 
-//      nsample++;
-//      bin(place(0), place(1), place(2))++;
-//    }
-//  }
 
-//}
 
 //----------------------------------------------------------------------
 

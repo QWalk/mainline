@@ -48,6 +48,19 @@ class Gaussian_basis_set:public Basis_writer {
 };
 
 
+class Spline_basis_writer: public Basis_writer { 
+public:
+  //basis function #, radial values
+  std::vector < std::vector <double > > vals;
+  //basis function #, r-points at which it's defined
+  std::vector < std::vector <double> > rad; 
+  //S,P, D, etc of the basis functions
+  virtual void print_basis(std::ostream & inputfile);
+  int nfunc();
+  std::vector <std::string> types;
+  
+};
+
 class Pade_molecular_basis:public Basis_writer {
  public:
   virtual void print_basis(std::ostream & os);

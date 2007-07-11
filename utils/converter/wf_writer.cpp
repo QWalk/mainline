@@ -68,9 +68,11 @@ void Slat_wf_writer::print_wavefunction(ostream & inputfile ) {
   inputfile << "  }\n\n";
 
   if(detwt.size()==0) {
-    if(calctype=="UHF" && ndown==nup) 
-      inputfile << "  DETWT { .707 .707 } \n";
-    else inputfile << "  DETWT { 1.0 } \n";
+    //see below about the two-determinant UHF wave function
+    //if(calctype=="UHF" && ndown==nup) 
+    //  inputfile << "  DETWT { .707 .707 } \n";
+    //else 
+    inputfile << "  DETWT { 1.0 } \n";
     
     
     inputfile << "  STATES {\n    ";
@@ -93,21 +95,22 @@ void Slat_wf_writer::print_wavefunction(ostream & inputfile ) {
       if((i-downstart+1)%20==0) inputfile << "\n    ";
     }
 
-    
-    if(calctype=="UHF" && ndown==nup) {
-      inputfile <<"\n #for UHF, we put in two determinants \n";
-      inputfile << "  #Spin up orbitals\n";
-      for(int i=downstart; i < downstart+ndown; i++) {
-        inputfile << i << " ";
-        if((i-downstart+1)%20==0) inputfile << "\n    ";
-      }
-      inputfile << endl;
-      inputfile << " #Spin down orbitals\n   ";
-      for(int i=1; i< nup+1; i++) {
-        inputfile << i << " ";
-        if(i%20==0) inputfile << "\n    ";
-      }
-    }
+    //This doesn't necessarily help, and can sometimes hurt, so
+    //we don't put it in.
+    //if(calctype=="UHF" && ndown==nup) {
+    //  inputfile <<"\n #for UHF, we put in two determinants \n";
+    //  inputfile << "  #Spin up orbitals\n";
+    //  for(int i=downstart; i < downstart+ndown; i++) {
+    //    inputfile << i << " ";
+    //    if((i-downstart+1)%20==0) inputfile << "\n    ";
+    //  }
+    //  inputfile << endl;
+    //  inputfile << " #Spin down orbitals\n   ";
+    //  for(int i=1; i< nup+1; i++) {
+    //    inputfile << i << " ";
+    //    if(i%20==0) inputfile << "\n    ";
+    //  }
+    //}
 
     inputfile << "  }\n";
   }

@@ -29,6 +29,10 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 void split
 (std::string & text, std::string & separators, std::vector<std::string> & words);
 
+
+void append_number(std::string & str, int num);
+
+
 class Atom {
 public:
   std::vector <double> pos;

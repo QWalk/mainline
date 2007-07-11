@@ -47,7 +47,8 @@ void Spline_fitter::raw_input(ifstream & input)
 
 //----------------------------------------------------------------------
 
-
+//ignore the first 'word' and spline to a file in form x y x y, etc
+//assumes that the x's are evenly spaced and in order.
 int Spline_fitter::readspline(vector <string> & words) {
 
   int n=(words.size()-1)/2;
@@ -59,8 +60,8 @@ int Spline_fitter::readspline(vector <string> & words) {
 
   //cout << "fitting spline " << s << endl;
   Array1 <doublevar> x(n), y(n);
-  //cout << "number of points I expect: " << 2*n+1 << " number found " << splinefits[s].size()
-    //<< endl;
+  cout << "number of points I expect: " << 2*n+1 << " number found " <<words.size()
+    << endl;
 
   int counter=1;
   for(int i=0; i < n; i++) {
@@ -69,11 +70,12 @@ int Spline_fitter::readspline(vector <string> & words) {
   }
 
   spacing=x(1)-x(0);
-  //cout << "spacing " << spacing << endl;
+  cout << "spacing " << spacing << endl;
   //Check that the points are monotonically increasing with equal spacing
   //This is mostly needed for the evaluation routine.
   for(int i=1; i< n; i++) {
-    if(fabs(x(i)-x(i-1)-spacing) > 1e-10) {
+    if(fabs(x(i)-x(i-1)-spacing) > 1e-5) {
+      cout << "spacing " << spacing << " diff " << x(i)-x(i-1) <<  " x(i) " << x(i) << " x(i-1) " << x(i-1) << endl;
       error("I need equal spacing for all the spline points.");
     }
   }
@@ -85,6 +87,16 @@ int Spline_fitter::readspline(vector <string> & words) {
   doublevar ypn=(y(n-1) - y(n-2) ) /spacing;
   splinefit(x, y, yp1, ypn);
 
+  return 1;
+}
+
+//----------------------------------------------------------------------
+
+int Spline_fitter::writeinput(string & indent, ostream & os) { 
+  int npts=coeff.GetDim(0);
+  for(int i=0; i< npts; i++) { 
+    os  << spacing*i << "  " << coeff(i,0) << endl;
+  }
   return 1;
 }
 

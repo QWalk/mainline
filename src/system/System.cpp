@@ -69,8 +69,9 @@ void System::calcKinetic(Wavefunction_data * wfdata,
 
       wf->getLap(wfdata, e, temp);
       lap(w)+=temp.amp(w,4);
-      //cout << "laplacian: " << lap(0) <<  " amp  " 
+      //cout << "total laplacian: " << lap(0) <<  " amp  " 
       //   << temp.amp(w,4) << endl;
+        
     }
     lap(w)*=-0.5;
   }

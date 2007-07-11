@@ -299,7 +299,7 @@ void Periodic_sample::init(System * sys) {
 
 void Periodic_sample::randomGuess()
 {
-  const doublevar range=5.0;  //range of the cube around atoms to fill
+  const doublevar range=2.0;  //range of the cube around atoms to fill
   Array1 <doublevar> trialPos(3);
 
   int e=0;

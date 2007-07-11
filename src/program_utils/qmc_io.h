@@ -217,6 +217,7 @@ void canonical_filename(string & );
 void canonical_filename(string &, int num);
 
 void append_number(string &, int num);
+void append_number(string &, double num);
 
 /*!
  

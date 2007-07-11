@@ -37,12 +37,13 @@ void Cubic_spline::calcVal(const Array1 <doublevar> & r,
   }
   else {
 
-    int interval=splines(0).getInterval(r(0));
     doublevar v, v2, v3, v4;
     doublevar temp;
+    int interval=splines(0).getInterval(r(0));
 
     int totf=startfill;
     for(int i=0; i<nsplines; i++)  {
+
       //temp=coeff(i,interval,0)+height*(coeff(i,interval,1)
       //                                 +height*(coeff(i,interval,2)
       //                                          +height*coeff(i,interval,3)));
@@ -272,6 +273,8 @@ void Cubic_spline::calcLap(
     //cout << "calculating spline\n";
     //int interval=(int)(r(0)/spacing);
     //doublevar height=r(0)-interval*spacing;
+    int interval=splines(0).getInterval(r(0));
+
     register doublevar rdp, v, h, v2, v3, v4, u2, v2u2;
     register doublevar func, fdir, f2dir;
     //doublevar funct[3];
@@ -286,12 +289,11 @@ void Cubic_spline::calcLap(
     //assert((interval+1)*spacing >= r(0));
     //assert(height<spacing);
 
-    int interval=splines(0).getInterval(r(0));
 
 
 
-    for(int i=0; i<nsplines; i++)
-    {
+    for(int i=0; i<nsplines; i++) {
+
       //func=coeff(i,interval,0)+height*(coeff(i,interval,1)
       //                                 +height*(coeff(i,interval,2)
       //                                          +height*coeff(i,interval,3)));
@@ -301,6 +303,8 @@ void Cubic_spline::calcLap(
 
       //f2dir=2*coeff(i,interval,2)+6*height*coeff(i,interval,3);
       splines(i).getDers(r(0), interval,func, fdir, f2dir);
+      
+      //cout << "r(0) " << r(0) << " interval " << interval << " func " << func << endl;
 
       //cout << "height " << height << endl;
       //for(int j=0; j<4; j++) {
@@ -715,7 +719,14 @@ void Cubic_spline::calcLap(
         default:
           error("Bad symmetry in Cubic_spline::calcLap.\n");
         }
-
+        //if(fabs(r(4)-3.39275) < 1e-3) { 
+        //  cout << "r " << r(0) << " " << r(1) << "  " 
+        //  << r(2) << "  " << r(3) << " " << r(4) << endl;
+        //  cout << "symmvals " ;
+        //  for(int i=0; i< 5; i++) cout << symvals(totf,i) << " ";
+        //  cout << endl;
+        //  cout << "interval " << interval << " func " << func << endl;
+        //}
       }
     }
   }
