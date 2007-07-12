@@ -47,6 +47,12 @@ string Cubic_spline::symmetry_lookup(symmetry_type s) {
      case sym_15G:
        return string("15G");
        break;
+     case sym_P_siesta:
+       return string("P_siesta");
+       break;
+     case sym_D_siesta:
+       return string("5D_siesta");
+       break;
      default:
        error("Cubic_spline::symmetry_lookup found unknown symmetry");
    }
@@ -68,6 +74,10 @@ Cubic_spline::symmetry_type Cubic_spline::symmetry_lookup(string & s) {
     return sym_5D;
   if(caseless_eq(s,"7F"))
     return sym_7F;
+  if(caseless_eq(s,"P_siesta"))
+    return sym_P_siesta;
+  if(caseless_eq(s,"5D_siesta"))
+    return sym_D_siesta;
   error("I don't understand symmetry type ", s, "\nShould be S,P,D,etc.");
   return sym_S;
 
@@ -173,6 +183,10 @@ int Cubic_spline::readspline(vector <string> & words) {
   //support.  This will save us some time in the calculation 
   //part, since we can just use a single cutoff radius.
   //We're assuming that everything is reasonably well-input here..
+  /* Removing this, since allowing different lengths messes up several parts in the
+     chain.  For now, we'll require that all the splines have the same support and 
+    the same spacings..otherwise they may as well be different basis objects.
+    NOTE: SHOULD CHECK THIS!!
   for(int i=0; i< nsplines; i++) { 
     int n=splinefits[i].size();
     double supp=atof(splinefits[i][n-2].c_str());
@@ -186,10 +200,14 @@ int Cubic_spline::readspline(vector <string> & words) {
       splinefits[i].push_back(zero);
     }
   }
+   */
   
   
   for(int s=0; s< nsplines; s++) {
     splines(s).readspline(splinefits[s]);
+    if(requested_cutoff > 0) { 
+      splines(s).enforceCutoff(requested_cutoff);
+    }
   }
 
   findCutoffs();
@@ -224,9 +242,11 @@ int Cubic_spline::nfunc()
       totf+= 1;
       break;
     case sym_P:
+    case sym_P_siesta:
       totf+= 3;
       break;
     case sym_5D:
+    case sym_D_siesta:
       totf+=5;
       break;
     case sym_6D:
@@ -270,9 +290,11 @@ void Cubic_spline::findCutoffs()
       nrep=1;
       break;
     case sym_P:
+    case sym_P_siesta:
       nrep=3;
       break;
     case sym_5D:
+    case sym_D_siesta:
       nrep=5;
       break;
     case sym_6D:
@@ -600,6 +622,20 @@ void Cubic_spline::assign_indiv_symmetries() {
         indiv_symmetry(totfunc++)=isym_Gxxyz;
         indiv_symmetry(totfunc++)=isym_Gyyxz;
         indiv_symmetry(totfunc++)=isym_Gzzxy;
+        break;
+      case sym_P_siesta:
+        nfuncspline(funcNum)=3;
+        indiv_symmetry(totfunc++)=isym_Py;
+        indiv_symmetry(totfunc++)=isym_Pz;
+        indiv_symmetry(totfunc++)=isym_Px;
+        break;
+      case sym_D_siesta:
+        nfuncspline(funcNum)=5;
+        indiv_symmetry(totfunc++)=isym_Dxy;
+        indiv_symmetry(totfunc++)=isym_Dyz;
+        indiv_symmetry(totfunc++)=isym_Dz2r2;
+        indiv_symmetry(totfunc++)=isym_Dxz;
+        indiv_symmetry(totfunc++)=isym_Dx2y2;
         break;
     }
   }

@@ -352,6 +352,12 @@ void MO_matrix_cutoff::updateVal(
             c=moCoefftmp.v[reducedbasis+basmo];
             newvals(mo, 0)+=c*symmvals_temp(i);
             //newvals.v[retscale*mo]+=c*symmvals_temp.v[i];
+            //if(mo==1) { 
+            //  cout << "------------------------" << endl;
+            //  cout << "x " << R(2) << " " << R(3) << " " << R(4) << endl;
+            //  cout << " mo " << mo << " c " << c << " basis " << symmvals_temp(i) << endl;
+            //  cout << "currval " << newvals(mo,0) << endl;
+            //}
 
           }
         }

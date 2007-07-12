@@ -102,6 +102,34 @@ int Spline_fitter::writeinput(string & indent, ostream & os) {
 
 //----------------------------------------------------------------------
 
+void Spline_fitter::enforceCutoff(doublevar cut) { 
+  int n=coeff.GetDim(0);
+  Array1 <doublevar> x(n),y(n);
+  for(int i=0; i< n; i++) { 
+    x(i)=i*spacing;
+    y(i)=coeff(i,0);
+  }
+  const double smooth=1.2;
+  const double cutmax=cut-1e-6;
+  const double cutmin=cutmax-smooth;
+  for(int j=0; j< n; j++) {
+    if(x(j) > cutmin) {
+      if(x(j) > cutmax) { //if we're beyond the cutoff completely
+        y(j)=0;
+      }
+      else {  //if we're in the smooth cutoff region
+        double zz=(x(j)-cutmin)/smooth;
+        y(j) *= (1-zz*zz*zz*(6*zz*zz-15*zz+10));
+      }
+    }
+  }
+  doublevar yp1=(y(1)-y(0))/spacing;
+  doublevar ypn=(y(n-1) - y(n-2) ) /spacing;
+  splinefit(x,y,yp1, ypn);
+}
+
+//----------------------------------------------------------------------
+
 
 doublevar Spline_fitter::findCutoff() {
   const doublevar step=0.5;

@@ -37,7 +37,7 @@ class Cubic_spline: public Basis_function
 private:
 
   //Overall symmetry type of a spline
-  enum symmetry_type { sym_S, sym_P, sym_6D, sym_10F, sym_5D, sym_7F, sym_15G };
+  enum symmetry_type { sym_S, sym_P, sym_6D, sym_10F, sym_5D, sym_7F, sym_15G, sym_P_siesta,sym_D_siesta };
   
   string symmetry_lookup(symmetry_type );
   symmetry_type symmetry_lookup(string &);

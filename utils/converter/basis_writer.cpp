@@ -30,9 +30,9 @@ using namespace std;
 //----------------------------------------------------------------------
 int nfunction_symmetry(string & str) { 
   if     (str=="S") return 1;
-  else if(str=="P") return  3;
+  else if(str=="P"|| str=="P_siesta") return  3;
   //else if(types[i]=="L") tot+=4;
-  else if(str=="5D" || str=="D_siesta") return 5;
+  else if(str=="5D" || str=="5D_siesta") return 5;
   else if(str=="6D") return 6;
   else if(str=="7F") return 7;
   else if(str=="10F") return 10;

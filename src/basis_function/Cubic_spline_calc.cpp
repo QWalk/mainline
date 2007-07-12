@@ -48,6 +48,7 @@ void Cubic_spline::calcVal(const Array1 <doublevar> & r,
       //                                 +height*(coeff(i,interval,2)
       //                                          +height*coeff(i,interval,3)));
       temp=splines(i).getVal(r(0), interval);
+      //cout << "phir " << temp << endl;
       int end=totf+nfuncspline(i);
       for(; totf <end; totf++) {
         switch(indiv_symmetry(totf-startfill)) {

@@ -38,6 +38,9 @@ void read_mo_coefficients(istream & is, vector <string> & currline,
 //reads in the basis for each type of atom
 void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis );
 void read_psp(vector <Atom> & atoms, vector <Spline_pseudo_writer> & pseudo);
+void fix_basis_norm(vector <Atom> & atoms, vector <Spline_basis_writer> & basis,
+                    vector < vector < double> > & moCoeff);
+
 //###########################################################################
 
 
@@ -54,7 +57,7 @@ int main(int argc, char ** argv) {
   vector <vector < double> > latvec;
   Slat_wf_writer slwriter;
   vector <vector <double> >  moCoeff;
-  double spin_pol=0;
+  int spin_pol=0;
   vector <Spline_pseudo_writer> pseudo;
   
   
@@ -66,6 +69,7 @@ int main(int argc, char ** argv) {
   string line;
   string space=" ";
   vector <string> currline;
+  int netCharge=0;
   while(getline(is,line)) { 
     currline.clear();
     split(line, space, currline);
@@ -73,21 +77,36 @@ int main(int argc, char ** argv) {
     read_lattice_vector(is,currline,latvec);
     read_mo_coefficients(is, currline, slwriter, moCoeff);
     if(currline.size()> 6 && currline[2]=="spin" && currline[3]=="polarization") { 
-      spin_pol=atof(currline[6].c_str());
+      spin_pol=atoi(currline[6].c_str());
       cout << "spin polarization " << spin_pol << endl;
+    }
+    if(currline.size() > 8 && currline[0]=="redata:" && currline[1]=="Net" && currline[2]=="charge") {
+      netCharge=atoi(currline[7].c_str());
+      cout << "net charge " << netCharge << endl;
     }
   }
   is.close();
   slwriter.orbname=outputname+".orb";
   slwriter.basisname=outputname+".basis";
   slwriter.mo_matrix_type="CUTOFF_MO";
-  //TEMPORARY!!!
-  slwriter.nup=3; slwriter.ndown=1;
+ 
   
   
   vector <Spline_basis_writer> basis;
   read_basis(atoms, basis);
   read_psp(atoms, pseudo);
+  fix_basis_norm(atoms,basis, moCoeff);
+  
+  int nelectrons=0;
+  for(vector<Atom>::iterator at=atoms.begin(); 
+      at != atoms.end(); at++) { 
+    nelectrons+=at->charge;
+  }
+  nelectrons-=netCharge;
+  cout << "nelectrons " << nelectrons << endl;
+  slwriter.nup=int(nelectrons-spin_pol+.000001)/2+int(spin_pol+.00001);
+  slwriter.ndown=int(nelectrons-spin_pol+.00001)/2;
+  
   //---------------------------------------------
   //--Write out all the collected data
   //---------------------------------------------
@@ -338,14 +357,47 @@ void make_uniform(vector <double> & r,
     else { 
       while(r[interval+1] < rad && interval < r.size()-1) interval++;
       double x=(rad-r[interval])/(r[interval+1]-r[interval]);
-      cout << "rad " << rad << " x " << x << " r1 " << r[interval] 
-        << " r2 " << r[interval+1] << endl;
+      //cout << "rad " << rad << " x " << x << " r1 " << r[interval] 
+      //  << " r2 " << r[interval+1] << endl;
       val=(1-x)*vals[interval]+x*vals[interval+1];
     }
     ur.push_back(rad);
     uvals.push_back(val);
   }
   
+}
+
+
+//###########################################################################
+
+//Here we smoothly cut off the function instead of just chopping it off, 
+//as Siesta seems happy to do.
+void smooth_cutoff(vector <double> & r, 
+                  vector <double> & vals,
+                  double smooth=1.2) { 
+  int n=r.size();
+  double threshold=1e-8;
+  double cut=r[n-1];
+  for(int i=n-1; i> 0; i--) { 
+    if(fabs(vals[i]) > threshold) { 
+      cut=r[i];
+      cout << "Found cutoff radius of " << cut << " at " << i <<  endl;
+      break;
+    }
+  }
+  
+  double cutmin=cut-smooth;
+  for(int j=0; j< n; j++) {
+    if(r[j] > cutmin) {
+      if(r[j] > cut) { //if we're beyond the cutoff completely
+        vals[j]=0;
+      }
+      else {  //if we're in the smooth cutoff region
+        double zz=(r[j]-cutmin)/smooth;
+        vals[j] *= (1-zz*zz*zz*(6*zz*zz-15*zz+10));
+      }
+    }
+  }
 }
 
 //###########################################################################
@@ -378,10 +430,10 @@ void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis ) {
             tmp_basis.types.push_back("S");
             break;
           case 2:
-            tmp_basis.types.push_back("P");
+            tmp_basis.types.push_back("P_siesta");
             break;
           case 3:
-            tmp_basis.types.push_back("D_siesta");
+            tmp_basis.types.push_back("5D_siesta");
             break;
           default:
             cout << "Don't support this l-value.  Bug the maintainer." << endl;
@@ -396,6 +448,7 @@ void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis ) {
         }
         vector <double> urad, uval;
         make_uniform(rads,vals,urad,uval);
+        smooth_cutoff(urad,uval);
         tmp_basis.rad.push_back(urad);
         tmp_basis.vals.push_back(uval);
         n++;
@@ -483,13 +536,13 @@ void read_psp(vector <Atom> & atoms, vector <Spline_pseudo_writer> & pseudo) {
       vector <double> urad, uval;
       make_uniform(rad,val,urad,uval);
       
-      string outname="psp";
-      append_number(outname,l);
-      ofstream out(outname.c_str());
-      int n=urad.size();
-      for(int i=0; i< n; i++) {
-        out << urad[i] << "  " << uval[i] << endl;
-      }
+      //string outname="psp";
+      //append_number(outname,l);
+      //ofstream out(outname.c_str());
+      //int n=urad.size();
+      //for(int i=0; i< n; i++) {
+      //  out << urad[i] << "  " << uval[i] << endl;
+      //}
       
       tmp_pseudo.psp_pos.push_back(urad);
       tmp_pseudo.psp_val.push_back(uval);
@@ -508,4 +561,81 @@ void read_psp(vector <Atom> & atoms, vector <Spline_pseudo_writer> & pseudo) {
 
 
 //###########################################################################
+
+void fix_basis_norm(vector <Atom> & atoms, 
+                    vector <Spline_basis_writer> & basis,
+                    vector < vector < double> > & moCoeff) {
+  
+  int nmo=moCoeff.size();
+  int funcnum=0;
+  
+  //Looping over each symmetry in the basis attached to each atom
+  for(vector<Atom>::iterator at=atoms.begin();
+      at != atoms.end(); at++) { 
+    vector<Spline_basis_writer>::iterator bas=basis.begin();
+    //Assuming that there is just one basis per atom,
+    //which should be correct..
+    while(bas->label != at->name) bas++;
+    
+    for(vector<string>::iterator type=bas->types.begin();
+        type!=bas->types.end(); type++) { 
+      int L=0;
+      if(*type=="S") L=0;
+      else if(*type=="P_siesta") L=1;
+      else if(*type=="5D_siesta") L=2;
+      else if(*type=="7F_siesta") L=3;
+      else { cout << "unkown type! " << *type << endl; exit(3); }
+      double norm=(2.0*L+1)/(4*pi);
+      for(int m=-L; m< L+1; m++) { 
+        int absm=abs(m);
+        double i=1;
+        for(int j=L-absm+1; j < L+absm+1; j++) {
+          i*=j;
+        }
+        double mnorm=norm/i;
+        if(m!=0) mnorm*=2.;
+        mnorm=sqrt(mnorm);
+        if(L==1) { 
+          switch(m) { 
+            case -1:
+              mnorm*=-1; break;
+            case 0:
+              mnorm*=1; break;
+            case 1:
+              mnorm*=-1; break;
+          }
+        }
+        else if(L==2) { 
+          switch(m) { 
+            case -2:
+              mnorm*=6;
+              break;
+            case -1:
+              mnorm*=-3; break;
+            case 0:
+              mnorm*=0.5;break;
+            case 1:
+              mnorm*=-3; break;
+            case 2:
+              mnorm*=3; break;
+            default:
+              cout << "error in mnorm assignment" << endl; exit(3);
+          }
+        }
+              
+                
+        cout << "i " << i << "  mnorm " << mnorm << endl;
+
+        for(int mo=0; mo < nmo; mo++) { 
+          assert(moCoeff[mo].size() > funcnum);
+          moCoeff[mo][funcnum]*=mnorm;
+        }
+        funcnum++;
+      }
+    }
+    
+  }
+  
+  
+}
 

@@ -38,6 +38,10 @@ class Spline_fitter {
     //!< df/dx at x_n, with n=number of points
      );
 
+  //Modify the spline so that the function goes smoothly to 
+  //zero at 'cut'
+  void enforceCutoff(doublevar cut);
+  
   void raw_input(ifstream & input);
   
   int getInterval(doublevar r) {

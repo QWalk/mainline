@@ -96,6 +96,9 @@ bool compare_mo(std::vector <std::vector < double> > & oldMOCoeff,
                 std::vector <int> & compare_list  );
 
 double find_basis_cutoff(std::vector <std::vector <double> > & latvec);
+
+const double pi=3.1415926535897932385;
+
 #endif
 
 
