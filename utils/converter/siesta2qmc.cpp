@@ -78,10 +78,16 @@ int main(int argc, char ** argv) {
     read_mo_coefficients(is, currline, slwriter, moCoeff);
     if(currline.size()> 6 && currline[2]=="spin" && currline[3]=="polarization") { 
       spin_pol=atoi(currline[6].c_str());
+      double tmp=atof(currline[6].c_str());
+      if(fabs(spin_pol-tmp) > 0.5) spin_pol+=1;
+      assert(fabs(spin_pol-tmp) < 0.1);
       cout << "spin polarization " << spin_pol << endl;
     }
     if(currline.size() > 8 && currline[0]=="redata:" && currline[1]=="Net" && currline[2]=="charge") {
       netCharge=atoi(currline[7].c_str());
+      double tmp=atof(currline[6].c_str());
+      if(fabs(netCharge-tmp) > 0.5) spin_pol+=1;
+      assert(fabs(netCharge-tmp) < 0.1);
       cout << "net charge " << netCharge << endl;
     }
   }
@@ -104,8 +110,9 @@ int main(int argc, char ** argv) {
   }
   nelectrons-=netCharge;
   cout << "nelectrons " << nelectrons << endl;
-  slwriter.nup=int(nelectrons-spin_pol+.000001)/2+int(spin_pol+.00001);
-  slwriter.ndown=int(nelectrons-spin_pol+.00001)/2;
+  assert((nelectrons-spin_pol)%2==0);
+  slwriter.nup=int(nelectrons-spin_pol)/2+spin_pol;
+  slwriter.ndown=int(nelectrons-spin_pol)/2;
   
   //---------------------------------------------
   //--Write out all the collected data
@@ -160,10 +167,9 @@ int main(int argc, char ** argv) {
   for(int at=0; at <natoms; at++) {
     atoms[at].print_atom(sysout);
   }
-  cout << "latvec " << latvec.size() << endl; 
+  
   sysout << "LATTICEVEC { \n";
   for(int i=0; i< 3; i++) { 
-    cout << "size " << latvec[i].size() << endl;
     for(int j=0; j< 3; j++) sysout << latvec[i][j] << " ";
     sysout << endl;
   }
@@ -207,7 +213,7 @@ void read_atoms(istream & is, vector <string> & currline,
       cout << "Don't understand format of the coordinates: " << currline[3] << endl;
       exit(1);
     }
-    cout << "reading in coordinates" << endl;
+    //cout << "reading in coordinates" << endl;
     string line;
     getline(is,line);
     currline.clear(); split(line, space, currline);
@@ -220,7 +226,7 @@ void read_atoms(istream & is, vector <string> & currline,
         tmpatom.pos[i]=atof(currline[i].c_str())*fac;
       }
       atoms.push_back(tmpatom);
-      tmpatom.print_atom(cout);
+      //tmpatom.print_atom(cout);
       getline(is,line);
       currline.clear(); split(line,space,currline);
       
@@ -242,7 +248,7 @@ void read_lattice_vector(istream & is, vector <string> & currline,
     else if(currline[4]!="(Bohr):") { 
       cout << "Don't understand units: " << currline[4] << endl;
     }
-    cout << "reading in lattice vectors " << endl;
+    //cout << "reading in lattice vectors " << endl;
     string line;
     latvec.resize(3);
     for(int i=0; i< 3; i++) { 
@@ -252,11 +258,6 @@ void read_lattice_vector(istream & is, vector <string> & currline,
       for(int j=0; j< 3; j++) { 
         latvec[i][j]=atof(currline[j].c_str())*fac;
       }
-    }
-    cout << "lattice vectors " << endl;
-    for(int i=0; i < 3; i++) { 
-      for(int j=0; j< 3; j++) cout << latvec[i][j] << "  ";
-      cout << endl;
     }
   }
 }
@@ -273,7 +274,7 @@ void read_mo_coefficients(istream & is, vector <string> & currline,
     getline(is, line); //k-points
     getline(is, line); //nspin
     currline.clear(); split(line, space, currline);
-    cout << line << endl;
+    //cout << line << endl;
     int nspin=atoi(currline[4].c_str());
     if(nspin==1) { 
       slwriter.calctype="RHF";
@@ -297,7 +298,7 @@ void read_mo_coefficients(istream & is, vector <string> & currline,
       getline(is,line); //Num. wavefunctions
       currline.clear(); split(line, space, currline);
       int norb=atoi(currline[3].c_str());
-      cout << "norb " << norb << endl;
+      //cout << "norb " << norb << endl;
       //Now start with reading the ****orbitals*** (KS wave functions)
       for(int orb=0; orb < norb; orb++) { 
         for(int i=0; i< 5; i++) getline(is,line); //blank, wf#, energy, ---'s, header
@@ -314,7 +315,7 @@ void read_mo_coefficients(istream & is, vector <string> & currline,
         slwriter.spin_dwn_start=moCoeff.size();
       }
     } //spin loop
-    cout << "total norbs " << moCoeff.size() << endl;
+    //cout << "total norbs " << moCoeff.size() << endl;
 
   }
   
@@ -329,12 +330,28 @@ void find_unique_atoms(const vector<Atom> & atoms, vector<string> & unique_atoms
       at++) { 
     if(find(unique_atoms.begin(), unique_atoms.end(),at->name)==unique_atoms.end()){
       unique_atoms.push_back(at->name);
-      cout << "unique atom " << at->name << endl;
     }
   }
 }
 
 //###########################################################################
+
+void smooth_grid(vector <double> & r,
+                 vector <double> & vals) { 
+  vector <double> newvals;
+  newvals.resize(vals.size());
+  int n=vals.size();
+  assert(r.size()==vals.size());
+  for(int i=2; i< n-2; i++) { 
+    newvals[i]=(vals[i-2]+2*vals[i-1]+3*vals[i]+2*vals[i+1]+vals[i+2])/9.0;
+  }
+  newvals[1]=(vals[0]+vals[1]+vals[2])/3.0;
+  newvals[0]=vals[0];
+  newvals[n-2]=(vals[n-3]+vals[n-2]+vals[n-1])/3.0;
+  newvals[n-1]=vals[n-1];
+  vals=newvals;
+}
+
 
 //Make a uniform grid out of a 
 void make_uniform(vector <double> & r, 
@@ -370,6 +387,17 @@ void make_uniform(vector <double> & r,
 
 //###########################################################################
 
+void pad_spline(vector <double> & r, vector <double> & vals) { 
+  double spacing=r[1]-r[0];
+  double extent=r[r.size()-1];
+  while(extent < 14.0) {  
+    extent+=spacing;
+    r.push_back(extent);
+    vals.push_back(0.0);
+  }
+}
+
+
 //Here we smoothly cut off the function instead of just chopping it off, 
 //as Siesta seems happy to do.
 void smooth_cutoff(vector <double> & r, 
@@ -387,17 +415,58 @@ void smooth_cutoff(vector <double> & r,
   }
   
   double cutmin=cut-smooth;
+  vector <double> newvals;
+  newvals.resize(n);
+  double a,b,c,d; //extrapolation parameters
   for(int j=0; j< n; j++) {
     if(r[j] > cutmin) {
       if(r[j] > cut) { //if we're beyond the cutoff completely
-        vals[j]=0;
+        newvals[j]=0;
       }
       else {  //if we're in the smooth cutoff region
         double zz=(r[j]-cutmin)/smooth;
-        vals[j] *= (1-zz*zz*zz*(6*zz*zz-15*zz+10));
+        newvals[j] = vals[j]*(1-zz*zz*zz*(6*zz*zz-15*zz+10));
       }
+      
+        //better, but makes a small jump right at the cutoff
+      //if(j+1 < n)
+      //  newvals[j]=0.25*vals[j-1]+0.5*vals[j]+0.25*vals[j+1];
+      if(j+2 < n) 
+        newvals[j]=(vals[j-2]+2*vals[j-1]+3*vals[j]+2*vals[j+1]+vals[j+2])/9.0;
+      else newvals[j]=0.0;
+      
     }
+    else newvals[j]=vals[j];
+    
   }
+/*
+if(r[j] >= cutmin && r[j-1] < cutmin) { 
+  double v, der, der2;
+  v=vals[j];
+  double diff=r[j+1]-r[j-1];
+  der=(vals[j+1]-vals[j-1])/diff;
+  der2=(vals[j+1]+vals[j-1])/(diff*diff);
+  double cutmin3=cutmin*cutmin*cutmin;
+  double cut3=cut*cut*cut;
+  smooth=-smooth;
+  cout << "der " << der << " der2 " << der2 << endl;
+  a=(der2-2/smooth*(der-v/smooth))/(6.*cutmin-2/smooth*(3*cutmin*cutmin-(cutmin3-cut3)/smooth));
+  b=1/smooth*(der-v/smooth-a*(3*cutmin*cutmin-(cutmin3-cut3)/smooth));
+  c=(v-a*(cutmin3-cut3))/smooth-b*(cutmin+cut);
+  d=-a*cut3-b*cut*cut-c*cut;
+  cout << "a,b,c,d " << a << " " << b << " " << c <<"  "<< d << endl;
+  newvals[j]=vals[j];
+  cout <<"val " << vals[j] << " function " << a*r[j]*r[j]*r[j]+b*r[j]*r[j]+c*r[j]+d << endl;
+}
+else if(r[j] > cutmin && r[j] < cut) { 
+  
+  newvals[j]=a*r[j]*r[j]*r[j]+b*r[j]*r[j]+c*r[j]+d;
+}
+else if(r[j] > cut) newvals[j]=0.0;
+    else newvals[j]=vals[j];
+  }
+  vals=newvals;
+*/
 }
 
 //###########################################################################
@@ -447,8 +516,11 @@ void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis ) {
           rads.push_back(rad); vals.push_back(val);
         }
         vector <double> urad, uval;
-        make_uniform(rads,vals,urad,uval);
-        smooth_cutoff(urad,uval);
+        smooth_grid(rads,vals);
+        pad_spline(rads,vals);
+        urad=rads; uval=vals;
+        //make_uniform(rads,vals,urad,uval);
+        //smooth_cutoff(urad,uval);
         tmp_basis.rad.push_back(urad);
         tmp_basis.vals.push_back(uval);
         n++;
@@ -479,7 +551,7 @@ void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis ) {
 
 void read_psp(vector <Atom> & atoms, vector <Spline_pseudo_writer> & pseudo) {
   vector <string> unique_atoms;
-  cout << "****Pseudopotential " << endl;
+  //cout << "****Pseudopotential " << endl;
   string space=" ";
   find_unique_atoms(atoms,unique_atoms);
   for(vector<string>::iterator at=unique_atoms.begin();
@@ -496,7 +568,7 @@ void read_psp(vector <Atom> & atoms, vector <Spline_pseudo_writer> & pseudo) {
     getline(is, line);
     vector <string> spl;
     split(line, space, spl);
-    cout << *at << " : effective charge : " << spl[5] <<  " integerized " << atoi(spl[5].c_str()) << endl;
+    //cout << *at << " : effective charge : " << spl[5] <<  " integerized " << atoi(spl[5].c_str()) << endl;
     int zeff=atoi(spl[5].c_str());
     for(vector<Atom>::iterator i=atoms.begin(); i!= atoms.end();
         i++) { 
@@ -509,7 +581,7 @@ void read_psp(vector <Atom> & atoms, vector <Spline_pseudo_writer> & pseudo) {
       cout << "Can't deal with spin-polarized pseudopotentials..sorry\n";
       exit(1);
     }
-    cout << "npoints " << npoints <<  " nl " << nl << endl;
+    //cout << "npoints " << npoints <<  " nl " << nl << endl;
     is.ignore(180,'\n'); //Radial grid..
     vector <double>  rad;
     for(int i=0; i< npoints; i++) { 
@@ -522,9 +594,9 @@ void read_psp(vector <Atom> & atoms, vector <Spline_pseudo_writer> & pseudo) {
       vector <double> val;
       is.ignore(180,'\n');
       getline(is, line);
-      cout << line << endl;
+      //cout << line << endl;
       int currl; is >> currl;
-      cout << "l " << l << " "  << currl << endl;
+      //cout << "l " << l << " "  << currl << endl;
       assert(l==currl);
       
 
@@ -624,7 +696,7 @@ void fix_basis_norm(vector <Atom> & atoms,
         }
               
                 
-        cout << "i " << i << "  mnorm " << mnorm << endl;
+        //cout << "i " << i << "  mnorm " << mnorm << endl;
 
         for(int mo=0; mo < nmo; mo++) { 
           assert(moCoeff[mo].size() > funcnum);

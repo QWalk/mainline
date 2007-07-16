@@ -45,7 +45,7 @@ class Spline_fitter {
   void raw_input(ifstream & input);
   
   int getInterval(doublevar r) {
-    int interval=int(r/spacing);
+    int interval=int(r*invspacing);
     //if(r >= threshold) cout << "r " << r << " threshold " << threshold << endl;
     assert(r < threshold);
     assert(interval*spacing <=r);
@@ -98,6 +98,7 @@ class Spline_fitter {
   }
 
  private:
+    doublevar invspacing; //1/spacing, so we can do multiplications instead of divisions.
   doublevar spacing;
   doublevar threshold;
   Array2 <doublevar> coeff;

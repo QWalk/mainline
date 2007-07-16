@@ -41,6 +41,7 @@ void Spline_fitter::raw_input(ifstream & input)
       coeff(k,i)=dummy;
     }
   }
+invspacing=1.0/spacing;
 }
 
 
@@ -60,8 +61,12 @@ int Spline_fitter::readspline(vector <string> & words) {
 
   //cout << "fitting spline " << s << endl;
   Array1 <doublevar> x(n), y(n);
-  cout << "number of points I expect: " << 2*n+1 << " number found " <<words.size()
-    << endl;
+  //cout << "number of points I expect: " << 2*n+1 << " number found " <<words.size()
+  //  << endl;
+  if(words.size() != 2*n+1) { 
+    cout << " I expected " << 2*n+1 << " points in the spline input. " << "Found " << words.size() << endl;
+    error("error in spline fitting");
+  }
 
   int counter=1;
   for(int i=0; i < n; i++) {
@@ -70,7 +75,6 @@ int Spline_fitter::readspline(vector <string> & words) {
   }
 
   spacing=x(1)-x(0);
-  cout << "spacing " << spacing << endl;
   //Check that the points are monotonically increasing with equal spacing
   //This is mostly needed for the evaluation routine.
   for(int i=1; i< n; i++) {
@@ -81,7 +85,7 @@ int Spline_fitter::readspline(vector <string> & words) {
   }
 
   threshold=x(n-1);
-
+  invspacing=1.0/spacing;
   //--Estimate the derivatives on the boundaries
   doublevar yp1=(y(1)-y(0))/spacing;
   doublevar ypn=(y(n-1) - y(n-2) ) /spacing;
@@ -174,7 +178,7 @@ void Spline_fitter::splinefit(Array1 <doublevar>& x, Array1 <doublevar>& y,
 
   spacing=x(1)-x(0);
   threshold=x(n-1)+spacing;
-
+  invspacing=1.0/spacing;
   Array1 <doublevar> y2(n), u(n);
   doublevar sig, p, qn, un, hi;
 

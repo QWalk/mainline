@@ -169,7 +169,7 @@ int Cubic_spline::readspline(vector <string> & words) {
   }
   assign_indiv_symmetries();
 
-  cout << "created " << nfunc() << " total functions " << endl;
+  //cout << "created " << nfunc() << " total functions " << endl;
 
   double max_support=0.0;
   for(int i=0; i< nsplines; i++) { 
@@ -177,30 +177,7 @@ int Cubic_spline::readspline(vector <string> & words) {
     double supp=atof(splinefits[i][n-2].c_str());
     if(supp > max_support) max_support=supp;
   }
-  cout << "maximum support " << max_support <<endl;
-  
-  //pad the ends with zeros if they don't reach the maximum
-  //support.  This will save us some time in the calculation 
-  //part, since we can just use a single cutoff radius.
-  //We're assuming that everything is reasonably well-input here..
-  /* Removing this, since allowing different lengths messes up several parts in the
-     chain.  For now, we'll require that all the splines have the same support and 
-    the same spacings..otherwise they may as well be different basis objects.
-    NOTE: SHOULD CHECK THIS!!
-  for(int i=0; i< nsplines; i++) { 
-    int n=splinefits[i].size();
-    double supp=atof(splinefits[i][n-2].c_str());
-    double spacing=supp-atof(splinefits[i][n-4].c_str());
-    string zero="0.0";
-    while(supp < max_support) { 
-      supp+=spacing;
-      string tmp="";
-      append_number(tmp,supp);
-      splinefits[i].push_back(tmp);
-      splinefits[i].push_back(zero);
-    }
-  }
-   */
+  //cout << "maximum support " << max_support <<endl;
   
   
   for(int s=0; s< nsplines; s++) {
