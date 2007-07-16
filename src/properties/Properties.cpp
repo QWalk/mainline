@@ -55,7 +55,35 @@ void One_particle_density::init(vector<string> & words, System * sys,
   
   readvalue(words, pos=0, outputfile,"OUTPUTFILE");
   
+  //the domain is chosen as follows:
+  //1. If MIN or MAX is input, set the respective quantity to user's values
+  //2. If we have a periodic cell, they are set so that the cell is covered.
+  //3. Otherwise we set it to include each ion plus  4 bohrs to capture the tails
   min_.Resize(ndim); max.Resize(ndim);
+
+  
+  for(int d=0; d< ndim; d++) { 
+    min_(d)=0.0; max(d)=0.0;
+  }
+  
+  int nions=sys->nIons();
+  atominfo.Resize(nions, 4);
+  Array1 <doublevar> ionpos(3);
+  for(int i=0; i< nions; i++) {
+    sys->getIonPos(i,ionpos);
+    for(int d=0; d< 3; d++) {
+      atominfo(i,d+1)=ionpos(d);
+      if(ionpos(d) < min_(d)) min_(d) = ionpos(d);
+      if(ionpos(d) > max(d)) max(d)=ionpos(d);
+    }
+    atominfo(i,0)=sys->getIonCharge(i);
+  }
+  
+  for(int d=0; d< 3; d++) {
+    min_(d)-=4.0;
+    max(d)+=4.0;
+  }
+  
   Array2 <doublevar> latvec;
   if(sys->getBounds(latvec)) { 
     //assume origin is zero for the moment
@@ -67,11 +95,8 @@ void One_particle_density::init(vector<string> & words, System * sys,
       }
     }
   }
-  else { 
-    for(int d=0; d< ndim; d++) {
-      min_(d)=-3; max(d)=3;
-    }
-  }
+
+  
   vector <string> mintxt;
   if(readsection(words, pos=0, mintxt, "MIN")) {
     if(mintxt.size()!=3) error("MIN must have exactly 3 elements");
@@ -88,6 +113,7 @@ void One_particle_density::init(vector<string> & words, System * sys,
     }
   }
 
+  //------end min/max stuff
 
   if(!readvalue(words, pos=0, resolution, "RESOLUTION"))
     resolution=.1;
@@ -115,16 +141,7 @@ void One_particle_density::init(vector<string> & words, System * sys,
   nsample=0;
 
   
-  int nions=sys->nIons();
-  atominfo.Resize(nions, 4);
-  Array1 <doublevar> ionpos(3);
-  for(int i=0; i< nions; i++) {
-    sys->getIonPos(i,ionpos);
-    for(int d=0; d< 3; d++) {
-      atominfo(i,d+1)=ionpos(d);
-    }
-    atominfo(i,0)=sys->getIonCharge(i);
-  }
+
 
   //try to recover the previous run's density
   ifstream is(outputfile.c_str());
