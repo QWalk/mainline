@@ -2,8 +2,8 @@
 
 To build:
 
-for the impatient: cd src; gmake;
-for the slightly less impatient: cd src; gmake PLATFORM=ARCH;
+for the impatient: cd src; make;
+for the slightly less impatient: cd src; make PLATFORM=ARCH;
 
 NOTE: The build system currently requires GNU make.  This can usually be called
 as 'make' or 'gmake'.
@@ -21,7 +21,7 @@ of a fairly well-optimized .mk file.
 Makefile variables:
 
 CXX: C++ compiler.  For example, for a serial compile, set this to g++.  For
-parallel, set it to mpiCC.
+parallel, set it to mpiCC or mpicxx (or mpic++).
 
 CXXFLAGS: Flags to pass to the compiler.  Put optimization (-O2) flags, etc
 here.  Must also include the option "$(INCLUDEPATH)"
