@@ -28,11 +28,12 @@
 #include "Pseudo_writer.h"
 #include "wf_writer.h"
 using namespace std;
+enum coord_t { bohr, ang, scaled };
 
 void read_lattice_vector(istream & is, vector <string> & currline, 
                          vector <vector <double> > & latvec);
 void read_atoms(istream & is, vector <string> & currline, 
-                         vector <Atom> & atoms);
+                         vector <Atom> & atoms,coord_t & coord_type);
 void read_mo_coefficients(istream & is, vector <string> & currline,
                           Slat_wf_writer & slwriter, vector <vector <double> > & moCoeff);
 //reads in the basis for each type of atom
@@ -70,10 +71,11 @@ int main(int argc, char ** argv) {
   string space=" ";
   vector <string> currline;
   int netCharge=0;
+  coord_t coord_type;
   while(getline(is,line)) { 
     currline.clear();
     split(line, space, currline);
-    read_atoms(is,currline,atoms);
+    read_atoms(is,currline,atoms, coord_type);
     read_lattice_vector(is,currline,latvec);
     read_mo_coefficients(is, currline, slwriter, moCoeff);
     if(currline.size()> 6 && currline[2]=="spin" && currline[3]=="polarization") { 
@@ -96,6 +98,20 @@ int main(int argc, char ** argv) {
   slwriter.basisname=outputname+".basis";
   slwriter.mo_matrix_type="CUTOFF_MO";
  
+  cout << " coord_type " << coord_type << endl;
+  if(coord_type==scaled) { 
+    cout << "rescaling " << endl;
+    vector <Atom> tmpatoms=atoms;
+    int natoms=atoms.size();
+    for(int at=0; at < natoms; at++) { 
+      for(int i=0; i< 3; i++) atoms[at].pos[i]=0.0;
+      for(int i=0; i< 3; i++) { 
+        for(int j=0; j< 3; j++) { 
+          atoms[at].pos[i]+=tmpatoms[at].pos[j]*latvec[i][j];
+        }
+      }
+    }
+  }
   
   
   vector <Spline_basis_writer> basis;
@@ -200,16 +216,26 @@ int main(int argc, char ** argv) {
 //###########################################################################
 
 void read_atoms(istream & is, vector <string> & currline, 
-                vector <Atom> & atoms) {
+                vector <Atom> & atoms, coord_t & coord_type) {
   string space=" ";
   if(currline.size() > 3 && currline[0]=="outcoor:" && currline[2]=="coordinates") { 
     atoms.clear(); //so we always take the last set of atoms.
     double fac=1;
-    if(currline[3]=="(Ang):") { 
+    if(currline[3]=="(Bohr):") {
+      fac=1;
+      coord_type=bohr;
+    }
+    else if(currline[3]=="(Ang):") { 
       cout << "converting from angstrom" << endl;
       fac=1/.529177249;
+      coord_type=ang;
     }
-    else if(currline[3]!="(Bohr):") { 
+    else if(currline[3]=="(scaled):") { 
+      cout << "scaled coordinates" << endl;
+      fac=1.0;
+      coord_type=scaled;
+    }
+    else { 
       cout << "Don't understand format of the coordinates: " << currline[3] << endl;
       exit(1);
     }
