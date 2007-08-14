@@ -1,3 +1,4 @@
+CXXFLAGS= -g 
 
 ALLOBJS:=converter.o Pseudo_writer.o wf_writer.o basis_writer.o
 
@@ -6,7 +7,8 @@ GAMESSCI2QMCOBJS:=gamessci2qmc.o $(ALLOBJS)
 CRYSTAL2QMCOBJS:=crystal2qmc.o $(ALLOBJS)
 SIESTA2QMCOBJS:= siesta2qmc.o $(ALLOBJS)
 JEEP2QMCOBJS :=  jeep2qmc.o JeepBasis.o $(ALLOBJS)
-all: gamess2qmc gamessci2qmc crystal2qmc siesta2qmc
+G032QMCOBJS := g032qmcmain.o g03tools.o $(ALLOBJS)
+all: gamess2qmc gamessci2qmc crystal2qmc siesta2qmc g032qmc
 .PHONY: clean 
 
 gamess2qmc: $(GAMESS2QMCOBJS)
@@ -24,5 +26,8 @@ siesta2qmc: $(SIESTA2QMCOBJS)
 jeep2qmc : $(JEEP2QMCOBJS)
 	$(CXX) -o jeep2qmc $(JEEP2QMCOBJS)
 
+g032qmc: $(G032QMCOBJS)
+	$(CXX) -o g032qmc $(G032QMCOBJS)
+
 clean: 
-	rm -f $(GAMESS2QMCOBJS) $(GAMESSCI2QMCOBJS) $(CRYSTAL2QMCOBJS) $(JEEP2QMCOBJS) gamess2qmc gamessci2qmc jeep2qmc crystal2qmc
+	rm -f $(GAMESS2QMCOBJS) $(GAMESSCI2QMCOBJS) $(CRYSTAL2QMCOBJS) $(JEEP2QMCOBJS) $(SIESTA2QMCOBJS) $(G032QMCOBJS) siesta2qmc g032qmc gamess2qmc gamessci2qmc jeep2qmc crystal2qmc
