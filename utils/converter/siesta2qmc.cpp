@@ -47,11 +47,18 @@ void fix_basis_norm(vector <Atom> & atoms, vector <Spline_basis_writer> & basis,
 
 int main(int argc, char ** argv) { 
   if(argc < 2) {
-    cout << "usage: siesta2qmc [siesta stdout]\n";
+    cout << "usage: siesta2qmc < -o basename > [siesta stdout]\n";
+    cout << "  -o          use basename as the prefix for QWalk.  Defaults to qwalk\n";
     exit(1);
   }
-  string infilename=argv[1];
   string outputname="qwalk";
+
+  for(int i=1; i< argc-1; i++) { 
+    if(!strcmp(argv[i],"-o") && i+1 < argc) { 
+      outputname=argv[++i];
+    }
+  }
+  string infilename=argv[argc-1];
   
   //------------------------------read in the variables from the output file
   vector <Atom> atoms;
