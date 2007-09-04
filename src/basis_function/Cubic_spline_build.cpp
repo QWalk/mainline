@@ -362,7 +362,7 @@ int Cubic_spline::readbasis(vector <string> & words,unsigned int & pos,
     symmetry(i)=symmetry_temp[i];
   }
 
-  cout << "nfunc " << nfunc() << endl;
+  //cout << "nfunc " << nfunc() << endl;
   
   const double normtol=1e-5; //tolerance for the normalization of the basis fn
   for(int funcNum=0; funcNum<nsplines; funcNum++)  {

@@ -4,7 +4,7 @@
 
 CXX:=g++
 
-CXXFLAGS := -O3  \
+CXXFLAGS := -O3   \
    -funroll-loops -ffast-math  \
   $(INCLUDEPATH) -fomit-frame-pointer
 #CXXFLAGS := -O2 -I$(INCLUDEPATH)
