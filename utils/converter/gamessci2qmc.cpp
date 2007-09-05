@@ -127,7 +127,7 @@ int main(int argc, char ** argv) {
         }
    
         if(words[0]=="CASE" && words[1]=="VECTOR"){
-          csf_full.push_back(atoi(words[4].c_str())-1);
+          csf_full.push_back(atoi(words[3].c_str())-1);
           k++;
         }
         
