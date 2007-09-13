@@ -26,7 +26,7 @@ keyword: DENSITY
 Collects the one-particle density 
 \f$ \rho(r)=\int dr_2...dr_N \Psi^2(r,r_2,...,r_N) \f$ and 
 stores it in the Gaussian cube file format readable by VMD or 
-other quantum chemistry visualization software.
+other quantum chemistry visualization software.  It also outputs an OpenDX format file.
 
 \section options Options
 
@@ -39,9 +39,9 @@ other quantum chemistry visualization software.
 <tr> <td> MIN  <td> Section <td> special <td> See MAX
 <tr> <td> MAX  <td> Section <td> special <td> If MIN and/or MAX is not given,
 and the system has open boundary conditions(that is, is a molecule),
- they will be set either to { -3 -3 -3 }(for MIN) or { 3 3 3 }(for MAX).  If
+ they will be set to include all atoms.  If
 the system has periodic boundary conditions, then they will be set to the 
-smallest orthorhombic cell that includes the PBC cell.
+smallest orthorhombic cell that includes the PBC cell.  
 <tr> <td> RESOLUTION <td> Float <td> .1 <td> Specifies the resolution of the 
 density accumulation in bohrs.  Larger resolutions will save on memory and
 the surfaces will look smoother, although the smooth_cube utility will 

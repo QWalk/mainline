@@ -1,0 +1,58 @@
+/*! \page siesta2qmcDoc Siesta to qmc
+
+
+\section description Description
+
+Basic usage: siesta2qmc -o [outputroot]  [siesta output file] <br>
+
+If outputroot is not given, it will default to qwalk.
+
+\section tricks Tricks
+
+Getting a good trial wave function from Siesta can be a little
+tricky, so here are some techniques that have worked in the past.
+These are not guaranteed to obtain the most accurate numbers possible,
+so be careful!
+
+
+
+\subsection options Options
+
+The following options are required for the converter to work:
+\begin{verbatim}
+%block WaveFuncKPoints
+0.0 0.0 0.0
+%endblock WaveFuncKPoints
+LongOutput .true.
+LatticeConstant 
+\end{verbatim}
+
+You need the lattice constant variable even if you're calculating
+a molecule, since Siesta apparently doesn't print out the orbital
+coefficients unless the lattice constant is given explicitly.  If you
+are doing an actual molecule, you may want to change PERIODIC in the
+QWalk .sys file to MOLECULE, which will increase the speed and accuracy.
+
+\subsection pseudo Pseudopotential
+
+One can use the pseudopotentials written for QMC, although they can be
+quite a pain to convert for use in Siesta, since they are usually
+written in a Gaussian expansion.  Current thought is that PBE psp's are
+probably your best bet.  Siesta
+may have exact exchange in the future, in which case hybrid or
+Hartree-Fock psueudopotentials may be better.  To be clear, the
+pseudopotentials should be tested, by, for example, calculating
+calculating the binding energy of small molecules.
+
+
+\subsection basis Basis set
+
+You may find that you need to use a larger basis set than is typical for
+Siesta.  It appears that a triple-zeta quality with polarization or better
+is necessary.  If the basis set is too small, the variance of the local
+energy is too large, because the basis cannot describe the one-body
+part of the wave function well enough.  For molecules, you may also
+need to extend the cutoff radius of the basis functions significantly to
+keep the variance down and the wave function accurate.
+
+*/
