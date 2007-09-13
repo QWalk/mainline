@@ -1,124 +1,22 @@
-/*
- 
- Copyright (C) 2007 Hiori Kino (kino dot hiori atmark nims dot go dot jp )
- 
- This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation; either version 2 of the License, or
- (at your option) any later version.
- 
- This program is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
- 
- You should have received a copy of the GNU General Public License along
- with this program; if not, write to the Free Software Foundation, Inc.,
- 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- 
- */
 #include <fstream>
 #include <iostream>
 #include <iomanip>
 #include <map>
 #include <string>
 #include <vector>
+#include <cmath>
 
 #include <string.h>
 #include <stdlib.h>
 
 #include "converter.h"
+#include "Pseudo_writer.h"
+#include "basis_writer.h"
 #include "g03tools.h"
 
-#include <cmath>
+
 
 using namespace std;
-
-
-void g03Atom::print_atom(ostream & os) 
-{
-       os << setw(5) << name << " "
-          << setw(5) <<  id << " "
-          << setw(5) << atomnum << " " ;
-       for (int i=0;i<pos.size(); i++)  os << setw(15) << pos[i] <<" " ;
-       os <<std::endl;
-};
-
-
-int g03basis::print(ostream &os)
-{
-    g03basis *vbas;
-    vbas=this;
-    os <<"atom="<< vbas->id << " " << vbas->range  << " "
-         <<     vbas->bas_L.size() <<endl;
-    for ( vector<g03basis_L>::iterator vbas_L = vbas->bas_L.begin();
-          vbas_L != vbas->bas_L.end(); vbas_L++) {
-      os << vbas_L->orbtype << " " << vbas_L->ncoeff << " "
-           << vbas_L->weight << " " << vbas_L->unknown << endl;
-      if ( vbas_L->orbtype=="SP" ) {
-        for (int i=0;i<vbas_L->expn.size();i++) {
-          os << "   " <<vbas_L->expn[i] << " " << vbas_L->coeff1[i] << " "
-               << vbas_L->coeff2[i] <<endl;
-        }
-      } else {
-        for (int i=0;i<vbas_L->expn.size();i++) {
-          os << "   " <<  setprecision(10) << vbas_L->expn[i] << " " 
-		  << setprecision(10) << vbas_L->coeff1[i] << endl;
-        }
-      }
-    }
-    return 0;
-}
-
-void g03_print_basisset(vector<g03basis> &bas)
-{
-    for (vector<g03basis>::iterator it = bas.begin(); it!= bas.end(); it++) {
-       it->print(cout);
-    }
-}
-
-
-
-int g03basiskind::print(ostream &os)
-{
-    g03basiskind *vbas;
-    vbas=this;
-
-    os << "atom=" ;
-    for (vector<int>::iterator ids = vbas->ids.begin();  ids!=  vbas->ids.end(); ids++) {
-       os << " " << *ids ;
-    }
-    os <<endl;
-#if 0
-    os <<"atom="<< vbas->id << " " << vbas->range  << " "
-         <<     vbas->bas_L.size() <<endl;
-#endif
-    for ( vector<g03basis_L>::iterator vbas_L = vbas->bas_L.begin();
-          vbas_L != vbas->bas_L.end(); vbas_L++) {
-      os << vbas_L->orbtype << " " << vbas_L->ncoeff << " "
-           << vbas_L->weight << " " << vbas_L->unknown << endl;
-      if ( vbas_L->orbtype=="SP" ) {
-        for (int i=0;i<vbas_L->expn.size();i++) {
-          os << "   " <<vbas_L->expn[i] << " " << vbas_L->coeff1[i] << " "
-               << vbas_L->coeff2[i] <<endl;
-        }
-      } else {
-        for (int i=0;i<vbas_L->expn.size();i++) {
-          os << "   " << setprecision(10) <<  vbas_L->expn[i] << " " 
-		  << setprecision(10) << vbas_L->coeff1[i] << endl;
-        }
-      }
-    }
-    return 0;
-}
-
-void g03_print_basisetkind(vector<g03basiskind> &baskind) 
-{
-    for (vector<g03basiskind>::iterator it = baskind.begin(); it!= baskind.end(); it++) {
-       it->print(cout);
-    }
-}
-
 /************************************************************************************
  *
  * **********************************************************************************/
@@ -166,17 +64,6 @@ double atod(/* input */const char *s)
 
 
 
-/* find max L of ps */
-int findlmax( vector<g03PSP_L> & psL )
-{
-   int lmax=0;
-   for ( vector<g03PSP_L>::iterator it = psL.begin(); it!= psL.end();   it++) {
-      if (lmax < it->L ) { lmax = it->L ; }
-   }
-   return lmax;
-}
-
-
 
 /* L(integer) -> L(char *) */
 const char *L2Lstr(int L)
@@ -190,71 +77,6 @@ const char *L2Lstr(int L)
    return label_Lstr[L];
 }
 
-
-
-#if 0
-/* print basis set */
-static int g03_print_basiset( /* input */ vector<g03basis> & basisset )
-{
-  cout << "basisset" <<endl;
-  for ( vector<g03basis>::iterator vbas = basisset.begin();
-        vbas != basisset.end(); vbas++) {
-    cout <<"atom="<< vbas->id << " " << vbas->range  << " "
-         <<     vbas->bas_L.size() <<endl;
-    for ( vector<g03basis_L>::iterator vbas_L = vbas->bas_L.begin();
-          vbas_L != vbas->bas_L.end(); vbas_L++) {
-      cout << vbas_L->orbtype << " " << vbas_L->ncoeff << " "
-           << vbas_L->weight << " " << vbas_L->unknown << endl;
-      if ( vbas_L->orbtype=="SP" ) {
-        for (int i=0;i<vbas_L->expn.size();i++) {
-          cout << "   " <<vbas_L->expn[i] << " " << vbas_L->coeff1[i] << " "
-               << vbas_L->coeff2[i] <<endl;
-        }
-      } else {
-        for (int i=0;i<vbas_L->expn.size();i++) {
-          cout << "   " <<  vbas_L->expn[i] << " " << vbas_L->coeff1[i] << endl;
-        }
-      }
-    }
-  }
-  return 0;
-}
-#endif
-
-#if 0
-/* print basissetkind */
-static int g03_print_basisetkind( /* input */ vector<g03basiskind> & basisset )
-{
-  cout << "basisset" <<endl;
-  for ( vector<g03basis>::iterator vbas = basisset.begin();
-        vbas != basisset.end(); vbas++) {
-        cout << "atom=" ;
-        for (vector<int>::iterator ids=vbas->ids; ids!=vbas->ids->end(); ids++) {
-           cout << " " << *ids  << endl;
-        }
-#if 0
-    cout <<"atom="<< vbas->id << " " << vbas->range  << " "
-         <<     vbas->bas_L.size() <<endl;
-#endif
-    for ( vector<g03basis_L>::iterator vbas_L = vbas->bas_L.begin();
-          vbas_L != vbas->bas_L.end(); vbas_L++) {
-      cout << vbas_L->orbtype << " " << vbas_L->ncoeff << " "
-           << vbas_L->weight << " " << vbas_L->unknown << endl;
-      if ( vbas_L->orbtype=="SP" ) {
-        for (int i=0;i<vbas_L->expn.size();i++) {
-          cout << "   " <<vbas_L->expn[i] << " " << vbas_L->coeff1[i] << " "
-               << vbas_L->coeff2[i] <<endl;
-        }
-      } else {
-        for (int i=0;i<vbas_L->expn.size();i++) {
-          cout << "   " <<  vbas_L->expn[i] << " " << vbas_L->coeff1[i] << endl;
-        }
-      }
-    }
-  }
-  return 0;
-}
-#endif
 
 
 /* "S", "P", ...  -> 0,1,... */
@@ -352,31 +174,6 @@ int g03_basissizeL(/*input*/ string & L )
   }
   return L;
 }
-
-/* print vector< g03PSP > */
- int g03_print_ps(/* input */
-          vector< g03PSP  > pseudos)
-{
-  cout <<"pseudopotential" <<endl;
-  for ( vector< g03PSP  > ::iterator vvpsp= pseudos.begin();
-        vvpsp != pseudos.end(); vvpsp++ ) {
-    cout <<"atom "<< vvpsp->id << " " << vvpsp->atomnum << " " << vvpsp->valence <<endl;
-    vector<g03PSP_L> psL = vvpsp->psL;
-    cout << "num of PS " << psL.size()<<endl;;
-    for ( vector<g03PSP_L>::iterator vpsp=psL.begin();
-          vpsp!=psL.end(); vpsp++ ) {
-      cout << "L=" << vpsp->L << " refL=" << vpsp->refL <<endl;
-      for (int i=0;i< vpsp->power.size(); i++) {
-        cout <<"   " << vpsp->power[i] << " " 
-             << setw(15) << setprecision(10) << vpsp->expn[i] << " " 
-             << setw(15) << setprecision(10) << vpsp->coeff[i] <<endl;
-      }
-    }
-  }
-  return 0;
-}
-
-
 //
 //  from crystal2qmc 
 //
@@ -436,7 +233,7 @@ static int gamessvec_normalize(/* input */
 		/* input output */
 		vector < vector < double> > & moCoeff )
 {
-
+  const char *t="gamessvec_normalize:";
   int natoms=atoms.size();
 
   //Normalize
@@ -519,7 +316,7 @@ static int gamessvec_normalize(/* input */
           }
         }
         else {
-          cout << "unknown type " << basis[bas].types[i] << endl;
+          cout << t << "unknown type " << basis[bas].types[i] << endl;
           exit(1);
         }
       }
@@ -530,20 +327,20 @@ static int gamessvec_normalize(/* input */
   return 0;
 }
 
-int g03_change_form(
+int g03_fix_form(
 		/* input */
 		int nup, int ndown, 
 		string & scftype, 
-                vector <g03Atom> & g03atoms,
-                vector<g03basis> & g03basisset,
-		vector<g03PSP> & g03psp, 
+		int dtype, int ftype, 
 		vector< vector< double> > & alphamo,
 		vector< vector< double> > & betamo,
+		vector<PseudoValence> &pseudovalence, 
+		vector <Atom>  & atoms,
+		/*input and output */
+	        vector <Gaussian_basis_set> & basis,
+		vector <Gaussian_pseudo_writer> & pseudo,
 		/* output */
                 Slat_wf_writer & slwriter,
-                vector <Atom>  & atoms,
-                vector <Gaussian_basis_set> & basis,
-		vector <Gaussian_pseudo_writer> & pseudo,
                 vector < vector < double> > & moCoeff,
 		vector <Center> & centers,
 		vector <int> & basisidx 
@@ -563,136 +360,54 @@ int g03_change_form(
   slwriter.spin_dwn_start= norb;
   slwriter.calctype = scftype;
 
-  atoms.clear();
-  if ( g03psp.empty() ) {
-  for (vector<g03Atom>::iterator it = g03atoms.begin();
-          it != g03atoms.end(); it++ ) {
-      Atom a_atom;
-      a_atom.name=it->name;
-      a_atom.charge = it->atomnum;
-      a_atom.pos=it->pos; 
-#if 1
-      { for (int i=0; i<a_atom.pos.size();i++) {
-           a_atom.pos[i] /= ANG;   // ANG -> AU 
-					       }
-      }
-#endif
-      a_atom.basis=it->id-1;
-      atoms.push_back(a_atom);
-  }
-  }
-  else {
-  vector<g03PSP>::iterator itps = g03psp.begin();
-  for (vector<g03Atom>::iterator it = g03atoms.begin();
-          it != g03atoms.end(); it++ ) {
-      Atom a_atom;
-      a_atom.name=it->name;
-      a_atom.charge = itps->valence; 
-      a_atom.pos=it->pos; 
-#if 1
-      { for (int i=0; i<a_atom.pos.size();i++) {
-           a_atom.pos[i] /= ANG;   // ANG -> AU
-                                               }
-      }
-#endif
-      a_atom.basis=it->id-1;
-      atoms.push_back(a_atom);
-      itps++;
-  }
-  }
-  for (vector<Atom> :: iterator it= atoms.begin(); it!= atoms.end(); it++ ) {
-      it->print_atom(cout);
-  }
-
-  // basis 
-  for ( vector<g03basis>:: iterator g03atom = g03basisset.begin(); 
-		  g03atom != g03basisset.end(); g03atom++) { 
-	Gaussian_basis_set tmpbasis;
-	int id = g03atom->id-1;
-        tmpbasis.label= atoms[id].name; 
-	for ( vector < g03basis_L >::iterator basL = g03atom->bas_L.begin(); 
-			basL != g03atom->bas_L.end();  basL ++ ) {
-		string orbtype = basL->orbtype;
-		string orb=orbtype;
-		if ( orbtype=="SP" || orbtype=="L" ) {orb="S";} // later set "P"; 
-		else if ( orbtype=="D" ) {orb = "6D";}
-		else if ( orbtype=="F" ) {orb = "10F";}
-		else if ( orbtype=="G" ) {orb = "15G";}
-		tmpbasis.types.push_back(orb);
-		tmpbasis.exponents.push_back(emptyvector);
-		tmpbasis.coefficients.push_back(emptyvector);
-		int place = tmpbasis.types.size()-1;
-		for (int iex=0;iex< basL->ncoeff; iex++ ) {
-			tmpbasis.exponents[place].push_back(basL->expn[iex]);
-			tmpbasis.coefficients[place].push_back(basL->coeff1[iex]);
-		}
-		if ( orbtype=="SP") { 
-			orb="P";
-                	tmpbasis.types.push_back(orb);
-			tmpbasis.exponents.push_back(emptyvector);
-			tmpbasis.coefficients.push_back(emptyvector);
-                	int place = tmpbasis.types.size()-1;
-                	for (int iex=0;iex< basL->ncoeff; iex++ ) {
-                        	tmpbasis.exponents[place].push_back(basL->expn[iex]);
-                        	tmpbasis.coefficients[place].push_back(basL->coeff2[iex]);
-                	}
-                }
-        }
-        basis.push_back(tmpbasis);
-  }
-
 #if 0
-  cout << "-------basis set--------" <<endl;
-  for ( vector<Gaussian_basis_set> ::iterator bas = basis.begin();
-		   bas != basis.end(); bas++ ) {
-          bas->print_basis(cout);
-  }
+  // done when atoms are read 
+  //  ang -> au
+ for (vector<Atom>::iterator it=atoms.begin(); it!=atoms.end(); it++) {
+	 for (int k=0;k<3;k++) {
+             it->pos[k] /= ANG;
+	 }
+	 string_upper(it->name);
+ }
 #endif
 
+ // upper case
+#if 0
+ for (vector<Gaussian_basis_set>::iterator it = basis.begin();  it!=basis.end(); it++) {
+	 string_upper(it->label);
+ }
+ for (vector<Gaussian_pseudo_writer>::iterator it = pseudo.begin(); it!=pseudo.end(); it++) {
+	 string_upper(it->label);
+ }
+#endif
 
-  vector<string> addedname;  addedname.clear();
-
-  for ( vector<g03PSP>::iterator atomps =  g03psp.begin() ; 
-		  atomps != g03psp.end(); atomps++ ) {
-	  cout << "g03psp" <<endl;
-        int id=atomps->id-1;
-	Gaussian_pseudo_writer pseudotmp;
-	pseudotmp.label = atoms[id].name;
-
-        int found=0;
-        for (vector<string>::iterator itname=addedname.begin();
-              itname!=addedname.end(); itname++) {
-            if (pseudotmp.label == *itname )  {
-               found=1; break;
-            }
-        }
-        if (found) continue;
-
-        pseudotmp.atomnum = atomps->atomnum;
-        if (atomps->psL.empty()) {
-           vector<double> emptyr; emptyr.push_back(0.0);
-           vector<int> emptyi; emptyi.push_back(-2);
-           pseudotmp.exponents.push_back(emptyr);
-           pseudotmp.coefficients.push_back(emptyr);
-           pseudotmp.nvalue.push_back(emptyi);
-        }
-        else {
-	for (vector<g03PSP_L>::iterator psL = atomps->psL.begin();
-			psL != atomps->psL.end(); psL++ ) {
-	   pseudotmp.exponents.push_back(psL->expn);
-	   pseudotmp.coefficients.push_back(psL-> coeff);
-	   vector<int> pw = psL->power; 
-	   for ( int i=0; i<pw.size(); i++ ) {
-                pw[i] = pw[i]-2;   //  in the print_pseudo, this value +2 again
-	   }
-	   pseudotmp.nvalue.push_back(pw);
-
-	}
-        }
-	pseudo.push_back(pseudotmp);
-        addedname.push_back(pseudotmp.label);
+  if ( !pseudo.empty() ) {
+  for (vector<Atom>::iterator it=atoms.begin(); it!=atoms.end(); it++) {
+      string name = it->name; 
+      vector<PseudoValence>::iterator itps;
+      int found=0;
+      // find the same name 
+      for (itps=pseudovalence.begin(); itps!=pseudovalence.end(); itps++) {
+	      if (name==itps->label) {
+		      found=1;
+		      break;
+	      }
+      }
+      if (found ) {
+          it->charge = itps->valencenum; 
+      }
   }
-  cout << "# of pseudo="<< pseudo.size()<<endl;
+  }
+
+  // "D"  -> 5D or 6D
+  // "F" ->  7F or 10F 
+  for (vector<Gaussian_basis_set>::iterator it = basis.begin();  it!=basis.end(); it++) {
+     for (vector<string>::iterator itlabel=it->types.begin(); itlabel!=it->types.end(); itlabel++ ) {
+	     if (*itlabel=="D") *itlabel=dtypestr[dtype];
+	     if (*itlabel=="F") *itlabel=ftypestr[ftype];
+     }
+  }
+
 
   //QMC likes the local part at the end of the list, and GAMESS outputs
   //  //it at the beginning, so let's fix that..
@@ -792,6 +507,7 @@ int string_upper(string &str)
     return 0;
 }
 
+#if 0
 int find_atomname(vector<g03Atom> &atomlist, string& key)
 {
    for (int i=0;i<atomlist.size(); i++) {
@@ -799,6 +515,16 @@ int find_atomname(vector<g03Atom> &atomlist, string& key)
    }
    return -1;
 }
+#endif
+
+int find_gatomname(vector<Atom> &atomlist, string& key)
+{
+   for (int i=0;i<atomlist.size(); i++) {
+        if (strcasecmp(atomlist[i].name.c_str(),key.c_str())==0 ) { return i;}
+   }
+   return -1;
+}
+
 
 
 int atomname2number(string &atom)
@@ -814,61 +540,6 @@ int atomname2number(string &atom)
    }
    cout <<t << " not found " << atom <<endl;
    exit(ERR_CODE);
-   return 0;
-}
-
-
-int g03_baskindset2basset(/* input */
-		vector<g03basiskind> &baskindset,
-		/* output */
-		vector<g03basis> &basisset)
-{
-   const char *t = "g03_baskindset2basset: ";
-   // find max_of_id in baskindset
-   int maxid=0;
-   for (vector<g03basiskind>::iterator baskind = baskindset.begin();  baskind!=baskindset.end(); baskind++) {
-       for (vector<int>::iterator id = baskind->ids.begin(); id!=baskind->ids.end(); id++) {
-           if  (maxid < *id) maxid = *id; 
-       }
-   }
-
-   //cout << t << "max id ="<<maxid<<endl;
-
-   g03basis bas;
-   // make null arrays
-   for (int i=0;i<maxid;i++) {
-	   basisset.push_back(bas); 
-   }
-
-   // copy the contents
-   for (vector<g03basiskind>::iterator baskind = baskindset.begin();  baskind!=baskindset.end(); baskind++) {
-       for (vector<int>::iterator id = baskind->ids.begin(); id!=baskind->ids.end(); id++) {
-	    //   cout << t << "copy id="<< *id <<endl;
-            basisset[*id-1].id = *id; basisset[*id-1].range=0;
-            basisset[*id-1].bas_L = baskind->bas_L;
-       }
-   }    
-
-   // check all the basisset is here
-   int err_flag=0;
-   for (vector<g03basis>::iterator bas= basisset.begin(); bas!=basisset.end(); bas++) {
-       if (bas->id==0) {
-	       err_flag=1;
-	       break;
-       }
-       if (bas->bas_L.size()==0) {
-	       err_flag=1;
-	       break;
-       }
-   }
-   if (err_flag) {
-	   cout << t << "some basis is missing"<<endl;
-	   exit(ERR_CODE);
-   }
-
-   // print
-   //g03_print_basisset(basisset);
-
    return 0;
 }
 
@@ -908,20 +579,6 @@ int g03_process_sharpheader(
                    //cout << "match pseudo" <<endl;
 		   comment += " pseudo=read";
            }
-#if 0
-           if ( strstr(line_upper.c_str()," 5D ")!=NULL ) {
-               basis_6d=1;
-           }
-           if ( strstr(line_upper.c_str()," 6D ")!=NULL ) {
-               basis_6d=2;
-           }
-           if ( strstr(line_upper.c_str()," 7F ")!=NULL ) {
-               basis_10f=1;
-           }
-           if ( strstr(line_upper.c_str()," 10F ")!=NULL ) {
-               basis_10f=2;
-           }
-#endif
 	   if (strstr(line_upper.c_str(),"IOP(3/24=10)")!=NULL) {
                iop3_24=1;
 	       comment += " IOP(3/24=10)";
@@ -935,23 +592,6 @@ int g03_process_sharpheader(
 	   }
     }
 
-#if 0
-    basis_dftype="";
-    if (basis_6d==1) {
-	    basis_dftype= " 5D";
-    }
-    else if (basis_6d==2) {
-            basis_dftype= " 6D";
-    }
-
-    if (basis_10f==1) {
-            basis_dftype+= " 7F ";
-    }
-    else if (basis_10f==2) {
-            basis_dftype+= " 10F ";
-    }
-    cout << "matches '" << comment << basis_dftype <<"'" << endl;
-#endif
 
     if (iop3_24==0 || iop3_18==0 ) {
         cout << " add 'IOP(3/24=10) IOP(3/18=1)' in the # section of the com file"<<endl;
@@ -970,7 +610,9 @@ int g03_process_sharpheader(
 
 /* reorder orbital, gaussian -> gamess */
 int g03_orbital_reorder(/* input */
-		vector<g03basis> & basisset,
+//		vector<g03basis> & basisset,
+		vector<Atom> &atoms,
+		vector<Gaussian_basis_set> &gbasisset, 
 		int dtype, int ftype, 
                    /* input & output */
 		vector< vector<double> > & alphamo,
@@ -1014,37 +656,24 @@ int g03_orbital_reorder(/* input */
    // now support up to F */
    const int Lmaxorb=3; // max of L=F=3
 
-#if 0
-   // now accept only 6D and  10F
-   if ( dtype==0 || ftype==0 ) {
-      cout << "Error: now accepts only 6D and 10F"<<endl;
-      exit(ERR_CODE);
-   }
-#endif
-
-#if 0
-   // if one accept 5D, 7F..., one must remake this subroutine 
-   //
-   const int N_num_Lorb=4;
-   const int num_Lorb[N_num_Lorb]={1,3,6,10}; // number of S P 6D and 10F 
-#endif
 
    // find max of L
    // if L<="D" , do nothing
    int Lmax=0;
-   for ( vector<g03basis>::iterator itbasis=basisset.begin(); itbasis!= basisset.end(); itbasis++) {
-      for ( vector<g03basis_L>::iterator itbasisL=itbasis->bas_L.begin(); itbasisL!=itbasis->bas_L.end(); itbasisL++) {
-          string Lstr = itbasisL->orbtype;
-          int L= g03_maxangularMomentum(Lstr);
-          if (Lmax<L) Lmax=L;
-          if ( L > Lmaxorb ) {
-             cout << t << "L= " <<  L << " not supported"<<endl;
-             exit(ERR_CODE);
-          }
-      }
+   int Lmax2=0;
+   for (vector<Gaussian_basis_set>::iterator it=gbasisset.begin(); it != gbasisset.end(); it++) {
+         for ( vector<string>::iterator itL = it->types.begin(); itL != it->types.end(); itL++ ) {
+		 string Lstr = *itL;
+		 int L= g03_maxangularMomentum(Lstr);
+		 Lmax2 = max(Lmax2,L);
+                 if ( L>Lmaxorb) {
+			 cout << t << "L= " <<  L << " not supported"<<endl;
+			 exit(ERR_CODE);
+		 }
+	 }
    }
-
    // error check, 
+   Lmax = Lmax2;
    if ( Lmax==2 ) { // up to D
 	   if (dtype==0) {
 		   cout << "Error: now accepts only 6D" <<endl;
@@ -1065,29 +694,16 @@ int g03_orbital_reorder(/* input */
 
    // calc. vecsize
    int vecsize=0;
-   for ( vector<g03basis>::iterator itbasis=basisset.begin(); itbasis!= basisset.end(); itbasis++) {
-      for ( vector<g03basis_L>::iterator itbasisL=itbasis->bas_L.begin(); itbasisL!=itbasis->bas_L.end(); itbasisL++) {
-          string Lstr = itbasisL->orbtype;
-          vecsize += g03_basissizeL(Lstr);
-      }
+   int vecsize2=0;
+   for ( vector<Atom>::iterator it=atoms.begin(); it!=atoms.end(); it++) {
+	   int id=it->basis; 
+	   for (vector<string>:: iterator itL = gbasisset[id].types.begin(); itL!= gbasisset[id].types.end(); itL++) {
+		   string Lstr= *itL;
+		   vecsize2+= g03_basissizeL(Lstr);
+	   }
    }
+   vecsize = vecsize2;
 
-#if 0
-   // count size of eigenvector
-   int vecsize=0;
-   for ( vector<g03basis>::iterator itbasis=basisset.begin(); itbasis!= basisset.end(); itbasis++) {
-      for ( vector<g03basis_L>::iterator itbasisL=itbasis->bas_L.begin(); itbasisL!=itbasis->bas_L.end(); itbasisL++) {
-          string Lstr = itbasisL->orbtype;
-          int L= g03_angularMomentum(Lstr);
-	  //cout << Lstr << " " << L <<" " << num_Lorb[L] << endl ;
-          if ( L > Lmaxorb ) {
-             cout << t << "L= " <<  L << " not supported"<<endl;
-             exit(ERR_CODE);
-          }
-          vecsize+= num_Lorb[L]  ;
-      }
-   }
-#endif
 
    // vecsize == alphamo[0].size()  ? 
    if ( vecsize != alphamo[0].size() ) {
@@ -1096,66 +712,34 @@ int g03_orbital_reorder(/* input */
       exit(ERR_CODE);
    }
 
-#if 0
-   // make order of L
-   vector< vector<int> >  Lorder;
-   for (int iL=0;iL<N_num_Lorb; iL++) {
-      vector<int> iorder;
-      switch(iL) {
-      case 0:
-      case 1:
-      case 2:
-      for (int io=0;io<num_Lorb[iL]; io++) {
-          iorder.push_back(io);
-      }
-      break;
-      case 3:
-      for (int io=0;io<num_Lorb[iL]; io++) {
-          iorder.push_back(forder[io]-1);
-      }
-      break;
-      default:
-        // this can not happen, but 
-        cout << t << "not supported"<<endl;
-        exit(ERR_CODE);
-      break;
-      }
-      Lorder.push_back(iorder);
-   }
-#endif
 
    cout << t << "There exist F orbials"<<endl;
 
    // make order 
    vector<int> order;
    int itot=0;
-   for ( vector<g03basis>::iterator itbasis=basisset.begin(); itbasis!= basisset.end(); itbasis++) {
-      for ( vector<g03basis_L>::iterator itbasisL=itbasis->bas_L.begin(); itbasisL!=itbasis->bas_L.end(); itbasisL++) {
-          string Lstr = itbasisL->orbtype;
-	  if (Lstr=="F" || Lstr=="F10" ) {
-		  int nbasisL=g03_basissizeL(Lstr);
-		  for (int i=0; i < nbasisL  ; i++) {
-			  order.push_back(itot+f10order[i]-1);
-		  }
-		  itot += nbasisL;
-	  }
-	  else {
-		int nbasisL=g03_basissizeL(Lstr);
-		for (int i=0; i < nbasisL  ; i++) {
-			order.push_back(itot+i);
-		}
-		itot += nbasisL;
-	  }
-#if 0
-          int L= g03_angularMomentum(Lstr);
-	  for (int i=0; i < Lorder[L].size() ; i++) {
-              order.push_back(itot+Lorder[L][i]);
-	  }
-	  itot += Lorder[L].size() ; 
-#endif
-          
-      }
+   // use Gaussian_basis_set 
+   for (vector<Atom>::iterator it=atoms.begin(); it!=atoms.end(); it++) {
+	   int id=it->basis;
+     for (vector<string>::iterator itL=gbasisset[id].types.begin(); itL!=gbasisset[id].types.end(); itL++) {
+       string Lstr= *itL;
+       if (Lstr=="F" || Lstr=="F10" ) {
+	 int nbasisL=g03_basissizeL(Lstr);
+	 for (int i=0; i < nbasisL  ; i++) {
+	   order.push_back(itot+f10order[i]-1);
+	 }
+	 itot += nbasisL;
+       }
+       else {
+	 int nbasisL=g03_basissizeL(Lstr);
+	 for (int i=0; i < nbasisL  ; i++) {
+	   order.push_back(itot+i);
+	 }
+	 itot += nbasisL;
+       }
+     }
    }
+
 
    // check size again
    if ( order.size() != vecsize) {
@@ -1164,7 +748,7 @@ int g03_orbital_reorder(/* input */
 	   exit(ERR_CODE);
    }
 
-#if 1
+#if 0
     // print order
     cout << t << "reorder eigenvector, order="<<endl;
     for (vector<int>::iterator it = order.begin(); it!=order.end(); it++ ) {
@@ -1216,17 +800,6 @@ int basis_uniq_id(/* input */
        if ( atoms[id].name == atoms[bas].name ) { return id; }
     }
     return bas; /* uniq */
-}
-
-
-int ps_uniq_id(/* input */
-		int ips ,  vector<g03PSP> pseudo)
-{
-  const static char *t="ps_uniq_id: ";
-    for (int id=0; id<ips; id++) {
-       if ( pseudo[id].atomnum == pseudo[ips].atomnum ) { return id; }
-    }
-    return ips; /* uniq */
 }
 
 
@@ -1470,69 +1043,66 @@ main()
 int g03_com_processatomgeometry(/* input */
 		vector<string> lines,
 		/* output */
-		vector<g03Atom> &g03atoms)
+	//	vector<g03Atom> &g03atoms,
+		vector<Atom> &atomscom)
 {
    const static char *t="g03_com_processatomgeometry:";
    string spc=" ";
    vector<string> words;
-   g03atoms.clear();
+//   g03atoms.clear();
+   atomscom.clear();
    int id=0;
 
-   for ( vector<string>::iterator it=lines.begin(); it!=lines.end(); it++) {
-      if ((*it)[0]==' ') break;
-      words.clear(); split(*it,spc,words);
-      g03Atom atom;
-      if (words[0]=="X") continue;
-      atom.name = words[0];
-      atom.id = ++id;
-      atom.atomnum = atomname2number(atom.name);
-      g03atoms.push_back(atom);
-   } 
-   //cout << t << "number of atoms = "<< g03atoms.size() << endl;
 
-#if 0
-   { // count Xatomnum;
-   int Xatomnum = 0;
-   for (vector<g03Atom>::iterator it= g03atoms.begin();  it!= g03atoms.end() ; it++) {
-      if ( it->name=="X" || it->name == "x" ) Xatomnum++;
+   for ( vector<string>::iterator it=lines.begin(); it!=lines.end(); it++) {
+	   if ((*it)[0]==' ') break;
+	   words.clear(); split(*it,spc,words);
+	   Atom a_atom;
+	   if (words[0]=="X") continue;
+	   a_atom.name=words[0];
+	   atomscom.push_back(a_atom);
    }
-   if (Xatomnum>0) {
-      cout << t << " X or x atom(s) found, not supported" <<endl;
-      exit(ERR_CODE);
-   }
-   }
-#endif
+   //cout << t << "number of atoms = "<< g03atoms.size() << endl;
    return 0;
 }
 
+
 int g03_com_processPS( /* input */
           vector<string> lines,
-	  vector<g03Atom> &g03atoms,
+	 // vector<g03Atom> &g03atoms,
+          vector<Atom> &atoms ,
           /* output */
-          vector<g03PSP> &g03ps)
+          // vector<g03PSP> &g03ps,
+	  vector<Gaussian_pseudo_writer> &pseudos
+	  )
 {
    const static char *t="g03_com_processPS:";
+
 
    vector<string> words;
    string spc=" ";
    vector<string>::iterator it=lines.begin(); 
    while (1) {
-    g03PSP atom_pseudo;
+//    g03PSP atom_pseudo;
+
+    Gaussian_pseudo_writer a_pseudo; 
 
     // next must be atom and 0
     words.clear(); split(*it,spc,words);
     string atomname=words[0];
-    atom_pseudo.atomnum = atomname2number(atomname);
+ //   atom_pseudo.atomnum = atomname2number(atomname);
 
-    int id = find_atomname(g03atoms,atomname)+1;
-    if (id>0) {
-      atom_pseudo.id=id; // the first id found
+    a_pseudo.label = atomname; 
+
+    int id = find_gatomname(atoms,atomname)+1;
+    if (id>0) { 
+      a_pseudo.atomnum=id;
     }
     else {
       cout << t << "atomname '" << atomname << "' not found" <<endl;
       exit(ERR_CODE);
     }
-    //cout << t << " ps, read " << atomname <<" " << id <<endl;
+
 
     
     if ( words[1] != "0" ) {
@@ -1545,15 +1115,18 @@ int g03_com_processPS( /* input */
     int Lmax = atoi(words[1].c_str());
     //cout << "Lmax= " << Lmax <<endl;
     for (int L0=0;L0<=Lmax; L0++) {
-      g03PSP_L pseudoL;
+//      g03PSP_L pseudoL;
+      vector<int> powlist;
+      vector<double> explist;
+      vector<double> coeflist;
       it++; // "D", "S - D",..., angular momentum
       int L, refL;
       //cout << *it <<endl;
       L = label_to_L( *it, refL);
       //cout << "L,refL= "<< L << " " << refL <<endl;
-      pseudoL.L=L;
-      pseudoL.refL=refL;
-      pseudoL.power.clear(); pseudoL.expn.clear(); pseudoL.coeff.clear();
+//      pseudoL.L=L;
+//      pseudoL.refL=refL;
+//      pseudoL.power.clear(); pseudoL.expn.clear(); pseudoL.coeff.clear();
 
       it++; // number of gaussian
       words.clear(); split(*it,spc,words);
@@ -1566,14 +1139,27 @@ int g03_com_processPS( /* input */
 	int pow= atoi(words[0].c_str());
 	double expn=atod(words[1].c_str());
 	double coeff=atod(words[2].c_str());
-	pseudoL.power.push_back(pow);
-	pseudoL.expn.push_back(expn);
-	pseudoL.coeff.push_back(coeff);
+//	pseudoL.power.push_back(pow);
+//	pseudoL.expn.push_back(expn);
+//	pseudoL.coeff.push_back(coeff);
+
+	powlist.push_back( pow -2 );
+	explist.push_back( expn );
+	coeflist.push_back( coeff );
       }
-      atom_pseudo.psL.push_back(pseudoL);
+ //     atom_pseudo.psL.push_back(pseudoL);
+
+      a_pseudo.nvalue.push_back(powlist);
+      a_pseudo.exponents.push_back(explist);
+      a_pseudo.coefficients.push_back(coeflist);
     } // for
 
-    g03ps.push_back(atom_pseudo);
+ //   g03ps.push_back(atom_pseudo);
+
+    pseudos.push_back(a_pseudo);
+    a_pseudo.nvalue.clear();
+    a_pseudo.exponents.clear();
+    a_pseudo.coefficients.clear();
 
     *it++;
     //cout << " next="<<line <<endl;
@@ -1582,6 +1168,13 @@ int g03_com_processPS( /* input */
     }
 
   } // while
+
+#if 0
+   cout << "pseudo "<<endl;
+   for (vector<Gaussian_pseudo_writer>::iterator it=pseudos.begin(); it!=pseudos.end(); it++) {
+        it->print_pseudo(cout);
+   }
+#endif
 
    return 0;
 }
@@ -1834,17 +1427,66 @@ static const char *g03fchk_shelltype2orbtype(int i, int dtype, int ftype)
    return ret; 
 }
 
+int g03_basisset_delete_dup(
+		/*input and output*/
+		vector<Atom> &atoms,
+		vector<Gaussian_basis_set> &basisset)
+{
+	const char *t="g03_basisset_delete_dup:";
+	vector<string> namesdone;
+
+     vector<Gaussian_basis_set> basissetnew; 
+
+     for (int iatom=0;iatom<basisset.size(); iatom++) {
+	     int found=0;
+	     string name = basisset[iatom].label;
+	     for (int inamesdone=0;inamesdone<namesdone.size(); inamesdone++) {
+                   if (name==namesdone[inamesdone]) { 
+			   found=1;
+			   break;
+		   }
+	     }
+	     if (found==0) {
+                   basissetnew.push_back(basisset[iatom]);
+		   namesdone.push_back(name);
+	     }
+     }
+     basisset.clear();
+     basisset=basissetnew; 
+
+     // fix atoms.basis
+     for (int iatom=0;iatom<atoms.size(); iatom++) {
+	     string name=atoms[iatom].name;
+	     int found=0;
+         for (int ibasis=0;ibasis<basisset.size(); ibasis++) {
+		 if (  name== basisset[ibasis].label ) {
+			 atoms[iatom].basis=ibasis;
+			 found=1;
+			 break; 
+		 }
+	 }
+	 if (found==0) {
+             cout << t <<  "can not find atom name="<<name<<endl;
+	     exit(ERR_CODE);
+	 }
+     }
+     return 0;
+}
+
 /* read fchkfileame,  set basisset */
 int g03_fchk_readbasisset(/* input */ string & fchkfilename,
+		vector<Atom> atoms, 
 		                /* output */
-		        vector<g03basis> & basisset )
+	//	        vector<g03basis> & basisset ,
+			vector<Gaussian_basis_set> &gbasisset
+			  )
 {
    const char *t="g03_fchk_readps";
    int idummy=0;
    int nout;
    string key;
   
-   basisset.clear();
+//   basisset.clear();
 
    int dtype, ftype; 
    key="Pure/Cartesian d shells";
@@ -1910,43 +1552,60 @@ int g03_fchk_readbasisset(/* input */ string & fchkfilename,
 #endif
 
   // make basisset
-  g03basis_L basisL;
-  g03basis basis;
+  Gaussian_basis_set a_gbasis; 
+  int natom=0;
+  for ( int ishell=0; ishell< n_shellmap; ishell++ ) {
+	  natom = max(natom, shellmap[ishell]);
+  }
+  gbasisset.clear();
+  gbasisset.resize(natom);
   int iprimitive=0;
   for ( int ishell=0; ishell< n_shellmap; ishell++ ) {
-     if ( basis.id==0 ) {
-          basis.id=shellmap[ishell];
-          basis.range=0;
-     }
-     else if (basis.id != shellmap[ishell] ) {
-          basisset.push_back(basis);
-          basis.clear();
-          basis.id=shellmap[ishell];
-          basis.range=0;
-     }
-
-     basisL.clear();
-     basisL.orbtype = g03fchk_shelltype2orbtype( shelltypes[ishell],dtype,ftype );
-     basisL.ncoeff = noprimitives[ishell];
-     basisL.weight=1.0;
-     basisL.unknown=0.0;
-     for ( int ip_shell =0 ; ip_shell < noprimitives[ishell]; ip_shell++ ) {
-          basisL.expn.push_back(primitive_exp[iprimitive]);
-          basisL.coeff1.push_back( contract_coeff[iprimitive]);
-          if ( shelltypes[ishell] == -1 && n_p_contract_coeff>0  ) {
-//		 cout << "coeff2 " << p_contract_coeff[iprimitive] << endl;
-             basisL.coeff2.push_back( p_contract_coeff[iprimitive]);
-          }
-          iprimitive++;
-     }
-     basis.bas_L.push_back(basisL);
-
+	  int iatom=shellmap[ishell]-1; 
+	  string type= g03fchk_shelltype2orbtype(shelltypes[ishell],dtype,ftype );
+	  vector<double> explist;
+	  vector<double> coeflist;
+	  int ncoeff= noprimitives[ishell]; 
+          for ( int ip_shell =0 ; ip_shell < ncoeff; ip_shell++ ) {
+               explist.push_back(primitive_exp[iprimitive+ip_shell]);
+	       coeflist.push_back( contract_coeff[iprimitive+ip_shell]);
+	  }
+	  if (shelltypes[ishell]>=0) {
+	     gbasisset[iatom].types.push_back(type);
+	  }
+	  else {
+	     gbasisset[iatom].types.push_back("S");
+	  }
+	  gbasisset[iatom].exponents.push_back(explist);
+	  gbasisset[iatom].coefficients.push_back(coeflist); 
+	  if ( shelltypes[ishell] == -1 && n_p_contract_coeff>0  ) {
+		  explist.clear();
+		  coeflist.clear();
+            for ( int ip_shell =0 ; ip_shell < ncoeff; ip_shell++ ) {
+               explist.push_back(primitive_exp[iprimitive+ip_shell]);
+               coeflist.push_back( p_contract_coeff[iprimitive+ip_shell]);
+	    }
+	    if (shelltypes[ishell]<0) {
+		    gbasisset[iatom].types.push_back("P");
+	    }
+	    gbasisset[iatom].exponents.push_back(explist);
+	    gbasisset[iatom].coefficients.push_back(coeflist);
+	  }
+	  iprimitive += ncoeff; 
   }
-  if ( basis.id!=0 ) {
-        basisset.push_back(basis);
+  // fix label
+  for (int iatom=0;iatom<gbasisset.size(); iatom++) {
+      gbasisset[iatom].label= atoms[iatom].name;
+      string_upper(gbasisset[iatom].label);
   }
+#if 0
+  for ( vector<Gaussian_basis_set>::iterator it=gbasisset.begin(); 
+		  it!=gbasisset.end(); it++) {
+	  cout << "basis "<<endl;
+	  it->print_basis(cout);
+  }
+#endif
 
-//  g03_print_basiset(basisset);
 
   return 0;
 }
@@ -1985,57 +1644,9 @@ int g03_log_analyze_orbname(
           orbname.push_back(name);
    }
 
-#if 0
-  ifstream is(logfilename.c_str());
-
-  if(!is) {
-    cout <<t<< "Couldn't open " << logfilename << endl;
-    exit(ERR_CODE);
-  }
-
-  string line;
-  string space=" ";
-  vector<string> words;
-  string name;
-  string sub;
-
-  orbname.clear();
-
-  while (getline(is,line) ) {
-     if ( strncmp(line.c_str(),"     EIGENVALUES -- ",20)==0 ) {
-	//     cout << line <<endl;
-
-        while ( getline(is,line) ) {
-//   1 1   O  1S       
-          sub = line.substr(0,20);
-	//  cout << "sub="<<sub <<endl;
-          if ( sub.find_first_not_of(" ") == string::npos ) { goto last; }
-          name = line.substr(11,6);
-	//  cout << name <<endl;
-          orbname.push_back(name); 
-	}
-     }
-  }
-#endif
-
 last:
 
-#if 0
-  if ( nbasis != orbname.size() ) {
-	  cout << t << " error in size of orbital names " << endl;
-	  cout << nbasis << " " << orbname.size() <<endl;
-	  exit(ERR_CODE);
-  }
-#endif
-
   int nbasis = orbname.size();
-#if 0
-  cout << "orbital names" <<endl;
-  for (int i=0;i<nbasis;i++) {
-	 cout << orbname[i] ; 
-  }
-  cout <<endl;
-#endif
 
   // error check 
   { 
@@ -2061,447 +1672,240 @@ last:
 
 
 
-
-/* read basissetstring of gaussian format,
- * set basisset 
- */
-int g03_log_analyze_basissetfromcards(/* input */
-		vector<string> & basissetstring, 
-		/* output */
-		vector<g03basis> & basisset )
+static int basisset_find_atomlast(vector<string> & basissetstring,
+		int startline )
 {
-  const char *t = "g03_log_analyze_basissetfromcards: ";
-  string g03seperator="****";
-  vector<string> words;
+   for (int i=startline; i<basissetstring.size(); i++) {
+	   string str=basissetstring[i].substr(0,5); 
+	   if ( str==" ****" ) { return i; }
+   }
+   return basissetstring.size()-1; 
+}
+
+int g03log_analyze_basisset(/*input*/
+		vector<string> & basissetstring,
+		vector<Atom> &atoms, 
+		/*output*/
+		vector<Gaussian_basis_set> &basisset) 
+{
+
+  const char *t="g03log_analyze_basisset:";
+  Gaussian_basis_set a_basisset; 
+  int iline=0;
+  int nline=basissetstring.size(); 
   string sep=" ";
-
-
-  // first set basis set to baskindset.
-  // then copy baskindset to basisset
- 
-  g03basiskind baskind;
-  vector<g03basiskind> baskindset;
-
-  g03basis_L bas_L;
-//  g03basis bas;
-
-  vector<string>::iterator thisline=basissetstring.begin();
-
-  while ( thisline!= basissetstring.end() ) {
-
-    //cout << "first=" << *thisline <<endl;
-    //*thisline =  "Centers:  1 3 ..."
-    words.clear(); split(*thisline,sep,words);
-    if (words[0]!="Centers:") {
-        cout << t << "error, unknown format"<<endl;
-	cout << *thisline <<endl;
-	exit(ERR_CODE);
-    }
-    // read it
-    vector<int> ids;
-    for (int i=1;i<words.size();i++) {
-	int id = atoi(words[i].c_str());
-	ids.push_back(id);
-    }
-
-    // read each bas
-    baskind.clear();
-    baskind.ids=ids;
-     
-    thisline++; 
-    while ( thisline!= basissetstring.end() ) {
-
-
-      if (thisline->find(g03seperator) != string::npos ) {
-//	cout << "found ****"<<endl;	      
-	baskindset.push_back(baskind);
-	baskind.clear();
-	break;
-      }
-
-      //  SP   1 1.00        .000000000000
-      words.clear(); split(*thisline,sep,words);
-      if (words.size()!=4) {
-        cout <<t<< "error in basis set, basis set title size!=4 "
-	     <<words.size()<<endl;
-	cout << *thisline <<endl;
-        exit(ERR_CODE);
-      }
-      string orbtype=words[0];
-      int ncoeff = atoi(words[1].c_str());
-      double weight=atod(words[2].c_str());
-      double unknown=atod(words[3].c_str());
-      if (unknown!=0.0) {
-        cout <<t<< "error in basis set, unknown field!=0.0 "
-	     <<unknown<<endl;
-	cout << *thisline<<endl;
-        exit(ERR_CODE);
-      }
-
-      bas_L.clear();
-      bas_L.orbtype=orbtype; bas_L.ncoeff=ncoeff; bas_L.weight=weight; bas_L.unknown=unknown;
-
-      vector<double> expn; expn.clear();
-      vector<double> coeff1,coeff2;  coeff1.clear();  coeff2.clear();
-
-      thisline++;
-      //       Exponent=  3.7267155000D+01 Coefficients=  3.9037801000D-02    for non-SP
-      //      or
-      //      Exponent=  3.7267155000D+01 Coefficients=  3.9037801000D-02   3.9037801000D-02   for SP
-      for (int i=0;i<ncoeff;i++) {
-	words.clear();
-	split(*thisline,sep,words);
-	if (orbtype=="SP") {
-	  if (words.size()!=5) {
-	    cout <<t<< "error in basis set, unknown L definition"
-		 <<unknown<<endl;
-	    cout << *thisline <<endl;
-	    exit(ERR_CODE);
+  vector<string> words;
+  while (iline < nline) {
+      /* 1 0  <- atomid */ 
+      words.clear(); split(basissetstring[iline], sep,words);
+      int atomnum=atoi(words[0].c_str()); 
+     // cout << "atomnum=" << atomnum <<endl;
+      iline++;
+      vector<double> explist;
+      vector<double> coeflist;
+      vector<double> coeflist2;
+      int lastatom=basisset_find_atomlast(basissetstring,iline);
+      for ( ; iline <= lastatom; ) {
+          words.clear(); split(basissetstring[iline], sep,words);
+	  int spflag;
+	  if ( words[0]=="SP" || words[0]=="L") {
+		  spflag=1;
+		  a_basisset.types.push_back("S");
 	  }
-	  double val1,val2,val3;
-	  val1 = atod(words[1].c_str());
-	  val2 = atod(words[3].c_str());
-	  val3 = atod(words[4].c_str());
-	  expn.push_back(val1);
-	  coeff1.push_back(val2);
-	  coeff2.push_back(val3);
-	}
-	else {
-	  if (words.size()!=4) {
-	    cout <<t<< "error in basis set, unknown L definition"
-		 <<unknown<<endl;
-	    cout << *thisline <<endl;
-	    exit(ERR_CODE);
+	  else {
+		  spflag=0;
+		  a_basisset.types.push_back(words[0]);
 	  }
-	  double val1,val2;
-	  val1 = atod(words[1].c_str());
-	  val2 = atod(words[3].c_str());
-	  expn.push_back(val1);
-	  coeff1.push_back(val2);
-	}
-	thisline++;
-      } // for i=
+	  int n=atoi(words[1].c_str());
+	  //cout << "type,n=" << words[0] << " " << n <<endl;
+          iline++;
+	  explist.clear(); coeflist.clear(); coeflist2.clear();
+	  for (int i=0;i<n;i++) {
+              words.clear(); split(basissetstring[iline], sep,words);
+	      double val=atod(words[0].c_str());
+	      explist.push_back(val);
+	      val = atod(words[1].c_str());
+	      coeflist.push_back(val);
+	      if ( spflag ) {
+	      val = atod(words[2].c_str());
+	      coeflist2.push_back(val);
+	      }
+	      iline++;
+	  }
+	  a_basisset.exponents.push_back(explist); 
+	  a_basisset.coefficients.push_back(coeflist); 
+          if ( spflag ) {
+		a_basisset.types.push_back("P");
+		a_basisset.exponents.push_back(explist);
+		a_basisset.coefficients.push_back(coeflist2);
+	  }
 
-//      cout << id <<" " << orbtype << endl;
-//      for (int i=0;i<expn.size();i++) {
-//	cout << expn[i] <<" " << coeff1[i] <<endl;
-//      }
-
-      bas_L.expn= expn;
-      bas_L.coeff1=coeff1;
-      bas_L.coeff2=coeff2;
-      baskind.bas_L.push_back(bas_L);
-//      cout << "push bas_L " << bas_L.orbtype << " " << bas_L.ncoeff <<endl;
-
-
-    } //while 
-
-    thisline++;
-
-  } //while  
-
+	  string str=basissetstring[iline].substr(0,5);
+	  if (str==" ****") iline++; 
+      }
+      basisset.push_back(a_basisset); 
+      a_basisset.types.clear();
+      a_basisset.exponents.clear();
+      a_basisset.coefficients.clear();
+  }
+   // fix label
+  if ( basisset.size() != atoms.size() ) {
+     cout << t << "basisset.size() != atoms.size()"<<endl;
+     exit(ERR_CODE);
+  }
+  for (int iatom=0;iatom<basisset.size(); iatom++) {
+     basisset[iatom].label= atoms[iatom].name; 
+     string_upper(basisset[iatom].label);
+  }
 #if 0
-  g03_print_basisetkind(baskindset);
+  /*printout*/
+  for (vector<Gaussian_basis_set>::iterator it=basisset.begin(); 
+		  it != basisset.end(); it++) {
+	  it->print_basis(cout);
+  }
 #endif
-
-  // baskindset -> basisset 
-  g03_baskindset2basset(baskindset,basisset);  
-
-  return 0;
 }
 
 
-/* read basissetstring of gaussian format,
- * set basisset 
- */
-int g03_log_analyze_basisset(/* input */
-		vector<string> & basissetstring, 
-		/* output */
-		vector<g03basis> & basisset )
+/*
+          1         2         3        4          5         6         7         8         9
+0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789
+
+  Center     Atomic      Valence      Angular      Power                                                       Coordinates
+    1         25           15                                                                      -1.534430 -2.555963  -.017
+0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789
+                                      D and up
+                                                     2      138.2855530     6414.98369000
+*/
+
+static int psstr_find_atomrange(/*input*/
+     vector<string> psstr,
+     int start) 
 {
-  const char *t = "g03_log_analyze_basisset: ";
-  string g03seperator="****";
-  vector<string> words;
-  string sep=" ";
-
-  int iatom=0;
-
-  g03basis_L bas_L;
-  g03basis bas;
-
-  vector<string>::iterator thisline=basissetstring.begin();
-  while ( thisline!= basissetstring.end() ) {
-
-    iatom++;
-
-    //   1 0
-    words.clear();
-    split(*thisline,sep,words);
-    if (words.size()!=2) {
-      cout <<t<< "error in basis set, size()!=2,"<< words.size() << endl;
-      cout << *thisline <<endl;
-      exit(ERR_CODE);
-    }
-    int id=atoi(words[0].c_str());
-    int range=atoi(words[1].c_str());  
-    if ( id!=iatom ) {
-      cout <<t<< "error in basis set, id!=iatom "<< id <<endl;
-      cout << *thisline <<endl;
-      exit(ERR_CODE);
-    }
-    if (range!=0) {
-      cout <<t<< "error in basis set, range !=0,"<<range <<endl;
-      exit(ERR_CODE);
-    }
-
-    bas.clear();
-    bas.id=id;
-    bas.range=range;
-	
-     
-    thisline++; 
-    while ( thisline!= basissetstring.end() ) {
-
-      if (thisline->find(g03seperator) != string::npos ) {
-//	cout << "found ****"<<endl;	      
-	basisset.push_back(bas);
-	bas.clear();
-	break;
-      }
-
-      //  SP   1 1.00        .000000000000
-      words.clear();
-      split(*thisline,sep,words);
-      if (words.size()!=4) {
-        cout <<t<< "error in basis set, basis set title size!=4 "
-	     <<words.size()<<endl;
-	cout << *thisline <<endl;
-        exit(ERR_CODE);
-      }
-      string orbtype=words[0];
-      int ncoeff = atoi(words[1].c_str());
-      double weight=atod(words[2].c_str());
-      double unknown=atod(words[3].c_str());
-      if (unknown!=0.0) {
-        cout <<t<< "error in basis set, unknown field!=0.0"
-	     <<unknown<<endl;
-        exit(ERR_CODE);
-      }
-
-      bas_L.clear();
-      bas_L.orbtype=orbtype;
-      bas_L.ncoeff=ncoeff;
-      bas_L.weight=weight;
-      bas_L.unknown=unknown;
-
-      vector<double> expn; expn.clear();
-      vector<double> coeff1,coeff2;  coeff1.clear();  coeff2.clear();
-
-      thisline++;
-      //        .2073000000D+01   .1022977051D+00   .4596910139D+00
-      //        .6471000000D+00   .9176052296D+00   .6322148170D+00
-      for (int i=0;i<ncoeff;i++) {
-	words.clear();
-	split(*thisline,sep,words);
-	if (orbtype=="SP") {
-	  if (words.size()!=3) {
-	    cout <<t<< "error in basis set, unknown field!=0.0"
-		 <<unknown<<endl;
-	    exit(ERR_CODE);
-	  }
-	  double val1,val2,val3;
-	  val1 = atod(words[0].c_str());
-	  val2 = atod(words[1].c_str());
-	  val3 = atod(words[2].c_str());
-	  expn.push_back(val1);
-	  coeff1.push_back(val2);
-	  coeff2.push_back(val3);
-	}
-	else {
-	  if (words.size()!=2) {
-	    cout <<t<< "error in basis set, unknown field!=0.0"
-		 <<unknown<<endl;
-	    exit(ERR_CODE);
-	  }
-	  double val1,val2;
-	  val1 = atod(words[0].c_str());
-	  val2 = atod(words[1].c_str());
-	  expn.push_back(val1);
-	  coeff1.push_back(val2);
-	}
-	thisline++;
-      } // for i=
-
-//      cout << id <<" " << orbtype << endl;
-//      for (int i=0;i<expn.size();i++) {
-//	cout << expn[i] <<" " << coeff1[i] <<endl;
-//      }
-
-      bas_L.expn= expn;
-      bas_L.coeff1=coeff1;
-      bas_L.coeff2=coeff2;
-      bas.bas_L.push_back(bas_L);
-//      cout << "push bas_L " << bas_L.orbtype << " " << bas_L.ncoeff <<endl;
-
-
-    } //while 
-
-    thisline++;
-
-  } //while  
-
-#if 0
-  g03_print_basiset(basisset);
-#endif
-
-  return 0;
+   for (int i = start+1; i< psstr.size(); i++) { 
+     string str =  psstr[i].substr( 0 ,10); /* find Center */
+     if (strlen_trim(str.c_str())>0) { return i-1; }
+   }
+   return psstr.size()-1; 
 }
 
-
-
-/* read psstring, set pseudos */
-int g03_log_analyze_ps(/* input */ 
-		vector<string> & psstring,
-		/* output */
-	vector<g03PSP> & pseudos	)
+static int psstr_find_Lrange(/*input*/
+     vector<string> psstr,
+     int start)
 {
-  const char *t = "g03_log_analyze_ps: ";
-  string sep=" ";
-  vector<string> words;
-  int iatom;
-  vector<int> nval;
-  vector<double> expn;
-  vector<double> coeff;
-
-
-  g03PSP_L  pseudoL;
-  g03PSP atom_pseudo;
-
-  int id,atomid,valencenum;
-
-  pseudoL.L=-1; // initialize 
-  iatom=0;
-
-  for ( vector<string>::iterator thisline=psstring.begin();
-	thisline != psstring.end(); thisline++) {
-
-    words.clear();
-    split(*thisline,sep,words);
-    string centernumberstr= thisline->substr(0,10);
-    int centernumber = atoi(centernumberstr.c_str());
-
-    if ( thisline->find("No pseudopotential") !=  string::npos ) {
- //         cout << "found No Pseudopotential "<<endl;
-           atom_pseudo.refid=0; 
-    }
-    else if  ( thisline->find("Pseudopotential same as on center") != string::npos ) {
-	    atom_pseudo.refid=atoi(words[5].c_str());
-    }
-    else if ( centernumber >0 ) {
-      //   1        8            6    .000000   .000000   .243053
-      //  ---> new ps
-  //    cout << "found new ps " << endl;
-
-      if ( pseudoL.L>=0 ) {
-	atom_pseudo.psL.push_back(pseudoL);
-      }
-      if ( atom_pseudo.id>0 ) {
-	pseudos.push_back(atom_pseudo);
-      }
-
-      iatom++;
-
-      id = atoi(words[0].c_str());
-      atomid=atoi(words[1].c_str());
-      valencenum=atomid;
-      if ( words.size()==6) {
-	valencenum=atoi(words[2].c_str());
-      }
-      if (id!=iatom) {
-	cout <<t<< "error in ps, id!=iatom " <<  id <<" " << iatom << endl;
-	exit(ERR_CODE);
-      }
-
-      // clear pseudo
-      atom_pseudo.clear();
-      atom_pseudo.id=id;
-      atom_pseudo.atomnum=atomid;
-      atom_pseudo.valence=valencenum;
-      atom_pseudo.refid=id;
-
-      pseudoL.clear(); 
-    }
-    else if ( isalpha(*(words[0].c_str())) ) {
-//	    cout << "found new L " <<endl;
-      if ( pseudoL.L >=0 ) {
-	// add it 
-	atom_pseudo.psL.push_back(pseudoL);
-      }
-      // new angular momentum
-      int refL;
-      int L = label_to_L(*thisline,refL);
-      pseudoL.L = L;
-      pseudoL.refL = refL;
-      pseudoL.power.clear();
-      pseudoL.expn.clear();
-      pseudoL.coeff.clear();
-    }
-    else if ( words.size()==3 ) {
-      // ps
-   //   cout << "found ps" << endl;
-      int pow = atoi(words[0].c_str());
-      double expn = atod(words[1].c_str());
-      double coeff = atod(words[2].c_str());
-      pseudoL.power.push_back(pow);
-      pseudoL.expn.push_back(expn);
-      pseudoL.coeff.push_back(coeff);
-    }
-
-  }
-
-  if ( pseudoL.L>=0 ) {
-    atom_pseudo.psL.push_back(pseudoL);
-  }
-  if ( atom_pseudo.id>0 ) {
-    // add
-    pseudos.push_back(atom_pseudo);
-  }
-
-  // fix ps
-  for ( int id = 0; id < pseudos.size(); id++ ) {
-     int uniqid = ps_uniq_id(id, pseudos); 
-     cout << " ps id=" << id << ", uniqid= " << uniqid <<endl;
-     if ( id != uniqid )  pseudos[id].refid= uniqid+1; 
-  }
-
-#if 0
-  g03_print_ps(pseudos);
-#endif
-#if 0
-  cout <<"pseudopotential" <<endl;
-  for ( vector< g03PSP  > ::iterator vvpsp= pseudos.begin();
-	vvpsp != pseudos.end(); vvpsp++ ) {
-    cout <<"atom "<< vvpsp->id << " " << vvpsp->atomnum << " " << vvpsp->valence <<endl;
-    vector<g03PSP_L> psL = vvpsp->psL;
-    cout << "num of PS " << psL.size()<<endl;;
-    for ( vector<g03PSP_L>::iterator vpsp=psL.begin();
-	  vpsp!=psL.end(); vpsp++ ) {
-      cout << "L=" << vpsp->L << " refL=" << vpsp->refL <<endl;
-      for (int i=0;i< vpsp->power.size(); i++) {
-	cout <<"   " << vpsp->power[i] << " " << vpsp->expn[i] << " " << vpsp->coeff[i] <<endl;
-      }
-    }
-  }
-#endif
-  return 0;
+   for (int i = start+1; i< psstr.size(); i++) {
+     string str =  psstr[i].substr(38,10);  /* find Angular */
+     if (strlen_trim(str.c_str())>0) { return i-1; }
+     str =  psstr[i].substr( 0 ,10);   /* find Center */
+     if (strlen_trim(str.c_str())>0) { return i-1; }
+   }
+   return psstr.size()-1;
 }
 
+int g03log_analyze_ps(/*input*/
+                vector<string> & psstr,
+                /* output */
+        vector<Gaussian_pseudo_writer> & pseudos   ,
+	vector<PseudoValence> &pseudovalence )
+{
+  pseudos.clear();
+
+  string spc=" ";
+  vector<string> words;  
+
+  int centernum, atomnum, valencenum;
+  Gaussian_pseudo_writer a_pseudo; 
+  vector<int> nlist;
+  vector<double> explist;
+  vector<double> coeflist;
+  int iline=0; 
+  while ( iline<psstr.size() ) {
+      string str =  psstr[iline].substr( 0 ,10); 
+      centernum=atoi(str.c_str()); 
+      str =  psstr[iline].substr( 10 ,10);
+      atomnum=atoi(str.c_str());
+      str =  psstr[iline].substr( 20 ,10);
+      valencenum=atoi(str.c_str());
+      iline++;
+      int lastlineatom = psstr_find_atomrange(psstr, iline);
+      a_pseudo.nvalue.clear();
+      a_pseudo.exponents.clear();
+      a_pseudo.coefficients.clear();
+      vector<int> Lnumlist;
+      vector<int> refLlist; 
+      int addit;
+      while ( iline <= lastlineatom ) {
+         addit=0;
+	 if ( psstr[iline].find("No pseudopotential") != string::npos  ) {
+		 iline=lastlineatom+1;
+		 break;
+	 }
+	 if ( psstr[iline].find("Pseudopotential same as on center") != string::npos  ) {
+		 iline=lastlineatom+1;
+		 break;
+	 }
+	 addit=1;
+         str =  psstr[iline].substr(38,10);  /* find Angular */
+
+         int refL; 
+         int Lnum = label_to_L(str,refL); 
+	 Lnumlist.push_back(Lnum);
+	 refLlist.push_back(refL);
+
+         nlist.clear(); explist.clear(); coeflist.clear();
+         iline++;
+         int lastlineL = psstr_find_Lrange(psstr,iline);
+	 //cout << "from " << iline << " to " << lastlineL<<endl;
+         for ( ; iline<=lastlineL; iline++) {
+            words.clear(); split(psstr[iline], spc, words);            
+            int num=atoi(words[0].c_str());
+            nlist.push_back(  num -2 );
+            double expval=atod(words[1].c_str());
+            explist.push_back( expval );
+            double coefval; 
+            if (words[2]=="**************") { coefval=0.0; }
+            else { coefval=atod(words[2].c_str()); }
+            coeflist.push_back( coefval );
+         }
+         a_pseudo.nvalue.push_back(nlist);
+         a_pseudo.exponents.push_back(explist);
+         a_pseudo.coefficients.push_back(coeflist);
+         
+      }  /* iline< lastlineatom  */
+      if (addit) {
+      a_pseudo.label = element_lookup_caps_null[atomnum]; 
+      a_pseudo.atomnum = atomnum; 
+      pseudos.push_back(a_pseudo); 
+
+      PseudoValence pv;
+      pv.label = element_lookup_caps_null[atomnum];
+      pv.atomnum=atomnum;
+      pv.valencenum=valencenum;
+      pv.Lnum=Lnumlist;
+      pv.refL=refLlist;
+      pseudovalence.push_back(pv);
+      }
+nextloop: ;
+  } /* iline < psstring.size() */
+
+#if 0
+  /* printout */
+  int npsp=pseudos.size();
+  cout << "npsp="<<npsp<<endl;
+  for(int psp=0; psp < npsp; psp++) {
+    cout << "---------------" << psp <<"-------------" << endl; 
+    pseudos[psp].print_pseudo(cout);
+  }
+#endif
+
+}
 
 int g03_log_readatoms( /*input*/ vector<string> & strv,
-                /*output*/ vector<g03Atom> & atoms )
+		vector<Atom> &atomslog )
 {
         const char *t="main_log2atoms: ";
-        atoms.clear();
+       // atoms.clear();
+	atomslog.clear();
   string space=" ";
   vector<string> words;
   int itot=0;
@@ -2509,155 +1913,33 @@ int g03_log_readatoms( /*input*/ vector<string> & strv,
           itot++;
        words.clear();
        split(*it,space,words);
-       g03Atom a_atom;
+   //    g03Atom a_atom;
+       Atom atom;
        /* 0 id,  1 atomicnumber, 2 atomictype=0, 3-5 positon */
        if ( words.size()!= 6) { cout << t << " error, size != 6 "<<endl; exit(ERR_CODE); }
        int id=atoi(words[0].c_str());
-       a_atom.id=id;
+     //  a_atom.id=id;
        if (itot!=id) {  cout << t << " error, wrong id?  "<<endl; exit(ERR_CODE); }
        int atomnum = atoi(words[1].c_str());
        if (atomnum==-2) { continue; } // -2 is translational vector 
-       a_atom.name= element_lookup_caps_null[atomnum];
-       a_atom.atomnum=atomnum;
-       a_atom.pos.clear();
+      // a_atom.name= element_lookup_caps_null[atomnum];
+      // a_atom.atomnum=atomnum;
+       atom.name=element_lookup_caps_null[atomnum];
+       string_upper(atom.name); 
+       atom.charge=atomnum; 
+      // a_atom.pos.clear();
        for (int i=3;i<=5;i++) {
           double r = atod(words[i].c_str()); // unit is  Ang 
-          a_atom.pos.push_back(r);
+       //   a_atom.pos.push_back(r);
+	  atom.pos[i-3]=r/ANG ;    // ANG -> AU 
        }
-       atoms.push_back(a_atom);
+   //    atoms.push_back(a_atom);
+       atomslog.push_back(atom); 
    }
   return 0;
 }
 
 
-
-/* write data section of gamess */
-static int g03gamess_datasection(   /* input */
-		vector<g03Atom> & atoms,
-		vector<g03basis>  & basisset,
-                ofstream & os
-		)
-{
-	const char *t="g03gamess_datasection";
-	char buf1[30], buf2[30], buf3[30];
-	const char *form="%16.9E"; 
-
- os << " $DATA" <<endl
-    << endl
-    << "C1" <<endl;
-
-  for ( vector<g03basis>::iterator vbas = basisset.begin();
-        vbas != basisset.end(); vbas++) {
-//    cout <<"atom="<< vbas->id << " " << vbas->range  << " "
-//         <<     vbas->bas_L.size() <<endl;
-    int id= vbas->id-1;
-    os <<  atoms[id].name << " " <<atoms[id].atomnum << " " 
-	 <<  atoms[id].pos[0] << " " << atoms[id].pos[1] << " "
-         <<  atoms[id].pos[2] << endl;  
-    for ( vector<g03basis_L>::iterator vbas_L = vbas->bas_L.begin();
-          vbas_L != vbas->bas_L.end(); vbas_L++) {
-//      cout << vbas_L->orbtype << " " << vbas_L->ncoeff << " "
-//           << vbas_L->weight << " " << vbas_L->unknown << endl;
-       if ( vbas_L->orbtype=="SP" ) {
-	       os << "  L " ;
-       } else {
-               os << "  " << vbas_L->orbtype<< " " ;
-       }
-       os << vbas_L->ncoeff << " "<< vbas_L->weight <<endl;
-      if ( vbas_L->orbtype=="SP" ) {
-        for (int i=0;i<vbas_L->expn.size();i++) {
-		sprintf(buf1,form, vbas_L->expn[i]);
-		sprintf(buf2,form, vbas_L->coeff1[i]);
-		sprintf(buf3,form, vbas_L->coeff2[i]);
-
-          os << "    " << i+1 << "   " <<buf1 << " " << buf2 << " "
-               << buf3 <<endl;
-        }
-      } else {
-        for (int i=0;i<vbas_L->expn.size();i++) {
-		sprintf(buf1,form, vbas_L->expn[i]);
-                sprintf(buf2,form, vbas_L->coeff1[i]);
-          os << "    " << i+1 << "   " <<  buf1 << " " << buf2 << endl;
-        }
-      }
-    }
-    os <<endl;
-  }
-
-  os<< " $END"<<endl;
-
-  return 0;
-}
-
-
-
-
-
-
-/* check whether psudos[psid] already appeared or not  */
-
-static int alreadythesameps(/* input */
-                vector<g03PSP> & pseudos,
-                int psid)
-{
-    const char *t="alreadythesameps: ";
-    double psatomnum = pseudos[psid].atomnum; 
-    for ( int i=0; i< psid; i++ ) {
-#if 0
-       cout << "psatomnum=" << psatomnum << " pseudos[i].atomnum=" << pseudos[i].atomnum <<endl;
-#endif
-       if ( psatomnum == pseudos[i].atomnum ) { return 1; } 
-    }
-    return 0;
-}
-
-/* write ECP section of gamess */
-static int g03gamess_ecpsection( /* input */
-		vector<g03Atom> & atoms,
-		vector<g03PSP> & pseudos,
-                ofstream & os
-		/* no output */
-		)
-{
-   const char *t="g03gamess_ecpsection";
-  os << " $ECP" <<endl;
-  
-  for ( vector< g03PSP  > ::iterator vvpsp= pseudos.begin();
-        vvpsp != pseudos.end(); vvpsp++ ) {
-     int id=vvpsp->id-1;
-     vector<g03PSP_L> psL = vvpsp->psL;
-     string generate;
-     if (psL.size()==0) { generate =""; }
-     else { generate="GEN "; }
-     if ( alreadythesameps(pseudos,id) ) {
-        os << atoms[id].name << "-ECP "<< generate << endl;
-        cout << "id="<< id+1 << " have the same ps" <<endl;
-        continue;
-     }
-     os << atoms[id].name << "-ECP " <<generate << vvpsp->atomnum-vvpsp->valence  << " " 
-	     << findlmax( vvpsp->psL ) <<endl;
-
-  //    cout << "num of PS " << psL.size()<<endl;;
-    for ( vector<g03PSP_L>::iterator vpsp=psL.begin();
-          vpsp!=psL.end(); vpsp++ ) {
- //     cout << "L=" << vpsp->L << " refL=" << vpsp->refL <<endl;
-      if (vpsp->L == vpsp->refL) { 
-        os << vpsp->power.size() << "  " <<  L2Lstr(vpsp->L) <<endl;
-      }
-      else {
-        os << vpsp->power.size() << "  " <<  L2Lstr(vpsp->L) << "-" << L2Lstr(vpsp->refL) << endl;
-      }
-      for (int i=0;i< vpsp->power.size(); i++) {
-	os <<"   " << vpsp->coeff[i] << " " << vpsp->power[i] <<  " " << vpsp->expn[i] <<endl;
-      }
-    }
-
-  }
-
-  os << " $END" <<endl;
-
-  return 0;
-}
 
 /* write VEC section of gamess */
 
@@ -2727,7 +2009,7 @@ static int  g03gamess_vectorsection( /* input */
 /* write header section of gamess */
 static int  g03gamess_headersection(/* input */
 		int multiplicity, string & scftype,int nbasis,
-                vector<g03PSP> & ecp, 
+                vector<Gaussian_pseudo_writer> & ecp, 
                 ofstream & os )
 {
    const char *t ="g03gamess_datasection";
@@ -2749,13 +2031,172 @@ static int  g03gamess_headersection(/* input */
   return 0;
 }
 
+/* write data section of gamess */
+static int g03gamess_datasection(   /* input */
+                vector<Atom> & atoms,
+                vector<Gaussian_basis_set>  & basisset,
+                ofstream & os
+                )
+{
+        const char *t="g03gamess_datasection";
+        char buf1[30], buf2[30], buf3[30];
+        const char *form="%16.9E";
+
+ os << " $DATA" <<endl
+    << endl
+    << "C1" <<endl;
+
+  for ( vector<Atom>::iterator it = atoms.begin();
+        it != atoms.end(); it++) {
+//    cout <<"atom="<< vbas->id << " " << vbas->range  << " "
+//         <<     vbas->bas_L.size() <<endl;
+    int basisid=it->basis; 
+    int atomnum =atomname2number(it->name); 
+    // pos[0:2] is in AU, AU-> ANG 
+    os <<  it->name << " " << atomnum << " "
+         <<  it->pos[0]*ANG << " " << it->pos[1]*ANG << " "
+         <<  it->pos[2]*ANG << endl;
+    for ( int ibasis=0; ibasis< basisset[basisid].types.size(); ibasis++ ){
+         string orbtype=  basisset[basisid].types[ibasis];  
+//      cout << vbas_L->orbtype << " " << vbas_L->ncoeff << " "
+//           << vbas_L->weight << " " << vbas_L->unknown << endl;
+#if 0
+       if ( orbtype=="SP" ) {
+               os << "  L " ;
+       } else {
+#endif
+               os << "  " << orbtype<< " " ;
+#if 0
+       }
+#endif
+       int nexp=basisset[basisid].exponents[ibasis].size();
+       os << nexp << " "<< 1 <<endl;
+#if 0
+      if ( vbas_L->orbtype=="SP" ) {
+        for (int i=0;i<nexp;i++) {
+                sprintf(buf1,form, basisset[id].exponents[ibasis][i]);
+                sprintf(buf2,form, basisset[id].coefficients[ibasis][i]);
+                sprintf(buf3,form, vbas_L->coeff2[i]);
+
+          os << "    " << i+1 << "   " <<buf1 << " " << buf2 << " "
+               << buf3 <<endl;
+        }
+      } else {
+#endif
+        for (int i=0;i<basisset[basisid].exponents[ibasis].size();i++) {
+                sprintf(buf1,form, basisset[basisid].exponents[ibasis][i]);
+                sprintf(buf2,form, basisset[basisid].coefficients[ibasis][i]);
+          os << "    " << i+1 << "   " <<  buf1 << " " << buf2 << endl;
+        }
+#if 0
+      }
+#endif
+    }
+    os <<endl;
+  }
+
+  os<< " $END"<<endl;
+  return 0;
+}
+
+/* write ECP section of gamess */
+static int g03gamess_ecpsection( /* input */
+                vector<Atom> & atoms,
+                vector<Gaussian_pseudo_writer> & pseudos,
+		vector<PseudoValence> &pseudovalence, 
+                ofstream & os
+                /* no output */
+                )
+{
+   const char *t="g03gamess_ecpsection";
+  os << " $ECP" <<endl;
+
+  for ( vector< Atom  > ::iterator itatom=atoms.begin();
+		  itatom!=atoms.end(); itatom++ ) {
+	  // find ecp
+	  string name = itatom->name; 
+	  int found=0;
+	  vector<Gaussian_pseudo_writer>::iterator itps;
+	  for (itps=pseudos.begin(); itps !=pseudos.end(); itps++) {
+               if ( strcasecmp(name.c_str(), itps->label.c_str())==0 ) { found=1; break;}
+	  }
+	  int found2=0;
+	  vector<PseudoValence>::iterator itp;
+	  for (itp=pseudovalence.begin(); itp!=pseudovalence.end(); itp++) {
+               if ( strcasecmp(name.c_str(), itp->label.c_str())==0 ) { found2=1; break;}
+	  }
+	  if (( found && !found2)  ||  (!found && found2) ) {
+               cout << t << " error "<<endl;
+	       exit(ERR_CODE);
+	  }
+	  if (found && found2) {
+		  int maxl = itps->nvalue.size()-1;
+		  int corenum = (int) (itp->atomnum - itp->valencenum ); 
+            os << name <<"-ECP GEN "  << corenum << " " << maxl <<endl;
+	    for (int ibas=0;ibas<itps->nvalue.size(); ibas++) {
+		    string Lstr;
+		    if (itp->Lnum[ibas]== itp->refL[ibas] ) {
+			    Lstr = L2Lstr(itp->Lnum[ibas]);
+		    }
+		    else {
+                           Lstr = string(L2Lstr(itp->Lnum[ibas]))+string( "-") +string( L2Lstr(itp->refL[ibas]));
+		    }
+		    os << " " <<itps->nvalue[ibas].size() << " " << Lstr <<endl;
+		    for (int in=0;in<itps->nvalue[ibas].size(); in++) {
+                          os << "   "<<itps->coefficients[ibas][in] << " " 
+				  << itps->nvalue[ibas][in] +2 << " " 
+				  << itps->exponents[ibas][in] << endl;
+		    }
+	    }
+          }
+	  else {
+             os << name << "-ECP" <<endl;
+	  }
+#if 0 
+     int id=vvpsp->id-1;
+     vector<g03PSP_L> psL = vvpsp->psL;
+     string generate;
+     if (psL.size()==0) { generate =""; }
+     else { generate="GEN "; }
+     if ( alreadythesameps(pseudos,id) ) {
+        os << atoms[id].name << "-ECP "<< generate << endl;
+        cout << "id="<< id+1 << " have the same ps" <<endl;
+        continue;
+     }
+     os << atoms[id].name << "-ECP " <<generate << vvpsp->atomnum-vvpsp->valence  << " "
+             << findlmax( vvpsp->psL ) <<endl;
+
+  //    cout << "num of PS " << psL.size()<<endl;;
+    for ( vector<g03PSP_L>::iterator vpsp=psL.begin();
+          vpsp!=psL.end(); vpsp++ ) {
+ //     cout << "L=" << vpsp->L << " refL=" << vpsp->refL <<endl;
+      if (vpsp->L == vpsp->refL) {
+        os << vpsp->power.size() << "  " <<  L2Lstr(vpsp->L) <<endl;
+      }
+      else {
+        os << vpsp->power.size() << "  " <<  L2Lstr(vpsp->L) << "-" << L2Lstr(vpsp->refL) << endl;
+      }
+      for (int i=0;i< vpsp->power.size(); i++) {
+        os <<"   " << vpsp->coeff[i] << " " << vpsp->power[i] <<  " " << vpsp->expn[i] <<endl;
+      }
+    }
+#endif
+  }
+
+  os << " $END" <<endl;
+
+  return 0;
+}
+
+
 /* make gamess input */
 int g03gamess_make_inp(/* input */
 		int multiplicity,
 		string &scftype,
-                vector<g03Atom> & atoms,
-                vector<g03basis>  & basisset,
-		vector<g03PSP> &ecp, 
+                vector<Atom> & atoms,
+                vector<Gaussian_basis_set>  &basisset,
+		vector<Gaussian_pseudo_writer> &ecp, 
+		vector<PseudoValence> &pseudovalence, 
 		vector< vector<double> > & alphamo,
 		vector< vector<double> > & betamo,
 		string & filename
@@ -2776,13 +2217,14 @@ int g03gamess_make_inp(/* input */
   int nbasis = alphamo[0].size();
   g03gamess_headersection(multiplicity, scftype, nbasis, ecp, os);
   g03gamess_datasection( atoms, basisset, os );
-  g03gamess_ecpsection( atoms, ecp, os);
+  g03gamess_ecpsection( atoms, ecp, pseudovalence, os);
   g03gamess_vectorsection( nbasis, alphamo, betamo , os);
 
   cout << "gamess inputfile to \'" << filename <<"\'"<< endl;
   return 0;
 }
 
+#if 0
 int g03gamess_make_out(
                 /* input */
                string & outfilename,
@@ -2991,4 +2433,67 @@ int g03gamess_make_pun(
      << ". This is a file for gamess2qmc." << endl;
     return 0;
 }
+#endif
+
+
+
+// delete dupilicated data 
+int g03_ps_delete_dup( /*input and output */
+              vector<Gaussian_pseudo_writer> &pseudolog )
+
+{
+	if (pseudolog.empty() ) { return 0; }
+
+  int ndata1=pseudolog.size();
+  vector<Gaussian_pseudo_writer> pseudolognew;
+  vector<string> namesdone;
+
+  for (vector<Gaussian_pseudo_writer>::iterator it=pseudolog.begin(); it!=pseudolog.end(); it++) {
+      string name = it->label;
+      if (it->nvalue.empty()) { continue; } // dont add it
+      int found=0;
+      for ( vector<string>::iterator itname=namesdone.begin(); itname!=namesdone.end(); itname++) {
+          if (name == *itname) { found=1; break; }
+      }
+      if (found==0) {
+              pseudolognew.push_back(*it);
+              namesdone.push_back(name);
+      }
+  }
+
+  pseudolog.clear();
+  pseudolog = pseudolognew;
+
+  int ndata2=pseudolog.size();
+
+  return ndata2-ndata1; 
+}
+
+// valid data: return 1
+// invalid data, something is broken : return 0
+//
+int g03_ps_check_validity( /*input*/
+              vector<Gaussian_pseudo_writer> &pseudolog )
+{
+  int flag=0;
+  for ( vector<Gaussian_pseudo_writer>::iterator it = pseudolog.begin(); it!=pseudolog.end(); it++) {
+          for (int icset=0;icset<it->coefficients.size(); icset++) {
+                  for (int icset2 =0; icset2 < it->coefficients[icset].size(); icset2++) {
+                          if ( it->coefficients[icset][icset2] ==0.0 ||
+                                          it->exponents[icset][icset2] ==0 ) {
+                                  flag++;
+                                  goto foundzero;
+                          }
+                  }
+          }
+  }
+
+foundzero:
+   if (flag==0) {
+       // do nothing
+       return 1;
+   }
+   return 0;
+}
+
 

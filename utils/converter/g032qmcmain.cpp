@@ -7,7 +7,7 @@
 //
 //  first version: Nov 6, 2006.
 //
-//  last version:  Jan. 16, 2007.
+//  last version:  Aug. 22, 2007.
 //
 //
 //
@@ -52,7 +52,7 @@
 // Then make fchk file after running g03
 // >  formchk foo.chk foo.fchk 
 //
-// log and fchk is necessary. com is optionally necessary.
+// log and fchk is necessary. com is optionally necessary in the case when the PS is broken in the log file.
 //
 // g032qmc
 // usage:
@@ -71,7 +71,7 @@
 //  alphamo, betamo 
 //  		read fchk
 //  basisset 
-//  		read log, also read fchk for consistency, 
+//  		read fchk
 //  		comment: log has more accuracy than fchk 
 //  pseudopotential (PS)
 //  		read log, also optionally read com if it is broken. 
@@ -104,6 +104,41 @@
 //  Do approximately N k-points.
 //
 //
+#if 0
+
+CI calculation
+#P hf/6-31G(d,p)  SCF Test cisd  iop(9/28=-1)
+
+
+ Normalization: A(0)=1
+...
+ Final wavefunction coefficients:
+ Dominant configurations:
+ ***********************
+ Spin Case        I    J    A    B          Value
+    AA            3        10             .141106D-02
+    AA            3        13             .180006D-03
+...
+    AA            8        40            -.840573D-03
+   AAAA           3    5   10   13       -.485889D-02
+   AAAA           3    5   10   14        .118347D-02
+   AAAA           3    5   10   16        .162436D-02
+   AAAA           3    5   10   20        .173122D-02
+   AAAA           3    5   10   24       -.839045D-03
+   AAAA           3    5   10   28       -.216302D-02
+...
+   AAAA           6    8   34   31       -.724529D-04
+   ABAB           3    3   10   10       -.488000D-02
+   ABAB           3    3   10   13        .847809D-03
+   ABAB           3    3   10   14        .275269D-02
+   ABAB           3    3   10   16       -.828540D-03
+...
+   ABAB           8    6   40   37       -.512640D-03
+   ABAB           8    6   40   39        .181167D-02
+ Largest amplitude= 1.24D-01
+
+#endif
+
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
@@ -273,80 +308,11 @@ int main_analyze_option(/*input*/
 }
 
 
-/******************************************************************/
+/************************************************************************************/
+/************************************************************************************/
+/************************************************************************************/
 
 
-#if 0
-/* analyze dftypestr and set dtype and ftype if they are 
- *  5d, 6d = 1 or 2  dtype
- *  7f, 10f = 1 or 2  ftype
- *  Now only accepts 6d and 10f basis set 
- *  Maybe no d or f funtions, so this is not necessarily error.
- */
-int main_analyze_dftype(/* input */
-          string& sub, 
-           /* output */
-          int &dtype, int &ftype)
-{
-  const char *t="main_analyze_dftype: ";
-  dtype=0; ftype=0;
-  // format is  'General basis read from cards:  (5D, 7F)'
-  if (  sub.find("5D") != string::npos  ) dtype=1;
-  if (  sub.find("6D") != string::npos  ) dtype+=2;
-  if (  sub.find("7F") != string::npos  ) ftype=1;
-  if (  sub.find("10F") != string::npos  )ftype+=2;
-
-  cout << "dtype="<<dtype<< " ftype="<<ftype<<endl;
-  return 0;
-}
-#endif
-
-#if 0
-//
-// now qwalk accepts only 6d and 10f basis.
-// This subroutine check it.
-//
-int main_check_basissettype(/* input */
-           vector<g03basis> & basisset,
-           int dtype, int ftype, 
-           string &logfilename
-             /* output none */ )
-{
-  int maxL=0;
-  for ( vector<g03basis>::iterator vbas = basisset.begin();
-        vbas != basisset.end(); vbas++) {
-    for ( vector<g03basis_L>::iterator vbas_L = vbas->bas_L.begin();
-          vbas_L != vbas->bas_L.end(); vbas_L++) {
-          int tmpL = g03_maxangularMomentum(vbas_L->orbtype);
-          if ( tmpL > maxL ) maxL = tmpL;
-    }
-  }
-
-  if ( maxL <=1 ) { return 0; } // no problem
-
-  int dtype, ftype;
-  int flag=1;
-#if 0
-  main_analyze_dftype(dftypestr, dtype, ftype);
-#endif
-  if ( maxL<=2)  {
-     if (dtype==2)  flag=0;
-  }
-  else if ( maxL <= 3 ) {
-     if ( dtype==2 && ftype==2 ) flag=0;
-  }
-
-  if (flag==0) { return 0;}
-
-  cout << "no 6D or 10F keywords, read orbital_names part of the log file again" << endl;
-
-  vector<string> orbname;
-  g03_log_analyze_orbname( logfilename,  orbname);
-  // if error occurs, stop in g03_log_analyze_orbname
-  
-  return 0;
-}
-#endif
 
 
 /* 
@@ -357,9 +323,10 @@ int main_check_basissettype(/* input */
  */
 int main_read_g03comfile( /* input */
 		string & comfilename,
+		vector<Atom> atoms, 
 		/* output */
-                vector<g03Atom> &g03atoms, 
-		vector<g03PSP> &g03ps
+		vector<Atom> &atomscom, 
+		vector<Gaussian_pseudo_writer> &pseudos
 		)
 {
    const char *t="main_read_g03comfile: ";
@@ -403,16 +370,6 @@ exit_searchsharp:
    }
 
    g03_process_sharpheader(words, found_gen, found_pseudo);
-#if 0
-   if ( strcmp(accept_df,"y")!=0 ) {
-     if (basis_dftype.find_first_not_of("6D")==string::npos ||
-       basis_dftype.find_first_not_of("10F")==string::npos ) {
-       cout << "cann't find 6D or 10F, specify it or confirm that the basis set uses 6D and 10F and use the option."
-                <<endl;
-       exit(ERR_CODE);
-     }
-   }
-#endif
 
    getline(is,line); // title
    getline(is,line); // blank
@@ -428,7 +385,7 @@ exit_searchsharp:
       }
       words.push_back(line);
    }
-   g03_com_processatomgeometry( words, g03atoms);
+   g03_com_processatomgeometry( words, atomscom);
    // may have variables section
    while ( line.find_first_not_of(" ")!=string::npos ) {
         getline(is,line);
@@ -448,7 +405,7 @@ exit_searchsharp:
 
    // next is ps
    if (found_pseudo) {
-     g03ps.clear();
+//     g03ps.clear();
      words.clear();
 
      while (getline(is,line)) {
@@ -464,7 +421,13 @@ exit_searchsharp:
         words.push_back(line);
 	getline(is,line);
      }
-     g03_com_processPS(words,g03atoms,g03ps);  
+     g03_com_processPS(words,atoms, pseudos);  
+     int ndeleted = g03_ps_delete_dup(/*input and output*/
+              pseudos);
+     if (ndeleted>0) {
+              cout<< ndeleted << " PS(com) data delted"<<endl;
+     }
+
    }
    // check it.
    // g03_print_ps(g03ps);
@@ -477,10 +440,12 @@ int main_read_g03logfile( /* input */
 	    	string & logfilename, 
 		int pbcsystem, 
 		/* output */
-			      //string &basis_dftype, 
-			      vector<g03Atom> &atoms,
-                              vector<g03basis> & basisset,
-                              vector<g03PSP> &g03ps)
+			      vector<Atom> &atomslog,
+			      vector<Gaussian_basis_set> &gbasisset, 
+		              vector<Gaussian_pseudo_writer> &pseudos, 
+			      vector<PseudoValence> &pseudovalence 
+		)
+
 {
 	cout << "--- read log file ---" <<endl;
 
@@ -516,48 +481,7 @@ int main_read_g03logfile( /* input */
   //cout << "logfile: basis df type? " << str<<endl;
   //basis_dftype = str;
 
-  //
-  //   BASISSET
-  //
-
   strv.clear();
-#if 0
-  keyin="General basis read from cards:";
-  nskip= 0; nread=0; keyout="AO basis set in the form of general basis input:";
-  ret=filekeyinput_get_stringv(
-       /* input */
-        logfilename,
-        keyin,  nskip,
-        nread,  keyout, lastkey_is_spc,
-       /* output */
-        strv );
-  if (strv.size()>0) {
-	  cout << "basis set is from 'General basis read from cards:' section"<<endl;
-     /* string aobasisset -> basisset */
-     g03_log_analyze_basissetfromcards(/* input */ strv,
-                  /* output */ basisset);
-  }
-  else {
-#endif
-    keyin="AO basis set in the form of general basis input:";
-    nskip= 0; nread=0; keyout="";  /* use lastkey_is_spc */
-    ret=filekeyinput_get_stringv(
-       /* input */
-        logfilename,
-        keyin,  nskip,
-        nread,  keyout, lastkey_is_spc, 
-       /* output */
-        strv ); 
-
-      if (strv.size()>0) {
-	      cout << "basis set is from 'AO basis set' section"<<endl;
-        /* string aobasisset -> basisset */
-         g03_log_analyze_basisset(/* input */ strv, 
-		  /* output */ basisset);
-      }
-#if 0
-  }
-#endif
 
   keyin="#";
   nskip=-1;  // include # line 
@@ -574,27 +498,9 @@ int main_read_g03logfile( /* input */
    int found_gen, found_pseudo; 
    string basis_dftype; 
    g03_process_sharpheader(strv, found_gen, found_pseudo);
-#if 0
-   // request 6d and 10f  in the input   
-   if ( strcmp(accept_dftype,"y")!=0 ) {
-     if (basis_dftype.find_first_not_of("6D")==string::npos || 
-       basis_dftype.find_first_not_of("10F")==string::npos ) {
-       cout << "cann't find 6D or 10F, specify it or confirm that the basis set uses 6D and 10F and use the option." 
-	        <<endl;
-       exit(ERR_CODE);
-     }
-   }
-#endif
   }
   
 
-#if 0
-  /* check whether the basis set is acceptable to qwalk or not */
-  main_check_basissettype(
-		  /* input */
-              basisset, basis_dftype , logfilename 
-	      /* no output */ );
-#endif
 
 
   keyin="Pseudopotential Parameters";
@@ -607,26 +513,15 @@ int main_read_g03logfile( /* input */
        /* output */
         strv );
 
+  g03log_analyze_ps(/*input*/ strv,
+		  /*output*/ pseudos, pseudovalence); 
+  int ndeleted =  g03_ps_delete_dup(/*input and output */
+                    pseudos);
+  if (ndeleted>0) {
+      cout<< ndeleted << " PS(log) data delted"<<endl;
+  }
 
-  /* string psset -> class g03ps */
-  g03_log_analyze_ps(/* input */ strv, 
-		 /* output */ g03ps);
 
-#if 0
-   keyin="SCF Done:";
-   ret=filekeyinput_get_string(
-        /* input */
-        logfilename,
-        keyin,
-       /* output */
-        str);
- 
-	   words.clear();
-	   split(str,space,words);
-	   eref=atod(words[4].c_str());
-	  // cout << scftype <<" E="<< eref <<endl;
-	   cout << "E= "<< setprecision(15) << eref <<endl;
-#endif
 
   if (pbcsystem) {
   keyin="Input orientation:";
@@ -651,8 +546,9 @@ int main_read_g03logfile( /* input */
         strv );
    }
 
-   g03_log_readatoms(strv, atoms);
- 
+   g03_log_readatoms(strv, // atoms,
+		   atomslog);
+
 
 
    if (pbcsystem) {
@@ -670,6 +566,32 @@ int main_read_g03logfile( /* input */
 
    }
 
+
+  // basis set 
+  strv.clear();
+    keyin="AO basis set in the form of general basis input:";
+    nskip= 0; nread=0; keyout="";  /* use lastkey_is_spc */
+    ret=filekeyinput_get_stringv(
+       /* input */
+        logfilename,
+        keyin,  nskip,
+        nread,  keyout, lastkey_is_spc,
+       /* output */
+        strv );
+
+      if (strv.size()>0) {
+              cout << "basis set is from 'AO basis set' section"<<endl;
+        /* string aobasisset -> basisset */
+       //  g03_log_analyze_basisset(/* input */ strv,
+        //        /* output */ basisset);
+         g03log_analyze_basisset(/*input*/ strv,
+			atomslog, 
+                         /*output*/ gbasisset);
+	 g03_basisset_delete_dup(atomslog,gbasisset);
+
+      }
+
+
   return 0; 
 }
 
@@ -680,9 +602,9 @@ int main_read_g03logfile( /* input */
 int main_read_g03fchkfile(/* input */
 		string & fchkfilename, 
 		/* output */
-			       vector<g03Atom> &atoms, 
+			       vector<Atom> &gatoms, 
 			       vector< vector<double> > &pbcvector, 
-			       vector<g03basis> & basisset, 
+			       vector<Gaussian_basis_set> &gbasisset, 
 			       vector<vector<double> > &alphamo, 
 			       vector<vector<double> > &betamo,
 			       int & nup, int & ndown, int & multiplicity ,
@@ -731,20 +653,27 @@ int main_read_g03fchkfile(/* input */
   g03_fchk_read_i(fchkfilename,key,ftype);
      cout << key << ": "<< ftypestr[ftype] <<endl;
   
-
-  g03_fchk_readbasisset(fchkfilename, basisset);
-           // read dtype and ftype in the subroutine again
-
-
   key="Atomic numbers";
   g03_fchk_read_iv(fchkfilename,key,natom,nout,iv);
   for (int i=0;i<natom;i++) {
-    g03Atom a_atom; a_atom.clear();
-    a_atom.id=i+1;
-    a_atom.name = element_lookup_caps_null[iv[i]];  
-    a_atom.atomnum=iv[i];  /* all electron */
-    atoms.push_back(a_atom); 
+    Atom a_atom;
+    a_atom.charge = iv[i]; /* atomic number , not valence charge */
+    a_atom.name = element_lookup_caps_null[iv[i]];
+    string_upper(a_atom.name); 
+    a_atom.basis= i;
+    gatoms.push_back(a_atom);
   }
+
+
+  g03_fchk_readbasisset(fchkfilename, //basisset, 
+		  gatoms, 
+		  gbasisset);
+           // read dtype and ftype in the subroutine again
+
+  // fix dup
+  g03_basisset_delete_dup(gatoms,gbasisset);
+
+
 
   key="Current cartesian coordinates";
   g03_fchk_read_rv(fchkfilename,key,natom*3,nout,rv);
@@ -753,11 +682,10 @@ int main_read_g03fchkfile(/* input */
     int j=0;
     for (int i=0;i<natom;i++) {
       for (int k=0;k<3;k++) {
-	atoms[i].pos.push_back(rv[j++]*ANG); //  AU -> ANG 
+//	atoms[i].pos.push_back(rv[j]*ANG); //  AU -> ANG 
+	gatoms[i].pos[k]=rv[j];   //*ANG; 
+	j++;
       }
-    }
-    for (int i=0;i<natom;i++) {
-      atoms[i].print_atom(cout);
     }
   }
 
@@ -770,13 +698,13 @@ int main_read_g03fchkfile(/* input */
        int itot=0;
        for (int i=0;i<3;i++) 
           for (int j=0;j<3;j++) {
-             pbcvector[i][j] = rv[itot++]*ANG;
+             pbcvector[i][j] = rv[itot++]; //*ANG;
 	  }
        cout << "System is PBC!" << endl;
        cout << "Translation vectors (ANG)=" <<endl;
        for (int i=0;i<3;i++) {
-         cout << pbcvector[i][0] << " " << pbcvector[i][1]  << " "
-		 << pbcvector[i][2] <<endl;
+         cout << pbcvector[i][0]*ANG << " " << pbcvector[i][1]*ANG  << " "
+		 << pbcvector[i][2]*ANG <<endl;
        }
      }
      else {
@@ -858,7 +786,8 @@ int main_print_qwalk(
   string orboutname=outputname+".orb";
   if ( !opt_overwrite ) {
      if (exist_file(orboutname) ) { 
-       cout << orboutname << " exits. stop"<<endl;
+       cout << orboutname << " exists. stop"<<endl;
+       cout << "use -w to overwrite it/them."<<endl;
        exit(ERR_CODE); 
      }
   }
@@ -866,7 +795,7 @@ int main_print_qwalk(
   string basisoutname=outputname+".basis";
   if ( !opt_overwrite ) {
      if (exist_file(orboutname) ) { 
-        cout << orboutname << " exits. stop"<<endl;
+        cout << orboutname << " exists. stop"<<endl;
         exit(ERR_CODE); 
      }
   }
@@ -1022,75 +951,42 @@ int main_print_qwalk(
 /***************************************************/
 int main_check_consistency_g03atoms(
 		/*input*/
-		vector<g03Atom> & atoms,
-		vector<g03Atom> & atomsfromlog,
-		vector<g03Atom> & atomsfromcom
+		vector<Atom> &gatomsfchk,
+		vector<Atom> &gatomslog,
+		vector<Atom> &gatomcom
 		/* no output */)
 {
   const char *t="main_check_consistency_g03atoms: ";
   const double eps=1.0e-5;
 
-  int check_com = ! atomsfromcom.empty(); 
 
-  if ( atoms.size() != atomsfromlog.size() ) {
-    cout<< t<<"number of atoms differs "  
-	<<  atoms.size() <<  " " << atomsfromlog.size()
-	<<endl;
-    exit(ERR_CODE);
+  // size
+  if ( gatomsfchk.size() != gatomslog.size() ) {
+	  cout << t << " size differs fchk,log=" << gatomsfchk.size() <<" " << gatomslog.size() <<endl;
+	  exit(ERR_CODE);
+  }
+  for (int iatom=0;iatom< gatomsfchk.size(); iatom++) {
+	  if ( gatomsfchk[iatom].name != gatomslog[iatom].name ) {
+               cout << t << "name differs at " << iatom <<endl;
+	       cout <<  gatomsfchk[iatom].name <<" " <<  gatomslog[iatom].name  <<endl;
+	       exit(ERR_CODE);
+	  }
+	  int flag=0;
+	  for (int k=0;k<3;k++) {
+		  if ( fabs(gatomsfchk[iatom].pos[k]- gatomslog[iatom].pos[k]) > eps )  {
+			  flag++;
+		  }
+	  }
+	  if (flag>0) {
+		  cout << t << "position differs at iatom=" << iatom <<endl;
+		  cout<< "fchk=" <<endl;
+		  gatomsfchk[iatom].print_atom(cout);
+		  cout<<"log="<<endl;
+                  gatomslog[iatom].print_atom(cout);
+		  exit(0);
+	  }
   }
 
-  if ( check_com ) {
-    if ( atoms.size() != atomsfromcom.size() ) {
-      cout<< t<<"number of atoms differs "
-	  <<  atoms.size() <<  " " << atomsfromlog.size()
-	  << atomsfromcom.size() <<endl;
-      exit(ERR_CODE);
-    }
-  }
-
-  // atomnumber and geometry
-  int natom=atoms.size();
-  for (int iatom=0;iatom<natom;iatom++) {
-    if ( atoms[iatom].atomnum != atomsfromlog[iatom].atomnum ) {
-      cout<<t<< "atomname or charge differs (vs log) "
-	  <<  atoms[iatom].atomnum << " " << atomsfromlog[iatom].atomnum
-	  <<endl;
-      cout <<t<< " at atom "<< iatom+1 <<endl;
-      exit(ERR_CODE);
-    }
-    int flag=0;
-    int ip;
-    for (int ip=0;ip<3;ip++) {
-      if ( fabs(atoms[iatom].pos[ip]-atomsfromlog[iatom].pos[ip]) > eps ) {
-	flag =1;
-	cout <<  fabs(atoms[iatom].pos[ip]-atomsfromlog[iatom].pos[ip]) <<endl;
-      }
-    }
-    if (flag) {
-      cout << t<< " posision differs at " << iatom+1 << " "
-	   << endl;
-      
-      atoms[iatom].print_atom(cout);
-      atomsfromlog[iatom].print_atom(cout);
-      exit(ERR_CODE);
-    }
-  }
-
-  // data of the com file
-  // check only atomnumber
-  //
-  if ( check_com ) {
-    for (int iatom=0;iatom<natom;iatom++) {
-      if ( atoms[iatom].atomnum != atomsfromcom[iatom].atomnum ) {
-	cout<<t<< "atomname or charge differs (vs com) "
-	    <<  atoms[iatom].atomnum << " " << atomsfromcom[iatom].atomnum
-	    <<endl;
-	cout <<t<< " at atom "<< iatom+1 <<endl;
-	exit(ERR_CODE);
-      }
-    }
-  }
-  
   return 0;
 }
 
@@ -1099,211 +995,51 @@ int main_check_consistency_g03atoms(
 
 int  main_check_consistency_basisset(
 				     /* input */
-              vector<g03basis> & basisset, 
-	      vector<g03basis> & basissetfromfchk
+	      vector<Gaussian_basis_set> &gbasissetlog,
+	      vector<Gaussian_basis_set> &gbasissetfchk 
 				     /* no output */
 	      )
 {
   const static char *t="main_check_consistency_basisset: ";
   const static double eps=1.0e-5;
   
-#if 0
-  cout << "-----------------------------"<<endl;
-  cout << "basis set" <<endl;
-#endif
-  vector<g03basis>::iterator vbas2=basissetfromfchk.begin();
-  for ( vector<g03basis>::iterator vbas = basisset.begin();
-        vbas != basisset.end(); vbas++) {
-#if 0
-    cout <<"atom="<< vbas->id << " " << vbas->range  << " "
-         <<     vbas->bas_L.size() <<endl;
-#endif
-    if ( vbas->id != vbas2->id ||  vbas->bas_L.size() != vbas2->bas_L.size() ) {
-        cout << t << " basisset error, basis differs at " <<  vbas->id  <<endl;
-	cout <<"-----------------------------"<<endl;
-	vbas->print(cout);
-	cout <<"-----------------------------"<<endl;
-	vbas2->print(cout);
-        exit(ERR_CODE);
-    }
-    vector<g03basis_L>::iterator vbas2_L = vbas2->bas_L.begin();
-    for ( vector<g03basis_L>::iterator vbas_L = vbas->bas_L.begin();
-          vbas_L != vbas->bas_L.end(); vbas_L++) {
-#if 0
-      cout << vbas_L->orbtype << " " << vbas_L->ncoeff << " "
-           << vbas_L->weight << " " << vbas_L->unknown << endl;
-#endif
-      if ( vbas_L->orbtype != vbas2_L->orbtype || 
-               vbas_L->ncoeff !=  vbas2_L->ncoeff ||
-                vbas_L->weight != vbas2_L->weight )  {
-           cout << t << " basisset error, basis differs at " <<  vbas->id  <<endl;
-	   cout <<"-----------------------------"<<endl;
-	   vbas->print(cout);
-	   cout <<"-----------------------------"<<endl;
-	   vbas2->print(cout);
-           exit(ERR_CODE);
-      }
-      if ( vbas_L->orbtype=="SP" ) {
-        for (int i=0;i<vbas_L->expn.size();i++) {
-#if 0
-          cout << "   " <<vbas_L->expn[i] << " " << vbas_L->coeff1[i] << " "
-               << vbas_L->coeff2[i] <<endl;
-#endif
-          //if ( vbas_L->expn[i] != vbas2_L->expn[i] ) { 
-          if ( fabs( (vbas_L->expn[i] - vbas2_L->expn[i])/vbas2_L->expn[i] ) > eps ) { 
-             cout << t << " basisset error, expn differs " <<endl;
-	     cout << vbas_L->expn[i]  << " " << vbas2_L->expn[i]  << endl;
-	     cout <<"-----------------------------"<<endl;
-	     vbas->print(cout);
-	     cout <<"-----------------------------"<<endl;
-	     vbas2->print(cout);
-             exit(ERR_CODE);
-          }
-        }
-      } else {
-        for (int i=0;i<vbas_L->expn.size();i++) {
-#if 0
-          cout << "   " <<  vbas_L->expn[i] << " " << vbas_L->coeff1[i] << endl;
-#endif
-          //if ( vbas_L->expn[i] != vbas2_L->expn[i] ) {
-	  if ( fabs( (vbas_L->expn[i] - vbas2_L->expn[i] )/vbas2_L->expn[i] ) >eps ) {
-             cout << t << " basisset error, expn differs " <<endl;
-	     cout << vbas_L->expn[i] << " " << vbas2_L->expn[i] <<endl;
-	     cout <<"-----------------------------"<<endl;
-	     vbas->print(cout);
-	     cout <<"-----------------------------"<<endl;
-	     vbas2->print(cout);
-             exit(ERR_CODE);
-          }
 
-        }
-      }
-      vbas2_L++;
-    }
-    vbas2++;
+  if (gbasissetlog.size() != gbasissetfchk.size() ) {
+     cout << t << "size differs, log=" <<gbasissetlog.size() << 
+	     " fchk=" << gbasissetfchk.size() <<endl;
+     exit(ERR_CODE);
   }
-#if 0
-  cout << "---------------------------"<<endl;
-#endif
+  for (int iatom=0;iatom< gbasissetlog.size() ; iatom++) {
+	  if ( gbasissetlog[iatom].types.size() !=
+			  gbasissetfchk[iatom].types.size() ) {
+	    cout << t << "size differs at iatom=" << iatom <<endl;
+	    cout << gbasissetlog[iatom].types.size() << " " 
+		    << gbasissetfchk[iatom].types.size() <<endl;
+	    exit(ERR_CODE);
+	  }
+          for (int ibasis=0;ibasis< gbasissetlog[iatom].types.size() ; ibasis++) {
+              if ( gbasissetlog[iatom].types[ibasis] != 
+			      gbasissetfchk[iatom].types[ibasis] ) {
+                   cout << t << "type differs at iatom, ibasis="<< iatom 
+			   << " " << ibasis <<endl;
+		   exit(ERR_CODE);
+	      }
+	  }
+  }
   return 0;
-
-
-}
-
-int main_g03psL_comparesize_and_copy(
-           /* input */ vector<g03PSP_L> & psLcom,
-           /* output */ vector<g03PSP_L> & psL )
-{
-   const char *t = "main_g03psL_comparesize_and_copy:"; 
-   if ( psLcom.size()!= psL.size() ) {
-      cout << t<< "size is diferent " << psLcom.size() << " " << psL.size() <<endl;
-      return 1;
-   }
-   vector<g03PSP_L>::iterator itcom=psLcom.begin(); 
-   for ( vector<g03PSP_L>::iterator it= psL.begin(); it!=psL.end(); it++) {
-      if ( it->L != itcom->L  || it->refL != itcom->refL ) {
-          cout << t<< "L or refL is different." << it->L << " " << it->refL <<endl;
-          return 1;
-      }   
-      //cout << t << "copy, L,refL="<< it->L << " " << it->refL <<endl;
-      it->power=itcom->power;
-      it->expn =itcom->expn;
-      it->coeff=itcom->coeff;
-
-      itcom++; 
-   }
-
-   return 0; // normal exit 
-}
-
-int  main_check_and_make_ps(/* input */ 
-              vector<g03PSP>  & g03psfromcom,
-              /* input output */ 
-              vector<g03PSP>  & g03ps )
-{
-  static char *t = "main_check_make_ps:";
-  int flag=0;// error flag
-  //
-  // find 0.0 in the coefficient and exponent
-  //
-  for ( vector< g03PSP  > ::iterator vvpsp= g03ps.begin();
-        vvpsp != g03ps.end(); vvpsp++ ) {
-    //cout <<"atom "<< vvpsp->id << " " << vvpsp->atomnum << " " << vvpsp->valence <<endl;
-    vector<g03PSP_L> psL = vvpsp->psL;
-    //cout << "num of PS " << psL.size()<<endl;;
-    for ( vector<g03PSP_L>::iterator vpsp=psL.begin();
-          vpsp!=psL.end(); vpsp++ ) {
-      //cout << "L=" << vpsp->L << " refL=" << vpsp->refL <<endl;
-      for (int i=0;i< vpsp->power.size(); i++) {
-         // !!! job !!!, look for 0.0 
-        if (vpsp->expn[i]==0.0 || vpsp->coeff[i]==0 ) { 
-            flag=1;
-            goto foundzero;
-        }
-      }
-    }
-  }
-  
-foundzero:
-   if (flag==0) {
-       // do nothing
-       return 1;
-   }
-
-   cout << "-> some parts of the PS in the logfile is broken. "; 
-   if ( g03psfromcom.empty() ) {
-        cout << "But no com file, or insufficient data in the com file. aborted"<<endl;
-        exit(ERR_CODE);
-   }
-
-      cout << "I compensate them from the com file." <<endl;
-
-
-   // g03ps
-   //cout << "original"<<endl;
-   //g03_print_ps( g03ps );
-
-   //cout << "from com"<<endl;
-   // g03psfromcom
-   //g03_print_ps( g03psfromcom );
-
-   // g03ps 
-   for ( vector<g03PSP>::iterator it=g03ps.begin(); it!=g03ps.end(); it++) {
-       int id = it->id;
-       int atomnum = it->atomnum;
-       int refid=it->refid;
-       //cout << "g03ps " << it->id << " " <<it->atomnum<< " " << it->refid <<endl;
-       if (refid!=id)  continue; 
-       // find atomonum in g03psfromcom 
-       int found=0;
-       vector<g03PSP>::iterator itcom;
-       for ( itcom=g03psfromcom.begin(); itcom!=g03psfromcom.end(); itcom++ ) {
-           if ( atomnum == itcom->atomnum ) { found=1; break; }
-       }
-       if (found) {
-          // copy
-          if ( main_g03psL_comparesize_and_copy(itcom->psL,it->psL) ) {
-              // =1 , if error occured 
-              cout << t << " error in id,atomnum="<<it->id<< " " << it->atomnum <<endl;
-              exit(ERR_CODE);
-          }
-       }
-       else {
-          cout << t << " atomnum="<<atomnum<<" not found"<<endl;
-          exit(ERR_CODE);
-       }
-   }
-
-   //cout << "compensated"<<endl;
-   //g03_print_ps( g03ps );
-   //
-   return 0;
 }
 
 int main(int argc, char ** argv)
 {
 	const char *t="main: ";
 
+   int opt_overwrite=0;
+   int opt_printgamess=0;
+   string logfilename;
+   string fchkfilename;
+   string outfilebasename ;
+   string comfilename ;
+   {
    char *comfile=NULL, *logfile=NULL, *fchkfile=NULL;
    char *outfile=NULL;
    char *overwritestr=NULL;
@@ -1312,31 +1048,29 @@ int main(int argc, char ** argv)
          /* output */
          &comfile, &logfile,&fchkfile, &outfile,&overwritestr,  &print_gamess);
 
-   int opt_overwrite=0;
    if ( strcmp(overwritestr,"y")==0 ) opt_overwrite=1;
    //cout << "overwrite="<< opt_overwrite <<endl;
-   int opt_printgamess=0;
    if ( strcmp(print_gamess,"y")==0 ) opt_printgamess=1;
 
 
-  string logfilename=logfile; 
-  string fchkfilename=fchkfile;
-  string outfilebasename = outfile;
-  string comfilename ;
-  if (comfile) comfilename = comfile;
+   logfilename=logfile; 
+   fchkfilename=fchkfile;
+   outfilebasename = outfile;
+   if (comfile) comfilename = comfile;
+   }
 
-
+  //
   //---------- end of argv ------------------
 
 
-  vector<string>  orbname;
+//  vector<string>  orbname;
   string scftype;
   double eref;
   int nup, ndown, multiplicity, dtype, ftype;
   int pbcsystem=0; // periodic boundary condition or not
 
   vector<vector<double> > alphamo, betamo;
-  vector<g03Atom> g03atoms;
+  vector<Atom> atomsfchk; 
 
   // fchk
   //
@@ -1344,97 +1078,26 @@ int main(int argc, char ** argv)
   // atom and geometry (use this!)
   // basisset
 
-  vector<g03basis> basissetfromfchk;
+  vector<Gaussian_basis_set> gbasissetfchk;
   vector< vector<double> > pbcvector;
   vector<double> origin(3);
   vector<double> kpoint(3); 
   for (int i=0;i<3;i++) { origin[i]=0.0; kpoint[i]=0.0; }
 
-  main_read_g03fchkfile( /* input */ fchkfilename, 
+  main_read_g03fchkfile( /* input */ 
+		  fchkfilename, 
 		  /* output */ 
-           g03atoms, pbcvector,
-	   basissetfromfchk, alphamo,betamo,nup,ndown,multiplicity, eref,
+	   atomsfchk, pbcvector,
+	   gbasissetfchk, alphamo,betamo,nup,ndown,multiplicity, eref,
 	   dtype,ftype);
   //cout << "size of vector ="<< alphamo.size() << " " << betamo.size() <<endl;
-  // error check
-#if 0
-  if ( dtype==1 || ftype==1 ) {
-	  cout << "Error: now this program accepts only 6D and 10F" <<endl
-		  << "But d/f shells are " << dtypestr[dtype] << " " << ftypestr[ftype] <<endl;
-	  exit(ERR_CODE);
-  }
-#endif
 	  
   if (! pbcvector.empty()) pbcsystem=1;
-
-  vector<g03basis> basisset;
-  vector<g03PSP> g03ps;
-  vector<g03Atom> g03atomsfromlog ;
-
-  // log
-  //
-  // basis type ( 6d, 10f ... )
-  // atom and geometry
-  // basisset  (use this!) (this basis set has move accuracy than those in the fchk file)
-  // PS
-  main_read_g03logfile(/* input */logfilename,  pbcsystem, 
-		  /* output */ 
-	       g03atomsfromlog, basisset, g03ps);
-
-
-  vector<g03Atom> g03atomsfromcom; 
-  vector<g03PSP>  g03psfromcom;
-
-  // com
-  //
-  // atoms (only symbols)
-  // PS 
-
-  if (! comfilename.empty()) {
-	  // atoms are only to check consistency 
-	  // use this ps if the ps in the log is broken
-      main_read_g03comfile(/* input */ comfilename, 
-               /* output */ g03atomsfromcom, g03psfromcom ); 
-  }
-
-  cout << "--- have read files ---" <<endl;
-
-
-  // check consistency
-  //
-  // g03atoms(from fchk), g03atomsfromlog, g03atomsfromcom
-  main_check_consistency_g03atoms(g03atoms,g03atomsfromlog,g03atomsfromcom); 
-
-  // basissetfromfchk, basisset(from log)
-  main_check_consistency_basisset(basisset, basissetfromfchk);
-  
-
-  // PS  may be broken in the log file
-  // fix broken PS
-  //
-  main_check_and_make_ps(/* input */  g03psfromcom,
-               /* output */ g03ps );
-
-#if 0
-  /* check whether the basis set is acceptable to qwalk or not 
-   *  6D or 10F
-   */
-  main_check_basissettype(
-        /* input */
-           basisset, basis_dftype , logfilename
-        /* no output */ );
-#endif
-
-  // reorder f orbital, if there are
-  g03_orbital_reorder(/* input */ basisset, dtype, ftype, 
-		  /* input and output */ alphamo, betamo);
-
-
   if (betamo.empty()) {
       scftype="RHF";
       if (ndown!=nup) {
-	      cout << t<<" error , ndown must be equal to nup"<<endl;
-	      exit(ERR_CODE);
+              cout << t<<" error , ndown must be equal to nup"<<endl;
+              exit(ERR_CODE);
       }
   }
   else {
@@ -1444,7 +1107,79 @@ int main(int argc, char ** argv)
   cout << "scftpe="<<scftype <<endl;
 
 
-#if 1
+  // log 
+  vector<Gaussian_basis_set> gbasissetlog; 
+  vector<Gaussian_pseudo_writer> pseudoslog;
+  vector<PseudoValence> pseudovalence;   // compensate infomation of Gaussian_pseudo_writer
+  vector<Atom> atomslog; 
+
+  //
+  // atom and geometry
+  // basisset  
+  // PS
+  main_read_g03logfile(/* input */logfilename,  pbcsystem, 
+		  /* output */ 
+	       atomslog,
+	       gbasissetlog,  
+	       pseudoslog, 
+	       pseudovalence
+	       );
+
+
+  vector<Atom> atomscom; 
+  vector<Gaussian_pseudo_writer> pseudoscom;
+
+  // com
+  //
+  // atoms (only symbols)
+  // PS 
+
+  if (! comfilename.empty()) {
+	  // atoms are only to check consistency 
+	  // use this ps if the ps in the log is broken
+      main_read_g03comfile(/* input */ comfilename,  atomsfchk, 
+               /* output */   atomscom, pseudoscom ); 
+  }
+
+  cout << "--- have read files ---" <<endl;
+
+
+  // check consistency
+  //
+  main_check_consistency_g03atoms(
+		  atomsfchk,atomslog,atomscom); 
+
+  main_check_consistency_basisset(
+		  gbasissetlog, gbasissetfchk );
+
+  
+  // PS  may be broken in the log file
+  // fix broken PS using pseudoscom
+  //
+  if (g03_ps_check_validity(/*input*/ pseudoslog)==0 ) { // NG 
+	  if (!pseudoscom.empty()){
+	  pseudoslog.clear();
+	  pseudoslog = pseudoscom;
+	  cout << " PS in the log file is broken, use PS in the com file"<<endl;
+	  }
+	  else {
+          cout<< "error: PS is broken, but no additional data  to fix it"<<endl;
+	  cout << "supply -com file or fix PS in the log file "<<endl;
+	  exit(ERR_CODE);
+	  }
+  }
+
+  // reorder f orbital, if there are
+  // The order of the f orbitals differs. 
+  //
+  g03_orbital_reorder(/* input */ // basisset,
+		  atomsfchk, gbasissetfchk, dtype, ftype, 
+		  /* input and output */ alphamo, betamo);
+
+  // ------------------------------------------------------------------
+  //  output
+  // -------------------------------------------------------------------
+
   if (opt_printgamess) {
   //output
 
@@ -1462,16 +1197,17 @@ int main(int argc, char ** argv)
 		       /* input */
 		       multiplicity,
 		       scftype,
-		       g03atoms,
-		       basisset,
-		       g03ps,
+		       atomsfchk,
+		       gbasissetfchk,
+		       pseudoslog,
+		       pseudovalence, 
 		       alphamo,
 		       betamo,
 		       filename
 		       /* no output */);
     cout << "output: " << filename <<endl;
   }
-
+#if 0
   {
     string outfilename=outfilebasename+".out";
     string punfilename=outfilebasename+".pun";
@@ -1512,10 +1248,9 @@ int main(int argc, char ** argv)
     cout << "output: " << punfilename <<endl;
 
   }
-
+#endif
   }  // opt_printgamess 
 
-#endif
 
 #if 1
 
@@ -1530,27 +1265,30 @@ int main(int argc, char ** argv)
    }
   slwriter.mo_matrix_type="CUTOFF_MO";
 
-   vector <Gaussian_basis_set>  gamessbasis;
+   vector <Gaussian_basis_set> & gamessbasis=gbasissetfchk;
    vector < vector < double> >  moCoeff;
-   vector <Gaussian_pseudo_writer>  gamesspseudo;
+   vector <Gaussian_pseudo_writer> & gamesspseudo=pseudoslog;
    vector <Center>  centers;
    vector <int>  gamessnbasis;
-   vector <Atom>  gamessatoms; 
+   vector <Atom> & gamessatoms=atomsfchk; 
 
-   g03_change_form(
+   // Some parts aren't suitable to use library subroutines 
+   // Some parts are not set. 
+   // fix them 
+   g03_fix_form(
                 /* input */
                  nup,  ndown,
                  scftype,
-                 g03atoms,
-                 basisset,
-                 g03ps,
+		 dtype,ftype,
                  alphamo,
                  betamo,
+		 pseudovalence, 
+		 /*input output*/
+		 gamessatoms,
+		 gamessbasis,
+		 gamesspseudo, 
                 /* output */
                  slwriter,
-                 gamessatoms,
-                 gamessbasis,
-                 gamesspseudo,
                  moCoeff,
 		 centers,
 		 gamessnbasis
