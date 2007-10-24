@@ -350,3 +350,44 @@ void print_std_jastrow2(Jastrow2_wf_writer & jast2writer, ostream & os,
   jast2writer.add_ee_basis(eebas,1);
   jast2writer.print_wavefunction(os);
 }
+
+
+//----------------------------------------------------------------------
+//this is done in a much more straightforward way than the Jastrow2_writer
+//I don't think that we need all the polymorphism, etc, that we had before
+void print_3b_jastrow2(ostream & os, std::vector<std::string> & unique_atoms, double cutoff) { 
+  os << "JASTROW2" << endl;
+  os << "GROUP { \n"
+    << " OPTIMIZEBASIS\n"
+    << " EEBASIS { EE CUTOFF_CUSP GAMMA 24.0 CUSP 1.0 CUTOFF " << cutoff << " } \n"
+    << " EEBASIS { EE CUTOFF_CUSP GAMMA 24.0 CUSP 1.0 CUTOFF " << cutoff << " } \n"
+    << " TWOBODY_SPIN {  FREEZE \n"
+    << "   LIKE_COEFFICIENTS { 0.25  0.0 } \n"
+    << "   UNLIKE_COEFFICIENTS { 0.0 0.5 } \n }\n"
+    << "}\n";
+  os << "GROUP { \n OPTIMIZEBASIS\n"
+    <<" EEBASIS { EE POLYPADE BETA0 0.5 NFUNC 3 RCUT " << cutoff << " }\n";
+  for(vector<string>::iterator i=unique_atoms.begin(); i!= unique_atoms.end();
+      i++) { 
+    os << " EIBASIS { " << *i << " POLYPADE BETA0 0.2 NFUNC 4 RCUT " << cutoff << " } \n";
+  }
+  os << " ONEBODY { \n";
+  for(vector<string>::iterator i=unique_atoms.begin(); i!= unique_atoms.end();
+      i++) { 
+    os << "  COEFFICIENTS { " << *i << " 0 0 0 0  } \n";
+  }
+  os << " }\n";
+  os << " TWOBODY { \n";
+  os << "  COEFFICIENTS { 0 0 0 } \n";
+  os << " }\n";
+  os << " THREEBODY { \n";
+  for(vector<string>::iterator i=unique_atoms.begin(); i!= unique_atoms.end();
+      i++) { 
+    os << "  COEFFICIENTS { " << *i << " 0 0 0 0 0 0 0 0  0 0 0 0 } \n";
+  }
+  os << " }\n";
+  os << "}\n";
+  
+}
+//----------------------------------------------------------------------
+

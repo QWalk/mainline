@@ -53,6 +53,8 @@ public:
   }
 };
 
+void find_unique_atoms(const std::vector<Atom> & atoms, std::vector<std::string> & unique_atoms);
+
 class Center {
 public:
   std::vector <double> pos;

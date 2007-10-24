@@ -101,6 +101,17 @@ void print_orbitals(ostream & os,
 
 }
 
+//###########################################################################
+void find_unique_atoms(const vector<Atom> & atoms, vector<string> & unique_atoms) { 
+  unique_atoms.clear();
+  for(vector<Atom>::const_iterator at=atoms.begin(); at != atoms.end();
+      at++) { 
+    if(find(unique_atoms.begin(), unique_atoms.end(),at->name)==unique_atoms.end()){
+      unique_atoms.push_back(at->name);
+    }
+  }
+}
+
 //######################################################################
 
 

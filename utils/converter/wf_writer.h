@@ -96,7 +96,6 @@ public:
   std::vector < std::vector <Basis_writer * >  > ei_basis;
   void print_wavefunction(std::ostream & inputfile);
 
-
   /*!
     Gets the unique names from the list of atoms.
   */
@@ -128,5 +127,7 @@ public:
 
 void print_std_jastrow2(Jastrow2_wf_writer & jast2writer, std::ostream & os,
                         double basis_cutoff);
+
+void print_3b_jastrow2(std::ostream & os,std::vector<std::string> & unique_atoms, double cutoff=7.5);
 
 #endif

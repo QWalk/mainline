@@ -263,6 +263,13 @@ int main(int argc, char ** argv) {
   jast2out.close();
   
 
+  string jast3outname=outputname+".jast3";
+  ofstream jast3out(jast3outname.c_str());
+  vector<string> unique_atoms;
+  find_unique_atoms(atoms, unique_atoms);
+  print_3b_jastrow2(jast3out,unique_atoms,basis_cutoff);
+  jast3out.close();
+  
   //--------------------------------------System output
   
   string sysoutname=outputname+".sys";
