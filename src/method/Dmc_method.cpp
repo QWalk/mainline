@@ -286,8 +286,8 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
   int naux=mygather.nAux();
 
   nhist=1;
-  if(naux >0 && nhist <0) nhist=100;
-  //Array1 <int> limits(aux_converge);
+  //setting the projection time for auxillary walkers to 1 a.u.
+  if(naux >0 && nhist <0) nhist=int(1.0/timestep)+1;
   
 
   doublevar teff=timestep;
