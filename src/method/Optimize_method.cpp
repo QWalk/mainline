@@ -268,13 +268,14 @@ void Optimize_method::run(Program_options & options, ostream & output)
 
   //cout << "pseudopotential " << endl;
 
-  FILE * pseudoout;
-  pseudoout=fopen(pseudostore.c_str(), "w");
-  if(!pseudoout) {
-    error("couldn't open pseudopotential temporary file ", pseudostore,
-          " for writing.");
-  }
-  
+  //FILE * pseudoout;
+  //pseudoout=fopen(pseudostore.c_str(), "w");
+  //if(!pseudoout) {
+  //  error("couldn't open pseudopotential temporary file ", pseudostore,
+  //        " for writing.");
+ // }
+   
+  psp_buff.clear();
 
   //Here we save the original values (in case we do weighted correlated sampling)
   // and save the values for pseudopotential evaluation.
@@ -289,11 +290,11 @@ void Optimize_method::run(Program_options & options, ostream & output)
 
     wf(walker)->getVal(wfdata, 0, orig_vals(walker));
 
-    pseudo->initializeStatic(wfdata, electrons(walker), wf(walker), pseudoout);
+    pseudo->initializeStatic(wfdata, electrons(walker), wf(walker), psp_buff);
     wf(walker)->notify(sample_static,0);
   }
 
-  fclose(pseudoout);
+  //fclose(pseudoout);
   nfunctions=wf(0)->nfunc();
   
   local_energy.Resize(nconfig);
@@ -394,8 +395,9 @@ doublevar Optimize_method::variance(int n, Array1 <double> & parms, double & val
 
 
   //Pseudopotential file
-  FILE * pseudoin;
-  pseudoin=fopen(pseudostore.c_str(), "r");
+  //FILE * pseudoin;
+  //pseudoin=fopen(pseudostore.c_str(), "r");
+  psp_buff.start_again();
 
   doublevar avgen=0;
   doublevar avgkin=0;
@@ -412,7 +414,7 @@ doublevar Optimize_method::variance(int n, Array1 <double> & parms, double & val
     doublevar coulpot=local_energy(walker);
     //cout << "pseudopotential " << endl;
     pseudo->calcNonlocWithFile(wfdata, electrons(walker), wf(walker),
-                               nonloc, pseudoin);
+                               nonloc, psp_buff);
     //cout << "getVal " << endl;
     wf(walker)->getVal(wfdata, 0, wfval);
     //cout << "done calc " << endl;
@@ -465,7 +467,7 @@ doublevar Optimize_method::variance(int n, Array1 <double> & parms, double & val
   //     << " potential " << avgpot/nconfig
   //     << endl;
 
-  fclose(pseudoin);
+  //fclose(pseudoin);
 
 
 

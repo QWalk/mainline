@@ -77,6 +77,7 @@ private:
   
   Array1 <Wf_return > orig_vals; //!< Original wave function values before opt
   string pseudostore; //!< Where to put the temporary pseudo file
+  Pseudo_buffer psp_buff;
   string wfoutputfile;//!< Where to put the wavefunction output
   Primary guide_wf; //!< Guiding function
   Array1 <doublevar> local_energy; //!< local energy(that doesn't change when we optimize

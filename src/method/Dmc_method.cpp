@@ -792,7 +792,7 @@ void Dmc_method::getAuxWeight(Dmc_point & pt,
 
 
   int naux=pt.prop.aux_energy.GetDim(0);
-  
+  doublevar etr=eref;
   aux_weight.Resize(naux,1);
   for(int a=0; a< naux; a++) { 
     doublevar w=1;
@@ -801,13 +801,19 @@ void Dmc_method::getAuxWeight(Dmc_point & pt,
 					     pt.prop.wf_val);
     w*= ratio*ratio;
 
+    doublevar fbet=max(etr-pt.prop.aux_energy(a,0), etr-pt.prop.energy(0));
+    if(fbet > branchcut_stop) w=0;
     w*=exp(-.5*(aux_teff(a)*pt.prop.aux_energy(a,0)-teff*pt.prop.energy(0)));
     for(deque<Dmc_history>::iterator i=pt.past_energies.begin();
-	i!=pt.past_energies.end()-1; i++) {
-      w*=exp(-(aux_teff(a)*i->aux_en(a,0)-teff*i->main_en));
+        i!=pt.past_energies.end()-1; i++) {
+      doublevar fbet=max(etr-i->main_en, etr-i->aux_en(a,0));
+      if(fbet < branchcut_stop) 
+        w*=exp(-(aux_teff(a)*i->aux_en(a,0)-teff*i->main_en));
     }
     Dmc_history & last(*(pt.past_energies.end()-1));
-    w*=exp(-(aux_teff(a)*last.aux_en(a,0)-teff*last.main_en));
+     fbet=max(etr-last.main_en, etr-last.aux_en(a,0));
+    if(fbet< branchcut_stop) 
+      w*=exp(-(aux_teff(a)*last.aux_en(a,0)-teff*last.main_en));
     aux_weight(a,0)=w; 
   }
   

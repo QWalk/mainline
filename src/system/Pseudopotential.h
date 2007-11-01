@@ -32,6 +32,28 @@ class Sample_point;
 class Wavefunction_data;
 class Wavefunction_storage;
 class Basis_function;
+
+
+//---------
+class Pseudo_buffer { 
+public:
+  void push_value(double d) { 
+    data.push_back(d);
+  }
+  double next_value() {
+    assert(current_point < data.size());
+    return data[current_point++];
+  }
+  void clear() { data.clear(); current_point=0; } 
+  void start_again() { current_point=0; } 
+private:
+  vector <double> data;
+  int current_point;
+};
+
+
+//-----------
+
 /*!
 
 */
@@ -54,7 +76,6 @@ public:
   /*!
     \brief
     Standard calculation of the pseudopotential.
-
 
     Uses random evaluation of the pseudopotential automatically.
    */
@@ -83,7 +104,7 @@ public:
     Uses a cutoff radius for evaluation, completely nonrandom
    */
   void calcNonlocWithFile(Wavefunction_data *, Sample_point *, Wavefunction *,
-                          Array1 <doublevar> &, FILE * input);
+                          Array1 <doublevar> &, Pseudo_buffer & input);
 
 
   /*!
@@ -91,7 +112,7 @@ public:
     Initialize a file for use with calcNonlocWithFile
    */
   int initializeStatic(Wavefunction_data *, Sample_point *,
-                       Wavefunction *, FILE * output);
+                       Wavefunction *, Pseudo_buffer & output);
 
 
 

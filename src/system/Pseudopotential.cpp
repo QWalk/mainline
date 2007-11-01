@@ -83,32 +83,11 @@ Pseudopotential::~Pseudopotential()  {
 
 
 
-/*
-An example to do binary i/o, using C routines..
 
-#include <cstdio>
-#include <iostream>
-using namespace std;
-
-int main () {
- FILE * file;
-  file=fopen( "bah.txt", "w");
-  double a=4.5;
-  double b=3.4;
-  fwrite(&a, sizeof(double), 1, file);
-  fwrite(&b, sizeof(double), 1, file);
-  fclose(file);
-  file=fopen("bah.txt", "r");
-  fread(&b, sizeof(double), 1, file);
-  fread(&a, sizeof(double), 1, file);
-  fclose(file);
-  cout << "a " << a << "  b " << b << endl;
-}
- */
 
 int Pseudopotential::initializeStatic(Wavefunction_data *wfdata,
                                       Sample_point * sample, Wavefunction * wf,
-                                      FILE * output)
+                                      Pseudo_buffer & output)
 {
 
   int natoms=sample->ionSize();
@@ -159,7 +138,8 @@ int Pseudopotential::initializeStatic(Wavefunction_data *wfdata,
             wf->storeParmIndVal(wfdata,sample, e, staticvals);
             for(int i=0; i< staticvals.GetDim(0); i++)
             {
-              fwrite(&staticvals(i), sizeof(doublevar), 1, output);
+              //fwrite(&staticvals(i), sizeof(doublevar), 1, output);
+              output.push_value(staticvals(i));
             }
             sample->setElectronPos(e,oldpos);
 
@@ -184,7 +164,7 @@ void Pseudopotential::calcNonlocWithFile(Wavefunction_data * wfdata,
     Sample_point * sample,
     Wavefunction * wf,
     Array1 <doublevar> & totalv,
-    FILE * input)
+    Pseudo_buffer & input)
 {
   int natoms=sample->ionSize();
   int nwf=wf->nfunc();
@@ -254,11 +234,11 @@ void Pseudopotential::calcNonlocWithFile(Wavefunction_data * wfdata,
                         
 
             sample->translateElectron(e, newpos);
-	    if(!sample->getEIDist_temp(e,at,newdist)) {
-	      sample->updateEIDist();
-	      sample->getEIDist(e,at,newdist);
-	    }
-
+            if(!sample->getEIDist_temp(e,at,newdist)) {
+              sample->updateEIDist();
+              sample->getEIDist(e,at,newdist);
+            }
+            
 
             rDotR(i)=0;
             for(int d=0; d < 3; d++) {
@@ -267,7 +247,8 @@ void Pseudopotential::calcNonlocWithFile(Wavefunction_data * wfdata,
             rDotR(i)/=(newdist(0)*olddist(0));  
             double new_sign=sample->overallSign();
             for(int j=0; j< staticval.GetDim(0); j++) {
-              fread(&staticval(j), sizeof(doublevar), 1, input);
+              //fread(&staticval(j), sizeof(doublevar), 1, input);
+              staticval(j)=input.next_value();
             }
             
             wf->getParmDepVal(wfdata, sample, e, staticval, val);

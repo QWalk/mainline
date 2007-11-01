@@ -271,12 +271,12 @@ void Optimize_method2::run(Program_options & options, ostream & output)
 
   if(nparms<= 0 ) error("There appear to be no parameters to optimize!");
 
-  FILE * pseudoout;
-  pseudoout=fopen(pseudostore.c_str(), "w");
-  if(!pseudoout) {
-    error("couldn't open pseudopotential temporary file ", pseudostore,
-          " for writing.");
-  }
+  //FILE * pseudoout;
+  //pseudoout=fopen(pseudostore.c_str(), "w");
+  //if(!pseudoout) {
+  //  error("couldn't open pseudopotential temporary file ", pseudostore,
+  //        " for writing.");
+  //}
   
   doublevar sum_tmp=0.0;
   orig_vals.Resize(nconfig);
@@ -291,7 +291,7 @@ void Optimize_method2::run(Program_options & options, ostream & output)
     wf(walker)->getVal(wfdata, 0, orig_vals(walker));
     sum_tmp+=orig_vals(walker).amp(0,0);
     
-    pseudo->initializeStatic(wfdata, electrons(walker), wf(walker), pseudoout);
+    pseudo->initializeStatic(wfdata, electrons(walker), wf(walker), psp_buff);
     wf(walker)->notify(sample_static,0);
   }
 
@@ -301,7 +301,7 @@ void Optimize_method2::run(Program_options & options, ostream & output)
   //cout << "Start: Aver. Sum of orig_vals ln(psi)/nconfig = "<<ln_norm_orig_vals<<endl;
 
 
-  fclose(pseudoout);
+  //fclose(pseudoout);
   nfunctions=wf(0)->nfunc();
   
   local_energy.Resize(nconfig);
@@ -412,9 +412,9 @@ void Optimize_method2::func_val(int n, const Array1 <double> & parms, double & v
 
 
   //Pseudopotential file
-  FILE * pseudoin;
-  pseudoin=fopen(pseudostore.c_str(), "r");
-  
+  //FILE * pseudoin;
+  //pseudoin=fopen(pseudostore.c_str(), "r");
+  psp_buff.start_again();
   //  cout << "loop over walkers " << endl;
   doublevar weight_max=1;
   for(int walker=0; walker< min_nconfig; walker++)
@@ -428,7 +428,7 @@ void Optimize_method2::func_val(int n, const Array1 <double> & parms, double & v
     doublevar coulpot=local_energy(walker);
     //cout << "pseudopotential " << endl;
     pseudo->calcNonlocWithFile(wfdata, electrons(walker), wf(walker),
-                               nonloc, pseudoin);
+                               nonloc, psp_buff);
     //cout << "getVal " << endl;
     wf(walker)->getVal(wfdata, 0, wfval);
     //cout << "done calc " << endl;
@@ -453,7 +453,7 @@ void Optimize_method2::func_val(int n, const Array1 <double> & parms, double & v
     
   
   }
-  fclose(pseudoin);
+  //fclose(pseudoin);
   
   if(use_weights){
     doublevar average_weight=weightsum/min_nconfig;
@@ -535,8 +535,9 @@ void Optimize_method2::energy_grad(Array1 <double> & parms, int nparms_start, in
     //cout << "(energy grad)Aver. Sum of ln(psi)/min_nconfig= "<<ln_norm_new_vals<<endl;
 
     //Pseudopotential file
-    FILE * pseudoin;
-    pseudoin=fopen(pseudostore.c_str(), "r");
+    //FILE * pseudoin;
+    //pseudoin=fopen(pseudostore.c_str(), "r");
+    psp_buff.start_again();
     for(int walker=0; walker< min_nconfig; walker++){
       //cout << "updateLap " << endl;
       wf(walker)->updateLap(wfdata, electrons(walker));
@@ -546,7 +547,7 @@ void Optimize_method2::energy_grad(Array1 <double> & parms, int nparms_start, in
       doublevar coulpot=local_energy(walker);
       //cout << "pseudopotential " << endl;
       pseudo->calcNonlocWithFile(wfdata, electrons(walker), wf(walker),
-                                                 nonloc, pseudoin);
+                                                 nonloc, psp_buff);
       //cout << "getVal " << endl;
       //wf(walker)->getVal(wfdata, 0, wfval);
 
@@ -570,7 +571,7 @@ void Optimize_method2::energy_grad(Array1 <double> & parms, int nparms_start, in
         weightsum(i-1)+=weight;
       }
     }
-    fclose(pseudoin);
+    //fclose(pseudoin);
     if (i > 0)
       temp_parms(i-1+nparms_start)-=ddelta(i-1+nparms_start);
   }
@@ -680,8 +681,9 @@ void Optimize_method2::func_hessian_rev(Array1 <double> & parms, int nparms_star
       //cout << "(hess) Aver. Sum of ln(psi)/min_nconfig= "<<ln_norm_new_vals<<endl;
       
       //Pseudopotential file
-      FILE * pseudoin;
-      pseudoin=fopen(pseudostore.c_str(), "r");
+      //FILE * pseudoin;
+      //pseudoin=fopen(pseudostore.c_str(), "r");
+      psp_buff.start_again();
       //loop over walkers
       for(int walker=0; walker< min_nconfig; walker++){
         //cout <<"walker: "<<walker<<endl;
@@ -694,7 +696,7 @@ void Optimize_method2::func_hessian_rev(Array1 <double> & parms, int nparms_star
           doublevar coulpot=local_energy(walker);
           //cout << "pseudopotential " << endl;
           pseudo->calcNonlocWithFile(wfdata, electrons(walker), wf(walker),
-                                     nonloc, pseudoin);
+                                     nonloc, psp_buff);
           wf(walker)->getVal(wfdata, 0, wfval);
           reweight=1.0;
           if(use_weights) {
@@ -810,7 +812,7 @@ void Optimize_method2::func_hessian_rev(Array1 <double> & parms, int nparms_star
         }// i>0 j>=i
       }//end of loop over walkers
       
-      fclose(pseudoin);
+      //fclose(pseudoin);
       
       if (j>0){
         // cout <<"["<<  temp_parms(j-1)-parms(j-1) << "] ";
@@ -922,8 +924,9 @@ void Optimize_method2::energy_grad_analytical(Array1 <double> & parms, int nparm
   // cout << "(energy grad)Aver. Sum of ln(psi)/min_nconfig= "<<ln_norm_new_values<<endl;
   
   //Pseudopotential file
-  FILE * pseudoin;
-  pseudoin=fopen(pseudostore.c_str(), "r");
+  //FILE * pseudoin;
+  //pseudoin=fopen(pseudostore.c_str(), "r");
+  psp_buff.start_again();
   for(int walker=0; walker< min_nconfig; walker++){
     //cout << "updateLap " << endl;
     wf(walker)->updateLap(wfdata, electrons(walker));
@@ -932,7 +935,7 @@ void Optimize_method2::energy_grad_analytical(Array1 <double> & parms, int nparm
     //cout << "coulpot " << endl;
     doublevar coulpot=local_energy(walker);
     //cout << "pseudopotential " << endl;
-    pseudo->calcNonlocWithFile(wfdata, electrons(walker), wf(walker),nonloc, pseudoin);
+    pseudo->calcNonlocWithFile(wfdata, electrons(walker), wf(walker),nonloc, psp_buff);
     //cout << "getVal " << endl;
     wf(walker)->getVal(wfdata, 0, wfval);
     // cout <<"&& "<<kinetic(0)<<" "<<coulpot<<" "<<nonloc(0)<<endl;    
@@ -950,7 +953,7 @@ void Optimize_method2::energy_grad_analytical(Array1 <double> & parms, int nparm
     }
     weightsum+=weight(walker);
   }
-  fclose(pseudoin);
+  //fclose(pseudoin);
 
   
   //if (output)
@@ -1048,8 +1051,9 @@ void Optimize_method2::func_hessian_rev_analytical(Array1 <double> & parms, int 
       temp_parms(i-1+nparms_start)+=ddelta(i-1);
     }
     wfdata->setVarParms(temp_parms);
-    FILE * pseudoin;
-    pseudoin=fopen(pseudostore.c_str(), "r");
+    //FILE * pseudoin;
+    //pseudoin=fopen(pseudostore.c_str(), "r");
+    psp_buff.start_again();
     for(int walker=0; walker< min_nconfig; walker++){
       //cout << "updateLap " << endl;
       wf(walker)->updateLap(wfdata, electrons(walker));
@@ -1058,15 +1062,15 @@ void Optimize_method2::func_hessian_rev_analytical(Array1 <double> & parms, int 
       //cout << "coulpot " << endl;
       doublevar coulpot=local_energy(walker);
       //cout << "pseudopotential " << endl;
-      pseudo->calcNonlocWithFile(wfdata, electrons(walker), wf(walker),nonloc, pseudoin);
+      pseudo->calcNonlocWithFile(wfdata, electrons(walker), wf(walker),nonloc, psp_buff);
       //cout << "getVal " << endl;
       // wf(walker)->getVal(wfdata, 0, wfval);
       // cout <<"&& "<<kinetic(0)<<" "<<coulpot<<" "<<nonloc(0)<<endl;
       e_local(i)(walker)=kinetic(0) + coulpot+ nonloc(0);
       if(i>0)
-	e_local_gradient(i-1)(walker)=(e_local(i)(walker)-e_local(0)(walker))/ddelta(i-1);
+        e_local_gradient(i-1)(walker)=(e_local(i)(walker)-e_local(0)(walker))/ddelta(i-1);
     }
-    fclose(pseudoin);
+    //fclose(pseudoin);
     //if (output)
     // cout <<"#";
     if (i>0){
