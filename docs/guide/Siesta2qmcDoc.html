@@ -19,13 +19,13 @@ so be careful!
 \subsection options Options
 
 The following options are required for the converter to work:
-\begin{verbatim}
+<pre>
 %block WaveFuncKPoints
 0.0 0.0 0.0
 %endblock WaveFuncKPoints
 LongOutput .true.
 LatticeConstant 
-\end{verbatim}
+</pre>
 
 You need the lattice constant variable even if you're calculating
 a molecule, since Siesta apparently doesn't print out the orbital
@@ -42,7 +42,7 @@ probably your best bet.  Siesta
 may have exact exchange in the future, in which case hybrid or
 Hartree-Fock psueudopotentials may be better.  To be clear, the
 pseudopotentials should be tested, by, for example, calculating
-calculating the binding energy of small molecules.
+the binding energy of small molecules.
 
 
 \subsection basis Basis set

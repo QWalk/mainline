@@ -20,11 +20,9 @@ branched</li>
 kill the first walker.
 </ul>
 
-This ensures a constant number of walkers.  This algorithm is done on each
-processor independently, so there can be nodes with all high weight walkers
-and with all low-weight walkers.  To mitigate this problem, we periodically
-exchange walkers between nodes so that the total weight is more or less 
-evenly distributed.
+This ensures a constant number of walkers, which improves the 
+parallel efficiency--it is easy to scale up to thousands of processors
+with 99% efficiency.
 
 
 \section options Options
