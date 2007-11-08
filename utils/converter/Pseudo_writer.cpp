@@ -24,13 +24,15 @@ using namespace std;
 
 void Gaussian_pseudo_writer::print_pseudo(ostream & os) {
     string indent="";
+    int numL=exponents.size();
+    int naip=6;
+    if(numL > 2) naip=12;
     os << indent << "PSEUDO { \n";
     os << indent << "  " << label << endl;
-    os << indent << "  AIP 6\n";
+    os << indent << "  AIP " << naip << " \n";
     os << indent << "  BASIS { " << label << endl;
     os << indent << "   RGAUSSIAN \n";
     os << indent << "   OLDQMC { " << endl;
-    int numL=exponents.size();
     os << indent << "0.0 " << numL << endl;
     os << indent;
     for(int i=0; i< numL ; i++) {
