@@ -1111,7 +1111,7 @@ int g03_com_processPS( /* input */
     words.clear(); split(*it,spc,words);
     string atomname=words[0];
  //   atom_pseudo.atomnum = atomname2number(atomname);
-
+    string_upper(atomname);
     a_pseudo.label = atomname; 
 
     int id = find_gatomname(atoms,atomname)+1;
