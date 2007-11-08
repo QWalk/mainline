@@ -105,7 +105,7 @@ void MO_matrix_cutoff::init() {
   int totfunc=0;
   nbasis=0;
   //basismo=0;
-  const doublevar threshold=1e-6;
+  const doublevar threshold=1e-12;
   for(int ion=0; ion<centers.size(); ion++)
   {
     int f=0;
@@ -181,15 +181,25 @@ void MO_matrix_cutoff::writeorb(ostream & os, Array2 <doublevar> & rotation, Arr
   int nmo_write=moList.GetDim(0);
   assert(rotation.GetDim(0)==nmo_write);
   assert(rotation.GetDim(1)==nmo_write);
+
+  // for(int ion=0; ion<centers.equiv_centers.GetDim(0); ion++){
+  // for(int j=0; j<centers.equiv_centers.GetDim(1); j++){
+  //   cout << centers.equiv_centers(ion,j)<<"  ";
+  // }
+  //cout <<endl;
+  //}
+  
+
+
   os.precision(15);
   int counter=0;
   for(int m=0; m < nmo_write; m++) {
     int mo=moList(m);
-    for(int ion=0; ion<centers.size(); ion++)
+    for(int ion=0; ion<centers.equiv_centers.GetDim(0); ion++)
     {
       int f=0;
 
-      for(int n=0; n< centers.nbasis(ion); n++)
+      for(int n=0; n< centers.nbasis(centers.equiv_centers(ion,0)); n++)
       {
         int fnum=centers.basis(ion,n);
         int imax=basis(fnum)->nfunc();
@@ -205,7 +215,9 @@ void MO_matrix_cutoff::writeorb(ostream & os, Array2 <doublevar> & rotation, Arr
   }
   os << "COEFFICIENTS\n";
   ifstream orbin(orbfile.c_str());
-  rotate_orb(orbin, os, rotation, moList, totbasis);
+  //cout <<" totbasis "<<totbasis<<endl;
+  //rotate_orb(orbin, os, rotation, moList, totbasis);
+  rotate_orb(orbin, os, rotation, moList, int((totbasis/centers.size())*centers.equiv_centers.GetDim(0)));
   orbin.close();
 
 
@@ -352,12 +364,6 @@ void MO_matrix_cutoff::updateVal(
             c=moCoefftmp.v[reducedbasis+basmo];
             newvals(mo, 0)+=c*symmvals_temp(i);
             //newvals.v[retscale*mo]+=c*symmvals_temp.v[i];
-            //if(mo==1) { 
-            //  cout << "------------------------" << endl;
-            //  cout << "x " << R(2) << " " << R(3) << " " << R(4) << endl;
-            //  cout << " mo " << mo << " c " << c << " basis " << symmvals_temp(i) << endl;
-            //  cout << "currval " << newvals(mo,0) << endl;
-            //}
 
           }
         }
