@@ -252,6 +252,7 @@ private:
   friend class Periodic_sample;
   friend class Ring_sample;
   friend class SHO_sample;
+  friend class HEG_sample;
   Array2 <doublevar> iondist_temp;
   Array2 <doublevar> pointdist_temp;
   Array1 <doublevar> pos_temp;

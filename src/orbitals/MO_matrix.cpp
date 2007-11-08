@@ -26,6 +26,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "qmc_io.h"
 #include "MO_1d.h"
 #include "MO_matrix_blas.h"
+#include "MO_matrix_basfunc.h"
 
 
 
@@ -40,6 +41,8 @@ int allocate(vector <string> & words, System * sys, MO_matrix *& moptr) {
     moptr=new MO_matrix_standard;
   else if(words[0]=="BLAS_MO")
     moptr=new MO_matrix_blas;
+  else if(words[0]=="BASFUNC_MO")
+    moptr=new MO_matrix_basfunc;
   else {
     cout << "****WARNING*****  Assuming you want a cutoff MO."
     "  In the future, you'll need to specify.\n";

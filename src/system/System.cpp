@@ -24,6 +24,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Ring_system.h"
 #include "ulec.h"
 #include "SHO_system.h"
+#include "HEG_system.h"
 #include "qmc_io.h"
 
 int allocate(vector <string> & syswords,
@@ -40,6 +41,8 @@ int allocate(vector <string> & syswords,
     sysptr=new Ring_system;
   else if(caseless_eq(syswords[0],"SHO"))
     sysptr=new SHO_system;
+  else if(caseless_eq(syswords[0],"HEG"))
+    sysptr=new HEG_system;
   else
     error("Couldn't understand ", syswords[0], " in system section.");
   

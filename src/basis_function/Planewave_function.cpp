@@ -165,4 +165,72 @@ void Planewave_function::calcLap(
   //cout << "done" << endl;
 }
 
+
+
+void Planewave_function::calcHessian(
+  const Array1 <doublevar> & r,
+  Array2 <doublevar> & symvals,
+  const int startfill
+)
+{
+  //cout << "calcLap " << endl;
+  assert(r.GetDim(0) >= 5);
+  assert(symvals.GetDim(0) >= nmax*2+startfill);
+  assert(symvals.GetDim(1) >= 10);
+
+  int index=startfill;
+  doublevar gdotr, t_cos, t_sin;
+  doublevar gx, gy, gz;
+  //  doublevar gsquared;
+  for(int fn=0; fn< nmax; fn++) {
+    gx=g_vector(fn, 0);
+    gy=g_vector(fn, 1);
+    gz=g_vector(fn, 2);
+    gdotr=gx*r(2)+gy*r(3)+gz*r(4);
+
+#ifdef __USE_GNU
+    sincos(gdotr, &t_sin, &t_cos);
+#else
+    t_cos=cos(gdotr);
+    t_sin=sin(gdotr);
+#endif
+    
+    //cos function
+    symvals(index, 0)=t_cos;
+    for(int i=1; i< 4; i++) {
+      symvals(index, i)=-g_vector(fn, i-1)*t_sin;
+    }
+
+    symvals(index, 4)=-gx*gx*t_cos;
+    symvals(index, 5)=-gy*gy*t_cos;
+    symvals(index, 6)=-gz*gz*t_cos;
+    symvals(index, 7)=-gx*gy*t_cos;
+    symvals(index, 8)=-gx*gz*t_cos;
+    symvals(index, 9)=-gy*gz*t_cos;
+    
+    index++;
+
+    //sin function
+    symvals(index, 0)=t_sin;
+    for(int i=1; i< 4; i++) {
+      symvals(index, i)=g_vector(fn,i-1)*t_cos;
+    }
+    symvals(index, 4)=-gx*gx*t_sin;
+    symvals(index, 5)=-gy*gy*t_sin;
+    symvals(index, 6)=-gz*gz*t_sin;
+    symvals(index, 7)=-gx*gy*t_sin;
+    symvals(index, 8)=-gx*gz*t_sin;
+    symvals(index, 9)=-gy*gz*t_sin;
+    
+    index++;
+  }
+  //cout << "done" << endl;
+}
+
+
+
+
+
+
+
 //------------------------------------------------------------------------

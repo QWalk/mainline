@@ -12,7 +12,9 @@ MY_SOURCES:= gesqua.cpp \
 	Sample_point.cpp \
         SHO_system.cpp \
         SHO_sample.cpp \
-	System.cpp
+	System.cpp \
+        HEG_sample.cpp \
+        HEG_system.cpp
 
 
 SOURCES:= $(SOURCES) $(addprefix system/,$(MY_SOURCES))

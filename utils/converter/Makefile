@@ -8,7 +8,8 @@ CRYSTAL2QMCOBJS:=crystal2qmc.o $(ALLOBJS)
 SIESTA2QMCOBJS:= siesta2qmc.o $(ALLOBJS)
 JEEP2QMCOBJS :=  jeep2qmc.o JeepBasis.o $(ALLOBJS)
 G032QMCOBJS := g032qmcmain.o g03tools.o $(ALLOBJS)
-all: gamess2qmc gamessci2qmc crystal2qmc siesta2qmc g032qmc
+HEG2QMCOBJS := heg2qmc.o indexx.o
+all: gamess2qmc gamessci2qmc crystal2qmc siesta2qmc g032qmc heg2qmc
 .PHONY: clean 
 
 gamess2qmc: $(GAMESS2QMCOBJS)
@@ -29,5 +30,9 @@ jeep2qmc : $(JEEP2QMCOBJS)
 g032qmc: $(G032QMCOBJS)
 	$(CXX) -o g032qmc $(G032QMCOBJS)
 
+heg2qmc : $(HEG2QMCOBJS)
+	$(CXX) -o heg2qmc $(HEG2QMCOBJS)
+
 clean: 
-	rm -f $(GAMESS2QMCOBJS) $(GAMESSCI2QMCOBJS) $(CRYSTAL2QMCOBJS) $(JEEP2QMCOBJS) $(SIESTA2QMCOBJS) $(G032QMCOBJS) siesta2qmc g032qmc gamess2qmc gamessci2qmc jeep2qmc crystal2qmc
+	rm -f $(GAMESS2QMCOBJS) $(GAMESSCI2QMCOBJS) $(CRYSTAL2QMCOBJS) $(JEEP2QMCOBJS) $(SIESTA2QMCOBJS) $(G032QMCOBJS) $(HEG2QMCOBJS) siesta2qmc g032qmc gamess2qmc gamessci2qmc jeep2qmc crystal2qmc heg2qmc
+

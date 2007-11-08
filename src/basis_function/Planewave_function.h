@@ -75,6 +75,13 @@ public:
     const int startfill=0
   );
 
+   virtual void calcHessian(
+    const Array1 <doublevar> & r,
+    Array2 <doublevar> & symvals,
+    const int startfill=0
+  );
+  
+
   virtual void getVarParms(Array1 <doublevar> & parms);
   virtual void setVarParms(Array1 <doublevar> & parms);
   virtual int nparms() {
