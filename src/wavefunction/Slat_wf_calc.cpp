@@ -531,14 +531,40 @@ int Slat_wf::getParmDeriv(Wavefunction_data *  wfdata,
     doublevar sum=0;
     for(int det=0; det < ndet; det++) {
       sum+=parent->detwt(det)*detVal(0,det,0)*detVal(0,det,1);
-      if(det > nparms_start && det <= nparms_end )
-	derivatives.gradient(det-1-nparms_start)=detVal(0,det,0)*detVal(0,det,1);
     }
-    for(int det=0; det < nparms; det++) {
-      derivatives.gradient(det)/=sum; 
+    if(parent->use_csf){
+      assert(nparms<parent->ncsf);
+      int counter=0;
+      derivatives.gradient=0.0;
+      for(int csf=0; csf< parent->ncsf; csf++) {
+        if(csf > nparms_start && csf <= nparms_end ){
+          for(int j=1;j<parent->CSF(csf).GetDim(0);j++){
+            //cout <<" csf "<<csf<<" j "<<j<<" counter "<<counter<<endl;
+            derivatives.gradient(csf-1-nparms_start)+=parent->CSF(csf)(j)*detVal(0,counter,0)*detVal(0,counter,1);
+            counter++;
+          }
+        }
+        else{
+          counter+=parent->CSF(csf).GetDim(0)-1;
+        }
+      }
+      for(int csf=0; csf< nparms; csf++) {
+        derivatives.gradient(csf)/=sum; 
+      }
+      derivatives.hessian=0;
+      return 1;
     }
-    derivatives.hessian=0;
-    return 1;
+    else{
+      for(int det=0; det < ndet; det++) {
+        if(det > nparms_start && det <= nparms_end )
+          derivatives.gradient(det-1-nparms_start)=detVal(0,det,0)*detVal(0,det,1);
+      }
+      for(int det=0; det < nparms; det++) {
+        derivatives.gradient(det)/=sum; 
+      }
+      derivatives.hessian=0;
+      return 1;
+    }
   }
   else { 
     derivatives.gradient=0;
@@ -568,7 +594,6 @@ void Slat_wf::calcVal(Slat_wf_data * dataptr, Sample_point * sample)
 */
 void Slat_wf::updateVal( Slat_wf_data * dataptr, Sample_point * sample,int e)
 {
-  
   assert(dataptr != NULL);
   sample->updateEIDist();
   int s=dataptr->spin(e);
@@ -726,7 +751,7 @@ void Slat_wf::getDensity(Wavefunction_data * wfdata, int e,
 
 void Slat_wf::calcLap(Slat_wf_data * dataptr, Sample_point * sample)
 {
-  //cout << "calcLap nelec " << nelectrons(0) << "  " << nelectrons(1) << endl;
+
   for(int e=0; e< nelectrons(0)+nelectrons(1); e++)  {
     int s=dataptr->spin(e);
     sample->updateEIDist();
@@ -735,7 +760,6 @@ void Slat_wf::calcLap(Slat_wf_data * dataptr, Sample_point * sample)
     //Slat_wf_data(one for each spin).
     dataptr->molecorb->updateLap(sample, e, s,
                                 updatedMoVal);
-    
     for(int d=0; d< 5; d++)  {
       for(int i=0; i< updatedMoVal.GetDim(0); i++) {
         moVal(d,e,i)=updatedMoVal(i,d);
@@ -760,12 +784,10 @@ void Slat_wf::calcLap(Slat_wf_data * dataptr, Sample_point * sample)
         
         detVal(f,det,s)=
           TransposeInverseMatrix(modet,inverse(f,det,s), nelectrons(s));
-        //cout << "detVal " << detVal(f,det,s) << endl;
   
       }
     }
   }
-  //cout << endl;
 }
 
 //------------------------------------------------------------------------

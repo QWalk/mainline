@@ -39,7 +39,7 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
   vector <string> strstates;
   vector <vector <string> > statevec;
   unsigned int startpos=pos;
-  readsection(words, pos, strdetwt, "DETWT");
+  
   pos=startpos;
 
   while(readsection(words, pos, strstates, "STATES"))
@@ -58,6 +58,65 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
     if(optimize_mo) error("Can't optimize both mo and det right now");
   }
   else optimize_det=0;
+
+  pos=startpos;
+  
+  vector <vector <string> > csfstr;
+  vector <string> csfsubstr;
+
+  while(readsection(words, pos, csfsubstr , "CSF")){
+      csfstr.push_back(csfsubstr);
+  }
+  ncsf=csfstr.size();
+  if(ncsf){
+    //cout <<" Using CSF form for determinant weights "<<endl;
+    use_csf=1;
+    CSF.Resize(ncsf);
+    int counter=0;
+    for(int csf=0;csf<ncsf;csf++){
+      if(csfstr[csf].size()<2)
+        error(" Wrong number of elements in the CSF number ",csf+1);
+      CSF(csf).Resize(csfstr[csf].size());
+      for(int j=0;j<CSF(csf).GetDim(0);j++){
+        CSF(csf)(j)=atof(csfstr[csf][j].c_str());
+        if(j>0)
+          counter++;
+      }
+    }
+    ndet=counter;
+    //cout <<" total number of determinants "<<ndet<<endl;
+
+    if(readsection(words, pos, strdetwt, "DETWT")){
+      error("Already using suplied CSF's, remove DETWT");
+    }
+    /*
+    for(int csf=0;csf<ncsf;csf++){
+      cout <<" CSF { ";
+      for(int j=0;j<CSF(csf).GetDim(0);j++){
+        cout <<CSF(csf)(j)<<"  ";
+      } 
+      cout <<"} "<<endl;
+    }
+    */
+    counter=0;
+    detwt.Resize(ndet);
+    for(int csf=0;csf<ncsf;csf++)
+      for(int j=1;j<CSF(csf).GetDim(0);j++){
+        detwt(counter++)=CSF(csf)(0)*CSF(csf)(j);
+      }
+  }
+  else{
+    //cout <<" Using standard  DETWT form for determinant weights "<<endl;
+    use_csf=0;
+    pos=startpos;
+    readsection(words, pos, strdetwt, "DETWT");
+    ndet=strdetwt.size();
+    detwt.Resize(ndet);
+    for(int det=0; det < ndet; det++){
+      detwt(det)=atof(strdetwt[det].c_str());
+    }
+  }
+
 
   pos=startpos;
   vector <string> mowords;
@@ -106,13 +165,7 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
     cout <<endl;
   }
   
-
-
-
-  ndet=strdetwt.size();
   nfunc=statevec.size();
-
-
   nelectrons.Resize(2);
 
   nelectrons(0)=sys->nelectrons(0);
@@ -153,7 +206,7 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
   //Input parameters
   occupation.Resize(nfunc, ndet, 2);
   occupation_orig.Resize(nfunc, ndet, 2);
-  detwt.Resize(ndet);
+ 
 
 
   for(int i=0; i< nfunc; i++)
@@ -263,10 +316,7 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
   if(genmolecorb) init_mo();
 
 
-  for(int det=0; det < ndet; det++)
-  {
-    detwt(det)=atof(strdetwt[det].c_str());
-  }
+  
 
 }
 
@@ -423,12 +473,24 @@ int Slat_wf_data::writeinput(string & indent, ostream & os)
   if(optimize_det)
     os << indent << "OPTIMIZE_DET" << endl;
 
-  os << indent << "DETWT { ";
-  for(int det=0; det < ndet; det++)
-  {
-    os << detwt(det) << "  ";
+  if(use_csf){
+    for(int csf=0;csf<ncsf;csf++){
+      os << indent<<" CSF { ";
+      for(int j=0;j<CSF(csf).GetDim(0);j++){
+        os <<CSF(csf)(j)<<"  ";
+      } 
+      os <<"} "<<endl;
+    }
   }
-  os << "}" << endl;
+  else {
+    os << indent << "DETWT { ";
+    for(int det=0; det < ndet; det++)
+      {
+        os << detwt(det) << "  ";
+      }
+    os << "}" << endl;
+  }
+
 
   for(int f=0; f< nfunc; f++)
   {
@@ -495,14 +557,25 @@ void Slat_wf_data::getVarParms(Array1 <doublevar> & parms)
     }
   }
   else if(optimize_det) {
-    parms.Resize(detwt.GetDim(0)-1);
-    for(int i=1; i< detwt.GetDim(0); i++) {
-      parms(i-1)=detwt(i);
+    if(use_csf){
+      parms.Resize(ncsf-1);
+      for(int i=1; i< ncsf; i++) {
+        parms(i-1)=CSF(i)(0);
+      }
+    }
+    else{//just independent weights
+      parms.Resize(detwt.GetDim(0)-1);
+      for(int i=1; i< detwt.GetDim(0); i++) {
+        parms(i-1)=detwt(i);
+      }
     }
   }
   else {
     parms.Resize(0);
   }
+
+  //for(int i=0;i<parms.GetDim(0);i++)
+  // cout <<parms(i)<<endl;
   //cout <<"done getVarParms"<<endl;
 }
 
@@ -529,8 +602,26 @@ void Slat_wf_data::setVarParms(Array1 <doublevar> & parms)
     molecorb->setMoCoeff(mocoeff);
   }
   else if(optimize_det) {
-    for(int i=1; i< detwt.GetDim(0); i++) {
-      detwt(i)=parms(i-1);
+    if(use_csf){
+      for(int csf=1; csf< ncsf; csf++) {
+        CSF(csf)(0)=parms(csf-1);
+        //cout << CSF(csf)(0)<<endl;
+      }
+      int counter=0;
+      for(int csf=0; csf< ncsf; csf++) {
+        for(int j=1;j<CSF(csf).GetDim(0);j++){
+          detwt(counter++)=CSF(csf)(0)*CSF(csf)(j);
+        }
+      }
+      assert(counter==ndet);
+      // for(int i=0;i<ndet;i++)
+      // cout <<detwt(i)<<" ";
+      //cout <<endl;
+    }
+    else{
+      for(int i=1; i< detwt.GetDim(0); i++) {
+        detwt(i)=parms(i-1);
+      }
     }
   }
   else {

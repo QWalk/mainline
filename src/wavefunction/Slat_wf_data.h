@@ -103,8 +103,12 @@ public:
   {
     if(optimize_mo) 
       return orbitals_for_optimize_mo.GetSize()*(molecorb->nMoCoeff()/molecorb->getNmo());
-    else if(optimize_det)
-      return detwt.GetDim(0)-1;
+    else if(optimize_det){
+      if(use_csf)
+        return ncsf-1;
+      else
+        return ndet-1;
+    }
     else return 0;
   }
 
@@ -136,9 +140,10 @@ private:
   Array1 <int> orbitals_for_optimize_mo; //!< which orbitals should be optimized 
   string mo_place; //!< where to place the new mo's
   int optimize_det; //!< whether to optimize determinant coefficients
-
-
-
+  Array1 <Array1 <doublevar> > CSF;
+  int use_csf;
+  int ncsf;
+  
   
   General_MO_matrix * genmolecorb; 
   MO_matrix * molecorb;
