@@ -217,8 +217,10 @@ int Optimize_method2::showinfo(ostream & os)
   os << endl << endl;
   os << "-----------------------------" << endl;
   os << "Wave function optimization " << endl;
-  os << "Number of configurations : " << nconfig << endl;
   os << "Iterations : "  << iterations << endl;
+  os << "Configurations per processor: " <<  nconfig   << endl;
+  os << "Number of processors: "        <<  mpi_info.nprocs << endl;
+  os << "Total configurations: " <<          nconfig*mpi_info.nprocs << endl;
   os << "Number of starting configurations : " << min_nconfig_read << endl;
   os << "Number of fixed iterations : "  << iter_min_read << endl;
   os << "Maximum number of parameters done at once : " <<  maxnparmsatonce<<endl;
@@ -1096,7 +1098,7 @@ void Optimize_method2::func_hessian_rev_analytical(Array1 <double> & parms, int 
 	case min_variance:
 	  grad_var_tmp(i)+=2.0*(e_local_gradient(i)(walker)-grad_eng(i))*
 	                       (e_local(0)(walker)-energy_mean)*weight(walker);
-	  grad_e_local_tmp(i)+=e_local_gradient(i)(walker)*weight(walker)*weight(walker);
+	  grad_e_local_tmp(i)+=e_local_gradient(i)(walker)*weight(walker);
 	  break;
 	case min_mixed:
 	  grad_var_tmp(i)+=2.0*(e_local_gradient(i)(walker)-grad_eng(i))*(e_local(0)(walker)-energy_mean)*weight(walker);
