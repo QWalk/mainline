@@ -763,7 +763,7 @@ doublevar Pfaffian_nopivot(const Array2 <doublevar> & in){
   Array2 <doublevar> tmp(2*n,2*n);
   doublevar PF=1.0;
   doublevar fac;
-  for (int i=0;i<2*n;i=i++)
+  for (int i=0;i<2*n;i++)
     for (int l=0;l<2*n;l++)
       tmp(i,l)=in(i,l);
  
@@ -1221,7 +1221,75 @@ InverseUpdateColumn(Array2 <complex <doublevar> > & a1,
 
 //----------------------------------------------------------------------
 
-void Jacobi(const Array2 <doublevar > & Ain, Array1 <doublevar> & evals, Array2 <doublevar> & evecs){
+#ifdef USE_LAPACK
+//C++ wrappwr of Lapack routines
+doublevar dlamch(char CMACH)
+{
+  return dlamch_(&CMACH);
+}
+
+int dsyevr(char JOBZ, char RANGE, char UPLO, int N,
+       double *A, int LDA, double VL, double VU,
+       int IL, int IU, double ABSTOL, int *M,
+       double *W, double *Z, int LDZ, int *ISUPPZ,
+       double *WORK, int LWORK, int *IWORK, int LIWORK){
+ 
+  int INFO;
+  dsyevr_(&JOBZ, &RANGE, &UPLO, &N, A, &LDA, &VL, &VU,
+          &IL, &IU, &ABSTOL, M, W, Z, &LDZ, ISUPPZ,
+          WORK, &LWORK, IWORK, &LIWORK, &INFO);
+  return INFO;
+}
+
+int dsygv(int itype, char jobz, char uplo,  int  n,  
+           double *a,  int  lda,  double *b, int ldb, double *w, 
+           double *WORK, int IWORK){
+  int INFO;
+  dsygv_(&itype, &jobz, &uplo, &n, a, &lda, b, &ldb, w, WORK, &IWORK, &INFO);
+  return INFO;
+}
+
+#endif
+//----------------------------------------------------------------------
+
+
+
+void EigenSystemSolverRealSymmetricMatrix(const Array2 <doublevar > & Ain, Array1 <doublevar> & evals, Array2 <doublevar> & evecs){
+  //returns eigenvalues from largest to lowest and
+  //eigenvectors, where for i-th eigenvalue, the eigenvector components are evecs(*,i)
+#ifdef USE_LAPACK //if LAPACK
+  int N=Ain.dim[0];
+  
+  /* allocate and initialise the matrix */
+  Array1 <doublevar> W, Z, WORK;
+  Array1 <int> ISUPPZ, IWORK;
+  int  M;
+  
+  /* allocate space for the output parameters and workspace arrays */
+  W.Resize(N);
+  Z.Resize(N*N);
+  ISUPPZ.Resize(2*N);
+  WORK.Resize(26*N);
+  IWORK.Resize(10*N);
+
+  int info;
+  /* get the eigenvalues and eigenvectors */
+  info=dsyevr('V', 'A', 'L', N, Ain.v, N, 0.0, 0.0, 0, 0, dlamch('S'), &M,
+         W.v, Z.v, N, ISUPPZ.v, WORK.v, 26*N, IWORK.v, 10*N);
+  if(info>0)
+    error("Internal error in the LAPACK routine dsyevr");
+  if(info<0)
+    error("Problem with the input parameter of LAPACK routine dsyevr in position "-info);
+
+  for (int i=0; i<N; i++)
+    evals(i)=W[N-1-i];
+  for (int i=0; i<N; i++) {
+    for (int j=0; j<N; j++) {
+      evecs(j,i)=Z[j+(N-1-i)*N];
+    }
+  }
+ //END OF LAPACK 
+#else //IF NO LAPACK
   const int n = Ain.dim[0];
   Array2 < dcomplex > Ain_complex(n,n);
   Array2 <dcomplex> evecs_complex(n,n);
@@ -1234,7 +1302,63 @@ void Jacobi(const Array2 <doublevar > & Ain, Array1 <doublevar> & evals, Array2 
      for (int j=0; j < n; j++){
        evecs(i,j)=real(evecs_complex(i,j));
      }
+#endif //END OF NO LAPACK
 }
+
+void GeneralizedEigenSystemSolverRealSymmetricMatrices(const Array2 < doublevar > & Ain, const Array2 < doublevar> & Bin, Array1 < doublevar> & evals, Array2 < doublevar> & evecs){
+  //solves generalized eigensystem problem A.x=labda*B.x
+  //returns eigenvalues from largest to lowest and
+  //eigenvectors, where for i-th eigenvalue, the eigenvector components are evecs(*,i)
+  //eigenvectors are normalized such that: evecs**T*B*evecs = I;
+#ifdef USE_LAPACK //if LAPACK
+  int N=Ain.dim[0];
+  
+  /* allocate and initialise the matrix */
+  Array2 <doublevar> A_temp(N,N), B_temp(N,N);
+  Array1 <doublevar>  W,WORK;
+  
+  
+  /* allocate space for the output parameters and workspace arrays */
+  W.Resize(N);
+  A_temp=Ain;
+  B_temp=Bin;
+  
+  int info;
+  int NB=64;
+  int NMAX=N;
+  int lda=NMAX;
+  int ldb=NMAX;
+  int LWORK=(NB+2)*NMAX;
+  WORK.Resize(LWORK);
+
+  /* get the eigenvalues and eigenvectors */
+  info=dsygv(1, 'V', 'U' , N,  A_temp.v,  lda,  B_temp.v, ldb, W.v, WORK.v, LWORK);
+
+  if(info>0)
+    error("Internal error in the LAPACK routine dsyevr");
+  if(info<0)
+    error("Problem with the input parameter of LAPACK routine dsyevr in position "-info);
+
+  for (int i=0; i<N; i++)
+    evals(i)=W[N-1-i];
+
+  for (int i=0; i<N; i++) {
+    for (int j=0; j<N; j++) {
+      evecs(j,i)=A_temp(N-1-i,j);
+    }
+  }
+ //END OF LAPACK 
+#else //IF NO LAPACK
+  //for now we will solve it only approximatively
+   int N=Ain.dim[0];
+   Array2 <doublevar> B_inverse(N,N),A_renorm(N,N);
+   InvertMatrix(Bin,B_inverse,N);
+   MultiplyMatrices(B_inverse,Ain,A_renorm,N);
+   //note A_renorm is not explicitly symmetric
+   EigenSystemSolverRealSymmetricMatrix(A_renorm,evals,evecs);
+#endif //END OF NO LAPACK
+}
+
 
 
 void Jacobi(const Array2 < dcomplex > & Ain, Array1 <doublevar> & evals, Array2 < dcomplex > & evecs)
@@ -1242,6 +1366,8 @@ void Jacobi(const Array2 < dcomplex > & Ain, Array1 <doublevar> & evals, Array2 
   //assert(Ain.nr == Ain.nc);
   //assert(Ain.hermitian);
 
+  
+  //numerical recepies Jacobi transfomation eigen value solver
   const int n = Ain.dim[0];
   
   int p,q;
@@ -1419,5 +1545,6 @@ void Jacobi(const Array2 < dcomplex > & Ain, Array1 <doublevar> & evals, Array2 
   for (int i=0; i < n; i++)
     for (int j=0; j < n; j++)
       evecs(i,j) = A(i,list[j]);
+  
 }
 //----------------------------------------------------------------------

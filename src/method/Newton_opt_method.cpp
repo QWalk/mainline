@@ -555,7 +555,7 @@ void make_posite_definite(Array2 <doublevar> & function_hessian){
   int dim=function_hessian.GetDim(0);
   Array1 <doublevar> eigenvals(dim);
   Array2 <doublevar> eigenvecs(dim,dim);
-  Jacobi(function_hessian, eigenvals, eigenvecs);
+  EigenSystemSolverRealSymmetricMatrix(function_hessian, eigenvals, eigenvecs);
   if( mpi_info.node==0 ){
     cout << "Eigen-values of hessian are: "<<endl;
     for(int i=0; i<dim; ++i){
@@ -1230,9 +1230,11 @@ int Newton_opt_method::showinfo(ostream & os)
   os << endl << endl;
   os << "-----------------------------" << endl;
   os << "Wave function optimization " << endl;
-  os << "Number of configurations : " << nconfig << endl;
+  os << "Configurations per processor: " <<  nconfig   << endl;
+  os << "Number of processors: "        <<  mpi_info.nprocs << endl;
+  os << "Total configurations: " <<          nconfig*mpi_info.nprocs << endl;
   os << "Iterations : "  << iterations << endl;
-  os << "nparms " << wfdata->nparms() << endl;
+  os << "Number of parameters " << wfdata->nparms() << endl;
   os << "Reference energy : "           << eref << endl;
   os << "Minimization function : ";
   switch(min_function) {
@@ -1335,6 +1337,7 @@ void Newton_opt_method::run(Program_options & options, ostream & output)
       if(!eref_exists)
 	eref=energy_mean;
       wf_printout(parms, iter, function_mean, energy_mean, energy_mean_err, variance_mean, nconfig, bestdamping, output);
+      bestparms=parms;
       best_function=function_mean;
       best_energy=energy_mean;
       best_variance=variance_mean;

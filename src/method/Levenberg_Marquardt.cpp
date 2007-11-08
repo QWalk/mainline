@@ -65,7 +65,7 @@ void make_posite_definite2(Array2 <doublevar> & function_hessian, ostream & outp
   int dim=function_hessian.GetDim(0);
   Array1 <doublevar> eigenvals(dim);
   Array2 <doublevar> eigenvecs(dim,dim);
-  Jacobi(function_hessian, eigenvals, eigenvecs);
+  EigenSystemSolverRealSymmetricMatrix(function_hessian, eigenvals, eigenvecs);
   if(output){
     cout << "EigenValues of Hessian are: "<<endl;
     for(int i=0; i<dim; ++i){
@@ -118,8 +118,10 @@ int Optimize_method2::LEVMAR_DER(Array1 <double> & parms, int nparms_start, int 
   iter=0;
   int startfull=0;
   int counter1=0;
+  doublevar variance_old;
 
   func_val(m, parms, value, energy, variance, min_nconfig, output);
+  variance_old=variance;
 
   if(use_weights)
     eref=energy;
@@ -251,6 +253,10 @@ int Optimize_method2::LEVMAR_DER(Array1 <double> & parms, int nparms_start, int 
            parms[i]=pDp_full[i];
 	 
 	 wf_printout(iter+1, value, energy, variance, min_nconfig, mu, output);
+         if(sqrt(variance) > 1.1*sqrt(variance_old))
+           output <<"  WARNING: dispersion is growing too fast! Using too few/old configurations ???"<<endl;
+         variance_old=variance;
+           
 
 	 tmp=(4.0*dF/dL-1.0);
          tmp=1.0-tmp*tmp*tmp;
@@ -269,7 +275,10 @@ int Optimize_method2::LEVMAR_DER(Array1 <double> & parms, int nparms_start, int 
           variance=new_variance;
 	  for(int i=0 ; i<m; ++i)  //update p's estimate 
 	    parms[i]=pDp_full[i];
-	  wf_printout(iter+1, new_value, new_energy, new_variance, min_nconfig, mu, output);
+	  wf_printout(iter+1, value, energy, variance, min_nconfig, mu, output);
+          if(sqrt(variance) > 1.1*sqrt(variance_old))
+            output <<"  WARNING: dispersion is growing too fast! Using too few/old configurations ???"<<endl;
+          variance_old=variance;
 	  break;
 	  }
      

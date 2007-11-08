@@ -67,7 +67,28 @@ int ludcmp(Array2 <doublevar> & a, const int n, Array1 <int> & indx,
            doublevar & d);
 void lubksb(Array2 <doublevar> & a, int n, Array1 <int> & indx,
             Array1 <doublevar> & b);
-void Jacobi(const Array2 < doublevar > & Ain, Array1 < doublevar> & evals, Array2 < doublevar> & evecs);
+
+void EigenSystemSolverRealSymmetricMatrix(const Array2 < doublevar > & Ain, Array1 < doublevar> & evals, Array2 < doublevar> & evecs);
+
+void GeneralizedEigenSystemSolverRealSymmetricMatrices(const Array2 < doublevar > & Ain, const Array2 < doublevar> & Bin, Array1 < doublevar> & evals, Array2 < doublevar> & evecs);
+
+
+//------------------------------------------------------------------------
+//IF Lapack was used
+#ifdef USE_LAPACK
+extern "C" { 
+  void dsyevr_(char *JOBZp, char *RANGEp, char *UPLOp, int *Np,
+               double *A, int *LDAp, double *VLp, double *VUp,
+               int *ILp, int *IUp, double *ABSTOLp, int *Mp,
+               double *W, double *Z, int *LDZp, int *ISUPPZ,
+               double *WORK, int *LWORKp, int *IWORK, int *LIWORKp,
+               int *INFOp);
+  double dlamch_(char *CMACHp);
+  void dsygv_(int *itype, char *jobz, char *uplo, int *n, double *a, int *lda, 
+              double *b, int *ldb, double *w, double *WORK, int *IWORK, int *info);
+
+};
+#endif
 
 //----------------------------------------------------------------------
 //complex versions of determinant stuff
