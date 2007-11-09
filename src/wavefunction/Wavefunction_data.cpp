@@ -23,6 +23,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Program_options.h"
 #include "Slat_Jastrow_data.h"
 #include "Jastrow2_wf.h"
+#include "Backflow_wf_data.h"
+#include "Backflow_pf_wf_data.h"
+#include "Pfaff_wf_data.h" 
 #include "qmc_io.h"
 
 int allocate(vector <string> & wftext, System * sys, Wavefunction_data * & wfptr)
@@ -31,18 +34,18 @@ int allocate(vector <string> & wftext, System * sys, Wavefunction_data * & wfptr
 
   if(wftext.size() < 1) error("Empty wavefunction section");
   if(caseless_eq(wftext[0],"SLATER"))
-  {
     wfptr=new Slat_wf_data;
-  }
   else if(caseless_eq(wftext[0],"JASTROW2") 
 	  || caseless_eq(wftext[0], "JASTROW")) 
-  {
     wfptr=new Jastrow2_wf_data;
-  }
   else if(caseless_eq(wftext[0],"SLATER-JASTROW"))
-  {
     wfptr=new Slat_Jastrow_data;
-  }
+  else if(caseless_eq(wftext[0],"BACKFLOW"))
+    wfptr=new Backflow_wf_data;
+  else if(caseless_eq(wftext[0],"BACKFLOW-PFAFFIAN"))
+    wfptr=new Backflow_pf_wf_data;
+  else if(caseless_eq(wftext[0],"PFAFFIAN")) 
+    wfptr=new Pfaff_wf_data;
   else
     error("Error parsing the trial wavefunction section; unknown keyword ",
           wftext[0]);
