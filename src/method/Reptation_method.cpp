@@ -194,7 +194,8 @@ struct Reptile_point {
 };
 
 //---------------------------------------------------------------------
-
+/*
+ *Removing this because it doesn't really work very well.
 #include "Force_fitter.h"
 
 void getDerivative(Pseudopotential * psp, System *sys , 
@@ -220,7 +221,7 @@ void getDerivative(Pseudopotential * psp, System *sys ,
   }
 
 }
-
+*/
 
 //----------------------------------------------------------------------
 
@@ -624,8 +625,9 @@ doublevar Reptation_method::slither(int direction,
     }
   }
 
-  if(calc_hf_derivatives) 
-    getDerivative(pseudo, sys, mywfdata, wf, sample, pt.deriv);
+  //let's not worry about H-F derivatives at the moment
+  //if(calc_hf_derivatives) 
+  //  getDerivative(pseudo, sys, mywfdata, wf, sample, pt.deriv);
 
   pt.savePos(sample);
 
