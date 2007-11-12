@@ -369,27 +369,29 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
             getZpol(sys, sample, pt.z_pol,1); //always do the many-body zpol, because it's correct
             //cout << "choosing among " <<  tmov.size() << " tmoves " << endl;
             //Now we do the t-move
-            doublevar sum=0; 
+            doublevar sum=1; 
             for(vector<Tmove>::iterator mov=tmov.begin(); mov!=tmov.end(); mov++) { 
               assert(mov->vxx < 0);
               sum-=timestep*mov->vxx;  
             }
-            pt.nonlocal(0)-=sum/timestep;
-            subtract_out_enwt=-sum/timestep;
+            pt.nonlocal(0)-=(sum-1)/timestep;
+            subtract_out_enwt=-(sum-1)/timestep;
             //cout << "sum " << sum <<  " nonlocal " << pt.nonlocal(0) << " ratio " << sum/pt.nonlocal(0) << endl;
             assert(sum >= 0);
             doublevar rand=rng.ulec()*sum;
-            sum=0; //reset to choose the move
-            for(vector<Tmove>::iterator mov=tmov.begin(); mov!=tmov.end(); mov++) { 
-              sum-=timestep*mov->vxx;
-              if(rand < sum) { 
-                Array1 <doublevar> epos(3);
-                sample->getElectronPos(mov->e, epos);
-                //cout << "moving electron " << mov->e << " from " << epos(0) << " " << epos(1)
-                //  << " " << epos(2) << " to " << mov->pos(0) << " " << mov->pos(1) 
-                //  << " " << mov->pos(2) << endl;
-                sample->setElectronPos(mov->e,mov->pos);
-                break;
+            sum=1; //reset to choose the move
+            if(rand > sum) { 
+              for(vector<Tmove>::iterator mov=tmov.begin(); mov!=tmov.end(); mov++) { 
+                sum-=timestep*mov->vxx;
+                if(rand < sum) { 
+                  Array1 <doublevar> epos(3);
+                  sample->getElectronPos(mov->e, epos);
+                  //cout << "moving electron " << mov->e << " from " << epos(0) << " " << epos(1)
+                  //  << " " << epos(2) << " to " << mov->pos(0) << " " << mov->pos(1) 
+                  //  << " " << mov->pos(2) << endl;
+                  sample->setElectronPos(mov->e,mov->pos);
+                  break;
+                }
               }
             }
             //wf->updateLap(wfdata, sample);
