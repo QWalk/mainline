@@ -92,6 +92,12 @@ public:
                   Array1 <doublevar> & totalv);
 
 
+  void calcNonlocTmove(Wavefunction_data * wfdata,
+                       Sample_point * sample,
+                       Wavefunction * wf,
+                       Array1 <doublevar> & totalv,  //total p.e. from the psp
+                       vector <Tmove> & tmoves  //variables for T-moves of Casula
+                       );
   /*!
     \brief
     Provide your own random numbers for random evaluation of psp

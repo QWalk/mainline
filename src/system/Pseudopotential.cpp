@@ -375,6 +375,23 @@ void Pseudopotential::calcNonloc(Wavefunction_data * wfdata,
   }
   calcNonlocWithTest(wfdata, sample, wf, test, totalv);
 }
+
+//----------------------------------------------------------------------
+
+
+void Pseudopotential::calcNonlocTmove(Wavefunction_data * wfdata,
+                     Sample_point * sample,
+                     Wavefunction * wf,
+                     Array1 <doublevar> & totalv,  //total p.e. from the psp
+                     vector <Tmove> & tmoves  //variables for T-moves of Casula
+                     ) { 
+  int tot=nTest();
+  Array1 <doublevar> test(tot);
+  for(int i=0; i< tot; i++) {
+    test(i)=rng.ulec();
+  }
+  calcNonlocWithAllvariables(wfdata,sample, wf, test,totalv, true, tmoves);
+}
 //----------------------------------------------------------------------
 
 void Pseudopotential::calcNonlocWithTest(Wavefunction_data *wfdata , Sample_point * sample, Wavefunction *wf ,
@@ -510,7 +527,7 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
                 tempsum+=(2*l+1)*v_l(l,0)*legendre(rDotR(i), l);
               }
               doublevar vxx=tempsum*integralpts(w,i);
-              if(!do_tmoves || w!=0 || vxx > 0.0) { 
+              if(!do_tmoves || w!=0 || vxx >= 0.0) { 
                 nonlocal(w)+=vxx;
               }
               else { 
