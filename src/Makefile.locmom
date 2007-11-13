@@ -12,18 +12,17 @@ DVLPATH = .
 MAKEPATH:=$(DVLPATH)/make
 OBJPATH:=$(DVLPATH)/obj/$(PLATFORM)
 SRCPATH:=$(DVLPATH)
-PROJECT:=$(DVLPATH)/qwalk-$(PLATFORM)
-DEPENDFILE:=$(OBJPATH)/depend
+PROJECT:=$(DVLPATH)/locmom-$(PLATFORM)
+DEPENDFILE:=$(OBJPATH)/depend.locmom
 
 include make.include
-include basis_function/make.include
-include macopt/make.include
-include method/make.include
-include orbitals/make.include
-include program_utils/make.include
-include properties/make.include
-include system/make.include
-include wavefunction/make.include
+
+SOURCES:=properties/Properties_average.cpp \
+         properties/Properties_block.cpp \
+         program_utils/Qmc_std.cpp \
+         program_utils/qmc_io.cpp \
+         properties/locmom.cpp
+
 
 #remove the directory prefix and .cpp extension, and add the .o extension
 OBJS:= $(addprefix $(OBJPATH)/,$(addsuffix .o,$(notdir $(basename $(SOURCES)))))
@@ -31,8 +30,9 @@ NODEPENDGOALS = depend clean totalclean cleanhtml html all
 
 ####################################################################
 # Special rules
-all: $(PROJECT) gosling locmom 
-.PHONY: clean totalclean depend  gosling pw2lcao
+DEFAULT: $(PROJECT) 
+all: $(PROJECT) 
+.PHONY: clean totalclean depend cleanhtml
 #.SILENT:
 ####################################################################
 # Included files for dependency and platform specific defines
@@ -47,19 +47,9 @@ $(PROJECT):$(OBJS)
 	@echo Linking $@
 	$(CXX) $(DEBUG) $(CXXFLAGS) -o $(PROJECT) $(OBJS) $(LDFLAGS) $(BLAS_LIBS)
 
-gosling:
-	$(MAKE) -f Makefile.gosling
-
-pw2lcao:
-	$(MAKE) -f Makefile.pw2lcao
-
-locmom:
-	$(MAKE) -f Makefile.locmom
-
 clean:
 	@echo ________________________________________________________________
 	@echo Cleaning object files...
 	rm -f $(OBJS) core $(PROJECT)
-	make -f Makefile.gosling clean
 
 include make.rules

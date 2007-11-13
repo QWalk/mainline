@@ -573,6 +573,7 @@ void Local_moments::init(vector <string> & words, System * sys,
 
   single_write(cout, "Local moments will be calculated.\n");
   outputfile=runid+".lm";
+  outputfilelog=runid+".lm.log";
 
   nup=sys->nelectrons(0);
   nelectrons=nup+sys->nelectrons(1);
@@ -739,8 +740,28 @@ void Local_moments::write() {
 	  << endl;
     }
     
+    out.close();
+    
+    // the out, as it is now, is fine but not perfect because it gives
+    // wrong errorbars if blocks are too short and reblocking is
+    // needed.
+    ofstream outlog(outputfilelog.c_str(),ios_base::app);
+    outlog << endl;
+    outlog << "block {" << endl;
+    outlog << "   totweight " << this_block.wnsample << endl;
+    
+    for(int i=0; i<natoms+1; i++)
+      outlog << "   moment_" << atomnames[i] << "_" << i 
+	     << " { " << this_block.moment(i)/this_block.wnsample << " } " << endl;
+    for(int i=0; i<natoms+1; i++)
+      outlog << "   charge_" << atomnames[i] << "_" << i
+	     << " { " << this_block.charge(i)/this_block.wnsample << " } " << endl;
+    
+    outlog << "}" << endl;
+    outlog.close();
+    
   } // if(mpi_info.node==0)
-
+  
   // reset per-block quantities
   nsample=0;
   wnsample=0.0;

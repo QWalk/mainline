@@ -226,6 +226,7 @@ class Local_moments:public Local_density_accumulator {
   virtual void write();
  protected:
   string outputfile;
+  string outputfilelog;
   int nsample;         // samples in a block
   doublevar wnsample;  // weighted sample count in a block
   int nblock;
