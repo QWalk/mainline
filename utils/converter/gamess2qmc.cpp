@@ -45,6 +45,12 @@ void read_gamess_output(string & filename,
 			vector <double> & electric_field,
 			int & vorb);
 
+void mo_analysis(vector <Atom> & atoms,
+                 vector <Gaussian_basis_set> & basis,
+                 vector < vector < double> > & moCoeff);
+
+
+
 void usage(const char * name) {
   cout << "usage: " << name <<   " <options> <output> " << endl;
   cout << "Where options can be: \n";
@@ -52,6 +58,7 @@ void usage(const char * name) {
   cout << "-o          Base name for your run case\n";
   cout << "-virtual    Number of virtual orbitals to be read (Default 3)\n";
   cout << "-bp      Do not write boilerplate input files \n";
+  cout << "-mo_analysis   Print largest MO coefficients into file mo_analysis \n";
   exit(1);
 }
 
@@ -63,6 +70,7 @@ int main(int argc, char ** argv) {
   string old_punchfile;
   int vorb=10; //default number of virtual orbs 
   int write_boilerplate=0;
+  int do_mo_analysis=0;
   
   for(int i=1; i< argc-1; i++) {
     if(!strcmp(argv[i], "-o") && argc > i+1) {
@@ -76,6 +84,8 @@ int main(int argc, char ** argv) {
     }
     else if(!strcmp(argv[i], "-bp"))
       write_boilerplate=1;
+    else if(!strcmp(argv[i], "-mo_analysis"))
+      do_mo_analysis=1;
     else {
     cout << "Didn't understand option " << argv[i]
          << endl;
@@ -175,8 +185,10 @@ int main(int argc, char ** argv) {
   }
   read_gamess_punch(vorb, outputfilename, 
 		    punchfilename, atoms, slwriter, basis, moCoeff);
-  
-  
+  if(do_mo_analysis)
+    mo_analysis(atoms, basis,moCoeff);
+
+ 
 
   vector < Center> centers;
   vector <int> nbasis;
@@ -933,3 +945,119 @@ void read_gamess_punch(int & vorb,
 
 }
 
+
+//######################################################################
+void mo_analysis(vector <Atom> & atoms,
+                 vector <Gaussian_basis_set> & basis,
+                 vector < vector < double> > & moCoeff){
+
+  
+  ofstream an_out("mo_analysis");
+  const double print_thresh=1e-1;
+  int natoms=atoms.size();
+  vector <string> pnames(3);
+  pnames[0]="x   ";
+  pnames[1]="y   ";
+  pnames[2]="z   ";
+  vector <string> dnames(6);
+  dnames[0]="xx  ";
+  dnames[1]="yy  ";
+  dnames[2]="zz  ";
+  dnames[3]="xy  ";
+  dnames[4]="xz  ";
+  dnames[5]="yz  ";
+  vector <string> fnames(10);
+  fnames[0]="xxx   ";
+  fnames[1]="yyy   ";
+  fnames[2]="zzz   ";
+  fnames[3]="xxy   ";
+  fnames[4]="xxz   ";
+  fnames[5]="yyx   ";
+  fnames[6]="yyz   ";
+  fnames[7]="zzx   ";
+  fnames[8]="zzy   ";
+  fnames[9]="xyz   ";
+  vector <string> gnames(15);
+  gnames[0]="xxxx   ";
+  gnames[1]="yyyy   ";
+  gnames[2]="zzzz   ";
+  gnames[3]="xxxy   ";
+  gnames[4]="xxxz   ";
+  gnames[5]="yyyx   ";
+  gnames[6]="yyyz   ";
+  gnames[7]="zzzx   ";
+  gnames[8]="zzzy   ";
+  gnames[9]="xxyy   ";
+  gnames[10]="xxzz   ";
+  gnames[11]="yyzz   ";
+  gnames[12]="xxyz   ";
+  gnames[13]="yyxz   ";
+  gnames[14]="zzxy   ";
+ 
+
+  int totmo2=moCoeff.size();
+  for(int mo=0; mo < totmo2; mo++) {
+    an_out << "\n----------------\n";
+    an_out << "MO " << mo+1 << endl;
+    int func=0;
+    for(int at=0; at < natoms; at++) {
+      int bas=atoms[at].basis;
+      int nbasis=basis[bas].types.size();
+      for(int i=0; i< nbasis; i++) {
+        if(basis[bas].types[i] == "S") {
+          if(fabs(moCoeff[mo][func]) > print_thresh) {
+            an_out << atoms[at].name<< at  << "  S     " << moCoeff[mo][func]<< endl;
+          }
+          func++;
+        }
+        else if(basis[bas].types[i] == "P") {
+          for(int j=0; j< 3; j++) {
+            if(fabs(moCoeff[mo][func]) > print_thresh) {
+              an_out << atoms[at].name << at << "  "  << "P" 
+		     << pnames[j] << " " << moCoeff[mo][func]
+		     << endl;
+            }
+            func++;
+          }
+        }
+        else if(basis[bas].types[i] == "6D") {
+          for(int j=0; j< 6; j++) {
+            if(fabs(moCoeff[mo][func]) > print_thresh) {
+              an_out << atoms[at].name << at << "  "   << "D" 
+		     << dnames[j] << " " <<  moCoeff[mo][func]
+		     << endl;
+            }
+            func++;
+          }
+        }
+        else if(basis[bas].types[i] == "10F") {
+          for(int j=0; j< 10; j++) {
+            if(fabs(moCoeff[mo][func]) > print_thresh) {
+              an_out << atoms[at].name << at << "  "   << "F" 
+		     << fnames[j] << " " <<  moCoeff[mo][func]
+		     << endl;
+            }
+            func++;
+          }
+        }
+        else if(basis[bas].types[i] == "15G") {
+          for(int j=0; j< 15; j++) {
+            if(fabs(moCoeff[mo][func]) > print_thresh) {
+              an_out << atoms[at].name << at << "  "   << "G" 
+		     << gnames[j] << " " <<  moCoeff[mo][func]
+		     << endl;
+            }
+            func++;
+          }
+        }
+        else {
+          cout << "unknown type " << basis[bas].types[i] << endl;
+          exit(1);
+        }
+        
+      }
+    }
+    //cout <<" func " << func << endl;
+  }
+  an_out.close();
+}
