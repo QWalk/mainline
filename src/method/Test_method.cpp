@@ -56,6 +56,17 @@ void Test_method::read(vector <string> words,
   }
 
   vector <string> backtxt;
+  test_backflow=0;
+  if(readsection(words,pos=0, backtxt,"BACKFLOW_TEST")) { 
+    test_backflow=1;
+    Array1 <Array1 <int> >  occupation(1);
+    occupation(0).Resize(sysprop->nelectrons(0));
+    for(int i=0; i< sysprop->nelectrons(0); i++) { 
+      occupation(0)(i)=i;
+    }
+    backflow.readOrbitals(sysprop,backtxt);
+    backflow.init(sysprop,occupation,backtxt);
+  }
   
   if(haskeyword(words, pos=0, "PLOT_EE_CUSP"))
     plot_cusp=1;
@@ -251,7 +262,9 @@ void Test_method::run(Program_options & options, ostream & output)
     testParmDeriv(mywf, sample);
   }
 
-
+  if(test_backflow) { 
+    testBackflow();
+  }
   
 
   delete mywf; mywf=NULL;
@@ -423,3 +436,167 @@ void Test_method::plotCusp(Wavefunction * mywf, Sample_point * sample){
 }
 
 //----------------------------------------------------------------------
+
+void Test_method::testBackflow() {
+  
+  Sample_point * sample=NULL;
+  sysprop->generateSample(sample);
+
+  if(readconfig!="") {
+    ifstream checkfile(readconfig.c_str());
+    string dummy;
+    while(checkfile >> dummy) {
+      if(read_config(dummy, checkfile, sample)) break;
+    }
+  }
+
+  Array2 <doublevar>  newvals(sysprop->nelectrons(0),10);
+  Array3 <doublevar> coor_deriv, deriv_tmp;
+  Array2 <doublevar>  coor_laplacian, lap_tmp;
+
+  Jastrow2_wf jast;
+  jast.init(&backflow.jdata);
+  sample->attachObserver(&jast);
+
+  jast.keep_ion_dep();
+  
+
+  int e=2;
+
+  backflow.updateLap(sample,jast,e,0,newvals,coor_deriv,coor_laplacian);
+  
+
+  Sample_point * tmp_sample=NULL;
+  sysprop->generateSample(tmp_sample);
+
+  int nelectrons=sample->electronSize();
+  int natoms=sample->ionSize();
+
+  Array3 <doublevar> jast_corr_base;
+  Array3 <doublevar> onebody;
+  Array3 <doublevar> threebody_diffspin;
+
+  
+  
+  jast.updateVal(&backflow.jdata,sample);
+  jast.get_twobody(jast_corr_base);
+  jast.get_onebody(onebody);
+  backflow.updateValjastgroup(sample,e,threebody_diffspin);
+  backflow_config(sample,e,jast_corr_base,onebody, threebody_diffspin, tmp_sample);
+
+  Array1 <doublevar> base_pos(3);
+  tmp_sample->getElectronPos(0,base_pos);
+  Array1 <doublevar> diff_pos(3);
+  Array3 <doublevar> jast_corr=jast_corr_base;
+  doublevar del=1e-6;
+
+  for(int j=0; j< nelectrons; j++) {
+
+    cout << "checking for electron "<< j  << endl;
+    Array1 <doublevar> lap2(3,0.0);
+    for(int a=0; a< 3; a++) {
+      Array1 <doublevar> save_pos(3);
+      sample->getElectronPos(j,save_pos);
+      Array1 <doublevar> new_pos=save_pos;
+      new_pos(a)+=del;
+      sample->setElectronPos(j,new_pos);
+      jast.notify(all_electrons_move,0);
+      jast.updateLap(&backflow.jdata,sample);
+      jast.get_twobody(jast_corr);
+      jast.get_onebody(onebody);
+      backflow.updateLapjastgroup(sample,e,threebody_diffspin);
+      
+      backflow_config(sample,e,jast_corr,onebody,threebody_diffspin,tmp_sample);
+      
+      backflow.updateLap(sample,jast,e,0,newvals,deriv_tmp,lap_tmp);
+      
+      tmp_sample->getElectronPos(0,diff_pos);
+      //if(j>e) { 
+      //cout << "jastrow(j=" << j << ") ";
+      //check_numbers((jast_corr(e,j,0)-jast_corr_base(e,j,0))/del,
+      //	      jast_corr_base(j,e,a+1),cout);
+      //}
+      for(int b=0; b< 3; b++) { 
+	lap2(b)+=(deriv_tmp(j,a,b)-coor_deriv(j,a,b))/del;
+	check_numbers((diff_pos(b)-base_pos(b))/del,coor_deriv(j,a,b),cout);
+      }
+      sample->setElectronPos(j,save_pos);
+    }
+
+    cout << "laplacian 2 " << endl;
+    for(int a=0; a< 3; a++) { 
+      check_numbers(lap2(a),coor_laplacian(j,a),cout);
+    }
+  }
+
+
+  ofstream bare("backflow_bare.xyz");
+  ofstream dressed("backflow_dressed.xyz");
+  
+  /*
+  bare << nelectrons << endl;
+  bare << "name" << endl;
+  for(int j=0; j< nelectrons; j++) {
+    sample->getElectronPos(j,base_pos);
+    bare << "1 ";
+    for(int d=0;d < 3; d++) { 
+      bare << base_pos(d) <<"  " ;
+    
+    }
+    bare << endl;
+  }
+  bare << endl;
+  */
+  
+  int nframes=100;
+  
+  Array1 <doublevar> dressed_pos(3);
+  Array1 < Array1 <doublevar> > bare_pos_saved(nelectrons);
+  for(int f=0; f< nframes; f++) { 
+    sample->getElectronPos(0,base_pos);
+    base_pos(0)-=.05;
+    sample->setElectronPos(0,base_pos);
+    bare << nelectrons << endl;
+    bare << "name" << endl;
+    for(int j=0; j< nelectrons; j++) { 
+      sample->getElectronPos(j,base_pos);
+      bare_pos_saved(j)=base_pos;
+      bare << "1 ";
+      for(int d=0;d < 3; d++) { 
+	bare << base_pos(d) <<"  " ;
+      }
+      bare << endl;     
+    }
+
+    jast.updateLap(&backflow.jdata,sample);
+    jast.get_twobody(jast_corr);
+    jast.get_onebody(onebody);
+
+    dressed << nelectrons << endl;
+    dressed << "name " << endl;
+    for(int j=0; j< nelectrons; j++) { 
+      backflow.updateLapjastgroup(sample,j,threebody_diffspin);
+      backflow_config(sample,j,jast_corr,onebody,threebody_diffspin,tmp_sample);
+      tmp_sample->getElectronPos(0,dressed_pos);
+      dressed << "1 ";
+      for(int d=0; d< 3; d++) { 
+	dressed << dressed_pos(d) << "  ";
+      }
+      //print out also distance
+      dressed <<sqrt((dressed_pos(0)-bare_pos_saved(j)(0))*(dressed_pos(0)-bare_pos_saved(j)(0))+
+		     (dressed_pos(1)-bare_pos_saved(j)(1))*(dressed_pos(1)-bare_pos_saved(j)(1))+
+		     (dressed_pos(2)-bare_pos_saved(j)(2))*(dressed_pos(2)-bare_pos_saved(j)(2)));
+      dressed << endl;
+    }
+    
+  }
+
+  bare.close();
+  dressed.close();
+
+  delete sample;
+  delete tmp_sample;
+  
+}
+
+//------------------------------------------------------------------------
