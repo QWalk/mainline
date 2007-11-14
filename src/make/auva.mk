@@ -8,7 +8,7 @@ CXX:=/share/apps/mpich-1.2.7/bin/mpiCC
 CXXFLAGS:= -O3 -fomit-frame-pointer -funroll-loops -ffast-math 
 CXXFLAGS += -DUSE_MPI -DUSE_BLAS -DUSE_LAPACK  ${INCLUDEPATH}
 
-LAPACK_LIBS := -L/share/apps/ATLAS/lib/Linux_HAMMER64SSE3_2 -llapack -lf77blas -lcblas -latlas
+LAPACK_LIBS := -L/share/apps/ATLAS/lib/Linux_HAMMER64SSE3_2 -llapack -lf77blas -lcblas -latlas -lg2c
 LAPACK_INCLUDE := -I/share/apps/ATLAS/include
 
 BLAS_LIBS := $(LAPACK_LIBS)
