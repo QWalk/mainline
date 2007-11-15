@@ -158,6 +158,9 @@ private:
   Array3 <doublevar> pointdist;  //this is an upper triangular matrix;
   //the lower is currently wasted
   
+  Array2 <doublevar> tmplat; // auxiliary array used in Lucas' updateEEDist()
+  Array2 <doublevar> elecpos_lc;   // elecpos in lattice coordinates
+
   doublevar overall_sign;
 
   HEG_system * parent;     //The System that created this object

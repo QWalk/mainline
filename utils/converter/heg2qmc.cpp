@@ -224,6 +224,7 @@ int main(int argc, char ** argv) {
   // order according to length of vectors (i.e., kinetic energy)
   // LKW note..this could be done better using objects and the STL sort,
   //but I'll leave it for now.
+  // JK note..be my guest
   indexx(k2,idx,ikmax3);
 
   // find closed shells
@@ -633,6 +634,7 @@ void write_sys(string oname, int twist, int tw[4][3], int* Ne, double L,
   ofstream sysout(sysname.c_str());
   sysout << "SYSTEM { HEG" << endl;
   sysout << " NSPIN { " << Ne[0] << " " << Ne[1] << " }" << endl;
+  /*
   sysout << " LATTICEVEC {" << endl;
   sysout << setprecision(outprec) << setw(outprec+6) << L
 	 << setprecision(outprec) << setw(outprec+6) << 0.0
@@ -642,6 +644,15 @@ void write_sys(string oname, int twist, int tw[4][3], int* Ne, double L,
 	 << setprecision(outprec) << setw(outprec+6) << 0.0 << endl;
   sysout << setprecision(outprec) << setw(outprec+6) << 0.0
 	 << setprecision(outprec) << setw(outprec+6) << 0.0
+	 << setprecision(outprec) << setw(outprec+6) << L << endl;
+  sysout << " }" << endl;
+  */
+  // There are a few places in HEG system (notably calculation of e-e
+  // distances) that are optimized for orthogonal simulation cell
+  // and general lattice vectors would lead to incorrect answers.
+  sysout << " boxsize {" << endl;
+  sysout << setprecision(outprec) << setw(outprec+6) << L
+	 << setprecision(outprec) << setw(outprec+6) << L
 	 << setprecision(outprec) << setw(outprec+6) << L << endl;
   sysout << " }" << endl;
   sysout << " origin { 0.0 0.0 0.0 }" << endl;
