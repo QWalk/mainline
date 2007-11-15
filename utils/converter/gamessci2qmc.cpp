@@ -61,6 +61,28 @@ void spin_separate(vector <int> & vals, vector <int> & spinup, vector <int> & sp
 }
 
 
+void sort_abs_largest_first(vector <double> & vals, vector <int> & list){
+  int n=vals.size();
+  list.resize(n); 
+  for (int i=0; i < n; i++) 
+    list[i] = i;
+  
+  for (int i=1; i < n; i++) {
+    const double temp = vals[i];
+    const double abstemp =  fabs(vals[i]);
+    int j;
+    for (j=i-1; j>=0 && fabs(vals[j])<abstemp; j--) {
+      vals[j+1] = vals[j];
+      list[j+1] = list[j];
+    }
+    vals[j+1] = temp;
+    list[j+1] = i;
+  }
+  //for (int i=0; i < n; i++) 
+  //cout << list[i]<<endl;
+}
+
+
 void usage(const char * name) {
   cout << "usage: " << name <<   " <options> <output> " << endl;
   cout << "Where options can be: \n";
@@ -316,37 +338,62 @@ int main(int argc, char ** argv) {
 
     //use weight treshold and store for printout
     vector <double> det_weights_printing;
-    int ircounter=0;
+    //int ircounter=0;
     //vector <int> det_weights_bonds;
     vector < vector <int> > det_printing;
+    vector < vector <int> > det_printing_old;
     vector <double> csf_weights_printing;
+    vector <int> csf_printing;
     vector < vector <double> >  det_weights_printing_symmetry;
     for(int i=0;i<csf.size();i++){
       if(symmetry){
 	if(abs(csf_weights[i])> wtresh){
 	  csf_weights_printing.push_back(csf_weights[i]);
-	  det_weights_printing_symmetry.push_back(det_weights[csf[i]]);
-	  for(int k=0;k<det[csf[i]].size();k++){
-	    det_weights_printing.push_back(det_weights[csf[i]][k]);
-	    det_printing.push_back(det[csf[i]][k]);
+	  csf_printing.push_back(csf[i]);
+	  //det_weights_printing_symmetry.push_back(det_weights[csf[i]]);
+	  //for(int k=0;k<det[csf[i]].size();k++){
+	  // det_weights_printing.push_back(det_weights[csf[i]][k]);
+	  //det_printing.push_back(det[csf[i]][k]);
 	    //det_weights_bonds.push_back(ircounter);
-	  }
-	  ircounter++;
+	  //}
+	  //ircounter++;
 	}
       }
       else{
 	for(int k=0;k<det[csf[i]].size();k++){
 	  if(abs(det_weights[csf[i]][k])> wtresh){
-	    //      cout <<"det_weights "<< det_weights[csf[i]][k]<<endl;; 
+	    // cout <<"det_weights "<< det_weights[csf[i]][k]<<endl;; 
 	    det_weights_printing.push_back(det_weights[csf[i]][k]);
-	    det_printing.push_back(det[csf[i]][k]);
+	    det_printing_old.push_back(det[csf[i]][k]);
 	  }
 	}
       }
     }
+    
+    //sorting
+    vector <int> list;
+    if(symmetry){
+      sort_abs_largest_first(csf_weights_printing, list);
+      for(int i=0;i<csf_weights_printing.size();i++){
+	det_weights_printing_symmetry.push_back(det_weights[csf_printing[list[i]]]);
+	for(int k=0;k<det[csf_printing[list[i]]].size();k++){
+	  det_weights_printing.push_back(det_weights[csf_printing[list[i]]][k]);
+	  det_printing.push_back(det[csf_printing[list[i]]][k]);
+	}
+      }
+    }
+    else{
+      sort_abs_largest_first(det_weights_printing, list);
+      for (int i=0;i<det_weights_printing.size();i++){
+	det_printing.push_back(det_printing_old[list[i]]);
+      }
+      
+    }
+
+
     if(symmetry){
       cout << "found "<<det_weights_printing.size()<<" determinats with weights"<<endl;
-      cout << "number of independent weights "<<ircounter<<endl;
+      cout << "number of independent weights "<<csf_weights_printing.size()<<endl;
     }
     else
       cout << "found "<<det_weights_printing.size()<<" unique determinats with weights"<<endl; 
@@ -365,12 +412,15 @@ int main(int argc, char ** argv) {
     }
     cout <<"the largest spin-up orbital is "<<max_up<<" and spin-down orbital is "<<max_down<<endl;
     
-   
+
+    
+
     //FINAL OUTPUT 
     ofstream output(outputname.c_str());
     string gap="   ";
     
     if(symmetry){
+      output <<gap<< "# NCSF = "<<csf_weights_printing.size()<<endl;
       for (int i=0;i<csf_weights_printing.size();i++){
 	output.precision(7);
 	output.width(10);
@@ -397,17 +447,40 @@ int main(int argc, char ** argv) {
       output << "}"<<endl;
     }
     output <<gap<<"STATES {"<<endl<<gap;
-    for (int i=0;i<det_weights_printing.size();i++){
-      for(int j=0;j<number_of_core_orbitals;j++)
-	output << j+1 <<"  ";
-      for(int k=det_up[i].size();k>0;k--)
-	output << det_up[i][k-1] <<"  ";
-      output <<endl<<gap;
-      for(int j=0;j<number_of_core_orbitals;j++)
-	output << j+1 <<"  ";
-      for(int k=0;k<det_down[i].size();k++)
-	output << det_down[i][k] <<"  ";
-      output <<endl<<gap;
+    if(symmetry){
+      int counter=0;
+      for (int i=0;i<csf_weights_printing.size();i++){
+	output <<"#  CSF "<<i+1<<": weight: "<<csf_weights_printing[i]<<endl<<gap;
+	for(int j=0;j<det_weights_printing_symmetry[i].size();j++){
+	  output <<"#  Determinant "<<j+1<<": weight: "<<det_weights_printing_symmetry[i][j]<<endl<<gap;
+	  for(int m=0;m<number_of_core_orbitals;m++)
+	    output << m+1 <<"  ";
+	  for(int k=det_up[counter].size();k>0;k--)
+	    output << det_up[counter][k-1] <<"  ";
+	  output <<endl<<gap;
+	  for(int m=0;m<number_of_core_orbitals;m++)
+	    output << m+1 <<"  ";
+	  for(int k=0;k<det_down[counter].size();k++)
+	    output << det_down[counter][k] <<"  ";
+	  output <<endl<<gap;
+	  counter++;
+	}
+      }
+    }
+    else {
+      for (int i=0;i<det_weights_printing.size();i++){
+	output <<"#  Determinant "<<i+1<<": weight: "<<det_weights_printing[i]<<endl<<gap;
+	for(int j=0;j<number_of_core_orbitals;j++)
+	  output << j+1 <<"  ";
+	for(int k=det_up[i].size();k>0;k--)
+	  output << det_up[i][k-1] <<"  ";
+	output <<endl<<gap;
+	for(int j=0;j<number_of_core_orbitals;j++)
+	  output << j+1 <<"  ";
+	for(int k=0;k<det_down[i].size();k++)
+	  output << det_down[i][k] <<"  ";
+	output <<endl<<gap;
+      }
     }
     output << "}"<<endl;
     output.close();
@@ -500,6 +573,9 @@ int main(int argc, char ** argv) {
        }//ndets
      }//spin
      
+
+     
+     
      //select determinants
      vector <double> det_weights_print;
      vector < vector < vector <int> > > det_occupations_print(2);
@@ -511,12 +587,15 @@ int main(int argc, char ** argv) {
 	 }
        }
        else{
-	 cout <<" det "<<det<<endl;
+	 //cout <<" det "<<det<<endl;
        }
      }
      cout <<"done selecting determinants"<<endl; 
      cout <<det_weights_print.size()<<" determinants has weight larger than "<<wtresh<<endl;
-     
+          
+     vector <int> list;
+     sort_abs_largest_first(det_weights_print, list);
+
      //final printout
      ofstream output(outputname.c_str());
      string gap="   ";
@@ -533,9 +612,10 @@ int main(int argc, char ** argv) {
      output << "}"<<endl;
      output <<gap<<"STATES {"<<endl<<gap;
      for (int i=0;i<det_weights_print.size();i++){
+       output <<"#  Determinant "<<i+1<<": weight: "<<det_weights_print[i]<<endl<<gap;
        for(int spin=0;spin<2;spin++){
-	 for(int j=0;j<det_occupations_print[spin][i].size();j++)
-	   output <<det_occupations_print[spin][i][j]<<"  ";
+	 for(int j=0;j<det_occupations_print[spin][list[i]].size();j++)
+	   output <<det_occupations_print[spin][list[i]][j]<<"  ";
 	 output <<endl<<gap;
        }
      }
