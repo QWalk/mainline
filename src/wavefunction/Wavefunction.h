@@ -125,6 +125,10 @@ struct Parm_deriv_return {
   }
 };
 
+/*!  extend the Hessian matrix assuming that the variables are independent
+*/
+void extend_parm_deriv(Parm_deriv_return & ret1, const Parm_deriv_return & ret2);
+
 
 /*!
 A base class for wavefunctions..
@@ -140,24 +144,13 @@ with the things that it's observing.
 
 getprop - Returns the last property values.
 
-where prop can be any of Val, Grad, Lap, or ForceBias
+where prop can be any of Val,  Lap, or ForceBias
 
-The arrays are:
-wavefunction number in the first dimension, and
-[\f$
-sign of \Psi,
-ln(|\Psi|),
-\frac{ d ln(\Psi) }{ dx},
-\frac{d ln(\Psi)}{dy},
- \frac{d ln(\Psi)}{dz},
-{\nabla^2 \Psi \over \Psi}
-\f$ ] in the second dimension,
-
-Val gives you the first two of these.
+Val gives you only the value
 
 ForceBias is for vmc type methods, where you need importance sampling, but
 also want a fast evaluation, so ForceBias is a relatively fast approximation
-to the value and gradients. It gives you the first 4 quantities.  It is not
+to the value and gradients.  It is not
 really used any more, though, and defaults to the Lap methods unless 
 overridden by the child class.
 

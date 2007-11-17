@@ -119,6 +119,13 @@ public:
                           Array1 <doublevar> &, Pseudo_buffer & input);
 
 
+  
+  void calcNonlocParmDeriv(Wavefunction_data * wfdata,
+                                            Sample_point * sample,
+                                            Wavefunction * wf,
+                                            const Array1 <doublevar> & accept_var,
+                                            Array1 <doublevar> & totalv, Array1 <doublevar> & parm_deriv);
+    
   /*!
     The worker function; the rest just provide simple defaults when functions don't need everything
    
@@ -128,7 +135,8 @@ public:
                                   Wavefunction * wf,
                                   const Array1 <doublevar> & accept_var, //random variables for stochastic evaluation
                                   Array1 <doublevar> & totalv,  //total p.e. from the psp
-                                  bool do_tmoves,vector <Tmove> & tmoves  //variables for T-moves of Casula
+                                  bool do_tmoves,vector <Tmove> & tmoves,  //variables for T-moves of Casula
+                                  bool parm_derivatives, Array1 <doublevar> & parm_deriv //derivatives wrt wf parameters
                                   );
   /*!
     \brief
@@ -139,6 +147,7 @@ public:
 
 
 
+  
   /*!
     \brief
     number of values between zero and one for random evaluation

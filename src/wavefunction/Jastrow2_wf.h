@@ -71,7 +71,7 @@ public:
   int hasTwoBody() { return has_two_body; }
   int hasThreeBody() { return has_three_body; } 
   int hasThreeBodySpin() { return has_three_body_diffspin; } 
-  
+  int optimizeBasis() { return optimize_basis; }
   Jastrow_onebody_piece one_body;
   Jastrow_twobody_piece * two_body;
   Jastrow_threebody_piece three_body;
@@ -199,7 +199,8 @@ public:
                              Array1 <doublevar> &,
                              Wf_return &);
  
-  
+  virtual int getParmDeriv(Wavefunction_data *, Sample_point *,
+                           Parm_deriv_return & );
 
   void get_twobody(Array3 <doublevar>& twobody) { 
     twobody=two_body_save;

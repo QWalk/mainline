@@ -23,9 +23,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Qmc_std.h"
 #include "Array45.h"
 
-#include "Jastrow2_one.h"
-#include "Jastrow2_two.h"
-
+#include "Wavefunction.h"
 class System;
 
 /*!
@@ -112,6 +110,8 @@ virtual int showinfo(string &, ostream &);
                  const Array3 <doublevar> & eebasis,
                  Array1 <doublevar> & val);
 
+  virtual void getParmDeriv(const Array3 <doublevar> & eebasis, //expects in form i,j,basis, with i<j
+                            Parm_deriv_return &);
 
   virtual void parameterSaveVal(int e,
                         const Array3 <doublevar> & eebasis,

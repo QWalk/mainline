@@ -22,6 +22,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #define JASTROW2_ONE_H_INCLUDED
 #include "Qmc_std.h"
 #include "Array45.h"
+#include "Wavefunction.h"
 void get_onebody_parms(vector<string> & words, vector<string> & atomnames,
                         Array2 <doublevar> & unique_parameters,
                         Array1 <int> & nparms,
@@ -65,6 +66,8 @@ public:
                  const Array3 <doublevar> & eionbasis,
                  doublevar & updated_val);
 
+  void getParmDeriv(int e, const Array3 <doublevar> & eionbasis,
+                    Parm_deriv_return & );
   /*!
     Number of parameters for an atom
   */

@@ -20,6 +20,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Optimize_method.h"
 #include "qmc_io.h"
 #include "Program_options.h"
+#include "ulec.h"
 #include "System.h"
 void Optimize_method::read(vector <string> words,
                            unsigned int & pos,
@@ -230,34 +231,7 @@ void Optimize_method::run(Program_options & options, ostream & output)
   
   Array1 <double> x(nparms+1); //Parameters
   double f=0;  //Best value of the function
-  
-  //This was stuff for va10a, but we should probably remove it.
-  //Array1 <double> g(nparms+1);  //Storage for the derivative
-  //Array1 <double> h(nparms*(nparms+1)/2+1); //Storage for the Hessian
-  //Array1 <double> a(3*nparms+1); //working space for va10a
-  //double dfn=-0.5; //estimate of likely reduction in f(x)(order of mag)
-  //dfn >0 : likely reduction
-  //==0 : minimum value of F has been set in f
-  // < 0 : a multiple |dfn| of the mod of init function
-  //       will be taken as estimate of likely reduction
-  //Array1 <double> xm(nparms+1); //indication of the magnitude of x
-  //double eps=0.00001;  //Accuracy required in x(i)=eps*xm(i)
-  //int mode=1; //type of storage in H.  makes va10a make the estimate
-  //int maxfn=iterations; //Maximum number of function calls
-  //int iprint=1; //Printing occurs every iprint iterations
-  //int iexit=-1;//reason for exiting:
-  // 0: estimate of hessian isn't positive definite
-  // 1: Normal exit
-  // 2: error because of rounding or eps is too small
-  //    or truncation error is too big
-  // 3: funct has been called maxfn times
-
-  //if(min_function==min_energy || min_function==min_mixed ) {
-  //  dfn=-.01;
-  //  f=1.1*eref;  //I don't think this is important(it gets overwritten later)
-  //}
-    
-
+ 
   Array1 <doublevar> temp_parms(nparms);
   wfdata->getVarParms(temp_parms);
   lastparms.Resize(nparms);
@@ -268,17 +242,14 @@ void Optimize_method::run(Program_options & options, ostream & output)
 
   //cout << "pseudopotential " << endl;
 
-  //FILE * pseudoout;
-  //pseudoout=fopen(pseudostore.c_str(), "w");
-  //if(!pseudoout) {
-  //  error("couldn't open pseudopotential temporary file ", pseudostore,
-  //        " for writing.");
- // }
    
   psp_buff.clear();
 
   //Here we save the original values (in case we do weighted correlated sampling)
-  // and save the values for pseudopotential evaluation.
+  // and save the values for pseudopotential evaluation, in case the wf doesn't have
+  //analytic derivatives
+
+  psp_test.Resize(nconfig);
   orig_vals.Resize(nconfig);
   for(int walker=0; walker < nconfig; walker++)  {
     wfdata->generateWavefunction(wf(walker));
@@ -291,24 +262,23 @@ void Optimize_method::run(Program_options & options, ostream & output)
     wf(walker)->getVal(wfdata, 0, orig_vals(walker));
 
     pseudo->initializeStatic(wfdata, electrons(walker), wf(walker), psp_buff);
-    wf(walker)->notify(sample_static,0);
+    //wf(walker)->notify(sample_static,0);
+    
+    psp_test(walker).Resize(pseudo->nTest());
+    for(int i=0; i< pseudo->nTest(); i++) { 
+      psp_test(walker)(i)=rng.ulec();
+    }
   }
 
-  //fclose(pseudoout);
   nfunctions=wf(0)->nfunc();
   
   local_energy.Resize(nconfig);
   for(int i=0; i< nconfig; i++) 
     local_energy(i)=sysprop->calcLoc(electrons(i));
   
-   //More va10a stuff
   for(int i=0; i< nparms; i++) {
     x(i+1)=temp_parms(i);
-  //  g(i+1)=0;
-  //  xm(i+1)=1.0;
   }
-  
-  //cout << "starting minimization: "<<endl;
   
   if(guess_eref) { 
     eref=variance(nparms,x,f,0);
@@ -324,6 +294,7 @@ void Optimize_method::run(Program_options & options, ostream & output)
   Optimize_fn optimizer(nparms,verbose,tolerance,iterations,rich);
   optimizer.opt_method=this;
   optimizer.output= &output;
+optimizer.maccheckgrad(x.v,nparms, .0001, nparms);
   optimizer.macoptII(x.v,nparms);
   
   
@@ -369,18 +340,8 @@ doublevar Optimize_method::variance(int n, Array1 <double> & parms, double & val
   int nparms=wfdata->nparms();
   Array1 <doublevar> temp_parms(nparms);
 
-  //single_write(cout ,"parms\n");
-  for(int i=0; i< nparms; i++)
-  {
+  for(int i=0; i< nparms; i++)  {
     temp_parms(i)=parms(i+1);
-    
-    //single_write(cout,i+1, "   " ,temp_parms(i),"\n");
-    //if(temp_parms(i) != lastparms(i)) {
-    // cout << "parm " << i << " changed " << lastparms(i)
-    //     << " to " << temp_parms(i) << endl;
-    //  lastparms(i)=temp_parms(i);
-    //}
-
   }
 
   Wf_return  wfval(nfunctions,2);
@@ -392,11 +353,6 @@ doublevar Optimize_method::variance(int n, Array1 <double> & parms, double & val
   Array1 <doublevar> weightsum(nfunctions);
   weightsum=0;
   Array1 <doublevar> kinetic(nfunctions), nonloc(nfunctions);
-
-
-  //Pseudopotential file
-  //FILE * pseudoin;
-  //pseudoin=fopen(pseudostore.c_str(), "r");
   psp_buff.start_again();
 
   doublevar avgen=0;
@@ -404,30 +360,16 @@ doublevar Optimize_method::variance(int n, Array1 <double> & parms, double & val
   doublevar avgpot=0;
   doublevar avgnon=0;
   //cout << "loop " << endl;
-  for(int walker=0; walker< nconfig; walker++)
-  {
-    //cout << "updateLap " << endl;
+  for(int walker=0; walker< nconfig; walker++) {
     wf(walker)->updateLap(wfdata, electrons(walker));
-    //cout << "calcKinetic " << endl;
     sysprop->calcKinetic(wfdata, electrons(walker), wf(walker), kinetic);
-    //cout << "coulpot " << endl;
     doublevar coulpot=local_energy(walker);
-    //cout << "pseudopotential " << endl;
     pseudo->calcNonlocWithFile(wfdata, electrons(walker), wf(walker),
                                nonloc, psp_buff);
-    //cout << "getVal " << endl;
     wf(walker)->getVal(wfdata, 0, wfval);
-    //cout << "done calc " << endl;
     for(int w=0; w< nfunctions; w++)
     {
-
       doublevar energy=kinetic(w) + coulpot+ nonloc(w);
-      //single_write(cout ,"walker " ,walker ,"   value " ,wfval(w,0));
-      //single_write(cout, "value   " ,wfval.amp(w,0) ,"\n");
-      //single_write(cout, "kinetic ", kinetic(0), "\n");
-      //single_write(cout, "coulomb ", coulpot, "\n");
-      //single_write(cout, "nonloc ", nonloc(0), "\n");
-      //single_write(cout, "energy " , energy, "\n");
       avgkin+=kinetic(w);
       avgpot+=coulpot;
       avgnon+=nonloc(w);
@@ -461,18 +403,133 @@ doublevar Optimize_method::variance(int n, Array1 <double> & parms, double & val
     }
   }
 
-  //cout << "Average energy " << avgen/nconfig 
-  //     << " kinetic " << avgkin/nconfig
-  //     << " nonloc  " << avgnon/nconfig
-  //     << " potential " << avgpot/nconfig
-  //     << endl;
-
-  //fclose(pseudoin);
-
-
 
   doublevar weight_tot=parallel_sum(weightsum(0));
   doublevar var_tot=parallel_sum(variance(0));
+  doublevar en_tot=parallel_sum(avgen);
+  
+  val=var_tot/weight_tot;
+  
+  
+  if(check) { 
+    if(fabs(weightsum(0)) < 1e-14)
+      error("sum of weights is ", weightsum(0), " this is way too small");
+    if(val > 1e14)
+      error("variance is too large: ", val );
+  }
+  //cout << "avg en " << en_tot/weight_tot  << "  " << << endl;
+  
+  return en_tot/weight_tot;  
+}
+
+
+//------------------------------------------------------------------------
+
+doublevar Optimize_method::derivatives(int n, Array1 <double> & parms, Array1 <double> & deriv, 
+                                       double & val, int check)
+{
+  
+  int nparms=wfdata->nparms();
+  Array1 <doublevar> temp_parms(nparms);
+  for(int i=0; i< nparms; i++)  {
+    temp_parms(i)=parms(i+1);
+  }
+  
+  Wf_return  wfval(nfunctions,2);
+  
+  wfdata->setVarParms(temp_parms);
+  
+  Array1 <doublevar> variance(nfunctions);  variance=0;
+  Array1 <doublevar> weightsum(nfunctions);  weightsum=0;
+  Array1 <doublevar> kinetic(nfunctions), nonloc(nfunctions);
+  deriv.Resize(nparms); deriv=0;
+  psp_buff.start_again();
+  
+  doublevar avgen=0;
+  doublevar avgkin=0;
+  doublevar avgpot=0;
+  doublevar avgnon=0;
+  pseudo->setDeterministic(1);
+  //cout << "loop " << endl;
+  for(int walker=0; walker< nconfig; walker++) {
+    wf(walker)->updateLap(wfdata, electrons(walker));
+    Array1 <doublevar> kin_deriv(nparms);
+    sysprop->calcKinetic(wfdata, electrons(walker), wf(walker), kinetic);
+    
+    Array1 <doublevar> nonloc_deriv;
+    pseudo->calcNonlocParmDeriv(wfdata, electrons(walker), wf(walker),
+                                psp_test(walker),nonloc,nonloc_deriv );    
+    
+    //Take the derivative of the kinetic energy by finite difference
+    Array1 <doublevar> kin_tmp(nfunctions);
+    doublevar del=0.0001;
+    for(int p=0; p< nparms; p++) { 
+      Array1<doublevar> tparms=temp_parms;
+      tparms(p)+=del;
+      wfdata->setVarParms(tparms);
+      wf(walker)->updateLap(wfdata,electrons(walker));
+      sysprop->calcKinetic(wfdata, electrons(walker),wf(walker),kin_tmp);
+      //Array1<doublevar> tnon(nfunctions);
+      //pseudo->calcNonloc(wfdata, electrons(walker), wf(walker),tnon );    
+      //double deriv_non_chk=(tnon(0)-nonloc(0))/del;
+      //cout << "p " << p << " analytic " << nonloc_deriv(p) << " numeric " << deriv_non_chk << endl;
+      kin_deriv(p)=(kin_tmp(0)-kinetic(0))/del;
+      wfdata->setVarParms(temp_parms);
+    }
+    //------end kinetic energy derivative
+    
+    doublevar coulpot=local_energy(walker);
+    wf(walker)->getVal(wfdata, 0, wfval);
+    assert(nfunctions==1); //note that we implicitly assume this throughout
+    for(int w=0; w< nfunctions; w++)
+    {
+      
+      doublevar energy=kinetic(w) + coulpot+ nonloc(w);
+      avgkin+=kinetic(w);
+      avgpot+=coulpot;
+      avgnon+=nonloc(w);
+      avgen+=energy;
+      doublevar reweight=1.0;
+      if(use_weights) {
+        reweight=exp(2*(wfval.amp(w,0)-orig_vals(walker).amp(w,0)));
+      }
+      doublevar weight=reweight*guide_wf.getWeight(wfval,wfval, w);
+      switch(min_function) {
+        case min_variance:
+          variance(w)+=(energy-eref)*(energy-eref)*weight;
+          for(int p=0; p < nparms; p++) { 
+            deriv(p)+=2.0*(energy-eref)*(kin_deriv(p)+nonloc_deriv(p))*weight;
+          }
+          break;
+        case min_abs:
+          variance(w)+=fabs(energy-eref)*weight; error("haven't implemented abs yet");
+          break;
+        case min_lorentz:
+          variance(w)+=log(1+(energy-eref)*(energy-eref)/2)*weight;
+          error("haven't implemented lorentz yet");
+          break;
+        case min_energy:
+          variance(w)+=energy*weight;
+          error("haven't implemented energy yet");
+          break;
+        case min_mixed:
+          variance(w)+=(mixing*energy+(1.0-mixing)*(energy-eref)*(energy-eref))*weight;
+          error("haven't implemented mixed yet");
+          break;
+        default:
+          error("Optimize_method::variance() : min_function has a very strange value");
+      }
+      //cout << "variance " << variance(w) << endl;
+      weightsum(w)+=weight;
+    }
+  }
+  
+  
+  doublevar weight_tot=parallel_sum(weightsum(0));
+  doublevar var_tot=parallel_sum(variance(0));
+  for(int p=0; p < nparms; p++) { 
+    deriv(p)=parallel_sum(deriv(p))/weight_tot;
+  }
   doublevar en_tot=parallel_sum(avgen);
   
   val=var_tot/weight_tot;
@@ -484,10 +541,9 @@ doublevar Optimize_method::variance(int n, Array1 <double> & parms, double & val
       error("variance is too large: ", val );
   }
   
-  
-  return en_tot/weight_tot;
-  
+  return en_tot/weight_tot;  
 }
+
 //------------------------------------------------------------------------
 
 
@@ -545,6 +601,7 @@ double Optimize_fn::func(double * _p) {
 }
 
 double Optimize_fn::dfunc(double * _p, double * _g) {
+/*
   int m=param_n+1;
   double base=func(_p);
   double step=1e-4;
@@ -556,6 +613,19 @@ double Optimize_fn::dfunc(double * _p, double * _g) {
 //    cout << _g[i] << "   ";
   }
   _g[0]=base;
+ */
+  double base;
+  Array1 <double> deriv(param_n);
+  Array1 <doublevar> temp_parms(param_n+1);
+  for(int i=0; i< param_n+1; i++) 
+    temp_parms[i]=_p[i];
+  opt_method->derivatives(param_n, temp_parms,deriv,base,1);
+  
+  _g[0]=base;
+  for(int i=0;i< param_n; i++) {
+    _g[i+1]=deriv[i];
+  }
+  
   return base;
 //  cout << endl;
 }

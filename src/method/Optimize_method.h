@@ -62,10 +62,12 @@ public:
   doublevar variance(int n, Array1 <double> & parms, double & val, 
                      int check=1 //!< =1: make sure weights and variance make sense, =0: don't
                      );
+  doublevar Optimize_method::derivatives(int n, Array1 <double> & parms, Array1 <double> & deriv, 
+                                         double & val, int check);
   void iteration_print(double f, double gg, double tol,  int itn, ostream & output);
 
 private:
-
+   Array1 < Array1 <doublevar> >psp_test;
 
   doublevar eref; //!< reference energy
   int nconfig;   //!< Number of configurations(walkers)

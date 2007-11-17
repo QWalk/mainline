@@ -65,7 +65,7 @@ void Jastrow_threebody_piece::set_up(vector <string> & words,
     klm.Resize(maxnparms,3);
     for(int i=0; i< maxnparms; i++) { 
       for(int j=0; j< 3; j++) {
-	klm(i,j)=atoi(klm_list[counter++].c_str());
+        klm(i,j)=atoi(klm_list[counter++].c_str());
       }
     }
   }
@@ -265,6 +265,39 @@ void Jastrow_threebody_piece::updateVal(int e,
     }
   } 
 }
+
+
+//-----------------------------------------------------------
+
+void Jastrow_threebody_piece::getParmDeriv(const Array3 <doublevar> & eibasis,
+                                        const Array3 <doublevar> & eebasis,
+                                       Parm_deriv_return & deriv) {
+  
+  assert(eibasis.GetDim(1) >= parm_centers.GetDim(0));
+  int natoms=parm_centers.GetDim(0);
+  int nelectrons=eebasis.GetDim(0);
+  
+  const doublevar tiny=1e-14;
+  //cout << "updateLap " << endl;
+  for(int at=0; at < natoms; at++) {
+    int p=parm_centers(at);
+    for(int i=0; i< _nparms(p); i++) {
+      int index=linear_parms(p,i);
+      int k=klm(i,0), el=klm(i,1), m=klm(i,2);
+      for(int e=0; e< nelectrons; e++) { 
+        if(fabs(eibasis(e,at,k)) > tiny
+           || fabs(eibasis(e,at,el)) > tiny) { 
+          for(int j=e+1; j< nelectrons; j++) {
+            doublevar vkl=(eibasis(e,at,k)*eibasis(j,at,el)
+                                +eibasis(j,at,k)*eibasis(e,at,el));
+            deriv.gradient(index)+=vkl*eebasis(e,j,m);
+          }
+        }
+      }
+    }
+  } 
+}
+
 //-----------------------------------------------------------
 
 int Jastrow_threebody_piece::nparms() {
@@ -289,7 +322,7 @@ void Jastrow_threebody_piece::getParms(Array1 <doublevar> & parms) {
     int natoms=parm_centers.GetDim(0);
     for(int i=0; i< unique_parameters.GetDim(0); i++) {
       for(int j=0; j< _nparms(i); j++) {
-        parms(counter++) = unique_parameters(i,j)*natoms;
+        parms(counter++) = unique_parameters(i,j);//*natoms;
         
       }
     }
@@ -306,7 +339,7 @@ void Jastrow_threebody_piece::setParms(Array1 <doublevar> & parms) {
   int natoms=parm_centers.GetDim(0);
   for(int i=0; i< unique_parameters.GetDim(0); i++) {
     for(int j=0; j< _nparms(i); j++) {
-      unique_parameters(i,j)=parms(counter++)/natoms;
+      unique_parameters(i,j)=parms(counter++);//natoms;
       //cout << "set one-body " << unique_parameters(i,j) << endl;
     }
   }

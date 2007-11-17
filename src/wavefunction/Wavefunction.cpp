@@ -24,6 +24,48 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 //----------------------------------------------------------------------
 
+void extend_parm_deriv(Parm_deriv_return & ret1, const Parm_deriv_return & ret2) { 
+  int nparms=ret1.gradient.GetDim(0)+ret2.gradient.GetDim(0);
+  int nparms1=ret1.gradient.GetDim(0);
+  int nparms2=ret2.gradient.GetDim(0);
+  //ignoring nparms_start and nparms_end..those should really be input variables, no?
+  //cout << "nparms " << nparms << "  " << nparms1 << " " << nparms2 << endl;
+  Parm_deriv_return derivatives;
+  derivatives.need_hessian=ret1.need_hessian;
+
+  derivatives.gradient.Resize(nparms);
+  derivatives.hessian.Resize(nparms,nparms);
+  for(int i=0; i< nparms1; i++) { 
+    derivatives.gradient(i)=ret1.gradient(i);
+    derivatives.hessian(i,i)=ret1.hessian(i,i);
+  }
+  for(int i=nparms1; i< nparms1+nparms2; i++) { 
+    derivatives.gradient(i)=ret2.gradient(i-nparms1);
+    derivatives.hessian(i,i)=ret2.hessian(i-nparms1,i-nparms1);
+  }
+  //cout << "there " << endl;
+  for(int i=0; i< nparms1; i++) { 
+    for(int j=i+1; j< nparms1; j++) { 
+      derivatives.hessian(i,j)=derivatives.hessian(j,i)=ret1.hessian(i,j);
+    }
+  }//cout << "t " << endl;
+  for(int i=0; i< nparms1; i++) { 
+    for(int j=nparms1; j< nparms1+nparms2; j++) { 
+      derivatives.hessian(i,j)=derivatives.hessian(j,i)=ret1.gradient(i)*ret2.gradient(j-nparms1);
+    }
+  }//cout << " q " << endl;
+  for(int i=nparms1; i< nparms1+nparms2; i++) { 
+    for(int j=i+1; j< nparms1+nparms2; j++) { 
+      derivatives.hessian(i,j)=derivatives.hessian(j,i)=ret2.hessian(i-nparms1,j-nparms1);
+    }
+  }
+  ret1=derivatives;
+  //cout << "done " << endl;
+}
+//----------------------------------------------------------------------
+
+
+
 void Wf_return::read(istream & is){
   int nfunc, nst;
   string dummy;

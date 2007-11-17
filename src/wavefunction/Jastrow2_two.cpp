@@ -133,13 +133,29 @@ void Jastrow_twobody_piece::updateVal(int e, const Array3 <doublevar> & eebasis,
 }
 //----------------------------------------------------------------------
 
+
+void Jastrow_twobody_piece::getParmDeriv(const Array3 <doublevar> & eebasis,
+                                         Parm_deriv_return & parm_ret) { 
+  assert(parm_ret.gradient.GetDim(0)>=nparms());
+  int nelectrons=eebasis.GetDim(0);
+  int np=parameters.GetDim(0);
+  for(int i=0; i< nelectrons; i++) {
+    for(int j=i+1; j < nelectrons; j++) { 
+      for(int p=0; p < np; p++) { 
+        parm_ret.gradient(p)+=eebasis(i,j,p);
+      }
+    }
+  }
+}
+//----------------------------------------------------------------------
+
 void Jastrow_twobody_piece::getParms(Array1 <doublevar> & parms) {
   if(freeze) parms.Resize(0);
   else {
     parms.Resize(parameters.GetDim(0));
     int nparms=parameters.GetDim(0);
     for(int p=0; p< nparms; p++)
-      parms(p)=parameters(p)*nelectrons;
+      parms(p)=parameters(p);//*nelectrons;
   }
 }
 
@@ -149,7 +165,7 @@ void Jastrow_twobody_piece::setParms(Array1 <doublevar> & parms) {
     assert(parms.GetDim(0)==parameters.GetDim(0));
     int nparms=parameters.GetDim(0);
     for(int p=0; p< nparms; p++) {
-      parameters(p)=parms(p)/nelectrons;
+      parameters(p)=parms(p);///nelectrons;
       //cout << "set two-body " << parameters(p) << endl;
     }
     
