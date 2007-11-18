@@ -294,7 +294,7 @@ void Optimize_method::run(Program_options & options, ostream & output)
   Optimize_fn optimizer(nparms,verbose,tolerance,iterations,rich);
   optimizer.opt_method=this;
   optimizer.output= &output;
-optimizer.maccheckgrad(x.v,nparms, .0001, nparms);
+//optimizer.maccheckgrad(x.v,nparms, .0001, nparms);
   optimizer.macoptII(x.v,nparms);
   
   
@@ -449,7 +449,7 @@ doublevar Optimize_method::derivatives(int n, Array1 <double> & parms, Array1 <d
   doublevar avgkin=0;
   doublevar avgpot=0;
   doublevar avgnon=0;
-  pseudo->setDeterministic(1);
+  //pseudo->setDeterministic(1);
   //cout << "loop " << endl;
   for(int walker=0; walker< nconfig; walker++) {
     wf(walker)->updateLap(wfdata, electrons(walker));
