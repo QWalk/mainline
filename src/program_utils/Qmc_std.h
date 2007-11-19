@@ -176,6 +176,7 @@ int roundoff(double x);
 //print out a progress bar
 void banner(doublevar percentage, int length, ostream & os);
 
+
 /*!
 This is a slightly tricky bit that I'd like to get rid of if possible.
 When we have separate data and calculator wavefunction objects, the
