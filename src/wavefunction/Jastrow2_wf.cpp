@@ -693,7 +693,15 @@ int Jastrow2_wf_data::supports(wf_support_type support) {
     return 1;
   case parameter_derivatives:
     if(nparms()==0) return 1;
-    else return 0;
+    int ng=group.GetDim(0);
+    for(int g=0; g< ng; g++) { 
+      if(group(g).nparms()>0) { 
+        if(group(g).hasThreeBodySpin() || group(g).optimizeBasis()) 
+          return 0;
+      }
+    }
+    
+    return 1;
   default:
     return 0;
   }
