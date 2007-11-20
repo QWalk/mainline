@@ -1061,7 +1061,8 @@ int Newton_opt_method::Levenberg_marquad(Array1 <doublevar> & gradient,
       if(hessian(i,i)>tmp) tmp=hessian(i,i);  //find max diagonal element 
       // if(function_hessian(i,i)<tmp2) tmp2=function_hessian(i,i);  find min diagonal element 
     }
-    damping=tau*tmp;
+    //damping=tau*tmp;
+    damping=0.1;
   }
   //continue with given damping:
   while(1){
@@ -1070,18 +1071,19 @@ int Newton_opt_method::Levenberg_marquad(Array1 <doublevar> & gradient,
   if(use_correlated_sampling){
     doublevar multyplier=10.0;
     Array1 < Array1 <doublevar> > tmpparms(3);
-    Array1 <doublevar> mu(3), mulog(3);
+    Array1 <doublevar> mu(3);// mulog(3);
     Array1 <doublevar> y(3), energies(3), variances(3);
-    mu(0)=damping/multyplier;
-    mulog(0)=log(mu(0));
+    //    mu(0)=damping/multyplier;
+    mu(0)=damping;
+    //mulog(0)=log(mu(0));
     for(int i=0;i<tmpparms.GetSize();i++){
       if(i>0){
 	mu(i)=multyplier*mu(i-1);
-	multyplier*=multyplier;
+	//multyplier*=multyplier;
 	//mulog(i)=log(multyplier)+mulog(i-1);
       }
       //mu(i)=exp(mulog(i));
-      mulog(i)=log(mu(i));
+      //mulog(i)=log(mu(i));
       tmpparms(i).Resize(nparms);
       newton_step(gradient, hessian, mu(i), parms, tmpparms(i));
     }
