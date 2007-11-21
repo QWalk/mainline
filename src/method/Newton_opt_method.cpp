@@ -39,6 +39,8 @@ void Newton_opt_method::read(vector <string> words,
   {
     error("Need ITERATIONS in METHOD section");
   }
+  
+  //Optional options
   pos=0;
   if(readvalue(words,pos, eref, "EREF")){
     eref_exists=1;
@@ -47,8 +49,6 @@ void Newton_opt_method::read(vector <string> words,
     eref_exists=0;
     eref=0;
   }
-
-  //Optional options
   pos=0;
   if( ! readvalue(words, pos, pseudostore, "PSEUDOTEMP") )
   {
@@ -230,30 +230,26 @@ void Newton_opt_method::generate_all_quanities(Array1 <doublevar> & parms,
   if(min_function!=min_variance){
      derivatives.need_hessian=1;
   }
-  
-  
-  //FILE * pseudoout;
-  //FILE * pseudoin;
-  Pseudo_buffer psp_buff;
+  FILE * pseudoout;
+  FILE * pseudoin;
   doublevar ln_wf_value, sign_wf_value;
     
   for(int walker=0; walker < nconfig; walker++)  {
     wfdata->setVarParms(parms);
-    //pseudoout=fopen(pseudostore.c_str(), "w");
-    //if(!pseudoout) {
-    //  error("couldn't open pseudopotential temporary file ", pseudostore,
-	  //  " for writing.");
-    //}
+    pseudoout=fopen(pseudostore.c_str(), "w");
+    if(!pseudoout) {
+      error("couldn't open pseudopotential temporary file ", pseudostore,
+	    " for writing.");
+    }
     config_pos(walker).restorePos(sample); 
     wf->updateLap(wfdata, sample);
     wf->getVal(wfdata, 0, wfval);
     ln_wf_value=wfval.amp(0,0);
     sign_wf_value=wfval.sign(0);
     calcpot(walker)=sysprop->calcLoc(sample);
-    psp_buff.clear();
-    pseudo->initializeStatic(wfdata, sample, wf, psp_buff);
+    pseudo->initializeStatic(wfdata, sample, wf, pseudoout);
     wf->notify(sample_static,0);
-    //fclose(pseudoout);
+    fclose(pseudoout);
 
     if(wfdata->supports(parameter_derivatives)){
       wf->getParmDeriv(wfdata, sample, derivatives);
@@ -265,68 +261,66 @@ void Newton_opt_method::generate_all_quanities(Array1 <doublevar> & parms,
       //cout <<endl;
       //}
       for (int i=0;i<=nparms;i++){
-        if(i>0){
-          parms(i-1)+=delta(i-1);
-          wfdata->setVarParms(parms);
-        }
+	if(i>0){
+	  parms(i-1)+=delta(i-1);
+	  wfdata->setVarParms(parms);
+	}
 	
-        wf->updateLap(wfdata, sample);
-        sysprop->calcKinetic(wfdata, sample, wf, kinetic);
-        //pseudoin=fopen(pseudostore.c_str(), "r");
-        psp_buff.start_again();
-        pseudo->calcNonlocWithFile(wfdata, sample, wf,nonloc, psp_buff);
-        //fclose(pseudoin);
-        energy=kinetic(0)+calcpot(walker)+nonloc(0);
-        if(i==0)
-          local_energy(walker)=energy;
-        else 
-          local_energy_gradient(walker)(i-1)=(energy-local_energy(walker))/delta(i-1);
-        if(i>0)
-          parms(i-1)-=delta(i-1);
+	wf->updateLap(wfdata, sample);
+	sysprop->calcKinetic(wfdata, sample, wf, kinetic);
+	pseudoin=fopen(pseudostore.c_str(), "r");
+	pseudo->calcNonlocWithFile(wfdata, sample, wf,nonloc, pseudoin);
+	fclose(pseudoin);
+	energy=kinetic(0)+calcpot(walker)+nonloc(0);
+	if(i==0)
+	  local_energy(walker)=energy;
+	else 
+	  local_energy_gradient(walker)(i-1)=(energy-local_energy(walker))/delta(i-1);
+	if(i>0)
+	  parms(i-1)-=delta(i-1);
       }
     }
     else{
-      
+     
       for (int i=0;i<=nparms;i++){
-        if (i>0)
-          parms(i-1)+=delta(i-1);
-        for (int j=i;j<=nparms;j++){
-          if (j>0)
-            parms(j-1)+=delta(j-1);
-          wfdata->setVarParms(parms);
-          
-          if(i==0){
-            wf->updateLap(wfdata, sample);
-            wf->getVal(wfdata, 0, wfval);
-            
-            sysprop->calcKinetic(wfdata, sample, wf, kinetic);
-            //pseudoin=fopen(pseudostore.c_str(), "r");
-            psp_buff.start_again();
-            pseudo->calcNonlocWithFile(wfdata, sample, wf,nonloc, psp_buff);
-            //fclose(pseudoin);
-            energy=kinetic(0)+calcpot(walker)+nonloc(0);
-            if(j==0){
-              local_energy(walker)=energy;
-            }
-            else{
-              Psi(j-1)=wfval.sign(0)*sign_wf_value*exp(wfval.amp(0,0)-ln_wf_value);
-              local_energy_gradient(walker)(j-1)=(energy-local_energy(walker))/delta(j-1);
-              wf_gradient(walker)(j-1)=(Psi(j-1)-1)/delta(j-1);
-            }
-          }// i>0 j>=i calculation of double index quantities
-          else {
-            wf->updateVal(wfdata, sample);
-            wf->getVal(wfdata, 0, wfval);
-            psi=wfval.sign(0)*sign_wf_value*exp(wfval.amp(0,0)-ln_wf_value);
-            wf_hessian(walker)(i-1,j-1)=(psi-Psi(i-1)-Psi(j-1)+1)/(delta(i-1)*delta(j-1));
-            //cout<< wf_hessian(walker)(i-1,j-1)<< "  ";
-          }
-          if (j>0)
-            parms(j-1)-=delta(j-1);
-        }//j loop
-         //cout <<endl;
-        if (i>0)
-          parms(i-1)-=delta(i-1);
+	if (i>0)
+	  parms(i-1)+=delta(i-1);
+	for (int j=i;j<=nparms;j++){
+	  if (j>0)
+	    parms(j-1)+=delta(j-1);
+	  wfdata->setVarParms(parms);
+	  
+	  if(i==0){
+	    wf->updateLap(wfdata, sample);
+	    wf->getVal(wfdata, 0, wfval);
+	    
+	    sysprop->calcKinetic(wfdata, sample, wf, kinetic);
+	    pseudoin=fopen(pseudostore.c_str(), "r");
+	    pseudo->calcNonlocWithFile(wfdata, sample, wf,nonloc, pseudoin);
+	    fclose(pseudoin);
+	    energy=kinetic(0)+calcpot(walker)+nonloc(0);
+	    if(j==0){
+	      local_energy(walker)=energy;
+	    }
+	    else{
+	      Psi(j-1)=wfval.sign(0)*sign_wf_value*exp(wfval.amp(0,0)-ln_wf_value);
+	      local_energy_gradient(walker)(j-1)=(energy-local_energy(walker))/delta(j-1);
+	      wf_gradient(walker)(j-1)=(Psi(j-1)-1)/delta(j-1);
+	    }
+	  }// i>0 j>=i calculation of double index quantities
+	  else {
+	    wf->updateVal(wfdata, sample);
+	    wf->getVal(wfdata, 0, wfval);
+	    psi=wfval.sign(0)*sign_wf_value*exp(wfval.amp(0,0)-ln_wf_value);
+	    wf_hessian(walker)(i-1,j-1)=(psi-Psi(i-1)-Psi(j-1)+1)/(delta(i-1)*delta(j-1));
+	    //cout<< wf_hessian(walker)(i-1,j-1)<< "  ";
+	  }
+	  if (j>0)
+	    parms(j-1)-=delta(j-1);
+	}//j loop
+	//cout <<endl;
+	if (i>0)
+	  parms(i-1)-=delta(i-1);
       }//i loop
     }//end of else (wfdata->supports(parameter_derivatives))
     wf->notify(sample_dynamic,0);
@@ -1061,8 +1055,7 @@ int Newton_opt_method::Levenberg_marquad(Array1 <doublevar> & gradient,
       if(hessian(i,i)>tmp) tmp=hessian(i,i);  //find max diagonal element 
       // if(function_hessian(i,i)<tmp2) tmp2=function_hessian(i,i);  find min diagonal element 
     }
-    //damping=tau*tmp;
-    damping=0.1;
+    damping=tau*tmp;
   }
   //continue with given damping:
   while(1){
@@ -1071,19 +1064,18 @@ int Newton_opt_method::Levenberg_marquad(Array1 <doublevar> & gradient,
   if(use_correlated_sampling){
     doublevar multyplier=10.0;
     Array1 < Array1 <doublevar> > tmpparms(3);
-    Array1 <doublevar> mu(3);// mulog(3);
+    Array1 <doublevar> mu(3), mulog(3);
     Array1 <doublevar> y(3), energies(3), variances(3);
-    //    mu(0)=damping/multyplier;
-    mu(0)=damping;
-    //mulog(0)=log(mu(0));
+    mu(0)=damping/multyplier;
+    mulog(0)=log(mu(0));
     for(int i=0;i<tmpparms.GetSize();i++){
       if(i>0){
 	mu(i)=multyplier*mu(i-1);
-	//multyplier*=multyplier;
+	multyplier*=multyplier;
 	//mulog(i)=log(multyplier)+mulog(i-1);
       }
       //mu(i)=exp(mulog(i));
-      //mulog(i)=log(mu(i));
+      mulog(i)=log(mu(i));
       tmpparms(i).Resize(nparms);
       newton_step(gradient, hessian, mu(i), parms, tmpparms(i));
     }
@@ -1236,7 +1228,7 @@ int Newton_opt_method::showinfo(ostream & os)
   os << "Number of processors: "        <<  mpi_info.nprocs << endl;
   os << "Total configurations: " <<          nconfig*mpi_info.nprocs << endl;
   os << "Iterations : "  << iterations << endl;
-  os << "Number of parameters " << wfdata->nparms() << endl;
+  os << "Nparms " << wfdata->nparms() << endl;
   os << "Reference energy : "           << eref << endl;
   os << "Minimization function : ";
   switch(min_function) {
