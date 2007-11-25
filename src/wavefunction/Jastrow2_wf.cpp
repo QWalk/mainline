@@ -1477,6 +1477,12 @@ int Jastrow2_wf::getParmDeriv(Wavefunction_data *wfdata , Sample_point * sample,
   }
   parm_deriv=retparm;
   
+  int np=parent->nparms();
+  for(int i=0; i< np; i++) { 
+    for(int j=0; j< np; j++) { 
+      parm_deriv.hessian(i,j)=parm_deriv.gradient(i)*parm_deriv.gradient(j);
+    }
+  }
   
   return 1;
 }

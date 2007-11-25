@@ -594,6 +594,13 @@ void Slat_wf::calcVal(Slat_wf_data * dataptr, Sample_point * sample)
 */
 void Slat_wf::updateVal( Slat_wf_data * dataptr, Sample_point * sample,int e)
 {
+
+  /* Note on the updates(from LKW):  we don't actually need to update the inverse(which is N^2) for the next value;
+     we can get away with saving the MO values and updating the inverse only when another electron is 
+     updated.  This could save some time particularly for the pseudopotential evaluation.  For the moment, 
+     I haven't seen the inverse update take a significant amount of time even up to around 1000 electrons, 
+     so I'll leave the simpler implementation.
+   */
   assert(dataptr != NULL);
   sample->updateEIDist();
   int s=dataptr->spin(e);
