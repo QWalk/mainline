@@ -32,6 +32,7 @@ void Test_method::read(vector <string> words,
   //--Set up variables
 
   
+  
   readvalue(words, pos=0, readconfig, "READCONFIG");
   canonical_filename(readconfig);
   

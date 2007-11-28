@@ -58,6 +58,7 @@ typedef complex <doublevar> dcomplex;
 int parallel_sum(int inp);
 doublevar parallel_sum(doublevar inp);
 dcomplex parallel_sum(dcomplex inp);
+  
 int MPI_Send_complex(dcomplex & , int node);
 int MPI_Recv_complex(dcomplex &, int node);
 
