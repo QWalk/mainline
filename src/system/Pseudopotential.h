@@ -51,6 +51,14 @@ private:
   int current_point;
 };
 
+//-----------
+
+struct Tmove { 
+public:
+  Array1 <doublevar> pos;
+  int e;
+  doublevar vxx;
+};
 
 //-----------
 
@@ -80,10 +88,16 @@ public:
     Uses random evaluation of the pseudopotential automatically.
    */
   void calcNonloc(Wavefunction_data * wfdata,
-                  Sample_point * sample, Wavefunction * wf,Force_fitter &,
-                  Array1 <doublevar> & totalv, Array2 <doublevar> & deriv);
+                  Sample_point * sample, Wavefunction * wf,
+                  Array1 <doublevar> & totalv);
 
 
+  void calcNonlocTmove(Wavefunction_data * wfdata,
+                       Sample_point * sample,
+                       Wavefunction * wf,
+                       Array1 <doublevar> & totalv,  //total p.e. from the psp
+                       vector <Tmove> & tmoves  //variables for T-moves of Casula
+                       );
   /*!
     \brief
     Provide your own random numbers for random evaluation of psp
@@ -92,10 +106,8 @@ public:
     to zero, nothing is evaluated.
   */
   void calcNonlocWithTest(Wavefunction_data *, Sample_point *, Wavefunction *,
-                          Force_fitter &,
                           const Array1 <doublevar> & accept_var,
-                          Array1 <doublevar> & totalv, 
-                          Array2 <doublevar> & deriv);
+                          Array1 <doublevar> & totalv);
 
   /*!
     \brief
@@ -107,6 +119,25 @@ public:
                           Array1 <doublevar> &, Pseudo_buffer & input);
 
 
+  
+  void calcNonlocParmDeriv(Wavefunction_data * wfdata,
+                                            Sample_point * sample,
+                                            Wavefunction * wf,
+                                            const Array1 <doublevar> & accept_var,
+                                            Array1 <doublevar> & totalv, Array1 <doublevar> & parm_deriv);
+    
+  /*!
+    The worker function; the rest just provide simple defaults when functions don't need everything
+   
+    */
+  void calcNonlocWithAllvariables(Wavefunction_data * wfdata,
+                                  Sample_point * sample,
+                                  Wavefunction * wf,
+                                  const Array1 <doublevar> & accept_var, //random variables for stochastic evaluation
+                                  Array1 <doublevar> & totalv,  //total p.e. from the psp
+                                  bool do_tmoves,vector <Tmove> & tmoves,  //variables for T-moves of Casula
+                                  bool parm_derivatives, Array1 <doublevar> & parm_deriv //derivatives wrt wf parameters
+                                  );
   /*!
     \brief
     Initialize a file for use with calcNonlocWithFile
@@ -116,6 +147,7 @@ public:
 
 
 
+  
   /*!
     \brief
     number of values between zero and one for random evaluation

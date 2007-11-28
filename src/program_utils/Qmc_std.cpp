@@ -58,6 +58,25 @@ dcomplex parallel_sum(dcomplex inp) {
   return inp;
 } 
 
+void parallel_sum(Array1 <doublevar> & arr) { 
+#ifdef USE_MPI
+  int n=arr.GetDim(0);
+  Array1 <doublevar> a(n);
+  MPI_Allreduce(arr.v,a.v,n,MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  arr=a;
+#endif
+}
+
+
+void parallel_sum(Array2 <doublevar> & arr) { 
+#ifdef USE_MPI
+  int n=arr.GetDim(0);
+  int m=arr.GetDim(1);
+  Array2 <doublevar> a(n,m);
+  MPI_Allreduce(arr.v,a.v,n*m,MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  arr=a;
+#endif
+}
 
 int MPI_Send_complex(dcomplex & c, int node) {
 #ifdef USE_MPI

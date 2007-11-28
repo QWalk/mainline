@@ -64,7 +64,8 @@ void Dmc_method::read(vector <string> words,
 
   if(haskeyword(words, pos=0, "CDMC")) do_cdmc=1;
   else do_cdmc=0;
-
+  if(haskeyword(words, pos=0, "TMOVES")) tmoves=1; 
+  else tmoves=0;
 
   if(!readvalue(words, pos=0, nhist, "CORR_HIST")) 
     nhist=-1;
@@ -185,6 +186,8 @@ int Dmc_method::showinfo(ostream & os)
   os << "Blocks: " <<                        nblock    << endl;
   os << "Steps per block: " <<               nstep     << endl;
   os << "Timestep: " <<                      timestep  << endl;
+  if(tmoves) 
+    os << "T-moves turned on" << endl;
   string indent="  ";
 
   dyngen->showinfo(indent, os);
@@ -288,8 +291,9 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
   nhist=1;
   //setting the projection time for auxillary walkers to 1 a.u.
   if(naux >0 && nhist <0) nhist=int(1.0/timestep)+1;
+  if(naux > 0 && tmoves) error("Can't do t-moves and auxillary walks yet");
+  //if(tmoves) pseudo->setDeterministic(1); //this may not be necessary..not sure yet.
   
-
   doublevar teff=timestep;
   Array1 <doublevar> aux_timestep(naux,teff);
 
@@ -352,10 +356,53 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
           
           totpoints++;
           Properties_point pt;
+          vector <Tmove> tmov;
+          doublevar subtract_out_enwt=0;
+          if(tmoves) {  //------------------T-moves
+            pt.setSize(nwf,0,0);
+            wf->getVal(wfdata,0,pt.wf_val);
+            sys->calcKinetic(wfdata,sample,wf,pt.kinetic);
+            pt.potential=sys->calcLoc(sample);
+            pt.weight=1.0; //this gets set later anyway
+            pt.count=1;
+            pseudo->calcNonlocTmove(wfdata,sample,wf,pt.nonlocal,tmov);
+            getZpol(sys, sample, pt.z_pol,1); //always do the many-body zpol, because it's correct
+            //cout << "choosing among " <<  tmov.size() << " tmoves " << endl;
+            //Now we do the t-move
+            doublevar sum=1; 
+            for(vector<Tmove>::iterator mov=tmov.begin(); mov!=tmov.end(); mov++) { 
+              assert(mov->vxx < 0);
+              sum-=timestep*mov->vxx;  
+            }
+            pt.nonlocal(0)-=(sum-1)/timestep;
+            subtract_out_enwt=-(sum-1)/timestep;
+            //cout << "sum " << sum <<  " nonlocal " << pt.nonlocal(0) << " ratio " << sum/pt.nonlocal(0) << endl;
+            assert(sum >= 0);
+            doublevar rand=rng.ulec()*sum;
+            sum=1; //reset to choose the move
+            if(rand > sum) { 
+              for(vector<Tmove>::iterator mov=tmov.begin(); mov!=tmov.end(); mov++) { 
+                sum-=timestep*mov->vxx;
+                if(rand < sum) { 
+                  Array1 <doublevar> epos(3);
+                  sample->getElectronPos(mov->e, epos);
+                  //cout << "moving electron " << mov->e << " from " << epos(0) << " " << epos(1)
+                  //  << " " << epos(2) << " to " << mov->pos(0) << " " << mov->pos(1) 
+                  //  << " " << mov->pos(2) << endl;
+                  sample->setElectronPos(mov->e,mov->pos);
+                  break;
+                }
+              }
+            }
+            //wf->updateLap(wfdata, sample);
+          } ///---------------------------------done with the T-moves
+          else { 
+            mygather.gatherData(pt, pseudo, sys, wfdata, wf, 
+                                sample, guidingwf, aux_converge,0);
+          }
           
-          mygather.gatherData(pt, pseudo, sys, wfdata, wf, 
-                              sample, guidingwf, aux_converge,0);
-          
+          //the history is only used for setting the weights,
+          //so we just subtract out anything that was used for t-moves..
           Dmc_history new_hist;
           new_hist.main_en=pts(walker).prop.energy(0);
           new_hist.aux_en=pts(walker).prop.aux_energy;
@@ -368,7 +415,6 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
           
           pts(walker).prop=pt;
           pts(walker).weight*=getWeight(pts(walker),teff,etrial);
-          //getauxweight
           if(pts(walker).ignore_walker) {
             pts(walker).ignore_walker=0;
             pts(walker).weight=1;
@@ -776,8 +822,10 @@ doublevar Dmc_method::getWeight(Dmc_point & pt,
                    /(branchcut_stop-branchcut_start));
   }
 
-
-  doublevar return_weight=exp(teffac*(etr*2-effenergy-effoldenergy));
+  doublevar return_weight;
+  //if(tmoves) return_weight=exp(teffac*2.0*(etr-effenergy));
+  //else 
+  return_weight=exp(teffac*(etr*2-effenergy-effoldenergy));
 
   return return_weight;
 } 

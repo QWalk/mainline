@@ -298,17 +298,12 @@ void Properties_gather::gatherData(Properties_point & myprop,
                                    Wavefunction * wf, 
                                    Sample_point * sample, 
                                    Guiding_function * guide, int n_converge,
-                                   int aux_updated) {
-  Force_fitter force_fitter;
-  force_fitter.setup(1.0,5);
-  
+                                   int aux_updated) {  
   int nwf=wf->nfunc();
   int naux=aux_sys.GetDim(0);
   
   myprop.setSize(nwf, naux, n_converge);
   
-
-  Array2 <doublevar> deriv_temp; //We'll just toss the derivative..
 
   wf->updateLap(wfdata, sample);
   wf->getVal(wfdata, 0, myprop.wf_val);
@@ -329,9 +324,8 @@ void Properties_gather::gatherData(Properties_point & myprop,
   for(int i=0; i< nrandvar; i++) 
     rand_num(i)=rng.ulec();
 
-  psp->calcNonlocWithTest(wfdata, sample, wf,force_fitter,
-                          rand_num,  myprop.nonlocal,
-                          deriv_temp);
+  psp->calcNonlocWithTest(wfdata, sample, wf,
+                          rand_num,  myprop.nonlocal);
 
   
   getZpol(sys, sample, myprop.z_pol, zpol_manye);
@@ -383,8 +377,7 @@ void Properties_gather::gatherData(Properties_point & myprop,
     aux_sys(i)->calcKinetic(usewfdata, aux_sample(i), 
                             aux_wf(i), a_kin);
     psp->calcNonlocWithTest(usewfdata, aux_sample(i),
-                            aux_wf(i), force_fitter,
-                            rand_num, a_nonloc, deriv_temp);
+                            aux_wf(i),rand_num, a_nonloc);
     a_loc=aux_sys(i)->calcLoc(aux_sample(i));
         
     

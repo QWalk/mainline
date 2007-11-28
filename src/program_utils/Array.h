@@ -856,6 +856,12 @@ inline void array_cp(Array2 <T> & x, const Array2 <T> & y) {
   x=y;
 }
 
+/*!
+These replace the arrays with the sum over all processors.
+ */
+void parallel_sum(Array1 <doublevar> & arr);
+void parallel_sum(Array2 <doublevar> & arr);
+
 
 
 #endif // ARRAY_H_INCLUDED

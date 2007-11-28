@@ -95,6 +95,9 @@ class Properties_gather {
 };
 
 
+void getZpol(System * sys, Sample_point * sample, Array1 <dcomplex> & zpol,
+             int zpol_manye);
+
 #endif //PROPERTIES_GATHER_H_INCLUDED
 
 //----------------------------------------------------------------------

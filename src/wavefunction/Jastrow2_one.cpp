@@ -49,6 +49,7 @@ void get_onebody_parms(vector<string> & words, vector<string> & atomnames,
 
   unique_parameters.Resize(nsec, maxsize);
   linear_parms.Resize(nsec, maxsize);
+  linear_parms=0; unique_parameters=0;
   int counter=0;
   for(int i=0; i< nsec; i++) {
     for(int j=0; j< nparms(i); j++) {
@@ -166,8 +167,7 @@ void Jastrow_onebody_piece::updateLap_ion(int e,
     int p=parm_centers(at);
     for(int i=0; i< _nparms(p); i++) {
       for(int d=0; d< 5; d++) {
-        //lap(e,at,d)+=unique_parameters(p,i)*eibasis(at,i+1,d);
-	lap(e,at,d)+=unique_parameters(p,i)*eibasis(at,i,d);
+        lap(e,at,d)+=unique_parameters(p,i)*eibasis(at,i,d);
       }
     }
   }
@@ -187,11 +187,28 @@ void Jastrow_onebody_piece::updateVal(int e,
   for(int at=0; at < natoms; at++) {
     int p=parm_centers(at);
     for(int i=0; i< _nparms(p); i++) {
-      //val+=unique_parameters(p,i)*eibasis(at,i+1,0);
       val+=unique_parameters(p,i)*eibasis(at,i,0);
     }
   }
 
+}
+//-----------------------------------------------------------
+
+//will just add to the parm_deriv, since that'll make it easy and quick
+//to loop through all the electrons
+void Jastrow_onebody_piece::getParmDeriv(int e, const Array3 <doublevar> & eibasis,
+                  Parm_deriv_return & parm_deriv) { 
+  assert(parm_deriv.gradient.GetDim(0)==nparms() || freeze);
+  assert(eibasis.GetDim(0) >= parm_centers.GetDim(0));
+  if(freeze) return;
+  int natoms=parm_centers.GetDim(0);
+  for(int at=0; at < natoms; at++) {
+    int p=parm_centers(at);
+    for(int i=0; i< _nparms(p); i++) {
+      int index=linear_parms(p,i);
+      parm_deriv.gradient(index)+=eibasis(at,i,0);
+    }
+  }
 }
 //-----------------------------------------------------------
 
@@ -217,7 +234,7 @@ void Jastrow_onebody_piece::getParms(Array1 <doublevar> & parms) {
     int natoms=parm_centers.GetDim(0);
     for(int i=0; i< unique_parameters.GetDim(0); i++) {
       for(int j=0; j< _nparms(i); j++) {
-        parms(counter++) = unique_parameters(i,j)*natoms;
+        parms(counter++) = unique_parameters(i,j);//*natoms;
         
       }
     }
@@ -234,7 +251,7 @@ void Jastrow_onebody_piece::setParms(Array1 <doublevar> & parms) {
   int natoms=parm_centers.GetDim(0);
   for(int i=0; i< unique_parameters.GetDim(0); i++) {
     for(int j=0; j< _nparms(i); j++) {
-      unique_parameters(i,j)=parms(counter++)/natoms;
+      unique_parameters(i,j)=parms(counter++);///natoms;
       //cout << "set one-body " << unique_parameters(i,j) << endl;
     }
   }

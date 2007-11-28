@@ -32,6 +32,7 @@ void Test_method::read(vector <string> words,
   //--Set up variables
 
   
+  
   readvalue(words, pos=0, readconfig, "READCONFIG");
   canonical_filename(readconfig);
   
@@ -322,8 +323,8 @@ void Test_method::testParmDeriv(Wavefunction * mywf, Sample_point * sample){
     if(testhessian){
       cout <<" hessian check1"<<endl;
       for(int j=i;j<nparms;j++){
-     	doublevar hessian_wf=(psi*wfders_tmp.gradient(j)-wfders.gradient(j))/del;
-	check_numbers(hessian_wf,wfders.hessian(i,j),cout);
+        doublevar hessian_wf=(psi*wfders_tmp.gradient(j)-wfders.gradient(j))/del;
+        check_numbers(hessian_wf,wfders.hessian(i,j),cout);
       }
     }
     //cout <<" actuall "<<(temp_parms(i+nparms_start)-orig_parms(i+nparms_start))<<"  virtual: "<<del<<endl;

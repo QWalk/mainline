@@ -95,21 +95,15 @@ int Pseudopotential::initializeStatic(Wavefunction_data *wfdata,
   Array1 <doublevar> ionpos(3), oldpos(3), olddist(5), newpos(3);
   Array1 <doublevar> staticvals(wfdata->valSize());
   //Storage_container wfStore;
-  if(! wfStore.isInitialized())
-  {
+  if(! wfStore.isInitialized())  {
     wfStore.initialize(sample, wf);
   }
 
-  for(int at=0; at< natoms; at++)
-  {
-    if(numL(at) != 0)
-    {
+  for(int at=0; at< natoms; at++)  {
+    if(numL(at) != 0) {
       sample->getIonPos(at, ionpos);
-      for(int e=0; e < sample->electronSize(); e++)
-      {
+      for(int e=0; e < sample->electronSize(); e++) {
         sample->getElectronPos(e, oldpos);
-        //cout << "electron position  " << oldpos(0)
-        // << "   " << oldpos(1) << "   " << oldpos(2) << endl;
         sample->updateEIDist();//kind of inefficient..
         sample->getEIDist(e,at, olddist);
 	
@@ -119,39 +113,24 @@ int Pseudopotential::initializeStatic(Wavefunction_data *wfdata,
         doublevar ratio=olddist(0)/cutoff(at);
         int shouldCalculate= ratio < 1.0;
 
-        if(shouldCalculate)
-        {
+        if(shouldCalculate) {
           wfStore.saveUpdate(sample, wf, e);
 
-          for(int i=0; i< aip(at); i++)
-          {
+          for(int i=0; i< aip(at); i++) {
             sample->setElectronPos(e,oldpos);
             for(int d=0; d < 3; d++) 
               newpos(d)=integralpt(at,i,d)*olddist(0)-olddist(d+2);
-
-            //for(int d=0; d < 3; d++)
-            //{
-            //  newpos(d)=ionpos(d)+integralpt(at, i, d)*olddist(0);
-            //}
             sample->translateElectron(e, newpos);
-            //cout << "wf " << endl;
             wf->storeParmIndVal(wfdata,sample, e, staticvals);
-            for(int i=0; i< staticvals.GetDim(0); i++)
-            {
-              //fwrite(&staticvals(i), sizeof(doublevar), 1, output);
+            for(int i=0; i< staticvals.GetDim(0); i++)  {
               output.push_value(staticvals(i));
             }
             sample->setElectronPos(e,oldpos);
 
           } //integral done
-
-
           wfStore.restoreUpdate(sample, wf, e);
         }  //if we should calculate
-
-
       }  //electron loop
-
     }  //if atom has any psp's
   }  //atom loop
   //delete wfStore;
@@ -187,8 +166,7 @@ void Pseudopotential::calcNonlocWithFile(Wavefunction_data * wfdata,
     wfStore.initialize(sample, wf);
   }
 
-  for(int at=0; at< natoms; at++)
-  {
+  for(int at=0; at< natoms; at++) {
     if(numL(at) != 0)
     {
       sample->getIonPos(at, ionpos);
@@ -304,6 +282,8 @@ void Pseudopotential::calcNonlocWithFile(Wavefunction_data * wfdata,
 
 }
 
+
+
 //----------------------------------------------------------------------
 
 
@@ -367,26 +347,63 @@ int Pseudopotential::nTest() {
 
 void Pseudopotential::calcNonloc(Wavefunction_data * wfdata,
                                  Sample_point * sample, Wavefunction * wf,
-                                 Force_fitter & fitter,
-                                 Array1 <doublevar> & totalv, 
-                                 Array2 <doublevar> & deriv) {
+                                 Array1 <doublevar> & totalv) {
   int tot=nTest();
   Array1 <doublevar> test(tot);
   for(int i=0; i< tot; i++) {
     test(i)=rng.ulec();
   }
-  calcNonlocWithTest(wfdata, sample, wf,fitter, test, totalv, deriv);
+  calcNonlocWithTest(wfdata, sample, wf, test, totalv);
+}
+
+//----------------------------------------------------------------------
+
+
+void Pseudopotential::calcNonlocTmove(Wavefunction_data * wfdata,
+                     Sample_point * sample,
+                     Wavefunction * wf,
+                     Array1 <doublevar> & totalv,  //total p.e. from the psp
+                     vector <Tmove> & tmoves  //variables for T-moves of Casula
+                     ) { 
+  int tot=nTest();
+  Array1 <doublevar> test(tot);
+  for(int i=0; i< tot; i++) {
+    test(i)=rng.ulec();
+  }
+  Array1 <doublevar> parm_deriv;
+  calcNonlocWithAllvariables(wfdata,sample, wf, test,totalv, true, tmoves,false, parm_deriv);
 }
 //----------------------------------------------------------------------
 
-void Pseudopotential::calcNonlocWithTest(Wavefunction_data * wfdata,
-                                         Sample_point * sample,
-                                         Wavefunction * wf,
-                                         Force_fitter & fitter,
+void Pseudopotential::calcNonlocWithTest(Wavefunction_data *wfdata , Sample_point * sample, Wavefunction *wf ,
                                          const Array1 <doublevar> & accept_var,
-                                         Array1 <doublevar> & totalv, 
-                                         Array2 <doublevar> & deriv)
+                                         Array1 <doublevar> & totalv) { 
+  vector<Tmove>  tmoves;
+  Array1 <doublevar> parm_deriv;
+  calcNonlocWithAllvariables(wfdata,sample, wf, accept_var,totalv, false, tmoves,false, parm_deriv);
+}
+
+void Pseudopotential::calcNonlocParmDeriv(Wavefunction_data * wfdata,
+                                          Sample_point * sample,
+                                          Wavefunction * wf,
+                                          const Array1 <doublevar> & accept_var,
+                                          Array1 <doublevar> & totalv, Array1 <doublevar> & parm_deriv) { 
+  vector<Tmove>  tmoves;
+  calcNonlocWithAllvariables(wfdata,sample, wf, accept_var,totalv, false, tmoves,true, parm_deriv);
+  
+}
+
+void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
+                                                 Sample_point * sample,
+                                                 Wavefunction * wf,
+                                                 const Array1 <doublevar> & accept_var,
+                                                 Array1 <doublevar> & totalv,
+                                                 bool do_tmoves,vector <Tmove> & tmoves,
+                                                 bool parm_derivatives, Array1 <doublevar> & parm_deriv
+                                          )
 {
+  //Note: I left the derivative stuff commented out.
+  //I don't know if it's even really correct, so beware.
 
   int natoms=sample->ionSize();
   int nwf=wf->nfunc();
@@ -405,10 +422,18 @@ void Pseudopotential::calcNonlocWithTest(Wavefunction_data * wfdata,
 
   wf->updateVal(wfdata, sample);
   wfStore.initialize(sample, wf);
-  
+  Parm_deriv_return base_deriv;
+  if(parm_derivatives) { 
+    parm_deriv.Resize(wfdata->nparms());
+    parm_deriv=0;
+    base_deriv.nparms_start=0;
+    base_deriv.nparms_end=wfdata->nparms();
+    base_deriv.need_hessian=0;    
+    wf->getParmDeriv(wfdata, sample, base_deriv);
+  }
   int accept_counter=0;
-  deriv.Resize(natoms, 3);
-  deriv=0;
+  //deriv.Resize(natoms, 3);
+  //deriv=0;
   
   for(int at=0; at< natoms; at++){
     if(numL(at) != 0) {
@@ -473,7 +498,7 @@ void Pseudopotential::calcNonlocWithTest(Wavefunction_data * wfdata,
             //adding to the ionic position).  This actually only matters 
             //when we're doing non-zero k-points.
             for(int d=0; d < 3; d++) 
-	      newpos(d)=integralpt(at,i,d)*olddist(0)-olddist(d+2);
+              newpos(d)=integralpt(at,i,d)*olddist(0)-olddist(d+2);
 	    
             //cout << "translation " << newpos(0) << "   " 
              //   << newpos(1) << "   " << newpos(2) << endl;
@@ -496,37 +521,44 @@ void Pseudopotential::calcNonlocWithTest(Wavefunction_data * wfdata,
                                *exp(val.amp(w,0)-oldWfVal.amp(w,0))
                   *integralweight(at, i);
             }
+            
+            for(int w=0; w< nwf; w++)  {
+              doublevar tempsum=0;
+              for(int l=0; l< numL(at)-1; l++) {
+                tempsum+=(2*l+1)*v_l(l,0)*legendre(rDotR(i), l);
+              }
+              doublevar vxx=tempsum*integralpts(w,i);
+              if(!do_tmoves || w!=0 || vxx >= 0.0) { 
+                nonlocal(w)+=vxx;
+              }
+              else { 
+                Tmove nwtmove; nwtmove.pos.Resize(3);
+                sample->getElectronPos(e,nwtmove.pos);
+                nwtmove.e=e;
+                nwtmove.vxx=vxx;
+                tmoves.push_back(nwtmove);
+              }
+              
+              //-----------parameter derivatives
+              if(parm_derivatives) { 
+                Parm_deriv_return deriv;
+                deriv.nparms_start=0;
+                deriv.nparms_end=wfdata->nparms();
+                deriv.need_hessian=0;
+                wf->getParmDeriv(wfdata, sample, deriv);
+                int np=wfdata->nparms();
+                for(int p=0; p < np; p++) { 
+                  parm_deriv(p)+=(deriv.gradient(p)-base_deriv.gradient(p))*vxx;
+                }
+              }
+              //------
+            }
             sample->setElectronPos(e, oldpos);
           }
 
           //--------------------
 
-          for(int w=0; w< nwf; w++)  {
-            for(int i=0; i< aip(at); i++)   {
-              doublevar tempsum=0;
-              for(int l=0; l< numL(at)-1; l++) {
-                tempsum+=(2*l+1)*v_l(l,0)*legendre(rDotR(i), l);
-              }
-              nonlocal(w)+=tempsum*integralpts(w,i);
-              //wavefunc in (modified) f90
-              //cout << "wavefunction "
-              //     << integralpts(w,i)/integralweight(at,i) << endl;
-            }
-          }
 
-          //putting in the part for s-nonlocality only..p and higher to follow.
-          //if(olddist(0) > fitter.cutoff()) {
-         
-          for(int d=0; d< 3; d++) {
-            for(int i=0; i< aip(at); i++) {
-              doublevar tempsum=0;
-              for(int l=0; l< numL(at)-1; l++) 
-                tempsum+=(2*l+1)*v_l(l,d+1)*legendre(rDotR(i),l);
-              der_this_e(d)+= tempsum*integralpts(0,i);
-            }
-          }
-          
-          //}
 
           wfStore.restoreUpdate(sample, wf, e);
         }
@@ -549,13 +581,13 @@ void Pseudopotential::calcNonlocWithTest(Wavefunction_data * wfdata,
         }
 
 
-        for(int d=0; d< 3; d++) 
-          der_this_e(d)+=-v_l(localL,d+1);
+        //for(int d=0; d< 3; d++) 
+        //  der_this_e(d)+=-v_l(localL,d+1);
 
-        Array1 <doublevar> fitted(3);
-        fitter.fit_force(olddist,der_this_e, fitted);
-        for(int d=0; d< 3; d++) 
-          deriv(at,d)+=fitted(d);
+        //Array1 <doublevar> fitted(3);
+        //fitter.fit_force(olddist,der_this_e, fitted);
+        //for(int d=0; d< 3; d++) 
+        //  deriv(at,d)+=fitted(d);
 
       }  //electron loop
 

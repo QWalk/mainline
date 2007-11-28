@@ -85,7 +85,7 @@ public:
   virtual void setIonPos(int i, Array1 <doublevar> & pos) 
     { error("setIonPos not implemented"); }
   virtual doublevar getIonCharge(const int number) 
-  { error("getIonCharge not implemented"); } 
+  { error("getIonCharge not implemented"); return 0; } 
 
     
     

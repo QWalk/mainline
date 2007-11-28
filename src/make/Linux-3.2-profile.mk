@@ -2,14 +2,13 @@
 # Compiler definitions for Linux systems
 #  all compiler specific information should be declared here
 
-#CXX:=g++-3.3
 CXX := g++
-CXXFLAGS := -O3 \
-   -funroll-loops -ffast-math \
-  $(INCLUDEPATH) 
+#CXXFLAGS := -O3 \
+#   -funroll-loops -ffast-math \
+#  $(INCLUDEPATH) 
 
 
-#CXXFLAGS:= -O2 $(INCLUDEPATH)
+CXXFLAGS:= -O2 $(INCLUDEPATH)
 
 #CXXFLAGS+= -DUSE_LAPACK -DUSE_BLAS
 
@@ -23,7 +22,7 @@ CXXFLAGS := -O3 \
 #DEBUG := -Wall  -DRANGE_CHECKING -DDEBUG_WRITE 
 #DEBUG:= -Wall -DNO_RANGE_CHECKING   -DDEBUG_WRITE
 #DEBUG:= -Wall -DNO_RANGE_CHECKING -DNDEBUG -DDEBUG_WRITE  -D__USE_GNU
-DEBUG:=-Wall -DNDEBUG -DNO_RANGE_CHECKING -DDEBUG_WRITE -D__USE_GNU -pg 
+DEBUG:=-Wall -DNDEBUG -DNO_RANGE_CHECKING -DDEBUG_WRITE  -pg  -g
 #LDFLAGS:=-L/usr/pgi/linux86/lib -lm -lstd
 #LDFLAGS := -static
 

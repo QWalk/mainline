@@ -132,6 +132,7 @@ public:
 			 Wavefunction_data * wfdata,Pseudopotential * pseudo);
   void cdmcReWeight(Array2 <doublevar> & energy_temp, 
                     Array1 < Wf_return> & value_temp);
+
   
   doublevar getWeight(Dmc_point & pt,
                       doublevar teff, doublevar etr);
@@ -151,7 +152,8 @@ public:
   int have_read_options;
   int do_cdmc;
   int low_io; //!< write out configs and densities only at the end.
-  int aux_converge; //!< Number of projection lengths at which to evaluate correlated sampling 
+  int aux_converge; //!< Number of projection lengths at which to evaluate correlated sampling
+  int tmoves; //!< whether to do Casula's t-moves
 
   int nblock, nstep;
   doublevar eref; //!< reference energy-best guess at dmc energy

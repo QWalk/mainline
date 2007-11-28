@@ -27,17 +27,14 @@ void Optimize_method2::read(vector <string> words,
                            Program_options & options)
 {
 
-  pos=0;
   if(!readvalue(words, pos=0, nconfig, "NCONFIG"))
   {
     error("Need NCONFIG in METHOD section");
   }
-  pos=0;
-  if(!readvalue(words,pos, iterations, "ITERATIONS"))
-  {
-    error("Need ITERATIONS in METHOD section");
-  }
-  //Optional options
+  
+  if(!readvalue(words,pos=0, iterations, "ITERATIONS"))
+    iterations=30;
+    //Optional options
   pos=0;
   if(readvalue(words,pos, eref, "EREF")){
     eref_exists=1;
@@ -46,58 +43,40 @@ void Optimize_method2::read(vector <string> words,
     eref_exists=0;
     eref=0;
   }
-  pos=0;
-  if(!readvalue(words, pos, pseudostore, "PSEUDOTEMP") )
-  {
+  if(!readvalue(words, pos=0, pseudostore, "PSEUDOTEMP") ) 
     pseudostore=options.runid+".pseudo";
-  }
+  
   canonical_filename(pseudostore);
 
   if(!readvalue(words, pos=0, wfoutputfile, "WFOUTPUT") )
-  {
     wfoutputfile=options.runid+".wfout";
-  }
-  else { use_weights=0; }
+  else  use_weights=0; 
   if(haskeyword(words, pos=0, "EXTENDED_WFOUTPUT") )
-  {
     use_extended_output=1;
-  }
-  else { use_extended_output=0; }
+  else  use_extended_output=0; 
   
   if(!readvalue(words,pos=0, mixing, "MIXING"))
-  {
     mixing=0.95;
-  }
   if(haskeyword(words, pos=0, "USE_WEIGHTS") )
-  {
     use_weights=1;
-  }
-  else { use_weights=0; } 
+  else  use_weights=0; 
 
   if(!readvalue(words,pos=0, iter_min_read, "NFIXED_ITERATIONS"))
-  {
     iter_min_read=4;
-  }
   if(!readvalue(words,pos=0, multiply, "MULTIPLICATIVE_FACTOR"))
-  {
      multiply=2;
-  }
   
-
   string functiontype_str;
   pos=0;
-  if(readvalue(words, pos, functiontype_str, "MINFUNCTION"))
-  {
-    if(functiontype_str== "VARIANCE")
-    {
+  if(readvalue(words, pos, functiontype_str, "MINFUNCTION")) {
+    if(functiontype_str== "VARIANCE") {
       min_function=min_variance;
       //cout <<"Are you sure you want to use weights for variance optimization?"<<endl;
     }
     else if(functiontype_str=="ENERGY") {
-     
       if(!use_weights) { 
-	single_write(cout, "Turning on USE_WEIGHTS for energy optimization \n");
-	use_weights=1;
+        single_write(cout, "Turning on USE_WEIGHTS for energy optimization \n");
+        use_weights=1;
       }
       min_function=min_energy;
     }
@@ -108,13 +87,11 @@ void Optimize_method2::read(vector <string> words,
       }
       min_function=min_mixed;
     }
-    else
-    {
+    else {
       error("I don't know ", functiontype_str, " for MINFUNCTION.");
     }
   }
-  else
-  {
+  else {
     min_function=min_variance;
   }
 
@@ -139,8 +116,7 @@ void Optimize_method2::read(vector <string> words,
   wf=NULL;
 
 
-  for(int i=0; i< nconfig; i++)
-  {
+  for(int i=0; i< nconfig; i++) {
     electrons(i)=NULL;
     sysprop->generateSample(electrons(i));
   }
@@ -174,8 +150,7 @@ void Optimize_method2::read(vector <string> words,
     configin.close();
   }
 
-  if(configsread < nconfig)
-  {
+  if(configsread < nconfig) {
     nconfig=configsread;
     cout << "processor " << mpi_info.node << " : "
     << "WARNING: Didn't find enough configurations in the "
@@ -187,13 +162,11 @@ void Optimize_method2::read(vector <string> words,
   debug_write(cout, "wfdata allocate\n");
   wfdata=NULL;
   allocate(options.twftext[0], sysprop, wfdata);
-  if(!readvalue(words,pos=0, maxnparmsatonce, "MAXNPARMS_AT_ONCE"))
-  {
+  if(!readvalue(words,pos=0, maxnparmsatonce, "MAXNPARMS_AT_ONCE")) {
     maxnparmsatonce=wfdata->nparms();
   }
 
-  if(!readvalue(words,pos=0, min_nconfig_read, "START_NCONFIG"))
-  {
+  if(!readvalue(words,pos=0, min_nconfig_read, "START_NCONFIG")) {
     min_nconfig_read=nconfig;
   }
   else 

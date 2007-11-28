@@ -175,7 +175,7 @@ void Poly_pade_function::calcVal(const Array1 <doublevar> & r,
     {
       zpade=1./(1+beta(i)*zpp);
       crs=zpp1*zpade;
-      symvals(index)=crs;
+      symvals(index++)=crs;
     }
   }
 }

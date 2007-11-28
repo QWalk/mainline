@@ -227,6 +227,7 @@ int Slat_Jastrow::getParmDeriv(Wavefunction_data *  wfdata,
   }
   
   
+  
   derivatives.gradient.Resize(nparms);
   derivatives.hessian.Resize(nparms,nparms);
 
@@ -241,23 +242,24 @@ int Slat_Jastrow::getParmDeriv(Wavefunction_data *  wfdata,
     if(derivatives.nparms_start+i<nslater)
       derivatives.gradient(i)=slaterval.gradient(i);
     else
-      derivatives.gradient(counter)=jastval.gradient(i);
+      derivatives.gradient(i)=jastval.gradient(i);
   }
-
+  
   if(derivatives.need_hessian){
     for(int i=0;i<nparms;i++){
       for(int j=i;j<nparms;j++){
-	if(i+derivatives.nparms_start<nslater)
-	  if (j+derivatives.nparms_start<nslater)
-	    derivatives.hessian(i,j)=slaterval.hessian(i,j);
-	  else
-	    derivatives.hessian(i,j)=slaterval.gradient(i)*jastval.gradient(j);
-	else
-	  derivatives.hessian(i,j)=jastval.hessian(i,j);
-	derivatives.hessian(j,i)=derivatives.hessian(i,j);
+        if(i+derivatives.nparms_start<nslater)
+          if (j+derivatives.nparms_start<nslater)
+            derivatives.hessian(i,j)=slaterval.hessian(i,j);
+          else
+            derivatives.hessian(i,j)=slaterval.gradient(i)*jastval.gradient(j);
+        else
+          derivatives.hessian(i,j)=jastval.hessian(i,j);
+        derivatives.hessian(j,i)=derivatives.hessian(i,j);
       }
     }
   }
+  
   return 1;
 }
 
