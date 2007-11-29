@@ -345,6 +345,36 @@ void Jastrow_twobody_piece_diffspin::setParms(Array1 <doublevar> & parms) {
 }
 
 //----------------------------------------------------------------------
+
+void Jastrow_twobody_piece_diffspin::getParmDeriv(const Array3 <doublevar> & eebasis,
+                                                  Parm_deriv_return & parm_ret) { 
+  assert(parm_ret.gradient.GetDim(0)>=2*spin_parms.GetDim(1));
+  Array2 <doublevar> grad_spin_parms(2,spin_parms.GetDim(1));
+  grad_spin_parms=0;
+
+  int nelectrons=eebasis.GetDim(0);
+  int np=spin_parms.GetDim(1);
+  for(int i=0; i< nelectrons; i++) {
+    for(int j=i+1; j < nelectrons; j++) { 
+      int s=(j< nspin_up) != (i < nspin_up);
+      for(int p=0; p < np; p++) { 
+        grad_spin_parms(s,p)+=eebasis(i,j,p);
+      }
+    }
+  }
+  
+  int counter=0;
+  for(int i=0; i< 2; i++) {
+    for(int j=0; j< spin_parms.GetDim(1); j++)
+      parm_ret.gradient(counter++)=grad_spin_parms(i,j);
+  }
+
+}
+//----------------------------------------------------------------------
+
+
+
+//----------------------------------------------------------------------
 void Jastrow_twobody_piece_diffspin::parameterSaveVal(int e,
                         const Array3 <doublevar> & eebasis,
                         Array1 <doublevar> & save, int begin_fill){}
