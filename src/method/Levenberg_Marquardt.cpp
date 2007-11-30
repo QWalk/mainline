@@ -130,9 +130,9 @@ int Optimize_method2::LEVMAR_DER(Array1 <double> & parms, int nparms_start, int 
     
   for(int k=0; k< itmax && !stop; ++k){
     if(wfdata->supports(parameter_derivatives))
-      func_hessian_rev_analytical(parms, nparms_start, nparms_end, hessian, grad, energy, delta, min_nconfig, output);
+      func_hessian_analytical(parms, nparms_start, nparms_end, hessian, grad, energy, delta, min_nconfig, output);
     else
-      func_hessian_rev(parms, nparms_start, nparms_end, hessian, grad, energy, delta, min_nconfig, output);
+      func_hessian(parms, nparms_start, nparms_end, hessian, grad, energy, delta, min_nconfig, output);
       
     make_posite_definite2(hessian, output);
 

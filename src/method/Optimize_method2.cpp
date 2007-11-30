@@ -21,22 +21,21 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Optimize_method2.h"
 #include "qmc_io.h"
 #include "Program_options.h"
+#include "ulec.h"
 #include "System.h"
 void Optimize_method2::read(vector <string> words,
                            unsigned int & pos,
                            Program_options & options)
 {
-
-  if(!readvalue(words, pos=0, nconfig, "NCONFIG"))
-  {
+  if(!readvalue(words, pos=0, nconfig, "NCONFIG")){
     error("Need NCONFIG in METHOD section");
   }
   
   if(!readvalue(words,pos=0, iterations, "ITERATIONS"))
     iterations=30;
     //Optional options
-  pos=0;
-  if(readvalue(words,pos, eref, "EREF")){
+
+  if(readvalue(words,pos=0, eref, "EREF")){
     eref_exists=1;
   }
   else{
@@ -45,7 +44,6 @@ void Optimize_method2::read(vector <string> words,
   }
   if(!readvalue(words, pos=0, pseudostore, "PSEUDOTEMP") ) 
     pseudostore=options.runid+".pseudo";
-  
   canonical_filename(pseudostore);
 
   if(!readvalue(words, pos=0, wfoutputfile, "WFOUTPUT") )
@@ -64,11 +62,10 @@ void Optimize_method2::read(vector <string> words,
   if(!readvalue(words,pos=0, iter_min_read, "NFIXED_ITERATIONS"))
     iter_min_read=4;
   if(!readvalue(words,pos=0, multiply, "MULTIPLICATIVE_FACTOR"))
-     multiply=2;
+    multiply=2;
   
   string functiontype_str;
-  pos=0;
-  if(readvalue(words, pos, functiontype_str, "MINFUNCTION")) {
+  if(readvalue(words, pos=0, functiontype_str, "MINFUNCTION")) {
     if(functiontype_str== "VARIANCE") {
       min_function=min_variance;
       //cout <<"Are you sure you want to use weights for variance optimization?"<<endl;
@@ -96,8 +93,9 @@ void Optimize_method2::read(vector <string> words,
   }
 
   string readconfig;
-  if(readvalue(words, pos=0, readconfig, "READCONFIG"))
-    canonical_filename(readconfig);
+  if(!readvalue(words, pos=0, readconfig, "READCONFIG"))
+    error("READCONFIG required for OPTIMIZE2 method!");
+  canonical_filename(readconfig);
 
   string oldreadconfig;
   if(readvalue(words, pos=0, oldreadconfig, "OLDREADCONFIG"))
@@ -112,16 +110,36 @@ void Optimize_method2::read(vector <string> words,
 
   electrons.Resize(nconfig);
   electrons=NULL;
+  //alocate wf object for each config
+  //might be expensive to store all the inverse matrices
   wf.Resize(nconfig);
   wf=NULL;
-
 
   for(int i=0; i< nconfig; i++) {
     electrons(i)=NULL;
     sysprop->generateSample(electrons(i));
   }
 
-  
+  debug_write(cout, "wfdata allocate\n");
+  wfdata=NULL;
+  allocate(options.twftext[0], sysprop, wfdata);
+  if(!readvalue(words,pos=0, maxnparmsatonce, "MAXNPARMS_AT_ONCE")) {
+    maxnparmsatonce=wfdata->nparms();
+  }
+
+  readcheck(readconfig,oldreadconfig);
+  if(!readvalue(words,pos=0, min_nconfig_read, "START_NCONFIG")) {
+    min_nconfig_read=nconfig;
+  }
+  else 
+    if( min_nconfig_read > nconfig ){
+      cout << "Number of starting configurations is higher than all configurations!"<<endl;
+      cout << "setting it >nconfig "<<endl;
+      min_nconfig_read=nconfig;
+    }
+}
+
+void Optimize_method2::readcheck(string & readconfig,string & oldreadconfig) {
   int configsread=0;
   if(readconfig !="") {
     ifstream checkfile(readconfig.c_str());
@@ -157,26 +175,8 @@ void Optimize_method2::read(vector <string> words,
     << "file. \n Running optimization with only " << nconfig
     << " sample points." << endl;
   }
-
-
-  debug_write(cout, "wfdata allocate\n");
-  wfdata=NULL;
-  allocate(options.twftext[0], sysprop, wfdata);
-  if(!readvalue(words,pos=0, maxnparmsatonce, "MAXNPARMS_AT_ONCE")) {
-    maxnparmsatonce=wfdata->nparms();
-  }
-
-  if(!readvalue(words,pos=0, min_nconfig_read, "START_NCONFIG")) {
-    min_nconfig_read=nconfig;
-  }
-  else 
-    if( min_nconfig_read > nconfig ){
-      cout << "Number of starting configurations is higher than all configurations!"<<endl;
-      cout << "setting it >nconfig "<<endl;
-      min_nconfig_read=nconfig;
-    }
-
 }
+
 
 int Optimize_method2::showinfo(ostream & os)
 {
@@ -226,75 +226,57 @@ int Optimize_method2::showinfo(ostream & os)
   return 1;
 }
 
-/*!
-*/
 void Optimize_method2::run(Program_options & options, ostream & output)
 {
-  int nparms=wfdata->nparms(); //Number of variables
   
+  int nparms=wfdata->nparms(); //Number of variables
   
   Array1 <double> delta(nparms);
   Array1 <double> grad(nparms);  //Storage for the derivative
-  double value, energy, variance;  //Best value of the function
-  Array1 <doublevar> temp_parms(nparms);
+  //best delta is 0.0001 if parameters are det weights 
+  delta=0.0001;
+  //called also a measurement vector
+  grad=0.0; //should be zero for when looking for grad=0;
 
+  doublevar value, energy, variance;  //Best value of the function
+  Array1 <doublevar> temp_parms(nparms);
+  
   wfdata->getVarParms(temp_parms);
   lastparms.Resize(nparms);
   lastparms=temp_parms;
   cout.precision(16);
   
-
   if(nparms<= 0 ) error("There appear to be no parameters to optimize!");
 
-  //FILE * pseudoout;
-  //pseudoout=fopen(pseudostore.c_str(), "w");
-  //if(!pseudoout) {
-  //  error("couldn't open pseudopotential temporary file ", pseudostore,
-  //        " for writing.");
-  //}
-  
-  doublevar sum_tmp=0.0;
   orig_vals.Resize(nconfig);
-  
+  local_energy.Resize(nconfig);
+  psp_test.Resize(nconfig);
+  doublevar sum_tmp=0.0;
   for(int walker=0; walker < nconfig; walker++)  {
     wfdata->generateWavefunction(wf(walker));
-    nfunctions=wf(walker)->nfunc();
+    if(walker==0)
+      nfunctions=wf(0)->nfunc();
     orig_vals(walker).Resize(nfunctions, 2);
-    
     electrons(walker)->attachObserver(wf(walker));
     wf(walker)->updateLap(wfdata, electrons(walker));
     wf(walker)->getVal(wfdata, 0, orig_vals(walker));
     sum_tmp+=orig_vals(walker).amp(0,0);
-    
+    local_energy(walker)=sysprop->calcLoc(electrons(walker));
     pseudo->initializeStatic(wfdata, electrons(walker), wf(walker), psp_buff);
-    wf(walker)->notify(sample_static,0);
+    psp_test(walker).Resize(pseudo->nTest());
+    for(int i=0; i< pseudo->nTest(); i++) { 
+      psp_test(walker)(i)=rng.ulec();
+    }
+    //wf(walker)->notify(sample_static,0);
   }
-
-  //cout << "Sum of orig_vals ln(psi)/nconfig = "<<sum_tmp/nconfig<<endl;
   ln_norm_orig_vals=parallel_sum(sum_tmp/nconfig)/parallel_sum(1);
-  //if(output)
-  //cout << "Start: Aver. Sum of orig_vals ln(psi)/nconfig = "<<ln_norm_orig_vals<<endl;
-
-
-  //fclose(pseudoout);
-  nfunctions=wf(0)->nfunc();
-  
-  local_energy.Resize(nconfig);
-  for(int i=0; i< nconfig; i++) 
-    local_energy(i)=sysprop->calcLoc(electrons(i));
-  
-  //best delta is 0.0001 if parameters are det weights 
-  delta=0.0001;
-
-  //called also a measurement vector
-  grad=0.0; //should be zero for when looking for grad=0;
-
   if(use_weights || !eref_exists){
     //cout << "1st function calculation to get estimation of ref energy";
     func_val(nparms, temp_parms, value, energy, variance, nconfig, output);
     eref=energy;
   }
 
+  //starting minimization routine
   int iter=0;
   int iter_min=iter_min_read;
   int min_nconfig= min_nconfig_read;
@@ -323,6 +305,7 @@ void Optimize_method2::run(Program_options & options, ostream & output)
 
   func_val(nparms, temp_parms, value, energy, variance, nconfig, output);
   remove(pseudostore.c_str());
+
   if(output)
   {
     output << "Optimization finished.  ";
@@ -384,34 +367,19 @@ void Optimize_method2::func_val(int n, const Array1 <double> & parms, double & v
   doublevar energy_sum=0;
   doublevar weightsum=0;
   Array1 <doublevar> kinetic(nfunctions), nonloc(nfunctions);
-
-
-  //Pseudopotential file
-  //FILE * pseudoin;
-  //pseudoin=fopen(pseudostore.c_str(), "r");
   psp_buff.start_again();
-  //  cout << "loop over walkers " << endl;
   doublevar weight_max=1;
   for(int walker=0; walker< min_nconfig; walker++)
   {
-    // cout << "walker "<<walker<<endl;
-    //cout << "updateLap " << endl;
     wf(walker)->updateLap(wfdata, electrons(walker));
-    //cout << "calcKinetic " << endl;
     sysprop->calcKinetic(wfdata, electrons(walker), wf(walker), kinetic);
-    //cout << "coulpot " << endl;
     doublevar coulpot=local_energy(walker);
-    //cout << "pseudopotential " << endl;
     pseudo->calcNonlocWithFile(wfdata, electrons(walker), wf(walker),
                                nonloc, psp_buff);
-    //cout << "getVal " << endl;
     wf(walker)->getVal(wfdata, 0, wfval);
-    //cout << "done calc " << endl;
     doublevar energy=kinetic(0) + coulpot+ nonloc(0);
     doublevar reweight=1.0;
     if(use_weights) {
-      //cout << "new wf " << wfval.amp(0,0)
-      //	   << " old wf " << orig_vals(walker).amp(0,0) << endl;
       reweight=exp(2*(wfval.amp(0,0)-orig_vals(walker).amp(0,0)-ln_norm_new_vals+ln_norm_orig_vals));
       //reweight=2.0*reweight/(1+reweight);
     }
@@ -425,13 +393,10 @@ void Optimize_method2::func_val(int n, const Array1 <double> & parms, double & v
       if(weight > weight_max)
         weight_max=weight;
     }
-    
-  
   }
-  //fclose(pseudoin);
-  
+   
   if(use_weights){
-    doublevar average_weight=weightsum/min_nconfig;
+    //doublevar average_weight=weightsum/min_nconfig;
     //cout << "Average weight= "<<average_weight<<" and maximum weight "<<weight_max<<endl;
     if(fabs(weightsum) < 1e-14)
       error("sum of weights is ", weightsum, " this is way too small");
@@ -470,32 +435,23 @@ time; otherwise the weights blow up.
 void Optimize_method2::energy_grad(Array1 <double> & parms, int nparms_start, int nparms_end, Array1 <double> & grad, doublevar & energy_mean,
 				   Array1 <double> & delta, int & min_nconfig, ostream & output)
 {
-  //cout << "Start: Optimize_method2::energy_grad"<<endl;
   int nparms_full=wfdata->nparms();
   int nparms=nparms_end-nparms_start;
-  //cout << "nparms_full "<< nparms_full<<" nparms "<<nparms<<endl;  
-  
   Array1 <doublevar> temp_parms(nparms_full);
   Wf_return  wfval(nfunctions,2);
   Array1 <doublevar> kinetic(nfunctions), nonloc(nfunctions);
-  Array1 <doublevar> grad_var(nparms);
-  Array1 <doublevar> weightsum(nparms);
-  Array1 <doublevar> ddelta(nparms_full);
+   Array1 <doublevar> weightsum(nparms);
   Array2 <doublevar> psi0(nconfig,2);
   Array1 <doublevar> e_local0(nconfig);
   doublevar e_local, psi;
-  grad_var=0;
+  grad=0;
   weightsum=0;
-  
-   // setting up parameters
-  for(int i=0; i< nparms_full; i++){
-    temp_parms(i)=parms(i);
-    ddelta(i)=delta(i);
-  }
-
+  // setting up parameters
+  temp_parms=parms;
+ 
   for (int i=0;i<=nparms;i++){
     if (i>0){
-      temp_parms(i-1+nparms_start)+=ddelta(i-1+nparms_start);
+      temp_parms(i-1+nparms_start)+=delta(i-1+nparms_start);
       }
     wfdata->setVarParms(temp_parms);
     doublevar sum_tmp=0.0;
@@ -508,24 +464,13 @@ void Optimize_method2::energy_grad(Array1 <double> & parms, int nparms_start, in
     
     //if(output && i==0)
     //cout << "(energy grad)Aver. Sum of ln(psi)/min_nconfig= "<<ln_norm_new_vals<<endl;
-
-    //Pseudopotential file
-    //FILE * pseudoin;
-    //pseudoin=fopen(pseudostore.c_str(), "r");
     psp_buff.start_again();
     for(int walker=0; walker< min_nconfig; walker++){
-      //cout << "updateLap " << endl;
       wf(walker)->updateLap(wfdata, electrons(walker));
-      //cout << "calcKinetic " << endl;
       sysprop->calcKinetic(wfdata, electrons(walker), wf(walker), kinetic);
-      //cout << "coulpot " << endl;
       doublevar coulpot=local_energy(walker);
-      //cout << "pseudopotential " << endl;
       pseudo->calcNonlocWithFile(wfdata, electrons(walker), wf(walker),
                                                  nonloc, psp_buff);
-      //cout << "getVal " << endl;
-      //wf(walker)->getVal(wfdata, 0, wfval);
-
       wf(walker)->getVal(wfdata, 0, wfval);
       if (i==0) {
         e_local0(walker)=kinetic(0) + coulpot+ nonloc(0);
@@ -542,40 +487,30 @@ void Optimize_method2::energy_grad(Array1 <double> & parms, int nparms_start, in
           reweight=exp(2*(wfval.amp(0,0)-orig_vals(walker).amp(0,0)-ln_norm_new_vals+ln_norm_orig_vals));
         }
         doublevar weight=reweight;
-        grad_var(i-1)+=2.0*((psi-1)/ddelta(i-1+nparms_start))*(e_local0(walker)-eref)*weight;
+        grad(i-1)+=2.0*((psi-1)/delta(i-1+nparms_start))*(e_local0(walker)-eref)*weight;
         weightsum(i-1)+=weight;
       }
     }
-    //fclose(pseudoin);
     if (i > 0)
-      temp_parms(i-1+nparms_start)-=ddelta(i-1+nparms_start);
-  }
-  
-  //if (output)
-  // cout <<"Calculated Energy gradient: "<<endl;
+      temp_parms(i-1+nparms_start)-=delta(i-1+nparms_start);
+  }//end of i loop 
+
+  parallel_sum(weightsum);
+  parallel_sum(grad);
   for (int i=0;i<nparms;i++){
-    grad(i)=0;
-    grad(i)=parallel_sum(grad_var(i))/parallel_sum(weightsum(i));
-    //if (output)
-    //  cout <<grad(i)<< endl;
+    grad(i)/=weightsum(i);
     if(fabs(weightsum(i)) < 1e-14)
       error("sum of weights is ", weightsum(i), " this is way too small");
     if(abs(grad(i)) > 1e14)
       error("gradient is too large: ", grad(i) );
   }
-
-  //if (output)
-  //  cout <<endl;
-  //cout << "End: Optimize_method2::func_grad"<<endl;
-
 }
 //------------------------------------------------------------------------
 
-void Optimize_method2::func_hessian_rev(Array1 <double> & parms, int nparms_start, int nparms_end, Array2 <double> & hessian,
-                                    Array1 <doublevar>  & grad_var_tmp, doublevar & energy_mean, 
-                                    Array1 <double> & delta, int & min_nconfig, ostream & output)
+void Optimize_method2::func_hessian(Array1 <double> & parms, int nparms_start, int nparms_end, Array2 <double> & hessian,
+				    Array1 <doublevar>  & grad_var_tmp, doublevar & energy_mean, 
+				    Array1 <double> & delta, int & min_nconfig, ostream & output)
 {
-  // cout <<"node "<< mpi_info.node << " Start: Optimize_method2::func_hessian"<<endl;
   int nparms_full=wfdata->nparms();
   int nparms=nparms_end-nparms_start;
   
@@ -587,9 +522,8 @@ void Optimize_method2::func_hessian_rev(Array1 <double> & parms, int nparms_star
   }
 
   // setting up parameters
-  for(int i=0; i< nparms_full; i++){
-    temp_parms(i)=parms(i);
-  }
+  temp_parms=parms;
+
   Wf_return  wfval(nfunctions,2);
   Array1 <doublevar> kinetic(nfunctions), nonloc(nfunctions); 
   Array2 <doublevar> hess1_eng(nparms,nparms); 
@@ -603,7 +537,6 @@ void Optimize_method2::func_hessian_rev(Array1 <double> & parms, int nparms_star
   Array1 <doublevar> grad_eng(nparms);
   Array1 <doublevar> grad_wf_tmp(nparms);
   Array1 <doublevar> grad_e_local_tmp(nparms);
-  // Array1 <doublevar> grad_eng_tmp(nparms);
   Array1 < Array2 <doublevar> > Psi(nparms+1); 
   Array1 < Array1 <doublevar> > e_local(nparms+1);
   Array2 <doublevar> Weightsum(nparms,nparms);
@@ -615,9 +548,6 @@ void Optimize_method2::func_hessian_rev(Array1 <double> & parms, int nparms_star
   
   doublevar reweight,psi,weight;;
   Array1 <doublevar> ddelta(nparms);
-  doublevar sum_of_weights;
-    
-
   Array1 < Array1 <doublevar> > e_local_gradient(nparms);
   Array1 < Array1 <doublevar> > wf_gradient(nparms);
   for(int i=0;i<=nparms;i++){
@@ -631,9 +561,9 @@ void Optimize_method2::func_hessian_rev(Array1 <double> & parms, int nparms_star
     e_local(i).Resize(nconfig);
     Psi(i)=0.0;
     e_local(i)=0.0;
-    
   }
 
+  //starting calculation the derivatives using finite difference
   for (int i=0;i<=nparms;i++){
     if (i>0){
       temp_parms(i-1+nparms_start)+=ddelta(i-1);
@@ -654,23 +584,13 @@ void Optimize_method2::func_hessian_rev(Array1 <double> & parms, int nparms_star
       //cout << "(hess) Sum of ln(psi)/min_nconfig= "<<sum_tmp/min_nconfig<<endl;
       //if(output)
       //cout << "(hess) Aver. Sum of ln(psi)/min_nconfig= "<<ln_norm_new_vals<<endl;
-      
-      //Pseudopotential file
-      //FILE * pseudoin;
-      //pseudoin=fopen(pseudostore.c_str(), "r");
       psp_buff.start_again();
-      //loop over walkers
       for(int walker=0; walker< min_nconfig; walker++){
-        //cout <<"walker: "<<walker<<endl;
-        // calculation over j index with i=0; need for gradients
-        if(i==0){
+	if(i==0){
           wf(walker)->updateLap(wfdata, electrons(walker));
-          //cout << "calcKinetic " << endl;
-          sysprop->calcKinetic(wfdata, electrons(walker), wf(walker), kinetic);
-          //cout << "coulpot " << endl;
-          doublevar coulpot=local_energy(walker);
-          //cout << "pseudopotential " << endl;
-          pseudo->calcNonlocWithFile(wfdata, electrons(walker), wf(walker),
+	  sysprop->calcKinetic(wfdata, electrons(walker), wf(walker), kinetic);
+	  doublevar coulpot=local_energy(walker);
+	  pseudo->calcNonlocWithFile(wfdata, electrons(walker), wf(walker),
                                      nonloc, psp_buff);
           wf(walker)->getVal(wfdata, 0, wfval);
           reweight=1.0;
@@ -717,30 +637,47 @@ void Optimize_method2::func_hessian_rev(Array1 <double> & parms, int nparms_star
         // i>0 j>=i calculation of double index quantities
         else {
           if(i==1 && walker==0 ){
-            if(j==1)
+	    //doing averages over processor for single index quantities
+            if(j==1){
               if (output)
                 cout << "Gradients of: minimized quantity, vmc energy, wavefunction and local energy"<<endl;
-            sum_of_weights=parallel_sum(weightsum(j-1));
-            switch(min_function)
-            {
-              case min_energy:
-                grad_var_tmp(j-1)=parallel_sum(grad_eng(j-1))/sum_of_weights;
-                grad_eng_tmp(j-1)=grad_var_tmp(j-1);
-                break;
-              case min_variance:  
-                grad_var_tmp(j-1)=parallel_sum(grad_var(j-1))/sum_of_weights;
-                break;
-              case min_mixed:
-                grad_var_tmp(j-1)=mixing*parallel_sum(grad_eng(j-1))/sum_of_weights
-                +(1-mixing)*parallel_sum(grad_var(j-1))/sum_of_weights;
-                break;
-            }
-            grad_wf_tmp(j-1)=parallel_sum(grad_wf(j-1))/sum_of_weights;
-            grad_e_local_tmp(j-1)=parallel_sum(grad_e_local(j-1))/sum_of_weights;
-            if (output)
-              cout <<j<<":  "<<  grad_var_tmp(j-1)<<"  "<<grad_eng_tmp(j-1)<<"  "<<grad_wf_tmp(j-1)<<"  "<<grad_e_local_tmp(j-1)<<endl;
+	      switch(min_function){
+	        case min_energy:
+		  parallel_sum(grad_eng);
+		  break;
+		case min_variance:  
+		  parallel_sum(grad_var);
+		  break;
+		case min_mixed:
+		  parallel_sum(grad_eng);
+		  parallel_sum(grad_var);
+		  break;
+		}
+	      parallel_sum(weightsum);
+	      parallel_sum(grad_wf);
+	      parallel_sum(grad_e_local);
+	    }//end of j==1
             
-          }
+	    switch(min_function){
+	      case min_energy:
+		grad_var_tmp(j-1)=grad_eng(j-1)/weightsum(j-1);
+		grad_eng_tmp(j-1)=grad_var_tmp(j-1);
+		break;
+	      case min_variance:  
+		grad_var_tmp(j-1)=grad_var(j-1)/weightsum(j-1);
+		break;
+	      case min_mixed:
+		grad_var_tmp(j-1)=mixing*grad_eng(j-1)/weightsum(j-1)
+		  +(1-mixing)*grad_var(j-1)/weightsum(j-1);
+	        break;
+	    }
+	    grad_wf_tmp(j-1)=grad_wf(j-1)/weightsum(j-1);
+	    grad_e_local_tmp(j-1)=grad_e_local(j-1)/weightsum(j-1);
+	    if (output)
+	      cout <<j<<":  "<<  grad_var_tmp(j-1)<<"  "<<grad_eng_tmp(j-1)<<"  "<<grad_wf_tmp(j-1)<<"  "<<grad_e_local_tmp(j-1)<<endl;
+            
+	  }//i==1 && walker==0 
+	  //collecting  double index quantities
           wf(walker)->updateVal(wfdata, electrons(walker));
           wf(walker)->getVal(wfdata, 0, wfval);
           reweight=1.0;
@@ -749,18 +686,12 @@ void Optimize_method2::func_hessian_rev(Array1 <double> & parms, int nparms_star
           }
           weight=reweight;
           doublevar hessian_wf;
-          //doublevar e_local_grad_i=(e_local(i)(walker)-e_local(0)(walker))/ddelta(i-1);
-          //doublevar e_local_grad_j=(e_local(j)(walker)-e_local(0)(walker))/ddelta(j-1);
-          //doublevar wf_grad_i=(Psi(i)(walker,1)- 1)/(ddelta(i-1));
-          //doublevar wf_grad_j=(Psi(i)(walker,1)- 1)/(ddelta(j-1));
-          switch(min_function)
+	  switch(min_function)
           {
             case min_energy:
               psi=wfval.sign(0)*Psi(0)(walker,0)*exp(wfval.amp(0,0)-Psi(0)(walker,1));
               hessian_wf=(psi-Psi(i)(walker,1)-Psi(j)(walker,1)+1)/(ddelta(i-1)*ddelta(j-1));
-              //cout << psi << " "<<Psi(i)(walker,1)<<"  "<<Psi(j)(walker,1)<<endl;
-              //cout << walker<< " "<<i<<" "<<j<<" "<<"hessian_wf:  "<<hessian_wf<<endl;
-              hess1_eng(i-1,j-1)+=(hessian_wf- wf_gradient(i-1)(walker)* wf_gradient(j-1)(walker)) *(e_local(0)(walker)-energy_mean)*weight;
+	      hess1_eng(i-1,j-1)+=(hessian_wf- wf_gradient(i-1)(walker)* wf_gradient(j-1)(walker)) *(e_local(0)(walker)-energy_mean)*weight;
               hess2_eng(i-1,j-1)+=(wf_gradient(i-1)(walker)-grad_wf_tmp(i-1))*(wf_gradient(j-1)(walker)-grad_wf_tmp(j-1))*
                 (e_local(0)(walker)-energy_mean)*weight;
               hess3_1eng(i-1,j-1)+=wf_gradient(i-1)(walker)*e_local_gradient(j-1)(walker)*weight;
@@ -787,8 +718,7 @@ void Optimize_method2::func_hessian_rev(Array1 <double> & parms, int nparms_star
         }// i>0 j>=i
       }//end of loop over walkers
       
-      //fclose(pseudoin);
-      
+           
       if (j>0){
         // cout <<"["<<  temp_parms(j-1)-parms(j-1) << "] ";
         temp_parms(j-1+nparms_start)-=ddelta(j-1); 
@@ -804,39 +734,48 @@ void Optimize_method2::func_hessian_rev(Array1 <double> & parms, int nparms_star
 
   // doing averages over processor for double index quantities
   // + calculation of final hessian.
-  
+  switch(min_function){
+  case min_energy:
+    parallel_sum(hess1_eng);
+    parallel_sum(hess2_eng);
+    parallel_sum(hess3_1eng);
+    parallel_sum(hess3_2eng);
+    break;
+  case min_variance:
+    parallel_sum(hess);
+    break;
+  case min_mixed:
+    parallel_sum(hess1_eng);
+    parallel_sum(hess2_eng);
+    parallel_sum(hess3_1eng);
+    parallel_sum(hess3_2eng);
+    parallel_sum(hess);
+    break;
+  default:
+    error("Optimize_method2::hessian error!");
+  }
+  parallel_sum(Weightsum);
   doublevar h_tmp, h_tmp2;
-  //if (output)
-  // cout << "Our Hessian matrix"<<endl;
-  doublevar hess1_eng_tmp;
-  doublevar hess2_eng_tmp;
-  doublevar combinedweightsum;
+
   for (int i=0;i<nparms;i++){
     for (int j=i;j<nparms;j++){
       switch(min_function)
         {
         case min_energy:
-          hess1_eng_tmp=parallel_sum(hess1_eng(i,j)); 
-          hess2_eng_tmp=parallel_sum(hess2_eng(i,j)); 
-          combinedweightsum=parallel_sum(Weightsum(i,j));
-	  //cout << hess1_eng_tmp/combinedweightsum<< "  "<<hess2_eng_tmp/combinedweightsum<<endl;
-          h_tmp=2.0*(hess1_eng_tmp+2.0*hess2_eng_tmp)/combinedweightsum;
-          hessian(i,j)=h_tmp+parallel_sum(hess3_1eng(i,j))/combinedweightsum -grad_wf_tmp(i)*grad_e_local_tmp(j)
-                            +parallel_sum(hess3_2eng(i,j))/combinedweightsum -grad_wf_tmp(j)*grad_e_local_tmp(i);
+          h_tmp=2.0*(hess1_eng(i,j)+2.0*hess2_eng(i,j))/Weightsum(i,j);
+          hessian(i,j)=h_tmp+hess3_1eng(i,j)/Weightsum(i,j) -grad_wf_tmp(i)*grad_e_local_tmp(j)
+                            +hess3_2eng(i,j)/Weightsum(i,j) -grad_wf_tmp(j)*grad_e_local_tmp(i);
           hessian(j,i)=hessian(i,j);
           break;
         case min_variance:
-          hessian(i,j)=2.0*parallel_sum(hess(i,j))/parallel_sum(Weightsum(i,j));
+          hessian(i,j)=2.0*hess(i,j)/Weightsum(i,j);
           hessian(j,i)=hessian(i,j);
           break;
 	case min_mixed:
-	  hess1_eng_tmp=parallel_sum(hess1_eng(i,j)); 
-          hess2_eng_tmp=parallel_sum(hess2_eng(i,j)); 
-	  combinedweightsum=parallel_sum(Weightsum(i,j));
-	  h_tmp=2.0*(hess1_eng_tmp+2.0*hess2_eng_tmp)/combinedweightsum
-	    +parallel_sum(hess3_1eng(i,j))/combinedweightsum -grad_wf_tmp(i)*grad_e_local_tmp(j)
-	    +parallel_sum(hess3_2eng(i,j))/combinedweightsum -grad_wf_tmp(j)*grad_e_local_tmp(i);
-	  h_tmp2=2.0*parallel_sum(hess(i,j))/combinedweightsum;
+	  h_tmp=2.0*(hess1_eng(i,j)+2.0*hess2_eng(i,j))/Weightsum(i,j)
+	    +hess3_1eng(i,j)/Weightsum(i,j) -grad_wf_tmp(i)*grad_e_local_tmp(j)
+	    +hess3_2eng(i,j)/Weightsum(i,j) -grad_wf_tmp(j)*grad_e_local_tmp(i);
+	  h_tmp2=2.0*hess(i,j)/Weightsum(i,j);
 	  hessian(i,j)=mixing*h_tmp+(1-mixing)*h_tmp2;
           hessian(j,i)=hessian(i,j);  
 	  break;
@@ -880,10 +819,7 @@ void Optimize_method2::energy_grad_analytical(Array1 <double> & parms, int nparm
   weightsum=0;
   
    // setting up parameters
-  for(int i=0; i< nparms_full; i++){
-    temp_parms(i)=parms(i);
-  }
-
+  temp_parms=parms;
   wfdata->setVarParms(temp_parms);
   doublevar sum_tmp=0.0;
   weight.Resize(min_nconfig);
@@ -897,23 +833,13 @@ void Optimize_method2::energy_grad_analytical(Array1 <double> & parms, int nparm
   //cout << "(energy grad)Sum of ln(psi)/min_nconfig= "<<sum_tmp/min_nconfig<<endl;
   //if(output)
   // cout << "(energy grad)Aver. Sum of ln(psi)/min_nconfig= "<<ln_norm_new_values<<endl;
-  
-  //Pseudopotential file
-  //FILE * pseudoin;
-  //pseudoin=fopen(pseudostore.c_str(), "r");
   psp_buff.start_again();
   for(int walker=0; walker< min_nconfig; walker++){
-    //cout << "updateLap " << endl;
     wf(walker)->updateLap(wfdata, electrons(walker));
-    //cout << "calcKinetic " << endl;
     sysprop->calcKinetic(wfdata, electrons(walker), wf(walker), kinetic);
-    //cout << "coulpot " << endl;
     doublevar coulpot=local_energy(walker);
-    //cout << "pseudopotential " << endl;
     pseudo->calcNonlocWithFile(wfdata, electrons(walker), wf(walker),nonloc, psp_buff);
-    //cout << "getVal " << endl;
     wf(walker)->getVal(wfdata, 0, wfval);
-    // cout <<"&& "<<kinetic(0)<<" "<<coulpot<<" "<<nonloc(0)<<endl;    
     wf(walker)->getParmDeriv(wfdata, electrons(walker), derivatives);
     e_local=kinetic(0) + coulpot+ nonloc(0);
     doublevar reweight=1.0;
@@ -928,34 +854,26 @@ void Optimize_method2::energy_grad_analytical(Array1 <double> & parms, int nparm
     }
     weightsum+=weight(walker);
   }
-  //fclose(pseudoin);
-
-  
   //if (output)
   //  cout <<"Calculated Energy gradient and WF's gradient: "<<endl;
 
   doublevar sum_of_weights=parallel_sum(weightsum);
+  parallel_sum(grad_var);
+  parallel_sum(grad_wf_tmp);
   for (int i=0;i<nparms;i++){
-    grad(i)=0;
-    grad_wf(i)=0;
-    grad(i)=parallel_sum(grad_var(i))/sum_of_weights;
-    grad_wf(i)=parallel_sum(grad_wf_tmp(i))/sum_of_weights;
-    // if (output)
-    // cout <<i<<":  "<<grad(i)<<"  "<<grad_wf(i)<<endl;
+    grad(i)=grad_var(i)/sum_of_weights;
+    grad_wf(i)=grad_wf_tmp(i)/sum_of_weights;
     if(fabs(weightsum) < 1e-14)
       error("sum of weights is ", weightsum, " this is way too small");
     if(abs(grad(i)) > 1e14)
       error("gradient is too large: ", grad(i) );
   }
-
-  //if (output)
-  //cout <<endl;
   //cout << "End: Optimize_method2::func_grad"<<endl;
 
 }
 //------------------------------------------------------------------------
 
-void Optimize_method2::func_hessian_rev_analytical(Array1 <double> & parms, int nparms_start, int nparms_end, Array2 <double> & hessian,
+void Optimize_method2::func_hessian_analytical(Array1 <double> & parms, int nparms_start, int nparms_end, Array2 <double> & hessian,
                                     Array1 <doublevar>  & grad_var, doublevar & energy_mean, 
                                     Array1 <double> & delta, int & min_nconfig, ostream & output)
 {
@@ -971,9 +889,7 @@ void Optimize_method2::func_hessian_rev_analytical(Array1 <double> & parms, int 
   energy_grad_analytical(parms, nparms_start, nparms_end, grad_eng, grad_wf, energy_mean, delta, min_nconfig, output);
   
   // setting up parameters
-  for(int i=0; i< nparms_full; i++){
-    temp_parms(i)=parms(i);
-  }
+  temp_parms=parms;
   Wf_return  wfval(nfunctions,2);
   Parm_deriv_return wfders;
   wfders.nparms_start=nparms_start;
@@ -990,14 +906,11 @@ void Optimize_method2::func_hessian_rev_analytical(Array1 <double> & parms, int 
   Array2 <doublevar> hess3_1eng(nparms,nparms);
   Array2 <doublevar> hess3_2eng(nparms,nparms);
   Array2 <doublevar> hess1_var(nparms,nparms);
- 
-  //Array1 < Array2 <doublevar> > hessian_wf;
-  //Array1 < Array1 <doublevar> > gradient_wf;
   Array1 <doublevar> grad_e_local(nparms);
   Array1 <doublevar> grad_var_tmp(nparms);
   Array1 <doublevar> grad_e_local_tmp(nparms);
 
-  Array1 < Array1 <doublevar> > e_local(nparms+1);
+  
   doublevar weightsum;
  
   //setting everything to zero
@@ -1009,60 +922,47 @@ void Optimize_method2::func_hessian_rev_analytical(Array1 <double> & parms, int 
   doublevar sum_of_weights=0;
     
   //set variables
-  Array1 < Array1 <doublevar> > e_local_gradient(nparms);
+  Array1 <Array1 <doublevar> > e_local_gradient(nparms);
+  Array1 <doublevar> e_local(min_nconfig);
+
   for(int i=0;i<=nparms;i++){
     if (i<nparms){
       ddelta(i)=delta(i+nparms_start);
       e_local_gradient(i).Resize(min_nconfig);
     }
-    e_local(i).Resize(min_nconfig);
-    e_local(i)=0.0;
   }
 
-  //if (output)
-  // cout <<"Getting values of local energy at parms(i)+delta(i)"<<endl;  
-  for (int i=0;i<=nparms;i++){
-    if (i>0){
-      temp_parms(i-1+nparms_start)+=ddelta(i-1);
-    }
-    wfdata->setVarParms(temp_parms);
-    //FILE * pseudoin;
-    //pseudoin=fopen(pseudostore.c_str(), "r");
-    psp_buff.start_again();
-    for(int walker=0; walker< min_nconfig; walker++){
-      //cout << "updateLap " << endl;
-      wf(walker)->updateLap(wfdata, electrons(walker));
-      //cout << "calcKinetic " << endl;
-      sysprop->calcKinetic(wfdata, electrons(walker), wf(walker), kinetic);
-      //cout << "coulpot " << endl;
-      doublevar coulpot=local_energy(walker);
-      //cout << "pseudopotential " << endl;
-      pseudo->calcNonlocWithFile(wfdata, electrons(walker), wf(walker),nonloc, psp_buff);
-      //cout << "getVal " << endl;
-      // wf(walker)->getVal(wfdata, 0, wfval);
-      // cout <<"&& "<<kinetic(0)<<" "<<coulpot<<" "<<nonloc(0)<<endl;
-      e_local(i)(walker)=kinetic(0) + coulpot+ nonloc(0);
-      if(i>0)
-        e_local_gradient(i-1)(walker)=(e_local(i)(walker)-e_local(0)(walker))/ddelta(i-1);
-    }
-    //fclose(pseudoin);
-    //if (output)
-    // cout <<"#";
-    if (i>0){
-      temp_parms(i-1+nparms_start)-=ddelta(i-1);
-    } 
+
+  Array1 <doublevar> kinetic_old(min_nconfig);
+  Array1 < Array1 <doublevar> > nonloc_deriv(min_nconfig);
+  //getting analytic derivatives of nonlocPP and storing local energy
+  for(int walker=0; walker< min_nconfig; walker++){
+    wf(walker)->updateLap(wfdata, electrons(walker));
+    sysprop->calcKinetic(wfdata, electrons(walker), wf(walker), kinetic);
+    kinetic_old(walker)=kinetic(0);
+    doublevar coulpot=local_energy(walker);
+    nonloc_deriv(walker).Resize(nparms);
+    pseudo->calcNonlocParmDeriv(wfdata, electrons(walker), wf(walker),
+				psp_test(walker), nonloc, nonloc_deriv(walker));
+    e_local(walker)=kinetic(0)+coulpot+nonloc(0);
   }
-  if (output)
-    cout <<endl;
- 
-  //if (output)
-  // cout << "Getting all 1 and 2 index components for hessian"<<endl;
+  //getting derivatives of kinetic energy by finite difference
+  for (int i=0;i<nparms;i++){
+    temp_parms(i+nparms_start)+=ddelta(i);
+    wfdata->setVarParms(temp_parms);
+    for(int walker=0; walker< min_nconfig; walker++){
+      wf(walker)->updateLap(wfdata, electrons(walker));
+      sysprop->calcKinetic(wfdata, electrons(walker), wf(walker), kinetic);
+      e_local_gradient(i)(walker)=nonloc_deriv(walker)(i)+(kinetic(0)-kinetic_old(walker))/ddelta(i);
+    }//walker
+    temp_parms(i+nparms_start)-=ddelta(i);
+  }
  
   grad_var_tmp=0;
   grad_e_local_tmp=0;
   
   for(int walker=0; walker< min_nconfig; walker++){
-  for (int i=0;i<nparms;i++){
+    for (int i=0;i<nparms;i++){
       switch(min_function)
 	{
 	case min_energy:	
@@ -1070,11 +970,11 @@ void Optimize_method2::func_hessian_rev_analytical(Array1 <double> & parms, int 
 	  break;
 	case min_variance:
 	  grad_var_tmp(i)+=2.0*(e_local_gradient(i)(walker)-grad_eng(i))*
-	                       (e_local(0)(walker)-energy_mean)*weight(walker);
+	                       (e_local(walker)-energy_mean)*weight(walker);
 	  grad_e_local_tmp(i)+=e_local_gradient(i)(walker)*weight(walker);
 	  break;
 	case min_mixed:
-	  grad_var_tmp(i)+=2.0*(e_local_gradient(i)(walker)-grad_eng(i))*(e_local(0)(walker)-energy_mean)*weight(walker);
+	  grad_var_tmp(i)+=2.0*(e_local_gradient(i)(walker)-grad_eng(i))*(e_local(walker)-energy_mean)*weight(walker);
 	  grad_e_local_tmp(i)+=e_local_gradient(i)(walker)*weight(walker);
 	  break;
 	}
@@ -1083,6 +983,9 @@ void Optimize_method2::func_hessian_rev_analytical(Array1 <double> & parms, int 
   }
 
   sum_of_weights=parallel_sum(weightsum);
+  parallel_sum(grad_var_tmp);
+  parallel_sum(grad_e_local_tmp);
+
   if (output)
     cout << "Gradients of: minimized quantity, vmc energy, wavefunction and local energy"<<endl;
   for (int i=0;i<nparms;i++){
@@ -1092,24 +995,21 @@ void Optimize_method2::func_hessian_rev_analytical(Array1 <double> & parms, int 
 	grad_var(i)=grad_eng(i);
 	break;
       case min_variance:  
-	grad_var(i)=parallel_sum(grad_var_tmp(i))/sum_of_weights;
+	grad_var(i)=grad_var_tmp(i)/sum_of_weights;
 	break;
       case min_mixed:
 	grad_var(i)=mixing*grad_eng(i)
-	  +(1-mixing)*parallel_sum(grad_var_tmp(i))/sum_of_weights;
+	  +(1-mixing)*grad_var_tmp(i)/sum_of_weights;
 	break;
       }
-    grad_e_local(i)=parallel_sum(grad_e_local_tmp(i))/sum_of_weights;
+    grad_e_local(i)=grad_e_local_tmp(i)/sum_of_weights;
     if (output)
       cout <<i+1<<":  "<<  grad_var(i)<<"   "<<grad_eng(i)<<"  "<<grad_wf(i)<<"  "<<grad_e_local(i)<<endl;
   }
 
-
   wfdata->setVarParms(temp_parms);
   for(int walker=0; walker< min_nconfig; walker++){
-    //cout << "updateVal " << endl;
     wf(walker)->updateVal(wfdata, electrons(walker));
-    //cout << "getParmDeriv " << endl;
     wf(walker)->getParmDeriv(wfdata, electrons(walker),  wfders);
     for (int i=0;i<nparms;i++){
       for (int j=i;j<nparms;j++){
@@ -1118,9 +1018,9 @@ void Optimize_method2::func_hessian_rev_analytical(Array1 <double> & parms, int 
 	  case min_energy:
 	    hess1_eng(i,j)+=(wfders.hessian(i,j)
 			     -wfders.gradient(i)*wfders.gradient(j))*
-	      (e_local(0)(walker)-energy_mean)*weight(walker);
+	      (e_local(walker)-energy_mean)*weight(walker);
 	    hess2_eng(i,j)+=(wfders.gradient(i)-grad_wf(i))*
-	      (wfders.gradient(j)-grad_wf(j))*(e_local(0)(walker)-energy_mean)*weight(walker);
+	      (wfders.gradient(j)-grad_wf(j))*(e_local(walker)-energy_mean)*weight(walker);
 	    hess3_1eng(i,j)+=wfders.gradient(i)*e_local_gradient(j)(walker)*weight(walker);
 	    hess3_2eng(i,j)+=wfders.gradient(j)*e_local_gradient(i)(walker)*weight(walker);	
 	    break;
@@ -1131,9 +1031,9 @@ void Optimize_method2::func_hessian_rev_analytical(Array1 <double> & parms, int 
 	  case min_mixed:
 	    hess1_eng(i,j)+=(wfders.hessian(i,j)
 			     -wfders.gradient(i)*wfders.gradient(j))*
-	      (e_local(0)(walker)-energy_mean)*weight(walker);
+	      (e_local(walker)-energy_mean)*weight(walker);
 	    hess2_eng(i,j)+=(wfders.gradient(i)-grad_wf(i))*
-	      (wfders.gradient(j)-grad_wf(j))*(e_local(0)(walker)-energy_mean)*weight(walker);
+	      (wfders.gradient(j)-grad_wf(j))*(e_local(walker)-energy_mean)*weight(walker);
 	    hess3_1eng(i,j)+=wfders.gradient(i)*e_local_gradient(j)(walker)*weight(walker);
 	    hess3_2eng(i,j)+=wfders.gradient(j)*e_local_gradient(i)(walker)*weight(walker);
 	    hess1_var(i,j)+=(e_local_gradient(i)(walker)-grad_eng(i))*
@@ -1148,39 +1048,49 @@ void Optimize_method2::func_hessian_rev_analytical(Array1 <double> & parms, int 
 
   // doing averages over processor for double index quantities
   // + calculation of final hessian.
-  doublevar h_tmp, h_tmp2;
   //if (output)
   // cout << "Our Hessian matrix"<<endl;
+  switch(min_function){
+    case min_energy:
+      parallel_sum(hess1_eng); 
+      parallel_sum(hess2_eng);
+      parallel_sum(hess3_1eng);
+      parallel_sum(hess3_2eng);
+      break;
+    case min_variance:
+      parallel_sum(hess1_var);
+      break;
+    case min_mixed:
+      parallel_sum(hess1_eng); 
+      parallel_sum(hess2_eng);
+      parallel_sum(hess3_1eng);
+      parallel_sum(hess3_2eng);
+      parallel_sum(hess1_var);
+      break;
+    default:
+      error("Optimize_method2::hessian error!");
+    }
 
-  doublevar hess1_eng_tmp;
-  doublevar hess2_eng_tmp;
-  
+  doublevar h_tmp, h_tmp2;
   for (int i=0;i<nparms;i++){
     for (int j=i;j<nparms;j++){
       switch(min_function)
         {
         case min_energy:
-          hess1_eng_tmp=parallel_sum(hess1_eng(i,j)); 
-          hess2_eng_tmp=parallel_sum(hess2_eng(i,j)); 
-          //cout << hess1_eng_tmp<< "  "<<hess2_eng_tmp<<endl;
-          h_tmp=2.0*(hess1_eng_tmp+2.0*hess2_eng_tmp)/sum_of_weights;
-          hessian(i,j)=h_tmp+parallel_sum(hess3_1eng(i,j))/sum_of_weights-grad_wf(i)*grad_e_local(j)
-                            +parallel_sum(hess3_2eng(i,j))/sum_of_weights-grad_wf(j)*grad_e_local(i);
+          h_tmp=2.0*(hess1_eng(i,j)+2.0*hess2_eng(i,j))/sum_of_weights;
+          hessian(i,j)=h_tmp+hess3_1eng(i,j)/sum_of_weights-grad_wf(i)*grad_e_local(j)
+                            +hess3_2eng(i,j)/sum_of_weights-grad_wf(j)*grad_e_local(i);
           hessian(j,i)=hessian(i,j);
           break;
         case min_variance:
-          hessian(i,j)=2.0*parallel_sum(hess1_var(i,j))/sum_of_weights;
+          hessian(i,j)=2.0*hess1_var(i,j)/sum_of_weights;
           hessian(j,i)=hessian(i,j);
           break;
 	case min_mixed:
-	  hess1_eng_tmp=parallel_sum(hess1_eng(i,j)); 
-          hess2_eng_tmp=parallel_sum(hess2_eng(i,j)); 
-          //cout <<"hess1_eng_tmp: " <<hess1_eng_tmp<< " hess2_eng_tmp: "<<hess2_eng_tmp<<endl;
-          h_tmp=2.0*(hess1_eng_tmp+2.0*hess2_eng_tmp)/sum_of_weights+
-               +parallel_sum(hess3_1eng(i,j))/sum_of_weights-grad_wf(i)*grad_e_local(j)
-               +parallel_sum(hess3_2eng(i,j))/sum_of_weights-grad_wf(j)*grad_e_local(i);
-	  h_tmp2=2.0*parallel_sum(hess1_var(i,j))/sum_of_weights;
-	  //cout <<"h_tmp: "<<h_tmp<<"h_tmp2: "<<h_tmp2<<endl;
+          h_tmp=2.0*(hess1_eng(i,j)+2.0*hess2_eng(i,j))/sum_of_weights+
+               +hess3_1eng(i,j)/sum_of_weights-grad_wf(i)*grad_e_local(j)
+               +hess3_2eng(i,j)/sum_of_weights-grad_wf(j)*grad_e_local(i);
+	  h_tmp2=2.0*hess1_var(i,j)/sum_of_weights;
 	  hessian(i,j)=mixing*h_tmp+(1-mixing)*h_tmp2;
           hessian(j,i)=hessian(i,j);  
 	  break;
