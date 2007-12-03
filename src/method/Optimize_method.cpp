@@ -462,6 +462,9 @@ doublevar Optimize_method::derivatives(int n, Array1 <double> & parms, Array1 <d
       pseudo->calcNonlocParmDeriv(wfdata, electrons(walker), wf(walker),
                                   psp_test(walker),nonloc,nonloc_deriv );    
     }
+    else { 
+      pseudo->calcNonlocWithTest(wfdata, electrons(walker), wf(walker),psp_test(walker),nonloc );    
+    }
     
     //Take the derivative of the kinetic energy by finite difference
     Array1 <doublevar> kin_tmp(nfunctions);
@@ -473,7 +476,7 @@ doublevar Optimize_method::derivatives(int n, Array1 <double> & parms, Array1 <d
       wf(walker)->updateLap(wfdata,electrons(walker));
       sysprop->calcKinetic(wfdata, electrons(walker),wf(walker),kin_tmp);
       if(!wfdata->supports(parameter_derivatives)) { 
-        cout << "calculating pseudo non-analytically! " << endl;
+        //cout << "calculating pseudo non-analytically! " << endl;
         Array1<doublevar> tnon(nfunctions);
         pseudo->calcNonlocWithTest(wfdata, electrons(walker), wf(walker),psp_test(walker),tnon );    
         nonloc_deriv(p)=(tnon(0)-nonloc(0))/del;
