@@ -92,6 +92,7 @@ private:
   int nfunctions; //!< Number of wavefunctions we have.
   enum min_function_type { min_variance, min_energy, min_mixed } min_function;
   int use_weights; //!< Whether to use weights in the correlated sampling
+  int analytic_pp_derivative;
   
   Array1 <Wf_return > orig_vals; //!< Original wave function values before opt
   doublevar ln_norm_orig_vals;

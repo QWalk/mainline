@@ -67,10 +67,10 @@ private:
 			       Array1 <doublevar> & local_energy,
 			       Array1 < Array1 <doublevar> > & local_energy_gradient,
 			       Array1 < Array1 <doublevar> > & wf_gradient,
-			       Array1 < Array2 <doublevar> > & wf_hessian
+			       Array1 < Array1 <doublevar> > & wf_hessian
 			       );
-			        
-  
+
+ 
   void calculate_first_averages(Array1 <doublevar> & parms,
 				Array1 <doublevar> & local_energy, 
 				Array1 < Array1 <doublevar> > local_energy_gradient,
@@ -88,7 +88,7 @@ private:
 				 Array1 <doublevar> & local_energy, 
 				 Array1 < Array1 <doublevar> > local_energy_gradient,
 				 Array1 < Array1 <doublevar> > wf_gradient,
-				 Array1 < Array2 <doublevar> > wf_hessian,
+				 Array1 < Array1 <doublevar> > wf_hessian,
 				 doublevar & energy_mean,
 				 Array1 <doublevar> & wf_gradient_mean,
 				 Array1 <doublevar> & local_energy_gradient_mean,
@@ -100,6 +100,7 @@ private:
 				 Array2 <doublevar> & hess3_2eng_mean,
 				 Array2 <doublevar> & hess1_var_mean
 				 );
+
 
   void build_gradient(Array1 <doublevar> & energy_gradient_mean,
 		      Array1 <doublevar> & variance_grad_mean,
@@ -162,6 +163,7 @@ private:
   doublevar mixing; //!< mixing weight for energy component in mixed minimization (0.95 default)
   int plus_version_of_hessian_of_energy;
   int use_correlated_sampling;
+  int store_hessian_to_file;
 
   string readconfig;
   string readconfig_non_cannonical;
@@ -171,7 +173,7 @@ private:
 
   int nparms;
   Array1 <doublevar> calcpot;
-  string pseudostore; //!< Where to put the temporary pseudo file
+  string hessianstore; //!< Where to put the temporary pseudo file
   string wfoutputfile;//!< Where to put the wavefunction output
   Primary guide_wf; //!< Guiding function
     
