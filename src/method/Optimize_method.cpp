@@ -106,29 +106,11 @@ void Optimize_method::read(vector <string> words,
     error("READCONFIG required for OPTIMIZE method!");
   canonical_filename(readconfig);
 
-  string oldreadconfig;
-  if(readvalue(words, pos=0, oldreadconfig, "OLDREADCONFIG"))
-    canonical_filename(oldreadconfig);
-  
-
   //--Set up variables
-  sysprop=NULL;
-  allocate(options.systemtext[0],  sysprop);
-  sysprop->notify(sample_static,0);
-  sysprop->generatePseudo(options.pseudotext, pseudo);
-
-  electrons.Resize(nconfig);
-  electrons=NULL;
-  wf.Resize(nconfig);
-  wf=NULL;
-
-
-  for(int i=0; i< nconfig; i++)
-  {
-    electrons(i)=NULL;
-    sysprop->generateSample(electrons(i));
-  }
-
+  allocate(options.systemtext[0],  sys);
+  sys->generatePseudo(options.pseudotext, pseudo);
+  sys->generateSample(sample);
+  config_pos.Resize(nconfig);
   
   int configsread=0;
   if(readconfig !="") {
@@ -144,19 +126,14 @@ void Optimize_method::read(vector <string> words,
     
     
     while(checkfile >>dummy && configsread < nconfig) {
-      if(read_config(dummy, checkfile, electrons(configsread)))
-        configsread++;
+      if(read_config(dummy, checkfile, sample))  { 
+        config_pos(configsread++).savePos(sample);        
+      }
     }
     checkfile.close();    
   }
 
-  if(readconfig =="") {
-    ifstream configin(oldreadconfig.c_str());
-    if(!configin)
-      error("Couldn't open ", oldreadconfig);
-    configsread=read_array(electrons, configin);
-    configin.close();
-  }
+
 
   if(configsread < nconfig)
   {
@@ -170,7 +147,7 @@ void Optimize_method::read(vector <string> words,
 
   debug_write(cout, "wfdata allocate\n");
   wfdata=NULL;
-  allocate(options.twftext[0], sysprop, wfdata);
+  allocate(options.twftext[0], sys, wfdata);
 
   if(wfdata->nparms() <= 0 ) 
     error("There appear to be no parameters to optimize!");
@@ -180,7 +157,7 @@ void Optimize_method::read(vector <string> words,
 int Optimize_method::showinfo(ostream & os)
 {
   os << "     System " << endl;
-  sysprop->showinfo(os);
+  sys->showinfo(os);
   os << endl << endl;
   os << "     Wavefunction " << endl;
   wfdata->showinfo(os);
@@ -251,31 +228,23 @@ void Optimize_method::run(Program_options & options, ostream & output)
 
   psp_test.Resize(nconfig);
   orig_vals.Resize(nconfig);
+  local_energy.Resize(nconfig);
+  wfdata->generateWavefunction(wf);
+  sample->attachObserver(wf);
   for(int walker=0; walker < nconfig; walker++)  {
-    wfdata->generateWavefunction(wf(walker));
-    nfunctions=wf(walker)->nfunc();
+    config_pos(walker).restorePos(sample);
+    nfunctions=wf->nfunc();
     orig_vals(walker).Resize(nfunctions, 2);
-
-    electrons(walker)->attachObserver(wf(walker));
-    wf(walker)->updateLap(wfdata, electrons(walker));
-
-    wf(walker)->getVal(wfdata, 0, orig_vals(walker));
-
-    pseudo->initializeStatic(wfdata, electrons(walker), wf(walker), psp_buff);
-    //wf(walker)->notify(sample_static,0);
-    
+    wf->updateLap(wfdata, sample);
+    wf->getVal(wfdata, 0, orig_vals(walker));
     psp_test(walker).Resize(pseudo->nTest());
     for(int i=0; i< pseudo->nTest(); i++) { 
       psp_test(walker)(i)=rng.ulec();
     }
+    local_energy(walker)=sys->calcLoc(sample);
   }
-
-  nfunctions=wf(0)->nfunc();
-  
-  local_energy.Resize(nconfig);
-  for(int i=0; i< nconfig; i++) 
-    local_energy(i)=sysprop->calcLoc(electrons(i));
-  
+  nfunctions=wf->nfunc();
+    
   for(int i=0; i< nparms; i++) {
     x(i+1)=temp_parms(i);
   }
@@ -295,14 +264,10 @@ void Optimize_method::run(Program_options & options, ostream & output)
   optimizer.opt_method=this;
   optimizer.output= &output;
 //optimizer.maccheckgrad(x.v,nparms, .0001, nparms);
-  optimizer.macoptII(x.v,nparms);
-  
-  
-  //va10a(nparms,x,f,g,dfn,xm,eps,mode,maxfn,iprint,iexit, output);
-
+  optimizer.macoptII(x.v,nparms);  
   variance(nparms, x,f);
 
-  remove(pseudostore.c_str());
+  //remove(pseudostore.c_str());
   if(output) {
     output << "Optimization finished.  ";
     output << "New wave function is in " << wfoutputfile << endl;
@@ -353,7 +318,7 @@ doublevar Optimize_method::variance(int n, Array1 <double> & parms, double & val
   Array1 <doublevar> weightsum(nfunctions);
   weightsum=0;
   Array1 <doublevar> kinetic(nfunctions), nonloc(nfunctions);
-  psp_buff.start_again();
+  //psp_buff.start_again();
 
   doublevar avgen=0;
   doublevar avgkin=0;
@@ -361,14 +326,13 @@ doublevar Optimize_method::variance(int n, Array1 <double> & parms, double & val
   doublevar avgnon=0;
   //cout << "loop " << endl;
   for(int walker=0; walker< nconfig; walker++) {
-    wf(walker)->updateLap(wfdata, electrons(walker));
-    sysprop->calcKinetic(wfdata, electrons(walker), wf(walker), kinetic);
+    config_pos(walker).restorePos(sample);
+    wf->updateLap(wfdata, sample);
+    sys->calcKinetic(wfdata, sample, wf, kinetic);
     doublevar coulpot=local_energy(walker);
-    pseudo->calcNonlocWithFile(wfdata, electrons(walker), wf(walker),
-                               nonloc, psp_buff);
-    wf(walker)->getVal(wfdata, 0, wfval);
-    for(int w=0; w< nfunctions; w++)
-    {
+    pseudo->calcNonlocWithTest(wfdata, sample, wf,psp_test(walker),nonloc );    
+    wf->getVal(wfdata, 0, wfval);
+    for(int w=0; w< nfunctions; w++) {
       doublevar energy=kinetic(w) + coulpot+ nonloc(w);
       avgkin+=kinetic(w);
       avgpot+=coulpot;
@@ -452,18 +416,19 @@ doublevar Optimize_method::derivatives(int n, Array1 <double> & parms, Array1 <d
   //pseudo->setDeterministic(1);
   //cout << "loop " << endl;
   for(int walker=0; walker< nconfig; walker++) {
-    wf(walker)->updateLap(wfdata, electrons(walker));
+    config_pos(walker).restorePos(sample);
+    wf->updateLap(wfdata, sample);
     Array1 <doublevar> kin_deriv(nparms);
-    sysprop->calcKinetic(wfdata, electrons(walker), wf(walker), kinetic);
+    sys->calcKinetic(wfdata, sample, wf, kinetic);
     
     Array1 <doublevar> nonloc_deriv(nparms);
     
     if(wfdata->supports(parameter_derivatives)) { 
-      pseudo->calcNonlocParmDeriv(wfdata, electrons(walker), wf(walker),
+      pseudo->calcNonlocParmDeriv(wfdata, sample, wf,
                                   psp_test(walker),nonloc,nonloc_deriv );    
     }
     else { 
-      pseudo->calcNonlocWithTest(wfdata, electrons(walker), wf(walker),psp_test(walker),nonloc );    
+      pseudo->calcNonlocWithTest(wfdata, sample, wf,psp_test(walker),nonloc );    
     }
     
     //Take the derivative of the kinetic energy by finite difference
@@ -473,12 +438,12 @@ doublevar Optimize_method::derivatives(int n, Array1 <double> & parms, Array1 <d
       Array1<doublevar> tparms=temp_parms;
       tparms(p)+=del;
       wfdata->setVarParms(tparms);
-      wf(walker)->updateLap(wfdata,electrons(walker));
-      sysprop->calcKinetic(wfdata, electrons(walker),wf(walker),kin_tmp);
+      wf->updateLap(wfdata,sample);
+      sys->calcKinetic(wfdata, sample,wf,kin_tmp);
       if(!wfdata->supports(parameter_derivatives)) { 
         //cout << "calculating pseudo non-analytically! " << endl;
         Array1<doublevar> tnon(nfunctions);
-        pseudo->calcNonlocWithTest(wfdata, electrons(walker), wf(walker),psp_test(walker),tnon );    
+        pseudo->calcNonlocWithTest(wfdata, sample, wf,psp_test(walker),tnon );    
         nonloc_deriv(p)=(tnon(0)-nonloc(0))/del;
       }
       //double deriv_non_chk=(tnon(0)-nonloc(0))/del;
@@ -489,7 +454,7 @@ doublevar Optimize_method::derivatives(int n, Array1 <double> & parms, Array1 <d
     //------end kinetic energy derivative
     
     doublevar coulpot=local_energy(walker);
-    wf(walker)->getVal(wfdata, 0, wfval);
+    wf->getVal(wfdata, 0, wfval);
     assert(nfunctions==1); //note that we implicitly assume this throughout
     for(int w=0; w< nfunctions; w++)
     {
