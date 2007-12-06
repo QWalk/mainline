@@ -51,6 +51,7 @@ void get_onebody_parms_diffspin(vector<string> & words, vector<string> & atomnam
 				Array1 <int> & nparms,
 				vector <string> & parm_labels,
 				Array2 <int> & linear_parms,
+                                int & counter,
 				Array1 <int> & parm_centers) {
   vector < vector < string> > parmtxt;
   vector <string> parmtmp;
@@ -79,9 +80,10 @@ void get_onebody_parms_diffspin(vector<string> & words, vector<string> & atomnam
 
   unique_parameters.Resize(nsec, maxsize);
   linear_parms.Resize(nsec, maxsize);
-  int counter=0;
+  //cout <<"spin "<<s<<" counter "<<counter<<endl;
   for(int i=0; i< nsec; i++) {
     for(int j=0; j< nparms(i); j++) {
+      
       unique_parameters(i,j)=atof(parmtxt[i][j+1].c_str());
       linear_parms(i,j)=counter++;
     }
@@ -128,11 +130,16 @@ void Jastrow_threebody_piece_diffspin::set_up(vector <string> & words,
   vector<string> atomnames;
   sys->getAtomicLabels(atomnames);
   unique_parameters_spin.Resize(2);
+  linear_parms.Resize(2);
+  int tmpcounter=0;
   for(int s=0;s<unique_parameters_spin.GetSize();s++){
     get_onebody_parms_diffspin(words, atomnames, unique_parameters_spin(s),s,
 			       _nparms, parm_labels,
-			       linear_parms, parm_centers);
+			       linear_parms(s), tmpcounter, parm_centers);
   }
+
+  
+
 
   if(unique_parameters_spin(0).GetDim(0)!=unique_parameters_spin(1).GetDim(0))
     error("Need same amount of LIKE_COEFFICIENTS and UNLIKE_COEFFICIENTS sections in three body");
@@ -179,7 +186,7 @@ void Jastrow_threebody_piece_diffspin::set_up(vector <string> & words,
   freeze=haskeyword(words, pos=0, "FREEZE");
   nspin_up=sys->nelectrons(0);
   nelectrons=sys->nelectrons(0)+sys->nelectrons(1);
-  // cout <<"End Jastrow_threebody_piece_diffspin::set_up"<<endl;  
+  //cout <<"End Jastrow_threebody_piece_diffspin::set_up"<<endl;  
 
 }
 //--------------------------------------------------------------------------
@@ -534,6 +541,39 @@ void Jastrow_threebody_piece_diffspin::updateLap_E_I(int e,
   //cout<<"Done"<<endl;
 }
 //end: added for ei back-flow
+
+//-----------------------------------------------------------
+
+void Jastrow_threebody_piece_diffspin::getParmDeriv(const Array3 <doublevar> & eibasis,
+                                        const Array3 <doublevar> & eebasis,
+                                       Parm_deriv_return & deriv) {
+  //cout << "Jastrow_threebody_piece_diffspin::getParmDeriv" << endl;
+  assert(eibasis.GetDim(1) >= parm_centers.GetDim(0));
+  int natoms=parm_centers.GetDim(0);
+  int nelectrons=eebasis.GetDim(0);
+  
+  const doublevar tiny=1e-14;
+  //cout << "updateLap " << endl;
+  for(int at=0; at < natoms; at++) {
+    int p=parm_centers(at);
+    for(int i=0; i< _nparms(p); i++) {
+      int k=klm(i,0), el=klm(i,1), m=klm(i,2);
+      for(int e=0; e< nelectrons; e++) { 
+        if(fabs(eibasis(e,at,k)) > tiny
+           || fabs(eibasis(e,at,el)) > tiny) { 
+          for(int j=e+1; j< nelectrons; j++) {
+            int s=(j < nspin_up) != (e < nspin_up);
+            int index=linear_parms(s)(p,i);
+            doublevar vkl=(eibasis(e,at,k)*eibasis(j,at,el)
+                                +eibasis(j,at,k)*eibasis(e,at,el));
+            deriv.gradient(index)+=vkl*eebasis(e,j,m);
+          }
+        }
+      }
+    }
+  } 
+}
+
 //-----------------------------------------------------------
 
 int Jastrow_threebody_piece_diffspin::nparms() {
@@ -561,7 +601,7 @@ void Jastrow_threebody_piece_diffspin::getParms(Array1 <doublevar> & parms) {
     for(int s=0; s< unique_parameters_spin.GetSize();s++){
       for(int i=0; i< unique_parameters_spin(s).GetDim(0); i++) {
 	for(int j=0; j< _nparms(i); j++) {
-	  parms(counter++) = unique_parameters_spin(s)(i,j)*natoms;
+	  parms(counter++) = unique_parameters_spin(s)(i,j);//*natoms;
 	}
       }
     }
@@ -579,7 +619,7 @@ void Jastrow_threebody_piece_diffspin::setParms(Array1 <doublevar> & parms) {
   for(int s=0; s< unique_parameters_spin.GetSize();s++){
     for(int i=0; i< unique_parameters_spin(s).GetDim(0); i++) {
       for(int j=0; j< _nparms(i); j++) {
-	unique_parameters_spin(s)(i,j)=parms(counter++)/natoms;
+	unique_parameters_spin(s)(i,j)=parms(counter++);//natoms;
 	//cout << "set one-body " << unique_parameters(i,j) << endl;
       }
     }

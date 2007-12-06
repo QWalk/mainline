@@ -71,6 +71,11 @@ public:
                  const Array3 <doublevar> & eebasis,
                  Array1 <doublevar> & updated_val);
 
+  void getParmDeriv(const Array3 <doublevar> & eionbasis, //i,at, basis
+                    const Array3 <doublevar> & eebasis, // i,j,basis, with i<j
+                    Parm_deriv_return & deriv);
+
+
   //start: added for ei back-flow
   void updateLap_E_I(int e,
 		     const Array4 <doublevar> & eibasis,
@@ -117,7 +122,7 @@ private:
   Array1 < Array2 <doublevar> > unique_parameters_spin;
   Array1 <int> _nparms;        //!<Number of parameters in each row above
   vector <string> parm_labels;
-  Array2 <int> linear_parms; //!< map the parameters onto a serial array
+  Array1 < Array2 <int> > linear_parms; //!< map the parameters onto a serial array
   Array1 <int> parm_centers; //!<Look up the parameter from the atom
   int freeze;
 

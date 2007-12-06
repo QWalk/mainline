@@ -72,9 +72,64 @@ void HEG_sample::restoreUpdate(int e, Sample_storage * store){
  */
 void HEG_sample::updateEEDist() {
 
+#define ORTHOGONAL_CELL 1
+
+#ifdef ORTHOGONAL_CELL
+
+  // Fast evaluation of electron electron distances. Unfortunately,
+  // it REQUIRES simple ORTHOGONAL simulation cell and thus cannot
+  // be used in general crystalline environment (for homogeneous
+  // gas such a loss of generality does not matter, does it?). It
+  // is tempting to replace 1/latVec with recipLatVec and do proper
+  // matrix multiplications, but as noted above, it is flawed as
+  // a general concept.
+  Array1 <doublevar> dist_lc(3);
+  for(int e=0; e< nelectrons; e++) {
+    if(elecDistStale(e)==1) {
+      for (int d=0; d<3; d++)
+	elecpos_lc(e,d)=elecpos(e,d)/parent->latVec(d,d);
+    }
+  }
+  
   for(int e=0; e< nelectrons; e++) {
     if(elecDistStale(e)==1) {
 
+      elecDistStale(e)=0;
+
+      for(int j=0; j< e; j++) {
+        for(int d=0; d< 3; d++) {
+          dist_lc(d)=elecpos_lc(j,d)-elecpos_lc(e,d);
+	  dist_lc(d)-=floor(dist_lc(d)+0.5);
+	}
+	pointdist(j,e,1)=0.0;
+	for (int d=0; d<3; d++) {
+	  pointdist(j,e,d+2)=parent->latVec(d,d)*dist_lc(d);
+	  pointdist(j,e,1)+=pointdist(j,e,d+2)*pointdist(j,e,d+2);
+	}
+	pointdist(j,e,0)=sqrt(pointdist(j,e,1));
+      }
+      
+      for(int k=e+1; k< nelectrons; k++) {
+	for(int d=0; d< 3; d++) {
+	  dist_lc(d)=elecpos_lc(e,d)-elecpos_lc(k,d);
+	  dist_lc(d)-=floor(dist_lc(d)+0.5);
+	}
+	pointdist(e,k,1)=0.0;
+	for (int d=0; d<3; d++) {
+	  pointdist(e,k,d+2)=parent->latVec(d,d)*dist_lc(d);
+	  pointdist(e,k,1)+=pointdist(e,k,d+2)*pointdist(e,k,d+2);
+	}
+	pointdist(e,k,0)=sqrt(pointdist(e,k,1));
+      }
+
+    } // if(elecDistStale(e)==1) {
+  }  // loop over electrons
+
+#else
+  // Original Lucas version from Periodic_sample
+  for(int e=0; e< nelectrons; e++) {
+    if(elecDistStale(e)==1) {
+      
       elecDistStale(e)=0;
       for(int j=0; j<e; j++) {
         pointdist(j, e,1)=0.0;
@@ -82,29 +137,11 @@ void HEG_sample::updateEEDist() {
       for(int k=e+1; k<nelectrons; k++) {
         pointdist(e,k,1)=0.0;
       }
-
-      //-------------------------
+      
       //Find the closest image
       Array1 <doublevar> tmpvec(3);
       doublevar tmpdis;
       doublevar height2=parent->smallestheight*parent->smallestheight*.25;
-      Array2 <doublevar> tmplat(26,3);
-      int counter=0;
-      for(int aa=-1; aa <= 1; aa++) {
-        for(int bb=-1; bb <= 1; bb++) {
-          for(int cc=-1; cc <= 1; cc++) {    
-            if(aa!=0 || bb !=0 || cc!=0) {
-              for(int d=0; d< 3; d++) {
-                tmplat(counter,d)=aa*parent->latVec(0,d)
-                         +bb*parent->latVec(1,d)
-                          +cc*parent->latVec(2,d);
-              }
-              counter++;
-            }
-          }
-        }
-      }
-
       
       for(int j=0; j< e; j++) {
         //first try within the primitive cell
@@ -118,7 +155,7 @@ void HEG_sample::updateEEDist() {
           for(int a=0; a< 26; a++) {
             for(int d=0; d< 3; d++) 
               tmpvec(d)=elecpos(j,d)-elecpos(e,d)+tmplat(a,d);
-              
+	    
             tmpdis=0;
             for(int d=0; d<3; d++) tmpdis+=tmpvec(d)*tmpvec(d);
             
@@ -134,8 +171,7 @@ void HEG_sample::updateEEDist() {
         }
       }
       
-        
-       for(int k=e+1; k< nelectrons; k++) {
+      for(int k=e+1; k< nelectrons; k++) {
         //first try within the primitive cell
         for(int d=0; d< 3; d++) 
           pointdist(e,k,d+2)=elecpos(e,d)-elecpos(k,d);
@@ -147,7 +183,7 @@ void HEG_sample::updateEEDist() {
           for(int a=0; a< 26; a++) {
             for(int d=0; d< 3; d++) 
               tmpvec(d)=elecpos(e,d)-elecpos(k,d)+tmplat(a,d);
-              
+	    
             tmpdis=0;
             for(int d=0; d<3; d++) tmpdis+=tmpvec(d)*tmpvec(d);
             
@@ -162,19 +198,22 @@ void HEG_sample::updateEEDist() {
           }
         }
       }     
-
-
+      
       //---------------------------
       for(int j=0; j<e; j++) {
         pointdist(j, e,0)=sqrt(pointdist(j, e,1));
+	//cout << j << " " << e << " " << pointdist(j,e,2) << endl;
       }
       for(int k=e+1; k<nelectrons; k++) {
         pointdist(e, k,0)=sqrt(pointdist(e, k,1));
-        //cout << e << "   " << k << "   " <<  pointdist(0,e,k) << endl;
+	//cout << e << " " << k << " " << pointdist(e,k,2) << endl;
       }
-    }
-  }
-  //cout << "done" << endl;
+      
+    } // if(elecDistStale(e)==1) {
+  }  // loop over electrons
+
+#endif
+
 }
 
 
@@ -188,9 +227,28 @@ void HEG_sample::init(System * sys) {
 
   elecpos.Resize(nelectrons, 3);
   pointdist.Resize(nelectrons, nelectrons,5);
+  elecpos_lc.Resize(nelectrons, 3);
 
   elecDistStale.Resize(nelectrons);
   elecDistStale=1;
+
+  tmplat.Resize(26,3);
+  int counter=0;
+  for(int aa=-1; aa <= 1; aa++) {
+    for(int bb=-1; bb <= 1; bb++) {
+      for(int cc=-1; cc <= 1; cc++) {    
+	if(aa!=0 || bb !=0 || cc!=0) {
+	  for(int d=0; d< 3; d++) {
+	    tmplat(counter,d)=aa*parent->latVec(0,d)
+	      +bb*parent->latVec(1,d)
+	      +cc*parent->latVec(2,d);
+	  }
+	  counter++;
+	}
+      }
+    }
+  }
+  
 
 }
 

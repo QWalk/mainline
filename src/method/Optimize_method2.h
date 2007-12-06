@@ -60,6 +60,8 @@ public:
   }
 
   int showinfo(ostream & os);
+  void readcheck(string & readconfig, string & oldreadconfig);
+
 private:
   void func_val(int n, const Array1 <double> & parms, double & val, double & energy, double & variance, 
                 int & min_nconfig, ostream & output);
@@ -67,14 +69,14 @@ private:
   void energy_grad(Array1 <double> & parms, int nparms_start, int nparms_end, Array1 <double> & grad, doublevar & ereff, 
                                      Array1 <double> & delta, int & min_nconfig, ostream & output);
 
-  void func_hessian_rev(Array1 <double> & parms, int nparms_start, int nparms_end, Array2 <double> & hessian,  
+  void func_hessian(Array1 <double> & parms, int nparms_start, int nparms_end, Array2 <double> & hessian,  
                     Array1 <doublevar>  & grad_var_tmp,  doublevar & ereff,
 		    Array1 <double> & delta, int & min_nconfig, ostream & output);
 
   void energy_grad_analytical(Array1 <double> & parms, int nparms_start, int nparms_end, Array1 <double> & grad,  
 						Array1 <double> & grad_wf, doublevar & energy_mean,
 						Array1 <double> & delta, int & min_nconfig, ostream & output);
-  void func_hessian_rev_analytical(Array1 <double> & parms, int nparms_start, int nparms_end, Array2 <double> & hessian,
+  void func_hessian_analytical(Array1 <double> & parms, int nparms_start, int nparms_end, Array2 <double> & hessian,
                                     Array1 <doublevar>  & grad_var, doublevar & energy_mean, 
 						     Array1 <double> & delta, int & min_nconfig, ostream & output);
   int LEVMAR_DER(Array1 <double> & parms, int nparms_start, int nparms_end, Array1 <double> & delta,
@@ -90,6 +92,7 @@ private:
   int nfunctions; //!< Number of wavefunctions we have.
   enum min_function_type { min_variance, min_energy, min_mixed } min_function;
   int use_weights; //!< Whether to use weights in the correlated sampling
+  int analytic_pp_derivative;
   
   Array1 <Wf_return > orig_vals; //!< Original wave function values before opt
   doublevar ln_norm_orig_vals;
@@ -112,6 +115,7 @@ private:
   Array1 <Wavefunction * > wf;
   Wavefunction_data * wfdata;
   Pseudopotential * pseudo;
+  Array1 < Array1 <doublevar> > psp_test;
 };
 
 #endif //OPTIMIZE_METHOD2_H_INCLUDED

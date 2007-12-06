@@ -149,18 +149,22 @@ int HEG_system::read(vector <string> & words,
   }
 
   pos=startpos;
-  if(!readsection(words, pos, latvectxt, "LATTICEVEC"))
-    error("LATTICEVEC is required in PERIODIC");
-
-  if(latvectxt.size() != ndim*ndim)
-    error("LATTICEVEC must have exactly ",ndim*ndim, " values");
+  if(!readsection(words, pos, latvectxt, "BOXSIZE"))
+    error("BOXSIZE is required in HEG");
+  if(latvectxt.size() != ndim)
+    error("BOXSIZE must have exactly ",ndim, " values");
 
   latVec.Resize(ndim, ndim);
+  latVec=0.0;
+  for(int i=0; i< ndim; i++)
+    latVec(i,i)=atof(latvectxt[i].c_str());
+  /*
   for(int i=0; i< ndim; i++) {
     for(int j=0; j< ndim; j++) {
       latVec(i,j)=atof(latvectxt[i*ndim+j].c_str());
     }
   }
+  */
 
   origin.Resize(3);
   vector <string> origintxt;

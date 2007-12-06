@@ -25,6 +25,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Slat_wf.h"
 #include "Cslat_wf.h"
 #include <algorithm>
+#include "MatrixAlgebra.h"
 
 
 
@@ -59,8 +60,12 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
   }
   else optimize_det=0;
 
+  sort=0;
+  if(haskeyword(words, pos=startpos, "SORT_DETWT")) {
+    sort=1;
+  }
+
   pos=startpos;
-  
   vector <vector <string> > csfstr;
   vector <string> csfsubstr;
 
@@ -98,6 +103,7 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
       cout <<"} "<<endl;
     }
     */
+    
     counter=0;
     detwt.Resize(ndet);
     for(int csf=0;csf<ncsf;csf++)
@@ -117,6 +123,9 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
     }
   }
 
+  //no sorting when ndet=1;
+  if( ndet==1 && sort)
+    sort=0;
 
   pos=startpos;
   vector <string> mowords;
@@ -315,7 +324,7 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
   //molecorb->buildLists(totoccupation);
   if(genmolecorb) init_mo();
 
-
+  
   
 
 }
@@ -472,36 +481,89 @@ int Slat_wf_data::writeinput(string & indent, ostream & os)
   }
   if(optimize_det)
     os << indent << "OPTIMIZE_DET" << endl;
+  
+  if(sort)
+    os << indent << "SORT_DETWT" << endl;
 
   if(use_csf){
+    Array1 <Array1 <doublevar> > CSF_print(ncsf);
+    Array1 <doublevar> detwt_print(ndet);
+    Array3 < Array1 <int> > occupation_orig_print(nfunc,ndet,2);
+    
+    if(sort){
+      Array1 <doublevar> csf_tmp(ncsf);
+      Array1 <int> list;
+      for(int csf=0;csf<ncsf;csf++)
+	csf_tmp(csf)=CSF(csf)(0);
+      sort_abs_values_descending(csf_tmp,csf_tmp,list);
+
+
+      //preparing CSF_print
+      Array1 < Array1 <int> > csf_order(ncsf); 
+      int counter_new=0;
+      for(int csf=0;csf<ncsf;csf++){
+	CSF_print(csf).Resize(CSF(list(csf)).GetDim(0));
+	csf_order(list(csf)).Resize(CSF(list(csf)).GetDim(0)-1);
+	for(int j=0;j<CSF(list(csf)).GetDim(0);j++){   
+	  CSF_print(csf)(j)=CSF(list(csf))(j);
+	  if(j>0){
+	    csf_order(list(csf))(j-1)=counter_new;
+	    detwt_print(counter_new)=CSF_print(csf)(0)*CSF_print(csf)(j);
+	    counter_new++;
+	  }
+	}
+      }
+      
+      Array1 <int> list2(ndet);
+      int counter_old=0;
+      for(int csf=0;csf<ncsf;csf++){
+	int dim_old=CSF(csf).GetDim(0)-1;
+	for(int j=0;j<dim_old;j++)
+	  list2(counter_old++)=csf_order(csf)(j);
+      }
+      
+      //preparing occupation_orig_print
+      for(int f=0; f< nfunc; f++)
+	for(int det=0; det < ndet; det++)
+	  for(int s=0; s<2; s++){
+	    occupation_orig_print(f,det,s).Resize(nelectrons(s));
+	    occupation_orig_print(f,det,s)=occupation_orig(f,list2(det),s);
+	  }
+    }
+    else{ //no sorting 
+      int counter=0;
+      for(int csf=0;csf<ncsf;csf++){
+	CSF_print(csf).Resize(CSF(csf).GetDim(0));
+	for(int j=0;j<CSF(csf).GetDim(0);j++){   
+	  CSF_print(csf)(j)=CSF(csf)(j);
+	  if(j>0)
+	    detwt_print(counter++)=CSF(csf)(0)*CSF(csf)(j);
+	}
+      }
+      for(int f=0; f< nfunc; f++)
+	for(int det=0; det < ndet; det++)
+	  for(int s=0; s<2; s++){
+	    occupation_orig_print(f,det,s).Resize(nelectrons(s));
+	    occupation_orig_print(f,det,s)=occupation_orig(f,det,s);
+	  }
+    }
+    // do printout
+    
     for(int csf=0;csf<ncsf;csf++){
       os << indent<<" CSF { ";
-      for(int j=0;j<CSF(csf).GetDim(0);j++){
-        os <<CSF(csf)(j)<<"  ";
+      for(int j=0;j<CSF_print(csf).GetDim(0);j++){
+        os <<CSF_print(csf)(j)<<"  ";
       } 
       os <<"} "<<endl;
     }
-  }
-  else {
-    os << indent << "DETWT { ";
-    for(int det=0; det < ndet; det++)
-      {
-        os << detwt(det) << "  ";
-      }
-    os << "}" << endl;
-  }
-
-
-  for(int f=0; f< nfunc; f++)
-  {
+    for(int f=0; f< nfunc; f++){
     os << indent << "STATES { " << endl << indent <<"  ";
-    for(int det=0; det < ndet; det++)
-    {
-      for(int s=0; s<2; s++)
-      {
-        for(int e=0; e< nelectrons(s); e++)
-        {
-          os << occupation_orig(f,det,s)(e)+1 << " ";
+    for(int det=0; det < ndet; det++){
+      if(ndet>1)
+	os <<"#  Determinant "<<det+1<<": weight: "<<detwt_print(det)<<endl<< indent <<"  ";
+      for(int s=0; s<2; s++){
+        for(int e=0; e< nelectrons(s); e++){
+          os << occupation_orig_print(f,det,s)(e)+1 << " ";
           if((e+1)%20 ==0)
             os << endl << indent << "  ";
         }
@@ -509,7 +571,62 @@ int Slat_wf_data::writeinput(string & indent, ostream & os)
       }
     }
     os << "}" << endl;
+    }
+    
   }
+  else {
+    Array1 <doublevar> detwt_print(ndet);
+    Array3 < Array1 <int> > occupation_orig_print(nfunc,ndet,2);
+    
+    if(sort){
+      Array1 <int> list;
+      sort_abs_values_descending(detwt,detwt_print,list);
+     
+      for(int f=0; f< nfunc; f++)
+	for(int det=0; det < ndet; det++)
+	  for(int s=0; s<2; s++){
+	    occupation_orig_print(f,det,s).Resize(nelectrons(s));
+	    occupation_orig_print(f,det,s)=occupation_orig(f,list(det),s);
+	  }
+    }
+    else{ //no sorting 
+      detwt_print=detwt;
+      for(int f=0; f< nfunc; f++)
+	for(int det=0; det < ndet; det++)
+	  for(int s=0; s<2; s++){
+	    occupation_orig_print(f,det,s).Resize(nelectrons(s));
+	    occupation_orig_print(f,det,s)=occupation_orig(f,det,s);
+	  }
+    }
+    
+    //do printout
+    os << indent << "DETWT { ";
+    for(int det=0; det < ndet; det++)
+      {
+	os << detwt_print(det) << "  ";
+	if ((det+1)%6==0)
+	  os <<endl<<indent;
+      }
+    os << "}" << endl;
+    
+    for(int f=0; f< nfunc; f++){
+    os << indent << "STATES { " << endl << indent <<"  ";
+    for(int det=0; det < ndet; det++){
+      if(ndet>1)
+	os <<"#  Determinant "<<det+1<<": weight: "<<detwt_print(det)<<endl<< indent <<"  ";
+      for(int s=0; s<2; s++){
+        for(int e=0; e< nelectrons(s); e++){
+          os << occupation_orig_print(f,det,s)(e)+1 << " ";
+          if((e+1)%20 ==0)
+            os << endl << indent << "  ";
+        }
+        os << endl << indent << "  ";
+      }
+    }
+    os << "}" << endl;
+    }
+  }//if using determinants
+      
 
   if(optimize_mo) {
     molecorb->setOrbfile(mo_place);

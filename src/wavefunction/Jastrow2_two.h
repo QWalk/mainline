@@ -152,6 +152,9 @@ public:
                  const Array3 <doublevar> & eebasis,
                  Array1 <doublevar> & val);
 
+  virtual void getParmDeriv(const Array3 <doublevar> & eebasis, //expects in form i,j,basis, with i<j
+                            Parm_deriv_return &);
+
   virtual void parameterSaveVal(int e,
                         const Array3 <doublevar> & eebasis,
                         Array1 <doublevar> & save, int begin_fill);

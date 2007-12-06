@@ -72,7 +72,8 @@ void EigenSystemSolverRealSymmetricMatrix(const Array2 < doublevar > & Ain, Arra
 
 void GeneralizedEigenSystemSolverRealSymmetricMatrices(const Array2 < doublevar > & Ain, const Array2 < doublevar> & Bin, Array1 < doublevar> & evals, Array2 < doublevar> & evecs);
 
-
+void sort_abs_values_descending(const Array1 <doublevar> & vals, Array1 <doublevar> & newvals, Array1 <int> & list);
+void sort_according_list(const Array1 <doublevar> & vals, Array1 <doublevar> & newvals, const Array1 <int> & list);
 //------------------------------------------------------------------------
 //IF Lapack was used
 #ifdef USE_LAPACK

@@ -23,6 +23,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Program_options.h"
 #include "System.h"
 #include "Array.h"
+#include "ulec.h"
 #include "MatrixAlgebra.h"
 void Newton_opt_method::read(vector <string> words,
                            unsigned int & pos,
@@ -47,14 +48,14 @@ void Newton_opt_method::read(vector <string> words,
     eref_exists=0;
     eref=0;
   }
-
+  
   //Optional options
   pos=0;
-  if( ! readvalue(words, pos, pseudostore, "PSEUDOTEMP") )
+  if( ! readvalue(words, pos, hessianstore, "HESSIANTEMP") )
   {
-    pseudostore=options.runid+".pseudo";
+    hessianstore=options.runid+".hessian";
   }
-  canonical_filename(pseudostore);
+  canonical_filename(hessianstore);
 
   if(! readvalue(words, pos=0, wfoutputfile, "WFOUTPUT") )
   {
@@ -80,17 +81,20 @@ void Newton_opt_method::read(vector <string> words,
     use_weights=1;
   }
   else { use_weights=0; } 
+  
   if(haskeyword(words, pos=0, "USE_HESSIAN_PLUS_TYPE") )
   {
     plus_version_of_hessian_of_energy=1;
   }
   else { plus_version_of_hessian_of_energy=0; } 
 
-  if(haskeyword(words, pos=0, "CORRELATED_SAMPLING") )
+  if(haskeyword(words, pos=0, "STORE_HESSIAN_TO_FILE") )
   {
-    use_correlated_sampling=1;
+    store_hessian_to_file=1;
   }
-  else { use_correlated_sampling=0; } 
+  else { store_hessian_to_file=0; } 
+  
+  
 
   string functiontype_str;
   pos=0;
@@ -104,14 +108,14 @@ void Newton_opt_method::read(vector <string> words,
     else if(functiontype_str=="ENERGY") {
      
       if(!use_weights) { 
-	single_write(cout, "Turning on USE_WEIGHTS for energy optimization");
+	single_write(cout, "Turning on USE_WEIGHTS for energy optimization\n");
 	use_weights=1;
       }
       min_function=min_energy;
     }
     else if(functiontype_str=="MIXED") {
       if(!use_weights) { 
-	single_write(cout, "Turning on USE_WEIGHTS for mixed optimization");
+	single_write(cout, "Turning on USE_WEIGHTS for mixed optimization\n");
 	use_weights=1;
       }
       min_function=min_mixed;
@@ -123,7 +127,7 @@ void Newton_opt_method::read(vector <string> words,
   }
   else
   {
-    min_function=min_variance;
+    min_function=min_mixed;
   }
 
   if(!readvalue(words, pos=0, readconfig, "READCONFIG"))
@@ -137,8 +141,23 @@ void Newton_opt_method::read(vector <string> words,
   canonical_filename(storeconfig);
 
   //read input stuff for MC run inside optimization
-  if (!readsection(words, pos=0, mc_words, "MC"))
-    error("Need MC section inside NEWTON_OPT method");
+  if(haskeyword(words, pos=0, "CORRELATED_SAMPLING") )
+  {
+    use_correlated_sampling=1;
+  }
+  else { use_correlated_sampling=0; } 
+
+  if (!readsection(words, pos=0, mc_words, "MC")){
+      mc_words.push_back("VMC");
+      mc_words.push_back("NBLOCK");
+      mc_words.push_back("10");
+      mc_words.push_back("NSTEP");
+      mc_words.push_back("10");
+      mc_words.push_back("TIMESTEP");
+      mc_words.push_back("1.0");
+      single_write(cout,"Using default version of MC"); 
+      //error("Need MC section inside NEWTON_OPT method");
+  }
 
   //--Set up variables
   sysprop=NULL;
@@ -212,12 +231,40 @@ void Newton_opt_method::readcheck(string & readconfig) {
 }
 
 
+
+void copy_of_2D_sym_array_to_1D_array(Array2 <doublevar> & A, Array1 <doublevar> & B){
+  int size=A.GetDim(0);
+  assert(A.GetDim(1)==size);
+  assert(B.GetSize()>=int(size*(size+1)/2));
+  int counter=0;
+  for(int i=0;i<size;i++){
+    for(int j=i;j<size;j++){
+      B(counter++)=A(i,j);
+    }
+  }
+}
+
+void copy_of_1D_array_to_2D_sym_array(Array1 <doublevar> & B, Array2 <doublevar> & A){
+  int size=A.GetDim(0);
+  assert(A.GetDim(1)==size);
+  assert(B.GetSize()>=int(size*(size+1)/2));
+  int counter=0;
+  for(int i=0;i<size;i++){
+    for(int j=i;j<size;j++){
+      A(i,j)=B(counter++);
+      A(j,i)=A(i,j);
+    }
+  }
+}
+
+
+
 void Newton_opt_method::generate_all_quanities(Array1 <doublevar> & parms,
 					       Array1 <doublevar> & delta, 
 					       Array1 <doublevar> & local_energy,
 					       Array1 < Array1 <doublevar> > & local_energy_gradient,
 					       Array1 < Array1 <doublevar> > & wf_gradient,
-					       Array1 < Array2 <doublevar> > & wf_hessian
+					       Array1 < Array1 <doublevar> > & wf_hessian
 					       ){
   Array1 <doublevar> kinetic(nfunctions), nonloc(nfunctions);
   Array1 <doublevar> Psi(nparms);
@@ -231,19 +278,18 @@ void Newton_opt_method::generate_all_quanities(Array1 <doublevar> & parms,
      derivatives.need_hessian=1;
   }
   
-  
-  //FILE * pseudoout;
-  //FILE * pseudoin;
   Pseudo_buffer psp_buff;
   doublevar ln_wf_value, sign_wf_value;
+
+  FILE * hessianout;
+  hessianout=NULL;
+  if(store_hessian_to_file){
+    hessianout=fopen(hessianstore.c_str(), "w");
+    if(!hessianout) { error("couldn't open hessian temporary file ", hessianstore," for writing.");}
+  }
     
   for(int walker=0; walker < nconfig; walker++)  {
     wfdata->setVarParms(parms);
-    //pseudoout=fopen(pseudostore.c_str(), "w");
-    //if(!pseudoout) {
-    //  error("couldn't open pseudopotential temporary file ", pseudostore,
-	  //  " for writing.");
-    //}
     config_pos(walker).restorePos(sample); 
     wf->updateLap(wfdata, sample);
     wf->getVal(wfdata, 0, wfval);
@@ -253,17 +299,31 @@ void Newton_opt_method::generate_all_quanities(Array1 <doublevar> & parms,
     psp_buff.clear();
     pseudo->initializeStatic(wfdata, sample, wf, psp_buff);
     wf->notify(sample_static,0);
-    //fclose(pseudoout);
+    /* remove comments to make use of nonloc_deriv
+    Array1 <doublevar> psp_test(pseudo->nTest());
+    for(int i=0; i< pseudo->nTest(); i++) { 
+      psp_test(i)=rng.ulec();
+      }
+    */
 
     if(wfdata->supports(parameter_derivatives)){
       wf->getParmDeriv(wfdata, sample, derivatives);
       wf_gradient(walker)=derivatives.gradient;
-      wf_hessian(walker)=derivatives.hessian;
-      //for(int m=0;m<nparms;m++){
-      //for(int n=m;n<nparms;n++)
-      //  cout<< wf_hessian(walker)(m,n)<< "  ";
-      //cout <<endl;
-      //}
+      if(store_hessian_to_file){
+	Array1 <doublevar> wf_hessian_store(int(nparms*(nparms+1)/2));
+	copy_of_2D_sym_array_to_1D_array(derivatives.hessian, wf_hessian_store);
+	for(int i=0; i< wf_hessian_store.GetDim(0); i++){
+	  fwrite(&wf_hessian_store(i), sizeof(doublevar), 1, hessianout);
+	}
+      }
+      else{
+	copy_of_2D_sym_array_to_1D_array(derivatives.hessian,wf_hessian(walker));
+      }
+      /* remove comments to make use of nonloc_deriv
+      Array1 <doublevar> nonloc_deriv(nparms);
+      pseudo->calcNonlocParmDeriv(wfdata, sample, wf,psp_test, nonloc, nonloc_deriv);
+      */
+      doublevar old_kinetic;
       for (int i=0;i<=nparms;i++){
         if(i>0){
           parms(i-1)+=delta(i-1);
@@ -272,21 +332,28 @@ void Newton_opt_method::generate_all_quanities(Array1 <doublevar> & parms,
 	
         wf->updateLap(wfdata, sample);
         sysprop->calcKinetic(wfdata, sample, wf, kinetic);
-        //pseudoin=fopen(pseudostore.c_str(), "r");
         psp_buff.start_again();
         pseudo->calcNonlocWithFile(wfdata, sample, wf,nonloc, psp_buff);
-        //fclose(pseudoin);
-        energy=kinetic(0)+calcpot(walker)+nonloc(0);
-        if(i==0)
-          local_energy(walker)=energy;
+	energy=kinetic(0)+calcpot(walker)+nonloc(0);
+	if(i==0){
+	  /* remove comments to make use of nonloc_deriv
+	     energy=kinetic(0)+calcpot(walker)+nonloc(0);
+	  */
+	  local_energy(walker)=energy;
+	  old_kinetic=kinetic(0);
+	}
         else 
-          local_energy_gradient(walker)(i-1)=(energy-local_energy(walker))/delta(i-1);
+	  local_energy_gradient(walker)(i-1)=(energy-local_energy(walker))/delta(i-1);
+	/* remove comments to make use of nonloc_deriv
+	   local_energy_gradient(walker)(i-1)=nonloc_deriv(i-1)+(kinetic(0)-old_kinetic)/delta(i-1);
+	*/
         if(i>0)
           parms(i-1)-=delta(i-1);
       }
     }
     else{
-      
+      Array2 <doublevar> hessian(nparms,nparms);
+      //hessian=0;
       for (int i=0;i<=nparms;i++){
         if (i>0)
           parms(i-1)+=delta(i-1);
@@ -300,10 +367,8 @@ void Newton_opt_method::generate_all_quanities(Array1 <doublevar> & parms,
             wf->getVal(wfdata, 0, wfval);
             
             sysprop->calcKinetic(wfdata, sample, wf, kinetic);
-            //pseudoin=fopen(pseudostore.c_str(), "r");
             psp_buff.start_again();
             pseudo->calcNonlocWithFile(wfdata, sample, wf,nonloc, psp_buff);
-            //fclose(pseudoin);
             energy=kinetic(0)+calcpot(walker)+nonloc(0);
             if(j==0){
               local_energy(walker)=energy;
@@ -318,7 +383,7 @@ void Newton_opt_method::generate_all_quanities(Array1 <doublevar> & parms,
             wf->updateVal(wfdata, sample);
             wf->getVal(wfdata, 0, wfval);
             psi=wfval.sign(0)*sign_wf_value*exp(wfval.amp(0,0)-ln_wf_value);
-            wf_hessian(walker)(i-1,j-1)=(psi-Psi(i-1)-Psi(j-1)+1)/(delta(i-1)*delta(j-1));
+            hessian(i-1,j-1)=(psi-Psi(i-1)-Psi(j-1)+1)/(delta(i-1)*delta(j-1));
             //cout<< wf_hessian(walker)(i-1,j-1)<< "  ";
           }
           if (j>0)
@@ -328,10 +393,25 @@ void Newton_opt_method::generate_all_quanities(Array1 <doublevar> & parms,
         if (i>0)
           parms(i-1)-=delta(i-1);
       }//i loop
+      
+      if(store_hessian_to_file){
+	Array1 <doublevar> wf_hessian_store(int(nparms*(nparms+1)/2));
+	copy_of_2D_sym_array_to_1D_array(hessian,wf_hessian_store);
+	for(int i=0; i< wf_hessian_store.GetDim(0); i++){
+	  fwrite(&wf_hessian_store(i), sizeof(doublevar), 1, hessianout);
+	}
+      }
+      else{
+	copy_of_2D_sym_array_to_1D_array(hessian,wf_hessian(walker));
+      }
     }//end of else (wfdata->supports(parameter_derivatives))
     wf->notify(sample_dynamic,0);
   }//walker loop
+  if(store_hessian_to_file){
+    fclose(hessianout);
+  }
 }
+
 
 
 void Newton_opt_method::calculate_first_averages(Array1 <doublevar> & parms,
@@ -385,10 +465,14 @@ void Newton_opt_method::calculate_first_averages(Array1 <doublevar> & parms,
     default:
       error("Newton_opt_method::min_function has a very strange value");
     }
+
+  parallel_sum(energy_grad_sum);
+  parallel_sum(wf_grad_sum);
+  parallel_sum(local_energy_grad_sum);
   for(int i=0;i<nparms;i++){
-    energy_gradient_mean(i)=parallel_sum(energy_grad_sum(i))/weight_sum;
-    wf_gradient_mean(i)=parallel_sum(wf_grad_sum(i))/weight_sum;
-    local_energy_gradient_mean(i)=parallel_sum(local_energy_grad_sum(i))/weight_sum;
+    energy_gradient_mean(i)=energy_grad_sum(i)/weight_sum;
+    wf_gradient_mean(i)=wf_grad_sum(i)/weight_sum;
+    local_energy_gradient_mean(i)=local_energy_grad_sum(i)/weight_sum;
   }
 }
 
@@ -396,7 +480,7 @@ void Newton_opt_method::calculate_second_averages(Array1 <doublevar> & parms,
 						  Array1 <doublevar> & local_energy, 
 						  Array1 < Array1 <doublevar> > local_energy_gradient,
 						  Array1 < Array1 <doublevar> > wf_gradient,
-						  Array1 < Array2 <doublevar> > wf_hessian,
+						  Array1 < Array1 <doublevar> > wf_hessian,
 						  doublevar & energy_mean,
 						  Array1 <doublevar> & wf_gradient_mean,
 						  Array1 <doublevar> & local_energy_gradient_mean,
@@ -415,27 +499,46 @@ void Newton_opt_method::calculate_second_averages(Array1 <doublevar> & parms,
   Array2 <doublevar> hess3_1eng(nparms,nparms);
   Array2 <doublevar> hess3_2eng(nparms,nparms);
   Array2 <doublevar> hess1_var(nparms,nparms);
+  Array2 <doublevar> hessian_tmp(nparms,nparms);
   variance_grad=0;
   hess1_eng=hess2_eng=hess3_1eng=hess3_2eng=hess1_var=0;
   doublevar weightsum=0;
   doublevar energy,weight;
+  
+  FILE * hessianin;
+  hessianin=NULL;
+  if(store_hessian_to_file){
+    hessianin=fopen(hessianstore.c_str(), "r");
+    if(!hessianin) { error("couldn't open hessian temporary file ", hessianstore," for reading.");}
+  }
+
   for(int walker=0; walker < nconfig; walker++){
     energy=local_energy(walker);
     weight=dmc_weight(walker);
+    if(store_hessian_to_file){
+      Array1 <doublevar> wf_hessian_store(int(nparms*(nparms+1)/2));
+      for(int j=0; j< wf_hessian_store.GetDim(0); j++) {
+	fread(&wf_hessian_store(j), sizeof(doublevar), 1, hessianin);
+      }
+      copy_of_1D_array_to_2D_sym_array(wf_hessian_store,hessian_tmp);
+    }
+    else{
+      copy_of_1D_array_to_2D_sym_array(wf_hessian(walker),hessian_tmp);
+    }
     for(int i=0;i<nparms;i++){
       for (int j=i;j<nparms;j++){
 	if(i==0){
 	  variance_grad(j)+=2.0*(local_energy_gradient(walker)(j)-energy_gradient_mean(j))*(energy-eref)*weight;
 	}
 	if(!plus_version_of_hessian_of_energy){
-	  hess1_eng(i,j)+=(wf_hessian(walker)(i,j)-wf_gradient(walker)(i)*wf_gradient(walker)(j))*
+	  hess1_eng(i,j)+=(hessian_tmp(i,j)-wf_gradient(walker)(i)*wf_gradient(walker)(j))*
 	                  (energy-energy_mean)*weight;
 	  hess2_eng(i,j)+=(wf_gradient(walker)(i)-wf_gradient_mean(i))*
 	                  (wf_gradient(walker)(j)-wf_gradient_mean(j))*
 	                  (energy-energy_mean)*weight;
 	}
 	else{
-	  hess1_eng(i,j)+=(wf_hessian(walker)(i,j)+wf_gradient(walker)(i)*wf_gradient(walker)(j))*
+	  hess1_eng(i,j)+=(hessian_tmp(i,j)+wf_gradient(walker)(i)*wf_gradient(walker)(j))*
 	                  (energy-energy_mean)*weight;
 	  //hess2_eng(i,j)+=wf_gradient_mean(i)*energy_gradient_mean(j)+
 	  //              wf_gradient_mean(j)*energy_gradient_mean(i);
@@ -448,26 +551,38 @@ void Newton_opt_method::calculate_second_averages(Array1 <doublevar> & parms,
        }
     }
     weightsum+=weight;
+  }//walker loop
+  if(store_hessian_to_file){
+    fclose(hessianin);
   }
   doublevar weight_sum=parallel_sum(weightsum);
+  parallel_sum(variance_grad);
+  parallel_sum(hess1_eng);
+  parallel_sum(hess2_eng);
+  parallel_sum(hess3_1eng);
+  parallel_sum(hess3_2eng);
+  parallel_sum(hess1_var);
   for(int i=0;i<nparms;i++){
     for (int j=i;j<nparms;j++){
       if(i==0){
-	 variance_grad_mean(j)=parallel_sum(variance_grad(j))/weight_sum;
+	 variance_grad_mean(j)=variance_grad(j)/weight_sum;
       }
-      hess1_eng_mean(i,j)=parallel_sum(hess1_eng(i,j))/weight_sum;
+      hess1_eng_mean(i,j)=hess1_eng(i,j)/weight_sum;
       if(!plus_version_of_hessian_of_energy)
-	hess2_eng_mean(i,j)=parallel_sum(hess2_eng(i,j))/weight_sum;
+	hess2_eng_mean(i,j)=hess2_eng(i,j)/weight_sum;
       else
 	hess2_eng_mean(i,j)=wf_gradient_mean(i)*energy_gradient_mean(j)+
 	                    wf_gradient_mean(j)*energy_gradient_mean(i);
-      hess3_1eng_mean(i,j)=parallel_sum(hess3_1eng(i,j))/weight_sum;
-      hess3_2eng_mean(i,j)=parallel_sum(hess3_2eng(i,j))/weight_sum;
-      hess1_var_mean(i,j)=parallel_sum(hess1_var(i,j))/weight_sum;
+      hess3_1eng_mean(i,j)=hess3_1eng(i,j)/weight_sum;
+      hess3_2eng_mean(i,j)=hess3_2eng(i,j)/weight_sum;
+      hess1_var_mean(i,j)=hess1_var(i,j)/weight_sum;
     }
   }
   
 }
+
+
+
 
 void Newton_opt_method::build_gradient(Array1 <doublevar> & energy_gradient_mean,
 				       Array1 <doublevar> & variance_grad_mean,
@@ -783,7 +898,7 @@ void Newton_opt_method::adjust_distribution(Array1 <doublevar> & parms,
     vmc_words.push_back("1");
   }
   vmc_words.push_back("READCONFIG");
-  if(iter<0)
+  if(iter<1)
     vmc_words.push_back(readconfig_non_cannonical);
   else
     vmc_words.push_back(storeconfig_non_cannonical);
@@ -975,6 +1090,10 @@ doublevar parabola_value(Array1 <doublevar> & y,
   
 }
 
+
+
+
+
 void Newton_opt_method::wf_printout(Array1 <doublevar> & parms, int iter, 
 				    doublevar & value, 
 				    doublevar & energy, 
@@ -1070,10 +1189,11 @@ int Newton_opt_method::Levenberg_marquad(Array1 <doublevar> & gradient,
   if(use_correlated_sampling){
     doublevar multyplier=10.0;
     Array1 < Array1 <doublevar> > tmpparms(3);
-    Array1 <doublevar> mu(3), mulog(3);
+    Array1 <doublevar> mu(3);// mulog(3);
     Array1 <doublevar> y(3), energies(3), variances(3);
     mu(0)=damping/multyplier;
-    mulog(0)=log(mu(0));
+    mu(0)=damping;
+    //mulog(0)=log(mu(0));
     for(int i=0;i<tmpparms.GetSize();i++){
       if(i>0){
 	mu(i)=multyplier*mu(i-1);
@@ -1081,7 +1201,7 @@ int Newton_opt_method::Levenberg_marquad(Array1 <doublevar> & gradient,
 	//mulog(i)=log(multyplier)+mulog(i-1);
       }
       //mu(i)=exp(mulog(i));
-      mulog(i)=log(mu(i));
+      //mulog(i)=log(mu(i));
       tmpparms(i).Resize(nparms);
       newton_step(gradient, hessian, mu(i), parms, tmpparms(i));
     }
@@ -1270,7 +1390,7 @@ void Newton_opt_method::run(Program_options & options, ostream & output)
   Array1 <doublevar> local_energy(nconfig);
   Array1 < Array1 <doublevar> > local_energy_gradient(nconfig);
   Array1 < Array1 <doublevar> > wf_gradient;
-  Array1 < Array2 <doublevar> > wf_hessian;
+  Array1 < Array1 <doublevar> > wf_hessian;
   calcpot.Resize(nconfig);
   wf_gradient.Resize(nconfig);
   wf_hessian.Resize(nconfig);
@@ -1278,7 +1398,8 @@ void Newton_opt_method::run(Program_options & options, ostream & output)
   for(int walker=0;walker<nconfig;walker++){
     local_energy_gradient(walker).Resize(nparms);
     wf_gradient(walker).Resize(nparms);
-    wf_hessian(walker).Resize(nparms,nparms);
+    if(!store_hessian_to_file)
+      wf_hessian(walker).Resize(int(nparms*(nparms+1)/2));
   }
   
   wfdata->getVarParms(parms);
@@ -1304,13 +1425,13 @@ void Newton_opt_method::run(Program_options & options, ostream & output)
   doublevar bestdamping=0;
   doublevar energy_mean; 
   doublevar energy_mean_err=0;
-  doublevar energy_mean_fit=0;
+  //doublevar energy_mean_fit=0;
   doublevar energy_mean_est=0;
-  doublevar variance_mean_fit=0;
+  //doublevar variance_mean_fit=0;
   doublevar variance_mean=0;
   doublevar variance_mean_est=0;
   doublevar function_mean=0;
-  doublevar function_mean_fit=0; 
+  //doublevar function_mean_fit=0; 
   doublevar function_mean_est=0;
   string vmcout=options.runid+"_mc.o";
   ofstream vmcoutput;
@@ -1329,7 +1450,7 @@ void Newton_opt_method::run(Program_options & options, ostream & output)
       cout <<endl;
       cout <<"############### iteration "<<iter<<" #############################"<<endl<<endl;;
     }
-
+    
     if(iter==0){
       string log_label="vmc_-1";
       adjust_distribution(parms, iter, log_label, vmcoutput, options, function_mean, energy_mean, energy_mean_err, variance_mean);
@@ -1347,12 +1468,12 @@ void Newton_opt_method::run(Program_options & options, ostream & output)
     if( mpi_info.node==0 )
       cout << "generate_all_quanities" <<endl;
     generate_all_quanities(parms,
-			   delta, 
-			   local_energy,
-			   local_energy_gradient,
-			   wf_gradient,
-			   wf_hessian
-			   );
+                             delta, 
+                             local_energy,
+                             local_energy_gradient,
+                             wf_gradient,
+                             wf_hessian
+                             );
 
     if(use_weights || !eref_exists)
       eref=energy_mean;
@@ -1389,6 +1510,7 @@ void Newton_opt_method::run(Program_options & options, ostream & output)
 			      hess3_2eng_mean,
 			      hess1_var_mean
 			      );
+
     if( mpi_info.node==0 )
       cout << "build gradient" <<endl;
     build_gradient(energy_gradient_mean,
@@ -1450,7 +1572,7 @@ void Newton_opt_method::run(Program_options & options, ostream & output)
   } 
   if( mpi_info.node==0 )
     vmcoutput.close();
-  remove(pseudostore.c_str());
+  remove(hessianstore.c_str());
   write_wf(bestparms, wfoutputfile, wfdata);
   if( mpi_info.node==0 )
   {

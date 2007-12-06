@@ -693,14 +693,12 @@ int Jastrow2_wf_data::supports(wf_support_type support) {
     return 1;
   case parameter_derivatives:
     if(nparms()==0) return 1;
-    int ng=group.GetDim(0);
-    for(int g=0; g< ng; g++) { 
+    for(int g=0; g< group.GetDim(0); g++) { 
       if(group(g).nparms()>0) { 
-        if(group(g).hasThreeBodySpin() || group(g).optimizeBasis()) 
+        if(group(g).optimizeBasis()) 
           return 0;
       }
     }
-    
     return 1;
   default:
     return 0;
@@ -1404,6 +1402,7 @@ void Jastrow2_wf::getParmDepVal(Wavefunction_data * dataptr,
 //Note that one could implement this as updates to improve speed further.
 int Jastrow2_wf::getParmDeriv(Wavefunction_data *wfdata , Sample_point * sample,
                                Parm_deriv_return & parm_deriv) { 
+  //cout <<"start:  Jastrow2_wf::getParmDeriv "<<endl;
   sample->updateEEDist();
   sample->updateEIDist();
   //we're not going to support nonlinear parameters for the first iteration of this.
@@ -1411,10 +1410,9 @@ int Jastrow2_wf::getParmDeriv(Wavefunction_data *wfdata , Sample_point * sample,
   int ng=parent->group.GetDim(0);
   for(int g=0; g< ng; g++) { 
     if(parent->group(g).optimizeBasis()) return 0;
-    if(parent->group(g).hasThreeBodySpin())
-      return 0;
   }
   Parm_deriv_return retparm;
+  
   for(int g=0; g< ng; g++) {
     Array3 <doublevar> eionbasis(nelectrons,parent->natoms, maxeibasis); //for 3-body terms
     Array3 <doublevar> eibasis(parent->natoms, maxeibasis ,5);
@@ -1472,6 +1470,17 @@ int Jastrow2_wf::getParmDeriv(Wavefunction_data *wfdata , Sample_point * sample,
       tmp_parm.gradient=0;
       tmp_parm.hessian=0;
       parent->group(g).three_body.getParmDeriv(eionbasis,eetotal, tmp_parm);
+      extend_parm_deriv(retparm,tmp_parm);
+    }
+
+    if(parent->group(g).hasThreeBodySpin() && parent->group(g).three_body_diffspin.nparms()) { 
+      Parm_deriv_return tmp_parm;
+      int np=parent->group(g).three_body_diffspin.nparms();
+      tmp_parm.gradient.Resize(np);
+      tmp_parm.hessian.Resize(np,np);
+      tmp_parm.gradient=0;
+      tmp_parm.hessian=0;
+      parent->group(g).three_body_diffspin.getParmDeriv(eionbasis,eetotal, tmp_parm);
       extend_parm_deriv(retparm,tmp_parm);
     }
   }

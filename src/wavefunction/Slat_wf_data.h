@@ -143,6 +143,7 @@ private:
   Array1 <Array1 <doublevar> > CSF;
   int use_csf;
   int ncsf;
+  int sort;
   
   
   General_MO_matrix * genmolecorb; 

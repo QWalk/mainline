@@ -1548,3 +1548,34 @@ void Jacobi(const Array2 < dcomplex > & Ain, Array1 <doublevar> & evals, Array2 
   
 }
 //----------------------------------------------------------------------
+
+void sort_abs_values_descending(const Array1 <doublevar> & vals, Array1 <doublevar> & newvals, Array1 <int> & list){
+  int n=vals.GetSize();
+  list.Resize(n); 
+  for (int i=0; i < n; i++) {
+    list(i) = i;
+    newvals(i)=vals(i);
+  }
+  
+  for (int i=1; i < n; i++) {
+    const double temp = newvals[i];
+    const double abstemp =  fabs(newvals[i]);
+    int j;
+    for (j=i-1; j>=0 && fabs(newvals[j])<abstemp; j--) {
+      newvals[j+1] = newvals[j];
+      list[j+1] = list[j];
+    }
+    newvals[j+1] = temp;
+    list[j+1] = i;
+  }
+  //for (int i=0; i < n; i++) 
+  //cout << list[i]<<endl;
+}
+//----------------------------------------------------------------------
+
+void sort_according_list(const Array1 <doublevar> & vals, Array1 <doublevar> & newvals, const Array1 <int> & list){
+  int n=vals.GetSize();
+  for (int i=0; i < n; i++) {
+    newvals(i)=vals(list(i));
+  }
+}

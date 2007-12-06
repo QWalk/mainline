@@ -156,6 +156,32 @@ void Terminate()
 #endif
 }
 
+//----------------------------------------------------------------------
+
+
+void banner(doublevar percentage, int length, ostream & os){
+  string processbar;
+  processbar.insert(0, "[");
+  for(int i=1;i<length+1;i++)
+    processbar.insert(i, " ");
+  processbar.insert(length+1, "]");
+   
+  int pos=int(length*percentage);
+  if(pos==0){
+    os <<"Starting processing..."<<endl;
+  }
+  for(int i=1;i<pos+1;i++)
+    processbar.replace(i,1, "=");
+  processbar.replace(pos+1,1, ">");
+  if(pos==length){
+    processbar.replace(pos+1,1, "]");
+    os<<processbar<<"\n";
+  }
+  else
+    os<<processbar<<"\r";
+  os.flush();
+}
+
 
 //----------------------------------------------------------------------
 int roundoff(double x)
@@ -165,3 +191,4 @@ int roundoff(double x)
   if (x>=y+0.5) return int(y+1);
   else return int(y);
 }
+

@@ -174,6 +174,9 @@ void error(const char* m, const T& t, const U& u, const V& v, const W& w)
 
 int roundoff(double x);
 
+//print out a progress bar
+void banner(doublevar percentage, int length, ostream & os);
+
 
 /*!
 This is a slightly tricky bit that I'd like to get rid of if possible.
