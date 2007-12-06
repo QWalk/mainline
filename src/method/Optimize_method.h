@@ -47,17 +47,17 @@ public:
   ~Optimize_method()
   {
     if(pseudo) delete pseudo;
-    if(sysprop) delete sysprop;
-
-    deallocate(wfdata);
-    for(int i=0; i< nconfig; i++)
-    {
-      deallocate(wf(i));
-      delete electrons(i);
-    }
-
+    if(sys) delete sys;
+    if(wfdata) delete wfdata;
+    if(wf) delete wf;
+    if(sample) delete sample;
   }
 
+  Optimize_method() { 
+    sample=NULL; wf=NULL;
+    wfdata=NULL; sys=NULL;
+    pseudo=NULL;
+  }
   int showinfo(ostream & os);
   doublevar variance(int n, Array1 <double> & parms, double & val, 
                      int check=1 //!< =1: make sure weights and variance make sense, =0: don't
@@ -67,7 +67,6 @@ public:
   void iteration_print(double f, double gg, double tol,  int itn, ostream & output);
 
 private:
-   Array1 < Array1 <doublevar> >psp_test;
 
   doublevar eref; //!< reference energy
   int nconfig;   //!< Number of configurations(walkers)
@@ -83,12 +82,14 @@ private:
   string wfoutputfile;//!< Where to put the wavefunction output
   Primary guide_wf; //!< Guiding function
   Array1 <doublevar> local_energy; //!< local energy(that doesn't change when we optimize
+  Array1 < Array1 <doublevar> >psp_test; //!< For random evaluation of the psp--we want to use the same random numbers
   Array1 <doublevar> lastparms;
   doublevar mixing; //!< mixing weight for energy component in mixed minimization (0.95 default)
   int use_extended_output; //!< Whether to print out wavefunction at every iter. of min
-  System * sysprop;
-  Array1 <Sample_point *> electrons;
-  Array1 <Wavefunction * > wf;
+  System * sys;
+  Array1 <Config_save_point> config_pos;
+  Sample_point * sample;
+  Wavefunction * wf;
   Wavefunction_data * wfdata;
   Pseudopotential * pseudo;
 };
