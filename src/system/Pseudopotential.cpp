@@ -453,7 +453,7 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
         Array1 <doublevar>  nonlocal(nwf);
         nonlocal=0;
 
-        Array2 <doublevar> v_l(numL(at),5);
+        Array1 <doublevar> v_l(numL(at));
         getRadial(at, sample, olddist, v_l);
 
         //----------------------------------------
@@ -468,7 +468,7 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
           const doublevar calculate_threshold=10;
   
           for(int l=0; l<numL(at)-1; l++)
-            strength+=calculate_threshold*(2*l+1)*fabs(v_l(l,0));
+            strength+=calculate_threshold*(2*l+1)*fabs(v_l(l));
    
           strength=min((doublevar) 1.0, strength);
   
@@ -476,8 +476,7 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
          //cout << at <<"  random number  " << rand
         //   << "  p_eval  " << strength  << endl;
           for(int l=0; l<numL(at)-1; l++)
-            for(int d=0; d< 5; d++) 
-              v_l(l,d)/=strength;
+            v_l(l)/=strength;
           accept=strength>rand;
         }
       
@@ -525,7 +524,7 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
             for(int w=0; w< nwf; w++)  {
               doublevar tempsum=0;
               for(int l=0; l< numL(at)-1; l++) {
-                tempsum+=(2*l+1)*v_l(l,0)*legendre(rDotR(i), l);
+                tempsum+=(2*l+1)*v_l(l)*legendre(rDotR(i), l);
               }
               doublevar vxx=tempsum*integralpts(w,i);
               if(!do_tmoves || w!=0 || vxx >= 0.0) { 
@@ -569,7 +568,7 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
         int localL=numL(at)-1; //The l-value of the local part is
                                //the last part.
 
-        vLocal=v_l(localL,0);
+        vLocal=v_l(localL);
         accum_local+=vLocal;
         accum_nonlocal+=nonlocal(0);
 

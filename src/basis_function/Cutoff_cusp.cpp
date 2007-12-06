@@ -48,6 +48,7 @@ int Cutoff_cusp::read(
   if(!readvalue(words, pos, rcut, "CUTOFF") ) {
     error("Need CUTOFF in Cutoff_cusp");
   }
+  rcutinv=1.0/rcut;
 
   if(rcut < 0) {
     error("Cutoff must be greater than zero in Cutoff_cusp.  I read ", rcut);
@@ -128,7 +129,7 @@ void Cutoff_cusp::calcLap(
   assert(symvals.GetDim(0) >= 1+startfill);
   assert(symvals.GetDim(1) >= 5);
   if(r(0) < rcut) {
-    doublevar zz=r(0)/rcut;
+    doublevar zz=r(0)*rcutinv;
     doublevar zz2=zz*zz;
     doublevar pp=zz-zz2+zz*zz2/3;
     doublevar pade=1./(1+gamma*pp);
@@ -137,8 +138,8 @@ void Cutoff_cusp::calcLap(
     doublevar ppd=1.-2.*zz+zz2;
     doublevar ppdd=-2.+2.*zz;
     doublevar dadr=ppd*pade2/r(0);
-    doublevar dadr2=ppdd*pade2/rcut
-                    -2.*gamma*ppd*ppd*pade2*pade/rcut
+    doublevar dadr2=ppdd*pade2*rcutinv
+                    -2.*gamma*ppd*ppd*pade2*pade*rcutinv
                     +2.*dadr;
 
     for(int i=1; i< 4; i++) {
