@@ -195,6 +195,12 @@ void Slat_wf::saveUpdate(Sample_point * sample, int e,
     Slat_wf_storage * store;
     recast(wfstore, store);
 
+    //presumably, if we care enough to save the update, we care enough
+    //to have the inverse up to date
+    if(inverseStale) { 
+      updateInverse(parent, lastValUpdate);
+      inverseStale=0;
+    }
     int s=spin(e);
 
     for(int f=0; f< nfunc_; f++) {
@@ -589,41 +595,101 @@ void Slat_wf::calcVal(Slat_wf_data * dataptr, Sample_point * sample)
 }
 
 //------------------------------------------------------------------------
-/*!
 
-*/
-void Slat_wf::updateVal( Slat_wf_data * dataptr, Sample_point * sample,int e)
-{
-
-  /* Note on the updates(from LKW):  we don't actually need to update the inverse(which is N^2) for the next value;
-     we can get away with saving the MO values and updating the inverse only when another electron is 
-     updated.  This could save some time particularly for the pseudopotential evaluation.  For the moment, 
-     I haven't seen the inverse update take a significant amount of time even up to around 1000 electrons, 
-     so I'll leave the simpler implementation.
-   */
-  assert(dataptr != NULL);
-  sample->updateEIDist();
-  int s=dataptr->spin(e);
-  /*
-  for(int f=0; f< nfunc_; f++) {
-    for(int det=0; det < ndet; det++) {
-      if(fabs(detVal(f, det, s))< 1e-15) {
-	
-        cout << "updateVal::WARNING: determinant zero: " 
-	     << detVal(f,det,s)
-	     << " func " << f << " spin " << s << "  det " << det 
-	     << endl;
-        calcLap(dataptr, sample);
-        return;
+void Slat_wf::updateInverse(Slat_wf_data * dataptr, int e) { 
+  int maxmatsize=max(nelectrons(0),nelectrons(1));
+  Array1 <doublevar> modet(maxmatsize);
+  int s=spin(e);
+  for(int f=0; f< nfunc_; f++)  {
+    for(int det=0; det< ndet; det++)  {
+      //fill the molecular orbitals for this
+      //determinant
+      if(fabs(detVal(f,det,s)) > 0) { 
+        for(int i = 0; i < nelectrons(s); i++) {
+          modet(i)=moVal(0,e,dataptr->occupation(f,det,s)(i));
+        }
+        
+        
+        doublevar ratio=1./InverseUpdateColumn(inverse(f,det,s),
+                                     modet, dataptr->rede(e),
+                                     nelectrons(s));
+        detVal(f,det, s)=ratio*detVal(f,det, s);
+      }
+      else { 
+        
+        Array2 <doublevar> allmos(nelectrons(s), nelectrons(s));
+        for(int e=0; e< nelectrons(s); e++) {
+          int curre=s*nelectrons(0)+e;
+          for(int i=0; i< nelectrons(s); i++) {
+            allmos(e,i)=moVal(0,curre, dataptr->occupation(f,det,s)(i));
+          }
+        }
+        
+        
+        detVal(f,det,s)=
+          TransposeInverseMatrix(allmos,inverse(f,det,s), nelectrons(s));
       }
     }
   }
-  */
+  
+}
 
-  doublevar ratio;
+//------------------------------------------------------------------------
 
+int Slat_wf::updateValNoInverse(Slat_wf_data * dataptr, int e) { 
   int maxmatsize=max(nelectrons(0),nelectrons(1));
   Array1 <doublevar> modet(maxmatsize);
+  int s=spin(e);
+  for(int f=0; f< nfunc_; f++)  {
+    for(int det=0; det< ndet; det++)  {
+      //fill the molecular orbitals for this
+      //determinant
+      if(!(fabs(detVal(f,det,s)) > 0)) return 0;
+    }
+  }
+        
+  
+  for(int f=0; f< nfunc_; f++)  {
+    for(int det=0; det< ndet; det++)  {
+      //fill the molecular orbitals for this
+      //determinant
+      for(int i = 0; i < nelectrons(s); i++) {
+        modet(i)=moVal(0,e,dataptr->occupation(f,det,s)(i));
+      }
+      
+      
+      doublevar ratio=1./InverseGetNewRatio(inverse(f,det,s),
+                                            modet, dataptr->rede(e),
+                                            nelectrons(s));
+      detVal(f,det, s)=ratio*detVal(f,det, s);
+    }
+  }
+  return 1;
+}
+
+//------------------------------------------------------------------------
+/*!
+
+*/
+void Slat_wf::updateVal( Slat_wf_data * dataptr, Sample_point * sample,int e) {
+
+  if(inverseStale && lastValUpdate!=e) { 
+    inverseStale=0;
+    updateInverse(dataptr, lastValUpdate);
+  }
+  if(inverseStale && lastValUpdate==e) { 
+    inverseStale=0;
+    detVal=lastDetVal;
+  }
+
+  assert(dataptr != NULL);
+  sample->updateEIDist();
+  int s=dataptr->spin(e);
+ 
+  //doublevar ratio;
+
+  //int maxmatsize=max(nelectrons(0),nelectrons(1));
+  //Array1 <doublevar> modet(maxmatsize);
 
   //update all the mo's that we will be using.
   dataptr->molecorb->updateVal(sample, e, s,
@@ -633,44 +699,51 @@ void Slat_wf::updateVal( Slat_wf_data * dataptr, Sample_point * sample,int e)
     moVal(0,e,i)=updatedMoVal(i,0);
 
 
+  inverseStale=1;
+  lastValUpdate=e;
+  lastDetVal=detVal;
+  if(!updateValNoInverse(dataptr, e)) { 
+    inverseStale=0;
+    updateInverse(dataptr,e);
+  }
 
+  
   //If the determinant is zero, we can't do the updates,
   //so instead we have to take the total determinant.
   //This will cost a bit, but it should be relatively rare.
+  
+  /*
   for(int f=0; f< nfunc_; f++)  {
     for(int det=0; det< ndet; det++)  {
       //fill the molecular orbitals for this
       //determinant
       if(fabs(detVal(f,det,s)) > 0) { 
-	for(int i = 0; i < nelectrons(s); i++) {
-	  modet(i)=updatedMoVal(dataptr->occupation(f,det,s)(i),0 );
-	}
-	
-	
-	ratio=1./InverseUpdateColumn(inverse(f,det,s),
-				     modet, dataptr->rede(e),
-                                   nelectrons(s));
-	detVal(f,det, s)=ratio*detVal(f,det, s);
+        for(int i = 0; i < nelectrons(s); i++) {
+          modet(i)=updatedMoVal(dataptr->occupation(f,det,s)(i),0 );
+        }
+        
+        
+        ratio=1./InverseUpdateColumn(inverse(f,det,s),
+                                     modet, dataptr->rede(e),
+                                     nelectrons(s));
+        detVal(f,det, s)=ratio*detVal(f,det, s);
       }
       else { 
-
-	Array2 <doublevar> allmos(nelectrons(s), nelectrons(s));
+        
+        Array2 <doublevar> allmos(nelectrons(s), nelectrons(s));
         for(int e=0; e< nelectrons(s); e++) {
           int curre=s*nelectrons(0)+e;
           for(int i=0; i< nelectrons(s); i++) {
             allmos(e,i)=moVal(0,curre, dataptr->occupation(f,det,s)(i));
           }
         }
-
-	
+        
+        
         detVal(f,det,s)=
           TransposeInverseMatrix(allmos,inverse(f,det,s), nelectrons(s));
-	//cout << "determinant was zero: new one " << detVal(f,det,s) << endl;
-        //calcLap(dataptr, sample);
-	//cout << "test " << detVal(f,det,s) << endl;
       }
     }
-  }
+  }*/
 
 
   //for(int i=0; i< updatedMoVal.GetDim(0); i++)
@@ -897,6 +970,14 @@ void Slat_wf::updateLap(Slat_wf_data * dataptr,
                         Sample_point * sample,
                         int e ) {
   
+  if(inverseStale && lastValUpdate!=e) { 
+    inverseStale=0;
+    updateInverse(dataptr, lastValUpdate);
+  }
+  if(inverseStale && lastValUpdate==e) { 
+    detVal=lastDetVal;
+    inverseStale=0;
+  }
   assert(dataptr != NULL);
 
   int s=dataptr->spin(e);

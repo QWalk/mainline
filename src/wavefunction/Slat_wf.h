@@ -103,6 +103,10 @@ private:
 
   void save_for_static();
 
+  void updateInverse(Slat_wf_data *, int e);
+  int updateValNoInverse(Slat_wf_data *, int e); 
+  //!< update the value, but not the inverse.  Returns 0 if the determinant is zero and updates aren't possible
+  
   void calcVal(Slat_wf_data *, Sample_point *);
   void updateVal(Slat_wf_data *, Sample_point *, int);
   void calcLap(Slat_wf_data *, Sample_point *);
@@ -117,6 +121,11 @@ private:
   int dataAttached;
   Slat_wf_data * parent;
 
+  //lazy updates of the determinant(which saves a lot of time in pseudopotentials, etc)
+  int inverseStale;
+  int lastValUpdate;
+  Array3<doublevar> lastDetVal;
+  
   //Saved variables for electron updates
   Array3 <doublevar>  moVal;
 

@@ -36,6 +36,8 @@ doublevar InverseUpdateRow(Array2 <doublevar> & a1, const Array2 <doublevar> & a
                            const int lRow, const int n);
 doublevar InverseUpdateRow(Array2 <doublevar> & a1, const Array1 <doublevar> & newRow,
                            const int lRow, const int n);
+doublevar InverseGetNewRatio(const Array2 <doublevar> & a1, const Array1 <doublevar> & newCol,
+                             const int lCol, const int n);
 doublevar InverseUpdateColumn(Array2 <doublevar> & a1, const Array2 <doublevar> & a,
                               const int lCol, const int n);
 doublevar InverseUpdateColumn(Array2 <doublevar> & a1, const Array1 <doublevar> & newCol,
