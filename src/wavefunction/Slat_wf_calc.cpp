@@ -685,11 +685,6 @@ void Slat_wf::updateVal( Slat_wf_data * dataptr, Sample_point * sample,int e) {
   assert(dataptr != NULL);
   sample->updateEIDist();
   int s=dataptr->spin(e);
- 
-  //doublevar ratio;
-
-  //int maxmatsize=max(nelectrons(0),nelectrons(1));
-  //Array1 <doublevar> modet(maxmatsize);
 
   //update all the mo's that we will be using.
   dataptr->molecorb->updateVal(sample, e, s,
@@ -707,47 +702,6 @@ void Slat_wf::updateVal( Slat_wf_data * dataptr, Sample_point * sample,int e) {
     updateInverse(dataptr,e);
   }
 
-  
-  //If the determinant is zero, we can't do the updates,
-  //so instead we have to take the total determinant.
-  //This will cost a bit, but it should be relatively rare.
-  
-  /*
-  for(int f=0; f< nfunc_; f++)  {
-    for(int det=0; det< ndet; det++)  {
-      //fill the molecular orbitals for this
-      //determinant
-      if(fabs(detVal(f,det,s)) > 0) { 
-        for(int i = 0; i < nelectrons(s); i++) {
-          modet(i)=updatedMoVal(dataptr->occupation(f,det,s)(i),0 );
-        }
-        
-        
-        ratio=1./InverseUpdateColumn(inverse(f,det,s),
-                                     modet, dataptr->rede(e),
-                                     nelectrons(s));
-        detVal(f,det, s)=ratio*detVal(f,det, s);
-      }
-      else { 
-        
-        Array2 <doublevar> allmos(nelectrons(s), nelectrons(s));
-        for(int e=0; e< nelectrons(s); e++) {
-          int curre=s*nelectrons(0)+e;
-          for(int i=0; i< nelectrons(s); i++) {
-            allmos(e,i)=moVal(0,curre, dataptr->occupation(f,det,s)(i));
-          }
-        }
-        
-        
-        detVal(f,det,s)=
-          TransposeInverseMatrix(allmos,inverse(f,det,s), nelectrons(s));
-      }
-    }
-  }*/
-
-
-  //for(int i=0; i< updatedMoVal.GetDim(0); i++)
-  //  moVal(0,e,i)=updatedMoVal(i,0);
 
 }
 
@@ -940,26 +894,26 @@ void Slat_wf::getLap(Wavefunction_data * wfdata,
           //Shouldn't happen much.
           if(detVal(f,det,s)*detVal(f,det,opp)==0)
             temp=0;
-
+          
           if(ndet >1) 
             temp*=dataptr->detwt(det)*detVal(f,det, s)*detVal(f,det, opp);
           vals(f,i)+=temp;
-
+          
           //vals(f,i)+=dataptr->detwt(det)*temp
           //          *detVal(f,det, s)*detVal(f,det, opp);
         }
-
+        
         if(funcval==0)
           vals(f,i)=0;  //Prevent division by zero
-	else if(ndet > 1) 
-	  vals(f,i)/=funcval;
+        else if(ndet > 1) 
+          vals(f,i)/=funcval;
       }
       
     }
   }
-
+  
   lap.setVals(vals, si);
-
+  
 }
 
 //-------------------------------------------------------------------------
@@ -982,57 +936,16 @@ void Slat_wf::updateLap(Slat_wf_data * dataptr,
 
   int s=dataptr->spin(e);
   sample->updateEIDist();
-  doublevar ratio;
-
-  int maxmatsize=max(nelectrons(0),nelectrons(1));
-  static Array1 <doublevar> modet(maxmatsize);
-
-  //check to make sure the determinant isn't zero
-  for(int f=0; f< nfunc_; f++)
-  {
-    for(int det=0; det < ndet; det++)
-    {
-      if(!(fabs(detVal(f, det, s)))> 0)
-      {
-        cout << "updateLap::WARNING: determinant zero!"<< detVal(f,det,s) << endl;
-        calcLap(dataptr, sample);
-        return;
-      }
-    }
-  }
 
 
   //update all the mo's that we will be using.
-  dataptr->molecorb->updateLap(sample, e,
-                              s,
-                              updatedMoVal);
-
-  for(int f=0; f<nfunc_; f++)
-  {
-    for(int det=0; det< ndet; det++)
-    {
-
-      //fill the molecular orbitals for this
-      //determinant
-      for(int i = 0; i < nelectrons(s); i++)
-        modet(i)=updatedMoVal(dataptr->occupation(f,det,s)(i),0);
-
-      doublevar tmpratio=InverseUpdateColumn(inverse(f,det,s),
-                                             modet,dataptr->rede(e),
-                                             nelectrons(s));
-      if(tmpratio==0)
-        ratio=0;
-      else ratio=1./tmpratio;
-
-      detVal(f,det, s)=ratio*detVal(f,det, s);
-    }
-  }
-
+  dataptr->molecorb->updateLap(sample,e,s,updatedMoVal);
 
   for(int d=0; d< 5; d++)
     for(int i=0; i< updatedMoVal.GetDim(0); i++)
       moVal(d,e,i)=updatedMoVal(i,d);
-
+  
+  updateInverse(dataptr,e);
 }
 
 //-------------------------------------------------------------------------
