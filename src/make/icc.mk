@@ -1,27 +1,17 @@
 ######################################################################
 # Compiler definitions for Linux systems
 #  all compiler specific information should be declared here
+#also try -O3 -xW -tpp7 -ipo -ipo_obj
+#CXX:=g++-3.3
+CXX:=icpc
+CXXFLAGS := -O3 -fno-alias -xW -vec_report3  $(INCLUDEPATH)
 
-CXX:=g++-3.3
-CXXFLAGS := -O3 \
-   -funroll-loops -ffast-math \
-  -I$(INCLUDEPATH) -fomit-frame-pointer
-
-CXXFLAGS+= -DUSE_LAPACK -DUSE_BLAS
-
-LAPACK_LIBS := -L/home/apps/ATLAS/lib/Linux_ATHLONSSE1 -llapack -lf77blas -lcblas -latlas -static
-LAPACK_INCLUDE := -I/home/apps/ATLAS/include
-
-BLAS_LIBS := $(LAPACK_LIBS)
-BLAS_INCLUDE := $(LAPACK_INCLUDE)
-
-#CXXFLAGS:= -O2 -I$(INCLUDEPATH)
 #DEBUG := -Wall  -DRANGE_CHECKING -DDEBUG_WRITE 
-#DEBUG:= -Wall -DNO_RANGE_CHECKING   -DDEBUG_WRITE
-DEBUG:= -Wall -DNO_RANGE_CHECKING -DNDEBUG   -D__USE_GNU
-#DEBUG:=-Wall -DNDEBUG -DNO_RANGE_CHECKING -DDEBUG_WRITE -D__USE_GNU -pg 
+DEBUG:= -DNO_RANGE_CHECKING -DNDEBUG -DDEBUG_WRITE 
+#DEBUG:=-Wall -DNDEBUG -DNO_RANGE_CHECKING -DDEBUG_WRITE -pg 
 #LDFLAGS:=-L/usr/pgi/linux86/lib -lm -lstd
-#LDFLAGS := -static
+#LDFLAGS := -lpthread -i_dynamic
+
 
 ######################################################################
 # This is the invokation to generate dependencies

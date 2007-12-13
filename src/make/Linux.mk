@@ -3,12 +3,10 @@
 #  all compiler specific information should be declared here
 
 CXX:=g++
-CXX_SERIAL:=g++
 
 CXXFLAGS := -O3  \
    -funroll-loops -ffast-math \
   $(INCLUDEPATH) -fomit-frame-pointer
-#CXXFLAGS := -O2 -I$(INCLUDEPATH)
 DEBUG:= -Wall -DNO_RANGE_CHECKING -DNDEBUG   -D__USE_GNU -DDEBUG_WRITE
 LDFLAGS:= 
 
