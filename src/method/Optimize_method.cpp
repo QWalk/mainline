@@ -165,7 +165,7 @@ int Optimize_method::showinfo(ostream & os)
   pseudo->showinfo(os);
   os << endl << endl;
   os << "-----------------------------" << endl;
-  os << "Wave function optimization: version $Date: 2006/12/07 23:31:45 $ " << endl;
+  os << "Wave function optimization:  " << endl;
   
   os << "Number of configurations : " << nconfig*mpi_info.nprocs << endl;
   os << "Maximum iterations: "  << iterations

@@ -181,7 +181,7 @@ int Dmc_method::showinfo(ostream & os)
     mywfdata->showinfo(os);
   }
   os << "###########################################################\n";
-  os << "Diffusion Monte Carlo: $Date: 2006/12/05 00:17:04 $\n";
+  os << "Diffusion Monte Carlo:\n";
   os << "Number of processors " <<           mpi_info.nprocs << endl;
   os << "Blocks: " <<                        nblock    << endl;
   os << "Steps per block: " <<               nstep     << endl;
