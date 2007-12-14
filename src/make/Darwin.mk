@@ -1,13 +1,19 @@
 ######################################################################
-# Compiler definitions for Linux systems
-#  all compiler specific information should be declared here
 
 CXX:=g++
 
 CXXFLAGS := -O3   \
    -funroll-loops -ffast-math  \
   $(INCLUDEPATH) -fomit-frame-pointer
-#CXXFLAGS := -O2 -I$(INCLUDEPATH)
+
+# uncomment here if you've installed ATLAS through Fink
+#CXXFLAGS+= -DUSE_LAPACK -DUSE_BLAS
+#LAPACK_LIBS := -L/sw/lib/ -llapack -lf77blas -lcblas -latlas
+#LAPACK_INCLUDE := -I/sw/include/
+
+BLAS_LIBS := $(LAPACK_LIBS)
+BLAS_INCLUDE := $(LAPACK_INCLUDE)
+
 DEBUG:= -Wall -DNO_RANGE_CHECKING -DNDEBUG    -DDEBUG_WRITE
 LDFLAGS:= 
 

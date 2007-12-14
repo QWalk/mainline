@@ -199,7 +199,6 @@ void Rgaussian_function::calcVal(const Array1 <doublevar> & r,
     }
     symvals(index++) = v_l;
   }
-  //cout << "done" << endl;
 }
 
 void Rgaussian_function::calcLap(

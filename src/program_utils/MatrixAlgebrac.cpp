@@ -551,6 +551,28 @@ doublevar InverseUpdateColumn(Array2 <doublevar> & a1, const Array2 <doublevar> 
   return f;
 }
 
+
+//Get the new ratio without updating the inverse..
+
+doublevar InverseGetNewRatio(const Array2 <doublevar> & a1, const Array1 <doublevar> & newCol,
+                             const int lCol, const int n) { 
+  Array1 <doublevar> & tmpColL(tmp11);
+  tmpColL.Resize(n);
+  Array1 <doublevar> & prod(tmp12);
+  prod.Resize(n);
+  
+  doublevar f=0.0;  
+  for(int i=0;i<n;++i) {
+    f += a1(lCol,i)*newCol[i];
+  }
+  f =1.0/f;
+  
+  return f;
+   
+}
+
+
+
 // Update inverse a1 after column in matrix a has changed
 // get new column out of array1 newCol
 //

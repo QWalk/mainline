@@ -28,7 +28,7 @@
 #include "Pseudo_writer.h"
 #include "wf_writer.h"
 using namespace std;
-enum coord_t { bohr, ang, scaled };
+enum coord_t { bohr, ang, scaled, fractional };
 
 void read_lattice_vector(istream & is, vector <string> & currline, 
                          vector <vector <double> > & latvec);
@@ -106,7 +106,7 @@ int main(int argc, char ** argv) {
   slwriter.mo_matrix_type="CUTOFF_MO";
  
   cout << " coord_type " << coord_type << endl;
-  if(coord_type==scaled) { 
+  if(coord_type==scaled || coord_type==fractional) { 
     cout << "rescaling " << endl;
     vector <Atom> tmpatoms=atoms;
     int natoms=atoms.size();
@@ -238,9 +238,14 @@ void read_atoms(istream & is, vector <string> & currline,
       coord_type=ang;
     }
     else if(currline[3]=="(scaled):") { 
-      cout << "scaled coordinates" << endl;
+      cout << "scaled coordinates: WARNING: if you have non-orthogonal unit cells, the conversion may be incorrect.  Check atomic coordinates!!" << endl;
       fac=1.0;
       coord_type=scaled;
+    }
+    else if(currline[3]=="(fractional):") { 
+      cout << "fractional coordinates" << endl;
+      fac=1.0;
+      coord_type=fractional;
     }
     else { 
       cout << "Don't understand format of the coordinates: " << currline[3] << endl;

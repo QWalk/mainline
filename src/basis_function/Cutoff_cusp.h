@@ -78,6 +78,7 @@ public:
 private:
 
   doublevar rcut;
+  doublevar rcutinv; //inverse of rcut, to save on divisions
   string centername;
   doublevar gamma;
   doublevar cusp;
