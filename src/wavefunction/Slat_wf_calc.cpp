@@ -102,6 +102,9 @@ void Slat_wf::init(Wavefunction_data * wfdata)
   sampleAttached=0;
   dataAttached=0;
   staticSample=0;
+  
+  inverseStale=0;
+  lastValUpdate=0;
 }
 
 //----------------------------------------------------------------------
@@ -786,6 +789,7 @@ void Slat_wf::getDensity(Wavefunction_data * wfdata, int e,
 void Slat_wf::calcLap(Slat_wf_data * dataptr, Sample_point * sample)
 {
 
+  inverseStale=0;
   for(int e=0; e< nelectrons(0)+nelectrons(1); e++)  {
     int s=dataptr->spin(e);
     sample->updateEIDist();
