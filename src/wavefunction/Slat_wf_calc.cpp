@@ -201,6 +201,7 @@ void Slat_wf::saveUpdate(Sample_point * sample, int e,
     //presumably, if we care enough to save the update, we care enough
     //to have the inverse up to date
     if(inverseStale) { 
+      detVal=lastDetVal;
       updateInverse(parent, lastValUpdate);
       inverseStale=0;
     }
@@ -234,7 +235,8 @@ void Slat_wf::restoreUpdate(Sample_point * sample, int e,
     Slat_wf_storage * store;
     recast(wfstore, store);
     int s=spin(e);
-
+    inverseStale=0;
+    
     for(int j=0; j<5; j++) {
       for(int i=0; i<moVal.GetDim(2); i++) {
         moVal(j,e,i)=store->moVal_temp(j,i);
@@ -392,6 +394,13 @@ void Slat_wf::getParmDepVal(Wavefunction_data * wfdata,
 int Slat_wf::getParmDeriv(Wavefunction_data *  wfdata, 
 			  Sample_point * sample ,
 			  Parm_deriv_return & derivatives){
+  
+  
+  if(inverseStale) { 
+    detVal=lastDetVal;
+    updateInverse(parent, lastValUpdate);
+    inverseStale=0;
+  }
   
   int nparms_full=parent->nparms();
   int nparms_start=derivatives.nparms_start;
@@ -678,6 +687,7 @@ void Slat_wf::updateVal( Slat_wf_data * dataptr, Sample_point * sample,int e) {
 
   if(inverseStale && lastValUpdate!=e) { 
     inverseStale=0;
+    detVal=lastDetVal;
     updateInverse(dataptr, lastValUpdate);
   }
   if(inverseStale && lastValUpdate==e) { 
@@ -930,6 +940,7 @@ void Slat_wf::updateLap(Slat_wf_data * dataptr,
   
   if(inverseStale && lastValUpdate!=e) { 
     inverseStale=0;
+    detVal=lastDetVal;
     updateInverse(dataptr, lastValUpdate);
   }
   if(inverseStale && lastValUpdate==e) { 
