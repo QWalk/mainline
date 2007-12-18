@@ -114,7 +114,7 @@ int main(int argc, char ** argv) {
       for(int i=0; i< 3; i++) atoms[at].pos[i]=0.0;
       for(int i=0; i< 3; i++) { 
         for(int j=0; j< 3; j++) { 
-          atoms[at].pos[i]+=tmpatoms[at].pos[j]*latvec[i][j];
+          atoms[at].pos[i]+=tmpatoms[at].pos[j]*latvec[j][i];
         }
       }
     }
