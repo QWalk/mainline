@@ -42,6 +42,17 @@ void allocate(vector<string> & words, System * sys, string & runid,
     error("Didn't understand density keyword",words[0]);
   denspt->init(words, sys, runid);
 }
+
+void allocate(vector<string> & words, System * sys, string & runid,
+	 Nonlocal_density_accumulator *& nldenspt) { 
+  if(words.size() < 1) error("empty non-local density section");
+  if(caseless_eq(words[0],"OBDM"))
+    nldenspt=new OBDM;
+  else
+    error("Didn't understand non-local density keyword",words[0]);
+  nldenspt->init(words, sys, runid);
+}
+
 //######################################################################
 
 
@@ -848,6 +859,243 @@ void Polarization::write() {
   manye_pol_cvg=dcomplex(0.0,0.0);
 }
 
+
+//######################################################################
+void OBDM::init(vector <string> & words, System * sys,
+		string & runid) { 
+
+  single_write(cout, "One-body density matrix will be calculated.\n");
+  //  outputfile=runid+".obdm";
+  outputfilelog=runid+".obdm.log";
+
+  nelectrons=sys->nelectrons(0)+sys->nelectrons(1);
+
+  unsigned int pos=0;
+  if(!readvalue(words, pos=0, np_side, "NGRID")) 
+    np_side=5;
+  
+  // I assume spherical symmetry for now, shifts will be along the first
+  // lattice vector
+  npoints=np_side;          
+  dmtrx.Resize(npoints);
+  dmtrx=0.0;
+  
+  int ndim=3;
+  latVec.Resize(ndim,ndim);
+  if(!sys->getBounds(latVec)) 
+    error("As of now, OBDM is only implemented for periodic systems.");
+  //dR=sqrt(latVec(0,0)*latVec(0,0)
+  //	  +latVec(0,1)*latVec(0,1)+latVec(0,2)*latVec(0,2))/npoints;
+
+  Array2 <doublevar> crossProduct(ndim,ndim);
+  crossProduct(0,0)=(latVec(1,1)*latVec(2,2)-latVec(1,2)*latVec(2,1));
+  crossProduct(0,1)=(latVec(1,2)*latVec(2,0)-latVec(1,0)*latVec(2,2));
+  crossProduct(0,2)=(latVec(1,0)*latVec(2,1)-latVec(1,1)*latVec(2,0));
+
+  crossProduct(1,0)=(latVec(2,1)*latVec(0,2)-latVec(2,2)*latVec(0,1));
+  crossProduct(1,1)=(latVec(2,2)*latVec(0,0)-latVec(2,0)*latVec(0,2));
+  crossProduct(1,2)=(latVec(2,0)*latVec(0,1)-latVec(2,1)*latVec(0,0));
+
+  crossProduct(2,0)=(latVec(0,1)*latVec(1,2)-latVec(0,2)*latVec(1,1));
+  crossProduct(2,1)=(latVec(0,2)*latVec(1,0)-latVec(0,0)*latVec(1,2));
+  crossProduct(2,2)=(latVec(0,0)*latVec(1,1)-latVec(0,1)*latVec(1,0));
+  
+  doublevar smallestheight=1e99;
+  for(int i=0; i< ndim; i++) {
+    doublevar tempheight=0;
+    doublevar length=0;
+    for(int j=0; j< ndim; j++) {
+      tempheight+=crossProduct(i,j)*latVec(i,j);
+      length+=crossProduct(i,j)*crossProduct(i,j);
+    }
+    tempheight=fabs(tempheight)/sqrt(length);
+    if(tempheight < smallestheight ) smallestheight=tempheight;
+  }
+
+  dR=smallestheight/npoints/2;
+  
+  // angles and weights for Gaussian quadrature (spherical averaging)
+  // (the same material as in system/gesqua.cpp)
+
+  pos=0;
+  if(!readvalue(words, pos=0, np_aver, "AIP")) np_aver=1;
+  wt.Resize(np_aver);
+  ptc.Resize(np_aver,3);             //!< cartesian coordinates of int. points
+  Array2 <doublevar> pts(np_aver,2); //!< spherical coordinates of int. points
+
+  switch (np_aver) {
+  case 1:
+    // no spherical averaging
+    np_aver=1;
+    wt=1;
+    pts(0,0)=pi/2;
+    pts(0,1)=0;
+    break;
+  case 12:
+    // icosahedron 12 point rule
+    wt=1.0/12;
+    pts(0,0)=0;
+    pts(0,1)=0;
+    pts(1,0)=pi;
+    pts(1,1)=0;
+    for (int i=0; i<5; i++) {
+      pts(i+2,0)=atan(2.0);
+      pts(i+2,1)=2*i*pi/5;
+      pts(i+7,0)=pi-atan(2.0);
+      pts(i+7,1)=(2*i+1)*pi/5;
+    }
+    break;
+  case 32:
+    // icosahedron 32 point rule
+    { // braces needed due to declaration of th1,th2 below
+      for (int i=0; i<12; i++) wt(i)=5.0/168;
+      for (int i=12; i<32; i++) wt(i)=27.0/840;
+      pts(0,0)=0;
+      pts(0,1)=0;
+      pts(1,0)=pi;
+      pts(1,1)=0;
+      double th1=acos((2+sqrt(5.0))/sqrt(15+6*sqrt(5.0)));
+      double th2=acos(1.0/sqrt(15+6*sqrt(5.0)));
+      for (int i=0; i<5; i++) {
+	pts(i+2,0)=atan(2.0);
+	pts(i+2,1)=2*i*pi/5;
+	pts(i+7,0)=pi-atan(2.0);
+	pts(i+7,1)=(2*i+1)*pi/5;
+	pts(i+12,0)=th1;
+	pts(i+12,1)=(2*i+1)*pi/5;
+	pts(i+17,0)=th2;
+	pts(i+17,1)=(2*i+1)*pi/5;
+	pts(i+22,0)=pi-th1;
+	pts(i+22,1)=2*i*pi/5;
+	pts(i+27,0)=pi-th2;
+	pts(i+27,1)=2*i*pi/5;
+      }
+    }
+    break;
+  default:
+    error("Invalid number of integration points (AIP) for spherical averaging in OBDM, allowed are 1, 12 and 32.");
+  }
+
+  for (int i=0; i<np_aver; i++) {
+    ptc(i,0)=sin(pts(i,0))*cos(pts(i,1));
+    ptc(i,1)=sin(pts(i,0))*sin(pts(i,1));
+    ptc(i,2)=cos(pts(i,0));
+  }
+
+  nsample=0;
+  wnsample=0.0;
+  
+  if(mpi_info.node==0) { 
+    ofstream outlog(outputfilelog.c_str(),ios_base::app);
+    outlog << endl;
+    outlog << "#----------------------------------------------------------" 
+	   << endl;
+    outlog << "#One body density matrix, spherical average with "
+	   << np_aver << " points." << endl;
+    outlog << "#----------------------------------------------------------" 
+	   << endl;
+  }
+
+}
+
+//----------------------------------------------------------------------
+
+void OBDM::accumulate(Sample_point * sample, doublevar weight, 
+		      Wavefunction_data * wfdata, Wavefunction * wf) { 
+
+  //cout << "OBDM accumulate" << endl;
+
+  int nwf=wf->nfunc();
+  Wf_return wfval_new(nwf,2);   // this structure I just don't understand
+  Wf_return wfval_old(nwf,2);
+  Storage_container wfStore;
+  Array1 <doublevar> oldpos(3), newpos(3), transl(3);
+
+  Array1 <doublevar> x(3), y(3), z(3);
+  Array2 <doublevar> pt(np_aver,3);
+  generate_random_rotation(x,y,z);
+  for (int i=0; i<np_aver; i++) {
+    pt(i,0)=ptc(i,0)*x(0)+ptc(i,1)*y(0)+ptc(i,2)*z(0);
+    pt(i,1)=ptc(i,0)*x(1)+ptc(i,1)*y(1)+ptc(i,2)*z(1);
+    pt(i,2)=ptc(i,0)*x(2)+ptc(i,1)*y(2)+ptc(i,2)*z(2);
+  }
+
+  wf->updateVal(wfdata, sample);
+  wfStore.initialize(sample, wf);
+  wfStore.saveUpdate(sample,wf,0);
+  wf->getVal(wfdata, 0, wfval_old);
+  sample->getElectronPos(0,oldpos);
+
+  for( int i=0; i<npoints; i++) {
+    for ( int k=0; k<np_aver; k++) {
+      // shift makes sense only up to half the lattice vector, we are hitting
+      // periodicity for larger distances
+      //for (int j=0; j<3; j++) newpos(j)=oldpos(j)+i*latVec(0,j)/2/npoints;
+      //sample->setElectronPos(0,newpos);
+      transl(0)=(i+1)*dR*pt(k,0);
+      transl(1)=(i+1)*dR*pt(k,1);
+      transl(2)=(i+1)*dR*pt(k,2);
+      sample->translateElectron(0,transl);
+      // TODO: check k-points /= Gamma
+      wf->updateVal(wfdata, sample);
+      wf->getVal(wfdata, 0, wfval_new);
+      // how to handle the possibility of wf_old=0? Can it happen?
+      dmtrx(i)+=wt(k)*wfval_new.sign(0)*wfval_old.sign(0)
+	*exp(wfval_new.amp(0,0)-wfval_old.amp(0,0))*weight;
+      sample->setElectronPos(0,oldpos);
+    }
+  }
+  
+  wfStore.restoreUpdate(sample,wf,0);
+  nsample+=1;
+  wnsample+=weight;
+  
+}
+
+//----------------------------------------------------------------------
+
+void OBDM::write(string & log_label) { 
+
+  doublevar wnsample_tmp=parallel_sum(wnsample);
+#ifdef USE_MPI
+  Array1 <doublevar> dmtrx_tmp(npoints);
+  dmtrx_tmp=0;
+  MPI_Reduce(dmtrx.v, dmtrx_tmp.v, npoints, MPI_DOUBLE,MPI_SUM,
+	     0,MPI_COMM_WORLD);
+#else
+  Array1 <doublevar> & dmtrx_tmp(dmtrx);
+#endif
+
+  if(mpi_info.node==0) { 
+    
+    // the out, as it is now, is fine but not perfect because it gives
+    // wrong errorbars if blocks are too short and reblocking is
+    // needed.
+    ofstream outlog(outputfilelog.c_str(),ios_base::app);
+    outlog << endl;
+    outlog << "block {" << endl;
+    outlog << "   label " << log_label << endl;
+    outlog << "   totweight " << wnsample_tmp << endl;
+    
+    for(int i=0; i<npoints; i++)
+      outlog 
+	//<< "   r(" << i << ")="
+	<< dR*(i+1)
+	<< " { " << dmtrx_tmp(i)/wnsample_tmp
+	<< " } " << endl;
+
+    outlog << "}" << endl;
+    outlog.close();
+
+  } // if(mpi_info.node==0)
+
+  // reset per-block quantities
+  nsample=0;
+  wnsample=0.0;
+  dmtrx=0.0;
+  
+}
+//######################################################################
 
 
 //######################################################################

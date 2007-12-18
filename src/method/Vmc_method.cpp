@@ -92,6 +92,11 @@ void Vmc_method::read(vector <string> words,
   while(readsection(words, pos, tmp_dens, "DENSITY")) {
     dens_words.push_back(tmp_dens);
   }
+  pos=0;
+  while(readsection(words, pos, tmp_dens, "NONLOCAL_DENSITY")) {
+    nldens_words.push_back(tmp_dens);
+  }
+  
 
   if(readvalue(words, pos=0, config_trace, "CONFIG_TRACE"))
     canonical_filename(config_trace);
@@ -153,7 +158,10 @@ int Vmc_method::generateVariables(Program_options & options) {
   for(int i=0; i< densplt.GetDim(0); i++) {
     allocate(dens_words[i], sysprop, options.runid,densplt(i));
   }
-
+  nldensplt.Resize(nldens_words.size());
+  for(int i=0; i< nldensplt.GetDim(0); i++) {
+    allocate(nldens_words[i], sysprop, options.runid,nldensplt(i));
+  }
 
   return 1;
 }
@@ -415,6 +423,8 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
         
         for(int i=0; i< densplt.GetDim(0); i++)
           densplt(i)->accumulate(sample,1.0);
+	for(int i=0; i< nldensplt.GetDim(0); i++)
+          nldensplt(i)->accumulate(sample,1.0,wfdata,wf);
 
         pt.parent=walker;
         pt.nchildren=1; pt.children(0)=1;
@@ -446,6 +456,8 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
       storecheck(storeconfig);
       for(int i=0; i< densplt.GetDim(0); i++)
         densplt(i)->write();
+      for(int i=0; i< nldensplt.GetDim(0); i++)
+        nldensplt(i)->write(log_label);
     }
 
 

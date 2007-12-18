@@ -12,8 +12,8 @@ DVLPATH = .
 MAKEPATH:=$(DVLPATH)/make
 OBJPATH:=$(DVLPATH)/obj/$(PLATFORM)
 SRCPATH:=$(DVLPATH)
-PROJECT:=$(DVLPATH)/locmom-$(PLATFORM)
-DEPENDFILE:=$(OBJPATH)/depend.locmom
+PROJECT:=$(DVLPATH)/averr-$(PLATFORM)
+DEPENDFILE:=$(OBJPATH)/depend.averr
 
 include make.include
 
@@ -21,7 +21,7 @@ SOURCES:=properties/Properties_average.cpp \
          properties/Properties_block.cpp \
          program_utils/Qmc_std.cpp \
          program_utils/qmc_io.cpp \
-         properties/locmom.cpp
+         properties/averr.cpp
 
 
 #remove the directory prefix and .cpp extension, and add the .o extension

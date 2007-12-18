@@ -139,10 +139,10 @@ private:
 
   Properties_gather mygather;
 
-
   Array1 < Local_density_accumulator *> densplt;
   vector <vector <string> > dens_words;
-
+  Array1 < Nonlocal_density_accumulator *> nldensplt;
+  vector <vector <string> > nldens_words;
 
 };
 

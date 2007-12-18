@@ -105,7 +105,10 @@ void Dmc_method::read(vector <string> words,
   while(readsection(words, pos, tmp_dens, "DENSITY")) {
     dens_words.push_back(tmp_dens);
   }
-  
+  pos=0;
+  while(readsection(words, pos, tmp_dens, "NONLOCAL_DENSITY")) {
+    nldens_words.push_back(tmp_dens);
+  }
   
   vector <string> dynamics_words;
   if(!readsection(words, pos=0, dynamics_words, "DYNAMICS") ) 
@@ -137,6 +140,11 @@ int Dmc_method::generateVariables(Program_options & options) {
   for(int i=0; i< densplt.GetDim(0); i++) {
     allocate(dens_words[i], mysys, options.runid,densplt(i));
   }
+  nldensplt.Resize(nldens_words.size());
+  for(int i=0; i< nldensplt.GetDim(0); i++) {
+    allocate(nldens_words[i], mysys, options.runid,nldensplt(i));
+  }
+  
   return 1;
 }
 
@@ -433,6 +441,9 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
           prop.insertPoint(step+p, walker, pts(walker).prop);
           for(int i=0; i< densplt.GetDim(0); i++)
             densplt(i)->accumulate(sample,pts(walker).prop.weight(0));
+	  for(int i=0; i< nldensplt.GetDim(0); i++)
+	    nldensplt(i)->accumulate(sample,pts(walker).prop.weight(0),
+				     wfdata,wf);
         }
         
         pts(walker).config_pos.savePos(sample);
@@ -460,7 +471,9 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
     if(!low_io || block==nblock-1) {
       savecheckpoint(storeconfig,sample);
       for(int i=0; i< densplt.GetDim(0); i++)
-        densplt(i)->write();      
+        densplt(i)->write();
+      for(int i=0; i< nldensplt.GetDim(0); i++)
+        nldensplt(i)->write(log_label);
     }
     prop.endBlock();
 
