@@ -203,7 +203,7 @@ int Vmc_method::showinfo(ostream & os)
       pseudo->showinfo(os);
       os << endl;
     }
-    os << "Variational Monte Carlo: $Date: 2006/12/05 00:17:04 $\n";
+    os << "Variational Monte Carlo:\n";
     os << "Configurations per processor: " <<  nconfig   << endl;
     os << "Number of processors: "        <<  mpi_info.nprocs << endl;
     os << "Total configurations: " <<          nconfig*mpi_info.nprocs << endl;
