@@ -469,7 +469,8 @@ void Pfaff_wf_data::Pfaffian_optimize_read(vector <string> & pf_place,
   int fullcounter=0;
   
   //------------Triplets up up------------------------
-    if(haskeyword(pf_place, pos=0, "TRIPLET_UU_DIAG")){
+  vector <string> strtripletuupos;
+  if(haskeyword(pf_place, pos=0, "TRIPLET_UU_DIAG")){
       counter=fullcounter=0;
       for (int i=0;i<ntote_pairs(pf);i++){
         for (int j=i+1;j<ntote_pairs(pf);j++){
@@ -544,9 +545,42 @@ void Pfaff_wf_data::Pfaffian_optimize_read(vector <string> & pf_place,
       if( mpi_info.node==0 )
 	cout <<"   "<< "TRIPLET_UU_HF2VIRTUALS: "<<counter<<endl;
     }
-       
+    else if(readsection(pf_place, pos=0, strtripletuupos, "TRIPLET_UU_FROM_TO")){
+      if(strtripletuupos.size()!=2)
+        error("expected 2 values in TRIPLET_UU_FROM_TO");
+      //cout <<strsingletpos[0]<<"  "<<strsingletpos[1]<<endl;
+      Array1 <int> tripletpos(2);
+      tripletpos(0)=atoi(strtripletuupos[0].c_str())-1;
+      tripletpos(1)=atoi(strtripletuupos[1].c_str())-1;
+
+      if(tripletpos(0)>=tripletpos(1))
+        error("tripletpos(0)>=tripletpos(1) in TRIPLET_DD_FROM_TO");
+      if(tripletpos(0)<0 || tripletpos(1)>=ntote_pairs(pf))
+        error("tripletpos(0)<0 || tripletpos(1)>=ntote_pairs(pf) in TRIPLET_DD_FROM_TO");
+      
+      //if( mpi_info.node==0 )
+      //	cout <<"   "<< "SINGLET_FROM "<<singletpos(0)<<" TO "<<singletpos(1)<<endl;
+      
+      counter=fullcounter=0;
+      for (int i=0;i<ntote_pairs(pf);i++){
+        for (int j=i+1;j<ntote_pairs(pf);j++){
+          if(i>=tripletpos(0) && i<=tripletpos(1))
+            if(j>=tripletpos(0) && j<=tripletpos(1)){
+              optimize_total(pf)(0)(fullcounter)=1;
+              counter++;
+            }
+          fullcounter++;
+        }
+      }
+
+      optimize_string(pf)(0)="TRIPLET_UU_FROM_TO { "+strtripletuupos[0]+"  "+strtripletuupos[1]+" }";
+      //cout << optimize_string(pf)(2)<<endl;
+      if( mpi_info.node==0 )
+        cout <<"   "<< "TRIPLET_UU_FROM_TO: "<<counter<<endl;
+    }   
 
 //------------Triplets down down------------------------
+    vector <string> strtripletddpos;
     if(haskeyword(pf_place, pos=0, "TRIPLET_DD_DIAG")){
       counter=fullcounter=0;
       for (int i=0;i<ntote_pairs(pf);i++){
@@ -606,8 +640,43 @@ void Pfaff_wf_data::Pfaffian_optimize_read(vector <string> & pf_place,
       optimize_string(pf)(1)="TRIPLET_DD_VIRTUAL_DIAG";
       if( mpi_info.node==0 )
 	cout <<"   "<< "TRIPLET_DD_VIRTUAL_DIAG: "<<counter<<endl;
-    }  
+    }
+    else if(readsection(pf_place, pos=0, strtripletddpos, "TRIPLET_DD_FROM_TO")){
+      if(strtripletddpos.size()!=2)
+        error("expected 2 values in TRIPLET_DD_FROM_TO");
+      //cout <<strsingletpos[0]<<"  "<<strsingletpos[1]<<endl;
+      Array1 <int> tripletpos(2);
+      tripletpos(0)=atoi(strtripletddpos[0].c_str())-1;
+      tripletpos(1)=atoi(strtripletddpos[1].c_str())-1;
+
+      if(tripletpos(0)>=tripletpos(1))
+        error("tripletpos(0)>=tripletpos(1) in TRIPLET_DD_FROM_TO");
+      if(tripletpos(0)<0 || tripletpos(1)>=ntote_pairs(pf))
+        error("tripletpos(0)<0 || tripletpos(1)>=ntote_pairs(pf) in TRIPLET_DD_FROM_TO");
+      
+      //if( mpi_info.node==0 )
+      //	cout <<"   "<< "SINGLET_FROM "<<singletpos(0)<<" TO "<<singletpos(1)<<endl;
+      
+      counter=fullcounter=0;
+      for (int i=0;i<ntote_pairs(pf);i++){
+        for (int j=i+1;j<ntote_pairs(pf);j++){
+          if(i>=tripletpos(0) && i<=tripletpos(1))
+            if(j>=tripletpos(0) && j<=tripletpos(1)){
+              optimize_total(pf)(1)(fullcounter)=1;
+              counter++;
+            }
+          fullcounter++;
+        }
+      }
+
+      optimize_string(pf)(1)="TRIPLET_DD_FROM_TO { "+strtripletddpos[0]+"  "+strtripletddpos[1]+" }";
+      //cout << optimize_string(pf)(2)<<endl;
+      if( mpi_info.node==0 )
+        cout <<"   "<< "TRIPLET_DD_FROM_TO: "<<counter<<endl;
+    }
 //------------Singlets------------------------
+
+    vector <string> strsingletpos;
     if(haskeyword(pf_place, pos=0,"SINGLET_DIAG")){
       counter=fullcounter=0;
       for (int i=0;i<ntote_pairs(pf);i++){
@@ -634,6 +703,39 @@ void Pfaff_wf_data::Pfaffian_optimize_read(vector <string> & pf_place,
       optimize_string(pf)(2)="SINGLET_ALL";
       if( mpi_info.node==0 )
       cout <<"   "<< "SINGLET_ALL: "<<counter<<endl;
+    }
+    else if(readsection(pf_place, pos=0, strsingletpos, "SINGLET_FROM_TO")){
+      if(strsingletpos.size()!=2)
+        error("expected 2 values in SINGLET_FROM_TO");
+      //cout <<strsingletpos[0]<<"  "<<strsingletpos[1]<<endl;
+      Array1 <int> singletpos(2);
+      singletpos(0)=atoi(strsingletpos[0].c_str())-1;
+      singletpos(1)=atoi(strsingletpos[1].c_str())-1;
+
+      if(singletpos(0)>=singletpos(1))
+        error("singletpos(0)>=singletpos(1) in SINGLET_FROM_TO");
+      if(singletpos(0)<0 || singletpos(1)>=ntote_pairs(pf))
+        error("singletpos(0)<0 || singletpos(1)>=ntote_pairs(pf) in SINGLET_FROM_TO");
+      
+      //if( mpi_info.node==0 )
+      //	cout <<"   "<< "SINGLET_FROM "<<singletpos(0)<<" TO "<<singletpos(1)<<endl;
+      
+      counter=fullcounter=0;
+      for (int i=0;i<ntote_pairs(pf);i++){
+        for (int j=i;j<ntote_pairs(pf);j++){
+          if(i>=singletpos(0) && i<=singletpos(1))
+            if(j>=singletpos(0) && j<=singletpos(1)){
+              optimize_total(pf)(2)(fullcounter)=1;
+              counter++;
+            }
+          fullcounter++;
+        }
+      }
+
+      optimize_string(pf)(2)="SINGLET_FROM_TO { "+strsingletpos[0]+"  "+strsingletpos[1]+" }";
+      //cout << optimize_string(pf)(2)<<endl;
+      if( mpi_info.node==0 )
+        cout <<"   "<< "SINGLET_FROM_TO: "<<counter<<endl;
     }
     /*
     else if(haskeyword(pf_place, pos=0,"SINGLET_DIAG_SIMPLE")){
