@@ -192,12 +192,18 @@ int main(int argc, char ** argv) {
   }
   
   sysout << "LATTICEVEC { \n";
+  double min_latsize=1e8;
   for(int i=0; i< 3; i++) { 
-    for(int j=0; j< 3; j++) sysout << latvec[i][j] << " ";
+    double length=0;
+    for(int j=0; j< 3; j++) {
+      sysout << latvec[i][j] << " ";
+      length+=latvec[i][j]*latvec[i][j];
+    }
     sysout << endl;
+    if(min_latsize > length) min_latsize=length;
   }
   sysout << "  }\n";
-
+  sysout << "  cutoff_divider " << sqrt(min_latsize)/10.0 << endl;
   sysout << "}\n\n\n";
   
   int npsp=pseudo.size();
