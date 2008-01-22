@@ -128,7 +128,7 @@ int main(int argc, char ** argv) {
 
   ifstream is(infilename.c_str());
   if(!is) {
-    cout << "Couldn't open" <<infilename<< endl;
+    cout << "Couldn't open " <<infilename<< endl;
     exit(1);
   }
   vector <string> words;
