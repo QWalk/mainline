@@ -53,6 +53,9 @@ string Cubic_spline::symmetry_lookup(symmetry_type s) {
      case sym_D_siesta:
        return string("5D_siesta");
        break;
+     case sym_F_siesta:
+       return string("F_siesta");
+       break;
      default:
        error("Cubic_spline::symmetry_lookup found unknown symmetry");
    }
@@ -78,6 +81,8 @@ Cubic_spline::symmetry_type Cubic_spline::symmetry_lookup(string & s) {
     return sym_P_siesta;
   if(caseless_eq(s,"5D_siesta"))
     return sym_D_siesta;
+  if(caseless_eq(s,"7F_siesta"))
+    return sym_F_siesta;  
   error("I don't understand symmetry type ", s, "\nShould be S,P,D,etc.");
   return sym_S;
 
@@ -230,6 +235,7 @@ int Cubic_spline::nfunc()
       totf+= 6;
       break;
     case sym_7F:
+    case sym_F_siesta:
       totf+=7;
       break;
     case sym_10F:
@@ -278,6 +284,7 @@ void Cubic_spline::findCutoffs()
       nrep=6;
       break;
     case sym_7F:
+    case sym_F_siesta:
       nrep=7;
       break;
     case sym_10F:
@@ -614,6 +621,19 @@ void Cubic_spline::assign_indiv_symmetries() {
         indiv_symmetry(totfunc++)=isym_Dxz;
         indiv_symmetry(totfunc++)=isym_Dx2y2;
         break;
+      case sym_F_siesta:
+        nfuncspline(funcNum)=7;
+        indiv_symmetry(totfunc++)=isym_Fm3;
+        indiv_symmetry(totfunc++)=isym_Fxyz;
+        indiv_symmetry(totfunc++)=isym_Fm1;
+        indiv_symmetry(totfunc++)=isym_F0;
+        indiv_symmetry(totfunc++)=isym_Fp1;
+        indiv_symmetry(totfunc++)=isym_Fp2;
+        indiv_symmetry(totfunc++)=isym_Fp3;
+        break;
+      default:
+        error("unknown symmetry type: ", symmetry(funcNum));
+        
     }
   }
 }

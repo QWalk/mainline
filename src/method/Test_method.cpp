@@ -88,7 +88,7 @@ void Test_method::read(vector <string> words,
 int Test_method::showinfo(ostream & os)
 {
   os << "#############Testing#################\n";
-  wfdata->showinfo(os);
+  //wfdata->showinfo(os);
   //sysprop->showinfo(os);
 
   return 1;
@@ -126,13 +126,9 @@ void Test_method::run(Program_options & options, ostream & output)
   cout << "in run " << endl;
 
   cout.precision(15);
-  
-  
-  Wavefunction * mywf=NULL;
   Sample_point * sample=NULL;
-  
-  wfdata->generateWavefunction(mywf);
   sysprop->generateSample(sample);
+  const doublevar del=1e-6;
 
   if(readconfig!="") {
     ifstream checkfile(readconfig.c_str());
@@ -143,69 +139,92 @@ void Test_method::run(Program_options & options, ostream & output)
       if(read_config(dummy, checkfile, sample)) break;
     }
   }
-  
-  sample->attachObserver(mywf);
-  Array1 <Wf_return> first_calc(nelectrons);
-  cout <<"**********updateLap " << endl;
-  mywf->updateLap(wfdata, sample);
-  cout << "******done " << endl;
-  string indent="";
-  for(int i=0; i< nelectrons; i++) {
-    first_calc(i).Resize(mywf->nfunc(),5);
-    mywf->getLap(wfdata,i, first_calc(i));
-    //first_calc(i).write(indent,cout);
+  else {
+    sample->randomGuess();
   }
   
-  cout << "#############checking derivatives" << endl;
   
-  const doublevar del=1e-6;
-  Array1 <doublevar> epos(3);
-  Array1 <doublevar> new_epos(3);
-  Wf_return test_wf(mywf->nfunc(), 5);
-  for(int e=0; e < nelectrons; e++) {
-    cout << "#######################\n";
-    cout << "####electron " << e << " #####" << endl;
-    cout << "#######################\n";
-    sample->getElectronPos(e,epos);
-    doublevar lap=0;
-    for(int d=0;d < 3; d++) {
-      new_epos=epos;
-      new_epos(d)+=del;
-      sample->setElectronPos(e, new_epos);
-      //mywf->notify(all_electrons_move,0);
-      mywf->updateLap(wfdata, sample);
-      mywf->getLap(wfdata,e,test_wf);
-      //mywf->updateVal(wfdata, sample);
-      //mywf->getVal(wfdata,e,test_wf);
-      doublevar ratio=exp(test_wf.amp(0,0)-first_calc(0).amp(0,0));
-      doublevar derivative=(ratio-1)/del;
-      lap+=(test_wf.amp(0,d+1)*ratio-first_calc(e).amp(0,d+1))/del;
-      check_numbers(derivative,first_calc(e).amp(0,d+1),cout);
+  if(wfdata !=NULL) { 
+    Wavefunction * mywf=NULL;
+    
+    wfdata->generateWavefunction(mywf);
+    
+    
+    sample->attachObserver(mywf);
+    Array1 <Wf_return> first_calc(nelectrons);
+    cout <<"**********updateLap " << endl;
+    mywf->updateLap(wfdata, sample);
+    cout << "******done " << endl;
+    string indent="";
+    for(int i=0; i< nelectrons; i++) {
+      first_calc(i).Resize(mywf->nfunc(),5);
+      mywf->getLap(wfdata,i, first_calc(i));
+      //first_calc(i).write(indent,cout);
     }
-    cout << "laplacian " << endl;
-    check_numbers(lap,first_calc(e).amp(0,4),cout);
-    sample->setElectronPos(e,epos);
-    mywf->updateVal(wfdata, sample);
+    
+    cout << "#############checking derivatives" << endl;
+    
+    Array1 <doublevar> epos(3);
+    Array1 <doublevar> new_epos(3);
+    Wf_return test_wf(mywf->nfunc(), 5);
+    for(int e=0; e < nelectrons; e++) {
+      cout << "#######################\n";
+      cout << "####electron " << e << " #####" << endl;
+      cout << "#######################\n";
+      sample->getElectronPos(e,epos);
+      doublevar lap=0;
+      for(int d=0;d < 3; d++) {
+        new_epos=epos;
+        new_epos(d)+=del;
+        sample->setElectronPos(e, new_epos);
+        //mywf->notify(all_electrons_move,0);
+        mywf->updateLap(wfdata, sample);
+        mywf->getLap(wfdata,e,test_wf);
+        //mywf->updateVal(wfdata, sample);
+        //mywf->getVal(wfdata,e,test_wf);
+        doublevar ratio=exp(test_wf.amp(0,0)-first_calc(0).amp(0,0));
+        doublevar derivative=(ratio-1)/del;
+        lap+=(test_wf.amp(0,d+1)*ratio-first_calc(e).amp(0,d+1))/del;
+        check_numbers(derivative,first_calc(e).amp(0,d+1),cout);
+      }
+      cout << "laplacian " << endl;
+      check_numbers(lap,first_calc(e).amp(0,4),cout);
+      sample->setElectronPos(e,epos);
+      mywf->updateVal(wfdata, sample);
+    }
+    
+    if(plot_cusp){
+      plotCusp(mywf, sample);
+    }
+    
+    if(parms_ders){
+      testParmDeriv(mywf, sample);
+    }
+    delete mywf; mywf=NULL;
+
   }
-  
-  
+  cout << "here " << endl;
 
   if(basis!=NULL) { 
-    for(double r=0; r < 10.0; r+=.05) { 
-      Array1 <double> rscan(5); rscan=0.0;
-      rscan(0)=r; rscan(1)=r*r; rscan(2)=r;
-      Array2 <doublevar> vals(basis->nfunc(),5);
-      basis->calcLap(rscan,vals);
-      cout << "basisplot " << r << "  " << vals(0,0)  << " " << vals(0,4) << endl;
-    }
+    string indent="";
+    basis->showinfo(indent, cout);
+    //for(double r=0; r < 10.0; r+=.05) { 
+    //  Array1 <double> rscan(5); rscan=0.0;
+    //  rscan(0)=r; rscan(1)=r*r; rscan(2)=r;
+    //  Array2 <doublevar> vals(basis->nfunc(),5);
+    //  basis->calcLap(rscan,vals);
+     // cout << "basisplot " << r << "  " << vals(0,0)  << " " << vals(0,4) << endl;
+    //}
     
     Array2 <doublevar> finite_der(basis->nfunc(),3,0.0);
     Array3 <doublevar> finite_hessian(basis->nfunc(),3,3,0.0);
     Array2 <doublevar> hessian(basis->nfunc(),10);
     Array2 <doublevar> tmp_hess(basis->nfunc(),10);
+    //Array1 <doublevar> finite_lap(basis->nfunc(), 0.0);
     sample->updateEIDist();
     Array1 <doublevar> dist(5);
     sample->getEIDist(0,0,dist);
+    //basis->calcLap(dist, hessian);
     basis->calcHessian(dist,hessian);
     Array1 <doublevar> epos(3);
     Array1 <doublevar> npos(3);
@@ -216,6 +235,7 @@ void Test_method::run(Program_options & options, ostream & output)
       sample->setElectronPos(0,npos);
       sample->updateEIDist();      
       sample->getEIDist(0,0,dist);
+      //basis->calcLap(dist, tmp_hess);
       basis->calcHessian(dist,tmp_hess);
       for(int f=0; f< basis->nfunc(); f++) { 
 	  
@@ -224,6 +244,8 @@ void Test_method::run(Program_options & options, ostream & output)
           finite_hessian(f,d,d1)=(tmp_hess(f,d1+1)-hessian(f,d1+1))/del;
         }
       }
+      
+      
     }
 
     for(int f=0; f< basis->nfunc(); f++) { 
@@ -244,18 +266,10 @@ void Test_method::run(Program_options & options, ostream & output)
 
   
 
-  if(plot_cusp){
-    plotCusp(mywf, sample);
-  }
-  
-  if(parms_ders){
-    testParmDeriv(mywf, sample);
-  }
 
-
+  cout << "there " << endl;
   
 
-  delete mywf; mywf=NULL;
   delete sample;
   sample=NULL;
   if(basis) delete basis;

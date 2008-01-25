@@ -539,6 +539,9 @@ void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis ) {
           case 3:
             tmp_basis.types.push_back("5D_siesta");
             break;
+          case 4:
+            tmp_basis.types.push_back("7F_siesta");
+            break;
           default:
             cout << "Don't support this l-value.  Bug the maintainer." << endl;
             exit(1);
@@ -729,6 +732,14 @@ void fix_basis_norm(vector <Atom> & atoms,
               cout << "error in mnorm assignment" << endl; exit(3);
           }
         }
+        else if(L==3) { 
+          switch(m) { 
+            case -2:
+              mnorm*=2;
+              break;
+          }
+        }
+        
               
                 
         //cout << "i " << i << "  mnorm " << mnorm << endl;

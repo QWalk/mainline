@@ -34,7 +34,7 @@ int nfunction_symmetry(string & str) {
   //else if(types[i]=="L") tot+=4;
   else if(str=="5D" || str=="5D_siesta") return 5;
   else if(str=="6D") return 6;
-  else if(str=="7F") return 7;
+  else if(str=="7F" || str=="7F_siesta") return 7;
   else if(str=="10F") return 10;
   else if(str=="15G") return 15;
    std::cout << "WARNING! Unknown type '" << str << "'" << std::endl;

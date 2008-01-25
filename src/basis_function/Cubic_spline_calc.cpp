@@ -158,11 +158,41 @@ void Cubic_spline::calcVal(const Array1 <doublevar> & r,
           symvals(totf)=v3*temp;
           break;
 
-        case isym_Fxyz://xyz     last f
+        case isym_Fxyz://xyz     
           v3=r(2)*r(3)*r(4);
           symvals(totf)=v3*temp;
           break;
-      
+          
+        case isym_Fm3: 
+          v3=r(3)*(3.0*r(2)*r(2)-r(3)*r(3));
+          symvals(totf)=v3*temp;
+          break;
+          
+        case isym_Fm1:
+          v3=r(3)*(4.0*r(4)*r(4)-r(2)*r(2)-r(3)*r(3));
+          symvals(totf)=v3*temp;
+          break;
+        
+        case isym_F0:
+          v3=r(4)*(2.0*r(4)*r(4)-3.0*(r(2)*r(2)+r(3)*r(3)));
+          symvals(totf)=v3*temp;
+          break;
+          
+        case isym_Fp1:
+          v3=r(2)*(4.0*r(4)*r(4)-r(2)*r(2)-r(3)*r(3));
+          symvals(totf)=v3*temp;
+          break;
+          
+        case isym_Fp2:
+          v3=r(4)*(r(2)*r(2)-r(3)*r(3));
+          symvals(totf)=v3*temp;
+          break;
+        
+        case isym_Fp3:
+          v3=r(2)*(r(2)*r(2)+r(3)*r(3));
+          symvals(totf)=v3*temp;
+          break;
+                  
         case isym_Gxxxx: //g xxxx (15)
           v4=r(2)*r(2)*r(2)*r(2);
           symvals(totf)=v4*temp;
@@ -539,7 +569,73 @@ void Cubic_spline::calcLap(
           symvals(totf, 3)=h*r(4)+func*r(2)*r(3);
           symvals(totf, 4)=v3*f2dir+8.*h;
           break;
-
+          
+          
+        case isym_Fm3: 
+          v3=r(3)*(3.0*r(2)*r(2)-r(3)*r(3));
+          symvals(totf,0)=v3*func;
+          h=v3*fdir;
+          v2=6.0*r(2)*r(3);
+          v4=3.0*(r(2)*r(2)-r(3)*r(3));
+          symvals(totf, 1)=h*r(2)+v2*func;
+          symvals(totf,2)=h*r(3)+v4*func;
+          symvals(totf,3)=h*r(4);
+          symvals(totf,4)=v3*f2dir+8.*h;
+          break;
+          
+        case isym_Fm1:
+          v3=r(3)*(4.0*r(4)*r(4)-r(2)*r(2)-r(3)*r(3));
+          symvals(totf,0)=v3*func;
+          h=v3*fdir;
+          symvals(totf,1)=h*r(2)-2.*r(2)*r(3)*func;
+          symvals(totf,2)=h*r(3)+(4.*r(4)*r(4)-r(2)*r(2)-3.*r(3)*r(3))*func;
+          symvals(totf,3)=h*r(4)+8.*r(3)*r(4)*func;
+          symvals(totf,4)=v3*f2dir+8.*h;
+          break;
+          
+        case isym_F0:
+          v3=r(4)*(2.0*r(4)*r(4)-3.0*(r(2)*r(2)+r(3)*r(3)));
+          symvals(totf,0)=v3*func;
+          h=v3*fdir;
+          symvals(totf,1)=h*r(2)-6.*r(2)*r(4)*func;
+          symvals(totf,2)=h*r(3)-6.*r(3)*r(4)*func;
+          symvals(totf,3)=h*r(4)+func*(6.*r(4)*r(4)-3.*(r(2)*r(2)+r(3)*r(3)));
+          symvals(totf,4)=v3*f2dir+8.*h;
+          break;
+          
+        case isym_Fp1:
+          v3=r(2)*(4.0*r(4)*r(4)-r(2)*r(2)-r(3)*r(3));
+          symvals(totf,0)=v3*func;
+          h=v3*fdir;
+          symvals(totf,1)=h*r(2)+func*(4.*r(4)*r(4)-3.*r(2)*r(2)-r(3)*r(3));
+          symvals(totf,2)=h*r(3)-2.*r(2)*r(3)*func;
+          symvals(totf,3)=h*r(4)+8*r(2)*r(4)*func;
+          symvals(totf,4)=v3*f2dir+8.*h;
+          break;
+          
+        case isym_Fp2:
+          v3=r(4)*(r(2)*r(2)-r(3)*r(3));
+          symvals(totf,0)=v3*func;
+          h=v3*fdir;
+          symvals(totf,1)=h*r(2)+2.*r(2)*r(4)*func;
+          symvals(totf,2)=h*r(3)-2.*r(4)*r(3)*func;
+          symvals(totf,3)=h*r(4)+func*(r(2)*r(2)-r(3)*r(3));
+          symvals(totf,4)=v3*f2dir+8.*h;
+          break;
+          
+        case isym_Fp3:
+          v3=r(2)*(r(2)*r(2)+r(3)*r(3));
+          symvals(totf,0)=v3*func;
+          h=v3*fdir;
+          symvals(totf,1)=h*r(2)+func*(3.*r(2)*r(2)+r(3)*r(3));
+          symvals(totf,2)=h*r(3)+2.*r(2)*r(3)*func;
+          symvals(totf,3)=h*r(4);
+          symvals(totf,4)=v3*f2dir+8.*h+func*8.*r(2);
+          break;
+          
+          
+          
+          
         case isym_Gxxxx: // g xxxx done by MB
 	  v2=r(2)*r(2);
 	  v3=v2*r(2);
@@ -1109,6 +1205,15 @@ void Cubic_spline::calcHessian(const Array1 <doublevar> & r,
 
           break;
 
+        case isym_Fm3:
+        case isym_Fm1:
+        case isym_F0:
+        case isym_Fp1:
+        case isym_Fp2:
+        case isym_Fp3:
+          error("Need to code siesta F's in the Hessian");
+          break;
+          
         case isym_Gxxxx: // g xxxx
 	  v2=x*x;
 	  v3=v2*x;
@@ -1362,7 +1467,7 @@ void Cubic_spline::calcHessian(const Array1 <doublevar> & r,
           break;
 
         default:
-          error("Bad symmetry in Cubic_spline::calcLap.\n");
+          error("Bad symmetry in Cubic_spline::calcHessian.\n");
         }
 
       }
