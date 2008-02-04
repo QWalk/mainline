@@ -89,12 +89,16 @@ void usage(const char * name) {
   cout << "-csf      write CSFs rather than separate determinants\n";
   cout << "-o        desired output file\n";
   cout << "-wthresh  threshold weight value (Default 0.01)\n";
+  cout << "-state    write determinants for selected state \n";
   exit(1);
 }
 
 int main(int argc, char ** argv) {
   string infilename;
   string outputname;
+  int computed_states=1;
+  int iroot=1;
+  int nstate=1;
   double wtresh=0.01;
   int symmetry=0;
   
@@ -107,6 +111,9 @@ int main(int argc, char ** argv) {
     }
     else if(!strcmp(argv[i], "-csf")) {
       symmetry=1;
+    }
+    else if (!strcmp(argv[i], "-state")) {
+      nstate=atoi(argv[++i]);
     }
     else {
     cout << "Didn't understand option " << argv[i] << endl;
@@ -128,7 +135,7 @@ int main(int argc, char ** argv) {
 
   ifstream is(infilename.c_str());
   if(!is) {
-    cout << "Couldn't open " <<infilename<< endl;
+    cout << "Couldn't open" <<infilename<< endl;
     exit(1);
   }
   vector <string> words;
@@ -151,20 +158,68 @@ int main(int argc, char ** argv) {
 	if(words[0]=="COMPUTING" && words[2]=="HAMILTONIAN" && words[6]=="CSF-S..."){
 	  csfmax=atoi(words[5].c_str());
 	  cout <<"GUGA CITYP using "<<csfmax<<" CSF's"<<endl;
-	  break;
 	}
-      }
-      break;
+
+        // find  NUMBER OF REQUESTED STATES
+        if(words[0]=="DAVIDSON" && words[1]=="METHOD" && words[3]=="DIAGONALIZATION" ){
+          while(getline(is,line)) {
+            words.clear();
+            split(line, space, words);
+            if(words[0]=="NUMBER" && words[2]=="STATES" && words[3]=="REQUESTED"){
+              computed_states=atoi(words[5].c_str());
+              cout << "Number of states computed in CI calculation : "<< computed_states << endl;
+              break;
+            }
+          }
+        }
+
+       // find IROOT value
+        if(words[0]=="PROPERTIES" && words[3]=="COMPUTED" && words[5]=="STATE" && words[6]=="-IROOT-" ){
+          iroot=atoi(words[7].c_str()); 
+          cout <<"IROOT value in CI calculation : "<< iroot <<endl;
+          break;
+        }
+     }
+     break;
     }
+
     //find AMES LABORATORY DETERMINANTAL FULL CI
     if(words[0]=="AMES" && words[1]=="LABORATORY" && words[2]=="DETERMINANTAL" && words[3]=="FULL" && words[4]=="CI" ){
       cout <<"Found ALDET CITYP using determinantal CI"<<endl;
       using_determinants=1;
+      while(getline(is,line)) {
+        words.clear();
+        split(line, space, words);
+        if(words[0]=="NUMBER" && words[3]=="STATES" && words[4]=="REQUESTED" && words[5]=="="){
+          computed_states=atoi(words[6].c_str());
+          cout <<computed_states<<" states computed in CI calculation"<<endl;
+        }
+        if(words[0]=="CI" && words[1]=="PROPERTIES" && words[6]=="ROOT" && words[7]=="NUMBER"){
+          iroot=atoi(words[8].c_str());
+          cout <<"Properties of state "<<iroot<<" were requested in CI"<<endl;
+          break;
+        }
+      }
       break;
     }
   }
   is.close();
-  
+
+  if (nstate < 1) {
+    cout << "Wrong input for -state . Setting STATE value to default (STATE=IROOT).\n" ;
+    nstate=iroot;
+  }
+  else if (nstate == 0) {
+    cout << "Setting STATE value to default (STATE=IROOT).\n" ;
+    nstate=iroot;
+  }
+  else if (nstate>computed_states) {
+    cout << "STATE value is higher than number of computed states in CI.\n" ;
+    cout << "Setting STATE value to default (STATE=IROOT).\n" ;
+    nstate=iroot;
+  }
+
+
   if(using_guga){
     if(symmetry)
       cout << "Keeping the whole CSFs" <<endl;
@@ -175,6 +230,7 @@ int main(int argc, char ** argv) {
     vector <vector <double> > det_weights(csfmax);
     vector <vector <string> > det_str(csfmax);
     int number_of_core_orbitals=0;
+    int line_position;
     int i,k;
     int counter, counter_csf;
     is.open(infilename.c_str());
@@ -211,6 +267,19 @@ int main(int argc, char ** argv) {
 	    if ( (words[0]=="CSF" && words[2]=="C(" )|| (words[0]=="C(" )){
 	      det_weights[k-1].push_back(atof(line.substr(20,10).c_str()));
 	      det_str[k-1].push_back(line.substr(33));
+              line_position=is.tellg();
+              while(getline(is,line)) {
+                words.clear();
+                split(line, space, words);
+                if ((words[0]=="C(" ) || (words[0]=="CASE" && words[1]=="VECTOR") || line.size()==0){
+                 is.seekg(line_position);
+                 break;
+                }
+                else{
+                det_str[k-1].back() += " ";
+                det_str[k-1].back() +=line.substr(33);
+                }
+              }
 	    }
 	  }
 	}
@@ -232,16 +301,19 @@ int main(int argc, char ** argv) {
 	}
       }//---done energy info
       words.clear();
-      
       split(line, space, words);
-      if (words[0]=="CSF" && words[1]=="COEF" && words[2]=="OCCUPANCY") {
+
+      if (words[0]=="STATE"&& words[1]=="#" && words[3]=="ENERGY" && atoi(words[2].c_str())==nstate){
+
+        cout << "Printing CSFs for state :" << atoi(words[2].c_str()) << endl;
+
 	i=0;
 	while(getline(is,line)) {
 	  words.clear();
 	  split(line, space, words);
-	  if(words[0]=="......") break;
+	  if(words[0]=="......" || words[0]=="STATE") break;
 	  
-	  if(words.size()>1 && atoi(words[0].c_str())>0  && !(words[0]=="---")){
+	  if(words.size()>1 && atoi(words[0].c_str())>0  && !(words[0]=="---") && !(words[0]=="CSF")){
 	    csf.push_back(atoi(words[0].c_str())-1);
 	    csf_weights.push_back(atof(words[1].c_str()));
 	    csf_occupations_str.push_back(words[2]);
@@ -529,37 +601,45 @@ int main(int argc, char ** argv) {
 	   words.clear();
 	   split(line, space, words);
 	   cout << line <<endl;
-	   if(words[0]=="CONVERGED" && words[1]=="STATE") break;
+	   if(words[0]=="ALL" && words[1]=="STATES" && words[2]=="CONVERGED.") break;
 	 }
        }//---done energy info
        //read in actual determinamnts
-       ndet=0;
-       if(words[0]=="ALPHA" && words[2]=="BETA" && words[4]=="COEFFICIENT") {
-	 while(getline(is, line)) {
-	   words.clear();
-	   split(line, space, words);
-	   if(words[1]=="|" && words[3]=="|"){
-	     //cout << words[0]<<" "<<words[2]<<" "<<words[4]<<endl;
-	     det_weights.push_back(atof(words[4].c_str()));
-	     det_occupations_str[0].push_back(words[0]);
-	     det_occupations_str[1].push_back(words[2]);
-	     ndet++;
-	   }
-	   //..... DONE WITH DETERMINANT CI COMPUTATION .....
-	   //find the end
-	   if(words[0]==".....") {
-	     cout <<"found "<<ndet<<" determinants"<<endl;
-	     cycle++;
-	     break;
-	   }
-	 }
-       }
-     }
+
+      if (words[0]=="STATE" && words[2]=="ENERGY=" && atoi(words[1].c_str())==nstate){
+        while(getline(is, line)) {
+          words.clear();
+          split(line, space, words);
+          ndet=0;
+          if(words[0]=="ALPHA" && words[2]=="BETA" && words[4]=="COEFFICIENT") {
+            while(getline(is, line)) {
+              words.clear();
+              split(line, space, words);
+              if(words[1]=="|" && words[3]=="|"){
+//                 cout << words[0]<<" "<<words[2]<<" "<<words[4]<<endl;
+                det_weights.push_back(atof(words[4].c_str()));
+                det_occupations_str[0].push_back(words[0]);
+                det_occupations_str[1].push_back(words[2]);
+                ndet++;
+              }
+              //..... DONE WITH DETERMINANT CI COMPUTATION .....
+              //find the end
+              if(words[0]=="....." || line.size()==0) {
+                cout <<"found "<<ndet<<" determinants"<<endl;
+                cycle++;
+                break;
+              }
+            }
+           break;
+          }
+        }
+      }
+    }
      is.close();
      cout <<"done readout"<<endl;
      
      vector < vector < vector <int> > > det_occupations(2);
-     
+    
      for(int spin=0;spin<2;spin++){
        det_occupations[spin].resize(ndet);
        for(int det=0;det<ndet;det++){
