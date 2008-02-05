@@ -46,7 +46,8 @@ void Slat_wf_writer::print_wavefunction(ostream & inputfile ) {
   }
 
   int nelectrons=nup+ndown;
-  double magnification=max(nelectrons/20.0, 1.0);
+  if(magnification < 0) 
+    magnification=max(nelectrons/20.0, 1.0);
 
   inputfile << "  SLATER \n"
             << "  ORBITALS {\n"
@@ -390,4 +391,54 @@ void print_3b_jastrow2(ostream & os, std::vector<std::string> & unique_atoms, do
   
 }
 //----------------------------------------------------------------------
+void fold_kpoint(Slat_wf_writer & slwriter, 
+                 std::vector <std::vector <double> > & latvec,
+                 int dir,
+                 std::vector <std::vector < double> > & moCoeff,
+                 std::vector <Atom> & atoms) { 
+  //Note: this won't work for UHF wavefunctions..
+  vector <Atom> natoms;
+  for(vector<Atom>::iterator i=atoms.begin(); i!=atoms.end(); i++) { 
+    Atom tmp=*i;
+    for(int d=0;d < 3; d++) { 
+      tmp.pos[d]+=latvec[dir][d];
+    }
+    natoms.push_back(tmp);
+  }
+  atoms.insert(atoms.end(), natoms.begin(), natoms.end());
 
+  vector <vector <double> > nmocoeff;
+  vector<double> motmp;
+  int count=1;
+  for(vector<vector<double> >::iterator i=moCoeff.begin(); i!=moCoeff.end();
+      i++) { 
+    motmp.clear();
+    //gamma point
+    for(vector<double>::iterator j=i->begin(); j!= i->end(); j++) { 
+      motmp.push_back(*j);
+    }
+    for(vector<double>::iterator j=i->begin(); j!= i->end(); j++) { 
+      motmp.push_back(*j);
+    }
+    nmocoeff.push_back(motmp);
+    motmp.clear();
+    cout << "count " << count << " "  << nmocoeff.size() << " ";
+    //X point
+    for(vector<double>::iterator j=i->begin(); j!= i->end(); j++) { 
+      motmp.push_back(*j);
+    }
+    for(vector<double>::iterator j=i->begin(); j!= i->end(); j++) { 
+      motmp.push_back(-*j);
+    }
+    nmocoeff.push_back(motmp);
+    cout << " " << nmocoeff.size() << endl;
+    count++;
+  }
+  moCoeff=nmocoeff;
+  for(int d=0; d< 3; d++) {
+    latvec[dir][d]*=2;
+  }
+  
+}
+
+//----------------------------------------------------------------------
