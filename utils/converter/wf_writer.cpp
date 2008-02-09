@@ -435,6 +435,7 @@ void fold_kpoint(Slat_wf_writer & slwriter,
     count++;
   }
   moCoeff=nmocoeff;
+  
   for(int d=0; d< 3; d++) {
     latvec[dir][d]*=2;
   }

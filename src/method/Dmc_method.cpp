@@ -105,6 +105,10 @@ void Dmc_method::read(vector <string> words,
   while(readsection(words, pos, tmp_dens, "DENSITY")) {
     dens_words.push_back(tmp_dens);
   }
+  pos=0;
+  while(readsection(words, pos, tmp_dens, "AVERAGE")) {
+    avg_words.push_back(tmp_dens);
+  }
   
   
   vector <string> dynamics_words;
@@ -166,6 +170,13 @@ int Dmc_method::allocateIntermediateVariables(System * sys,
     pts(i).age.Resize(nelectrons);
     pts(i).age=0;
   }
+  
+  average_var.Resize(avg_words.size());
+  average_var=NULL;
+  for(int i=0; i< average_var.GetDim(0); i++) { 
+    allocate(avg_words[i], sys, wfdata, average_var(i));
+  }
+  
 
   return 1;
 }
@@ -284,6 +295,7 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
 	       wfdata, mygather.nAux(), aux_converge);
 
   restorecheckpoint(readconfig, sys, wfdata, pseudo);
+  prop.initializeLog(average_var);
 
 
   int naux=mygather.nAux();
@@ -401,8 +413,6 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
                                 sample, guidingwf, aux_converge,0);
           }
           
-          //the history is only used for setting the weights,
-          //so we just subtract out anything that was used for t-moves..
           Dmc_history new_hist;
           new_hist.main_en=pts(walker).prop.energy(0);
           new_hist.aux_en=pts(walker).prop.aux_energy;
@@ -429,10 +439,15 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
           pts(walker).prop.parent=walker;
           pts(walker).prop.nchildren=1;
           pts(walker).prop.children(0)=walker;
+          pts(walker).prop.avgrets.Resize(average_var.GetDim(0));
+          for(int i=0; i< average_var.GetDim(0); i++) { 
+            average_var(i)->evaluate(wfdata, wf, sys, sample, pts(walker).prop.avgrets(i));
+          }
           
           prop.insertPoint(step+p, walker, pts(walker).prop);
           for(int i=0; i< densplt.GetDim(0); i++)
             densplt(i)->accumulate(sample,pts(walker).prop.weight(0));
+          
         }
         
         pts(walker).config_pos.savePos(sample);
@@ -463,10 +478,6 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
         densplt(i)->write();      
     }
     prop.endBlock();
-
-
-    //loadbalance(); //not needed with global branching
-
 
     totbranch=parallel_sum(totbranch);
     totkilled=parallel_sum(totkilled);
@@ -520,7 +531,7 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
   
   if(output) {
     output << "\n ----------Finished DMC------------\n\n";
-    prop.printSummary(output);  
+    prop.printSummary(output,average_var);  
   }
   wfdata->clearObserver();
   deallocateIntermediateVariables();
@@ -1056,92 +1067,9 @@ int Dmc_method::calcBranch() {
   return killsize;
   //exit(0);
 }
-/*
-int Dmc_method::calcBranch() {
-
-  Array1 <int> branch(nconfig);
-  branch=0;
-
-  //Array1 <int> killwalkers(nconfig);
-  //killwalkers=0;
-  int killsize=0;
-  //branchout << "********branching step " << bstep++ << endl;
-
-  branch=-1;
-  for(int walker=0; walker < nconfig; walker++) {
-    const doublevar split_threshold=1.8;
-    if(pts(walker).weight > split_threshold 
-       && branch(walker)==-1) {
-      //branchout << "should branch " << walker << " weight " << dmcweight(walker) << endl;
-      doublevar smallestgr=100;
-      int smallest=-1;
-      for(int walker2=0; walker2 < nconfig; walker2++) {
-        if(branch(walker2)==-1 && walker2!=walker) {
-          if(pts(walker2).weight < smallestgr) {
-            smallestgr=pts(walker2).weight;
-            smallest=walker2;
-          }
-        }
-      }
-      if(smallest!=-1) {
-        //cout  << "combining " << walker << " and " 
-        //          << smallest << " (weight= " << dmcweight(smallest) << endl;
-        doublevar weight1=pts(walker).weight
-	  /(pts(walker).weight+pts(smallest).weight);
-        
-        if(weight1+rng.ulec() >=1.0) {
-          branch(walker)=2;
-          branch(smallest)=0;
-          pts(walker).weight+=pts(smallest).weight;
-          pts(walker).weight/=2;
-        }
-        else {
-          branch(walker)=0;
-          branch(smallest)=2;
-          pts(smallest).weight+=pts(walker).weight;
-          pts(smallest).weight/=2;
-        }
-        killsize++;
-      }
-    }
-  }
-
-  for(int walker=0; walker < nconfig; walker++) {
-    if(branch(walker)==-1)
-      branch(walker)=1;
-  }
-
-  int newnconfig=0;
-  for(int walker=0; walker < nconfig; walker++) {
-    newnconfig+=branch(walker);
-  }
-
-  if(newnconfig != nconfig) 
-    error("Error in branching..newnconfig != nconfig");
-
-
-  Array1 <Dmc_point> newpts;
-  newpts=pts;
-
-  int counter=0;
-  for(int walker=0; walker < nconfig; walker++)  {
-    for(int i=0; i< branch(walker); i++)  {
-      assert(counter < newnconfig);
-      pts(counter)=newpts(walker);
-      //pts(walker).prop.children(pts[walker].prop.nchildren++)=counter;
-      counter++;
-    }
-  }
-
-  assert(counter == newnconfig);
-  //Finally, reset nconfig
-  nconfig=newnconfig;  
-  return killsize;
-}
-*/
 //----------------------------------------------------------------------
 
-
+/*
 #include <algorithm>
 struct procwt {
   doublevar totwt;
@@ -1222,6 +1150,7 @@ void Dmc_method::loadbalance() {
 
 #endif
 }
+*/
 
 //----------------------------------------------------------------------
 

@@ -85,6 +85,15 @@ void Properties_block::storeToLog(string & indent, ostream & os,
   print_array_sec(os, indent, "nonlocal_energy", avg(nonlocal));
   print_array_sec(os, indent, "nonlocal_energyvar", var(nonlocal));
   
+  int navg_vals=avgrets.GetDim(0);
+  for(int i=0; i< navg_vals; i++) { 
+    os << indent <<  "average_generator { " << avgrets(i).type << " ";
+    for(int j=0; j< avgrets(i).vals.GetDim(0); j++) { 
+      os << avgrets(i).vals(j) << " ";
+    }
+    os << " } " << endl;
+  }
+  
   os << "z_pol { ";
   for(int d=0; d< 3; d++) os <<  z_pol(d).real() << "  " << z_pol(d).imag() << "  ";
   os << " } \n";
@@ -174,6 +183,23 @@ void Properties_block::restoreFromLog(vector <string> & words) {
     for(int d=0; d< max; d++) {
       z_pol(d)=dcomplex(atof(zwords[count].c_str()), atof(zwords[count+1].c_str()));
       count+=2;
+    }
+  }
+  
+  pos=0;
+  vector <vector < string> > avgsecs;
+  vector <string> avgwords;
+  while(readsection(words, pos, avgwords, "average_generator")) { 
+    avgsecs.push_back(avgwords);
+  }
+  avgrets.Resize(avgsecs.size());
+  for(int i=0; i< avgrets.GetDim(0); i++) { 
+    int n=avgsecs[i].size()-1;
+    assert(n>=1);
+    avgrets(i).vals.Resize(n);
+    avgrets(i).type=avgsecs[i][0];
+    for(int j=0; j< n; j++) { 
+      avgrets(i).vals(j)=atof(avgsecs[i][j+1].c_str());
     }
   }
   
@@ -304,6 +330,10 @@ void Properties_block::reduceBlocks(Array1 <Properties_block> & blocks,
   autocorr.Resize(1,nautocorr);
   autocorr=0.0;
   totweight=0.0;
+  avgrets=blocks(start).avgrets;
+  for(int i=0; i< avgrets.GetDim(0); i++) { 
+    avgrets(i).vals=0;
+  }
   
   for(int a=0; a< naux; a++) {
     aux_size(a)=blocks(start).aux_size(a);
@@ -324,10 +354,15 @@ void Properties_block::reduceBlocks(Array1 <Properties_block> & blocks,
         var(p,w)+=blocks(b).var(p,w)*blocks(b).var(p,w);
       }
     }
+    for(int i=0; i< avgrets.GetDim(0); i++) { 
+      for(int j=0; j< avgrets(i).vals.GetDim(0); j++) { 
+        avgrets(i).vals(j)+=blocks(b).avgrets(i).vals(j)/doublevar(nblocks);
+      }
+    }
 
     for(int a=0; a< naux; a++) {
       for(int d=0; d< 3; d++) {
-	aux_z_pol(a,d)+=blocks(b).aux_z_pol(a,d)/doublevar(nblocks);
+        aux_z_pol(a,d)+=blocks(b).aux_z_pol(a,d)/doublevar(nblocks);
       }
       for(int w=0; w< n_cvg; w++) {
         aux_energy(a,w)+=blocks(b).aux_energy(a,w)/nblocks;

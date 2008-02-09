@@ -148,6 +148,8 @@ private:
 
   Array1 < Local_density_accumulator *> densplt;
   vector <vector <string> > dens_words;
+  Array1 < Average_generator * > average_var;
+  vector <vector <string> > avg_words;
 
   
 };

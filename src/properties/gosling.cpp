@@ -27,8 +27,51 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 using namespace Properties_types;
 //----------------------------------------------------------------------
 
+void getInit(vector <string> & words, vector <string> & labels, Array1 < Array1 <Average_generator*> > & avg_gen) {
+  unsigned int pos=0;
+  pos=0;
+  vector<string> tmp;
+  vector <vector<string> > inittext;
+  while(readsection(words, pos, tmp, "INIT")) 
+    inittext.push_back(tmp);
+  int ninit=inittext.size();
+  int nlabels=labels.size();
+  //if we have multiple init sections, we should check to see that they're 
+  //all identical.  For now, let's take the first one.
+  avg_gen.Resize(nlabels);
+  for(int i=0; i< nlabels; i++) { 
+    int ini=0;
+    string inilabel;
+    readvalue(inittext[ini],pos=0,inilabel, "LABEL");
+    while(labels[i]!=inilabel) {
+      ini++;
+      readvalue(inittext[ini],pos=0,inilabel, "LABEL");
+      if(ini>= ninit)  {
+        cout << "Couldn't find init section for label " << labels[i] 
+        << ".  AVERAGE { } sections will not be reported.\n";
+        break;
+      }
+    }
+    if(ini < ninit) { 
+      vector <vector <string> > gen_secs;
+      pos=0;
+      while(readsection(inittext[ini],pos,tmp, "AVERAGE_GENERATOR"))
+        gen_secs.push_back(tmp);
+      avg_gen(i).Resize(gen_secs.size());
+      for(int j=0; j< gen_secs.size(); j++) { 
+        allocate(gen_secs[j],avg_gen(i)(j));
+      }
+    }
+  }
+  
+}
+
+//----------------------------------------------------------------------
+
+
 void getBlocks(vector <string> & words, vector <string> & labels, 
-               Array1 < Array1 < Properties_block> > & allblocks) {
+               Array1 < Array1 < Properties_block> > & allblocks, 
+               Array1 < Array1 < Average_generator * > > & avg_gen) {
 
   vector < vector < string> > blocktext;
   vector <string> tmp;
@@ -44,7 +87,6 @@ void getBlocks(vector <string> & words, vector <string> & labels,
   vector <int> lab_nb; //number of blocks that belong to each label
   string label;
   for(int b=0; b< nblock; b++) {
-
     if(!readvalue(blocktext[b], pos=0, label, "LABEL"))
       error("didn't find label in the file");
     vector<string>::iterator place=find(labels.begin(), labels.end(), label);
@@ -56,16 +98,21 @@ void getBlocks(vector <string> & words, vector <string> & labels,
     else lab_nb[belong_to[b]]++;
   }
   
+  
+  
+  
   int nlabels=labels.size();
   //cout << nlabels << " labels" << endl;
   //for(int i=0; i< nlabels; i++) {
-  //  cout << labels[i] << "  " << lab_nb[i] << endl;
+  //  cout << labels[i] << "  " << lab_nb[i] << "  " << lab_ninit[i] << endl;
   //}
 
   allblocks.Resize(nlabels);
   for(int i=0; i< nlabels; i++) {
     allblocks(i).Resize(lab_nb[i]);
   }
+  
+  
   Array1 <int> nb_read(nlabels, 0);
   for(int b=0; b< nblock; b++) {
     int lab=belong_to[b];
@@ -73,7 +120,11 @@ void getBlocks(vector <string> & words, vector <string> & labels,
     nb_read(lab)++;
     allblocks(lab)(i).restoreFromLog(blocktext[b]);
   }
+  getInit(words, labels, avg_gen);
+  
 }
+
+
 
 //----------------------------------------------------------------------
 
@@ -110,7 +161,7 @@ void output_trace_force(vector <string> & labels,
         for(int b=0; b< allblocks(i).GetDim(0); b++) {
           tr << (allblocks(i)(b).aux_energy(a,n)-allblocks(i)(b).avg(total_energy,0))
           /allblocks(i)(b).aux_size(a) << endl;
-      }
+        }
       }
     }
   }
@@ -192,12 +243,10 @@ void get_options(int argc, char ** argv,
            << "-label <label>    : only print information for the given label" << endl
            << "-trace            : print out energy traces for each label, into files named label.trace" << endl
            << "-trace_force      : print out displacement traces for each label, into files named labelf#.trace" << endl
-	   << "-reblock <number> : reblock the blocks into groups of <number>.  If they don't evenly divide, gosling" << endl
-	   << "                    will throw out the first blocks until they do." << endl
+           << "-reblock <number> : reblock the blocks into groups of <number>.  If they don't evenly divide, gosling" << endl
+           << "                    will throw out the first blocks until they do." << endl
            << "-no_equil         : don't try to find the equilibration steps; just average over everything" << endl
            << "-show_autocorr    : show estimates for the autocorrelation as a function of step for each label" << endl
-           << "-two_point_forces : attempt to collate plus and minus differences into forces and print them out" << endl
-           << "                    this will only work if the forces are in order + force, - force ..." << endl
            << "-h                : print this help message " << endl; 
     }
     else if(argv[i][0]=='-') 
@@ -205,8 +254,6 @@ void get_options(int argc, char ** argv,
     else 
       options.filenames.push_back(argv[i]);
   }
-
-  //options.filenames.push_back(string(argv[argc-1]));
 
 }
 
@@ -245,54 +292,54 @@ int main(int argc, char ** argv) {
     
     vector <string> labels;
     Array1 < Array1 <Properties_block > > allblocks;
-    getBlocks(words, labels, allblocks);
+    Array1 < Array1 <Average_generator* > > avg_gen;
+    getBlocks(words, labels, allblocks, avg_gen);
     int nlabels=labels.size();
     
     if(options.trace) output_trace(labels, allblocks);
     if(options.trace_force) output_trace_force(labels, allblocks);
     
     
-    //cout << "Last updated: $Date: 2006/11/13 18:23:07 $ GMT\n";
     //Get the blocks from each file; if only one
     //file, go ahead and print it out
     Properties_final_average avg;
     avg.showAutocorr(options.show_autocorr);
     for(int lab=0; lab < nlabels; lab++) {
       if(labels[lab]==options.label || options.label=="") {
-	int neffblock;
-	neffblock=reblock_average(allblocks(lab), options.reblock, 
-				  options.equil, avg);
-	if(neffblock==0) {
-	  cout << "Skipping reblocking on " << labels[lab]
-	       << " because there aren't enough blocks " << endl;
-	  neffblock=reblock_average(allblocks(lab), 1, options.equil, avg);
-	}
-
-	if(nfiles < 2) { 
-	  cout << "#####################" << endl;
-	  cout << labels[lab] << ":  "<< allblocks(lab).GetDim(0) 
-	       << " total blocks reblocked into " << neffblock << endl;
-	  cout << "#####################" << endl;
-	  
-	  avg.showSummary(cout);
-	}
-
-	int found=0;
-	for(vector<Label_list>::iterator i=all_averages.begin();
-	    i!= all_averages.end(); i++) {
-	  if(labels[lab] == i->label) {
-	    i->avg(i->navg++)=avg;
-	    found=1;
-	  }
-	}
-	if(!found) { 
-	  Label_list nlabel(nfiles);
-	  nlabel.avg=avg;
-	  nlabel.navg=1;
-	  nlabel.label=labels[lab];
-	  all_averages.push_back(nlabel);
-	}
-
+        int neffblock;
+        neffblock=reblock_average(allblocks(lab), options.reblock, 
+                                  options.equil, avg);
+        if(neffblock==0) {
+          cout << "Skipping reblocking on " << labels[lab]
+          << " because there aren't enough blocks " << endl;
+          neffblock=reblock_average(allblocks(lab), 1, options.equil, avg);
+        }
+        
+        if(nfiles < 2) { 
+          cout << "#####################" << endl;
+          cout << labels[lab] << ":  "<< allblocks(lab).GetDim(0) 
+            << " total blocks reblocked into " << neffblock << endl;
+          cout << "#####################" << endl;
+          
+          avg.showSummary(cout,avg_gen(lab));
+        }
+        
+        int found=0;
+        for(vector<Label_list>::iterator i=all_averages.begin();
+            i!= all_averages.end(); i++) {
+          if(labels[lab] == i->label) {
+            i->avg(i->navg++)=avg;
+            found=1;
+          }
+        }
+        if(!found) { 
+          Label_list nlabel(nfiles);
+          nlabel.avg=avg;
+          nlabel.navg=1;
+          nlabel.label=labels[lab];
+          all_averages.push_back(nlabel);
+        }
+        
       }
     }
   }
@@ -302,34 +349,22 @@ int main(int argc, char ** argv) {
   //all files
 
   if(nfiles > 1) { 
+    error("Can only treat one file for now");
+    /*
     Properties_final_average avg;
     avg.showAutocorr(options.show_autocorr);
     
     for(vector<Label_list> :: iterator lab=all_averages.begin();
-	lab!= all_averages.end(); lab++) { 
+        lab!= all_averages.end(); lab++) { 
       avg.averageReduce(lab->avg, 0, lab->navg);
       cout << "#########################" << endl;
       cout << lab->label << " reaccumulated \n";
       cout << "#########################" << endl;
       avg.showSummary(cout);
     }
+     */
   }
 
-    /*
- 
-  if(options.two_pt_forces) {
-    for(int lab=0; lab < nlabels; lab++) {
-      if(labels[lab]==options.label || (options.label=="" && lab==0)) {
-        avg.blockReduce(allblocks(lab), 0, allblocks(lab).GetDim(0), options.equil);
-        Array2 <doublevar> forces;
-        avg.twoPointForces(forces);
-        for(int i=0; i < forces.GetDim(0); i++) {
-          cout << "force" << i << "   " << forces(i,0) 
-              << "  +/- " << forces(i,1) << endl;
-        }
-      }
-    }
-  }
-    */
+
 
 }

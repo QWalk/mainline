@@ -760,6 +760,12 @@ void fix_basis_norm(vector <Atom> & atoms,
         //cout << "i " << i << "  mnorm " << mnorm << endl;
 
         for(int mo=0; mo < nmo; mo++) { 
+          //cout << moCoeff[mo].size() << " " << funcnum << endl;
+          if(moCoeff[mo].size() <= funcnum) { 
+            cout << "You have less MO coefficients than atomic orbitals in the ORB files.  This could be from a remnant\n"
+            "of a previous run.  The easiest solution is to rm ORB* and rerun the siesta calculation or try to guess\n"
+            "which ORB files are extraneous\n";
+          }
           assert(moCoeff[mo].size() > funcnum);
           moCoeff[mo][funcnum]*=mnorm;
         }

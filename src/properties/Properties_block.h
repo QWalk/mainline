@@ -20,7 +20,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #ifndef PROPERTIES_BLOCK_INCLUDED
 #define PROPERTIES_BLOCK_INCLUDED
 #include "Qmc_std.h"
-
+#include "Average_generator.h"
 namespace Properties_types {
 enum quantities {total_energy,
                  kinetic,
@@ -100,6 +100,8 @@ struct Properties_block {
 
   doublevar aux_weight_correlation;
 
+  Array1 <Average_return > avgrets;
+  
 };
 
 

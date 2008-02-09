@@ -22,7 +22,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "Qmc_std.h"
 #include "Wavefunction.h"
-
+#include "Average_generator.h"
 /*!
   All relevant quantities at one point
  */
@@ -92,6 +92,8 @@ struct Properties_point {
   doublevar gf_weight; //weight of green's function between this and the last point(used in DMC)
   Array1 <doublevar> aux_gf_weight;
 
+  
+  Array1 <Average_return> avgrets; //general accumulations from Average_generators
   private:
   int maxchildren;
   

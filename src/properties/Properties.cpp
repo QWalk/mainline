@@ -1024,12 +1024,26 @@ void Properties_manager::endBlock() {
   
   int nsteps=trace.GetDim(0);
   int totpts=0;
+  //For the generalized averaging, this can be broken if 
+  //the calling program isn't consistent with the ordering and 
+  //number of Average_returns.  I can't think of any reason why someone
+  //would want to do that other than spite, though.
+  int navg_gen=trace(0,0).avgrets.GetDim(0);
+  block_avg(current_block).avgrets.Resize(navg_gen);
+  
   for(int w=0; w< nwf; w++) {
     doublevar totweight=0;
     doublevar avgkin=0;
     doublevar avgpot=0;
     doublevar avgnonloc=0;
     doublevar avgen=0;
+    if(w==0) { 
+      for(int i=0; i< navg_gen; i++) { 
+        block_avg(current_block).avgrets(i).vals.Resize(trace(0,0).avgrets(i).vals.GetDim(0));      
+        block_avg(current_block).avgrets(i).vals=0;
+        block_avg(current_block).avgrets(i).type=trace(0,0).avgrets(i).type;
+      }
+    }
     Array2 <doublevar> auxen(naux, n_cvg,0.0);
     Array2 <doublevar> auxwt(naux,n_cvg,0.0);
     Array2 <doublevar> auxdiff(naux,n_cvg, 0.0);
@@ -1058,8 +1072,8 @@ void Properties_manager::endBlock() {
     doublevar sum_inv=1.0/weight_sum;
     Array1 <dcomplex> z_pol(3, dcomplex(0.0, 0.0));
     Array2 <dcomplex> aux_z_pol(naux, 3, dcomplex(0.0, 0.0));
-
-
+    
+    
     for(int step=start_avg_step; step < nsteps; step++) {
       for(int walker=0; walker < nwalkers; walker++) {
         if(trace(step, walker).count) {
@@ -1070,34 +1084,41 @@ void Properties_manager::endBlock() {
           avgen+=(trace(step, walker).kinetic(w)
                   +trace(step, walker).potential(w)
                   +trace(step, walker).nonlocal(w))*wt;
+          if(w==0) { 
+            for(int i=0; i< navg_gen; i++) { 
+              for(int j=0; j< block_avg(current_block).avgrets(i).vals.GetDim(0); j++) { 
+                block_avg(current_block).avgrets(i).vals(j)+=wt*trace(step,walker).avgrets(i).vals(j);
+              }
+            }
+          }
           for(int d=0; d< 3; d++)
             z_pol(d)+=trace(step, walker).z_pol(d)*wt;
           for(int i=0; i< naux; i++) {
-	    //the convention(in RMC and VMC) is that the last
-	    //converge point is the 'pure' estimator
-	    int last=n_cvg-1;
-	    doublevar aux_wt=trace(step,walker).aux_weight(i,last)
-	      /(aux_wt_sum(i,last)*totpts);
-	    for(int d=0; d< 3; d++) 
-	      aux_z_pol(i,d)+=trace(step,walker).aux_z_pol(i,d)*aux_wt;
-	    
+            //the convention(in RMC and VMC) is that the last
+            //converge point is the 'pure' estimator
+            int last=n_cvg-1;
+            doublevar aux_wt=trace(step,walker).aux_weight(i,last)
+              /(aux_wt_sum(i,last)*totpts);
+            for(int d=0; d< 3; d++) 
+              aux_z_pol(i,d)+=trace(step,walker).aux_z_pol(i,d)*aux_wt;
+            
             for(int c=0; c< n_cvg; c++) {
-	      auxen(i,c)+=trace(step, walker).aux_energy(i,c)
-                *trace(step, walker).aux_weight(i,c)/(aux_wt_sum(i,c)*totpts);
-	      auxdiff(i,c)+=trace(step,walker).aux_energy(i,c)
+              auxen(i,c)+=trace(step, walker).aux_energy(i,c)
+              *trace(step, walker).aux_weight(i,c)/(aux_wt_sum(i,c)*totpts);
+              auxdiff(i,c)+=trace(step,walker).aux_energy(i,c)
                 *trace(step,walker).aux_weight(i,c)/aux_wt_sum(i,c)
                 -trace(step,walker).energy(w)*wt*sum_inv;
             }
-	    
+            
           }
         }
       }
     }
-
+    
     weight_sum*=totpts;
-
+    
     block_avg(current_block).totweight=weight_sum;
-
+    
     block_avg(current_block).avg(kinetic,w)=parallel_sum(avgkin)/weight_sum;
     block_avg(current_block).avg(potential,w)=parallel_sum(avgpot)/weight_sum;
     block_avg(current_block).avg(nonlocal,w)=parallel_sum(avgnonloc)/weight_sum;
@@ -1108,12 +1129,21 @@ void Properties_manager::endBlock() {
     }
     for(int i=0; i< naux; i++) {
       for(int d=0;d < 3; d++) 
-	block_avg(current_block).aux_z_pol(i,d)=parallel_sum(aux_z_pol(i,d));
+        block_avg(current_block).aux_z_pol(i,d)=parallel_sum(aux_z_pol(i,d));
       for(int c=0; c< n_cvg; c++) {
         aux_wt_sum(i,c)*=totpts;
         block_avg(current_block).aux_energy(i,c)=parallel_sum(auxen(i,c));
         block_avg(current_block).aux_weight(i,c)=aux_wt_sum(i,c)/totpts;
         block_avg(current_block).aux_diff(i,c)=parallel_sum(auxdiff(i,c))/totpts;
+      }
+    }
+    
+    if(w==0) { 
+      for(int i=0; i< navg_gen; i++) { 
+        for(int j=0; j< block_avg(current_block).avgrets(i).vals.GetDim(0); j++) { 
+          block_avg(current_block).avgrets(i).vals(j)=
+          parallel_sum(block_avg(current_block).avgrets(i).vals(j))/weight_sum;
+        }
       }
     }
     //cout << mpi_info.node << ":npoints" << npts << endl;
@@ -1171,73 +1201,71 @@ void Properties_manager::endBlock() {
     block_avg(current_block).var(nonlocal, w)=parallel_sum(varnonloc)/weight_sum;
     block_avg(current_block).var(total_energy, w)=parallel_sum(varen)/weight_sum;
     block_avg(current_block).var(weight,w)=parallel_sum(varweight)/totpts;
-
+    
     for(int i=0; i< naux; i++) {
       for(int c=0; c< n_cvg; c++) {
-      block_avg(current_block).aux_energyvar(i,c)
+        block_avg(current_block).aux_energyvar(i,c)
         =parallel_sum(auxvaren(i,c))/aux_wt_sum(i,c);
-      block_avg(current_block).aux_weightvar(i,c)
-        =parallel_sum(auxvarwt(i,c))/totpts;
+        block_avg(current_block).aux_weightvar(i,c)
+          =parallel_sum(auxvarwt(i,c))/totpts;
       }
     }
-
+    
     Array2 <doublevar> auxvardiff(naux,n_cvg, 0.0);
     for(int step=start_avg_step; step < nsteps; step++) {
       for(int walker=0; walker < nwalkers; walker++) {
         if(trace(step, walker).count) {
-	  for(int i=0; i< naux; i++) {
+          for(int i=0; i< naux; i++) {
             for(int c=0; c< n_cvg; c++) {
-	      doublevar avdiff=block_avg(current_block).aux_energy(i,c)
-		-block_avg(current_block).avg(total_energy,0);
-	      doublevar diff=trace(step, walker).aux_energy(i,c)
+              doublevar avdiff=block_avg(current_block).aux_energy(i,c)
+              -block_avg(current_block).avg(total_energy,0);
+              doublevar diff=trace(step, walker).aux_energy(i,c)
                 -trace(step, walker).energy(0);
-	      auxvardiff(i,c)+=(diff-avdiff)*(diff-avdiff);
+              auxvardiff(i,c)+=(diff-avdiff)*(diff-avdiff);
             }
-	  }
-	}
+          }
+        }
       }
     }
-
+    
     for(int i=0; i< naux; i++) {
       for(int c=0; c< n_cvg; c++) {
         block_avg(current_block).aux_diffvar(i,c)
-          =parallel_sum(auxvardiff(i,c))/totpts;
+        =parallel_sum(auxvardiff(i,c))/totpts;
       }
     }
-
-
+    
+    
   }
+  
 
-
-
-
-
+  
   //cout << "autocorrelation " << endl;
   if(naux==1 && n_cvg==2) { 
     
     doublevar weight_corr=0;
     for(int step=start_avg_step; step < nsteps; step++) {
       for(int walker=0; walker < nwalkers; walker++) {
-	if(trace(step, walker).count) {
-	  
-	  weight_corr+=(trace(step,walker).aux_weight(0,0)-
-			block_avg(current_block).aux_weight(0,0))
-	    *(trace(step,walker).aux_weight(0,0)-
-	      block_avg(current_block).aux_weight(0,0));
-	}
+        if(trace(step, walker).count) {
+          
+          weight_corr+=(trace(step,walker).aux_weight(0,0)-
+                        block_avg(current_block).aux_weight(0,0))
+          *(trace(step,walker).aux_weight(0,0)-
+            block_avg(current_block).aux_weight(0,0));
+        }
       }
     }
-
+    
     block_avg(current_block).aux_weight_correlation=
       parallel_sum(weight_corr)/
       (totpts*sqrt(block_avg(current_block).aux_weightvar(0,0)
-		   *block_avg(current_block).aux_weightvar(0,1)));
+                   *block_avg(current_block).aux_weightvar(0,1)));
   }
-				     
+  
   autocorrelation(block_avg(current_block).autocorr,
                   block_avg(current_block).aux_autocorr,
                   autocorr_depth);
-
+  
   //cout << "writing block " << endl;
   if(mpi_info.node==0 && log_file != "") {
     ofstream logout(log_file.c_str(), ios::app);
@@ -1258,6 +1286,22 @@ void Properties_manager::endBlock() {
   //cout << "done" << endl;
 }
 
+//--------------------------------------------------
+
+
+void Properties_manager::initializeLog(Array1 <Average_generator*> & avg_gen) {
+  ofstream os(log_file.c_str(), ios::app);
+  os << "init { \n";
+  string indent="   ";
+  os << indent << "label " << log_label << endl;
+  for(int i=0; i< avg_gen.GetDim(0); i++) { 
+    os << indent << "average_generator { \n";
+    avg_gen(i)->write_init(indent,os);
+    os << indent << "}\n";
+  }
+  os << "}\n";
+  os.close();
+}
 
 
 //--------------------------------------------------
@@ -1273,8 +1317,8 @@ void Properties_manager::printBlockSummary(ostream & os) {
 //--------------------------------------------------
 
 
-void Properties_manager::printSummary(ostream & os) {
-  final_avg.showSummary(os);
+void Properties_manager::printSummary(ostream & os, Array1 <Average_generator*> & avg_gen) {
+  final_avg.showSummary(os,avg_gen);
 }
 
 //--------------------------------------------------

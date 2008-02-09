@@ -74,9 +74,14 @@ class Properties_manager {
 
   void endBlock();
 
+  void initializeLog(Array1 <Average_generator*> & avg_gen);
 
   void printBlockSummary(ostream & os);
-  void printSummary(ostream & os);
+  
+  void printSummary(ostream & os) { 
+    error("update call to printSummary");
+  }
+  void printSummary(ostream & os, Array1 <Average_generator*> & avg_gen);
 
   void getFinal(Properties_final_average & final) {
     final=final_avg;
@@ -123,7 +128,14 @@ class Properties_manager {
 
 };
 
+
+
+//####################################################################################
 //---------------------------------------------------------------------
+//The Local_density_accumulators are for *local* averages that may be very large 
+//and shouldn't be in the normal averaging substructure.  One can still evaluate error bars
+//by printing out the average every block and then estimating from there, although 
+//in some cases, even that may be prohibitively expensive.
 
 class Local_density_accumulator { 
  public:

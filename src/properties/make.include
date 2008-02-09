@@ -1,5 +1,6 @@
 
 MY_SOURCES:= \
+	Average_generator.cpp \
 	Properties.cpp \
         Properties_point.cpp \
         Properties_average.cpp \
