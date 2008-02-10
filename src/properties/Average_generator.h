@@ -98,5 +98,27 @@ public:
   virtual void write_summary(Average_return &,Average_return &, ostream & os);
 };
 
+
+class Average_structure_factor:public Average_generator { 
+public:
+  virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+                        System * sys, Sample_point * sample, Average_return & );
+  virtual void read(System * sys, Wavefunction_data * wfdata, vector
+                    <string> & words);
+  virtual void write_init(string & indent, ostream & os);
+  virtual void read(vector <string> & words);
+  virtual void write_summary(Average_return &,Average_return &, ostream & os);
+private:
+  int nelectrons;    
+  int npoints;
+  int np_side; //!< number of points on the side
+  
+  //Array1 <doublevar> grid; 
+  //Array2 <doublevar> gvec;
+  Array2 <doublevar> kpts;
+  
+};
+
+
 #endif //AVERAGE_GENERATOR_H_INCLUDED
 
