@@ -8,6 +8,8 @@ int decide_averager(string & label, Average_generator *& avg) {
     avg=new Average_dipole;
   else if(caseless_eq(label,"SK")) 
     avg=new Average_structure_factor;
+  else if(caseless_eq(label, "GR"))
+    avg=new Average_twobody_correlation;
   else 
     error("Didn't understand ", label, " in Average_generator.");
   
@@ -88,10 +90,10 @@ void Average_dipole::write_summary(Average_return & avg, Average_return & err, o
 
 void Average_structure_factor::read(System * sys, Wavefunction_data * wfdata, vector <string> & words) {
   unsigned int pos=0;
+  int np_side;
   if(!readvalue(words, pos=0, np_side, "NGRID")) 
     np_side=5;
   
-  npoints=np_side*np_side*np_side; 
   Array2 <doublevar> gvec;
   vector <string> gvec_sec;
   if(readsection(words, pos=0, gvec_sec, "GVEC")) {
@@ -108,15 +110,29 @@ void Average_structure_factor::read(System * sys, Wavefunction_data * wfdata, ve
       error("You don't have a periodic cell and you haven't specified GVEC for S(k)");
   }
   
-  kpts.Resize(npoints, 3);
-  kpts=0;
-  int c=0;
-  for(int ix=0; ix < np_side; ix++) {
-    for(int iy=0; iy < np_side; iy++) {
-      for(int iz=0; iz < np_side; iz++) {
-        for(int i=0; i< 3; i++)
-          kpts(c,i)+=2*pi*(gvec(0,i)*ix+gvec(1,i)*iy+gvec(2,i)*iz);
-        c++;
+  int direction;
+  if(readvalue(words, pos=0, direction, "DIRECTION")) { 
+    npoints=np_side;
+    kpts.Resize(npoints, 3);
+    kpts=0;
+    for(int ix=0; ix < np_side; ix++) { 
+      for(int i=0; i< 3; i++) 
+        kpts(ix,i)=2*pi*gvec(direction,i)*ix;
+    }
+  }
+  else { 
+    npoints=np_side*np_side*np_side; 
+
+    kpts.Resize(npoints, 3);
+    kpts=0;
+    int c=0;
+    for(int ix=0; ix < np_side; ix++) {
+      for(int iy=0; iy < np_side; iy++) {
+        for(int iz=0; iz < np_side; iz++) {
+          for(int i=0; i< 3; i++)
+            kpts(c,i)+=2*pi*(gvec(0,i)*ix+gvec(1,i)*iy+gvec(2,i)*iz);
+          c++;
+        }
       }
     }
   }
@@ -127,7 +143,7 @@ void Average_structure_factor::read(System * sys, Wavefunction_data * wfdata, ve
 void Average_structure_factor::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
                                         System * sys, Sample_point * sample, Average_return & avg) {
   avg.type="sk";
-  nelectrons=sample->electronSize();
+  int nelectrons=sample->electronSize();
   
   Array1 <doublevar> pos(3);
   avg.vals.Resize(npoints);
@@ -187,9 +203,107 @@ void Average_structure_factor::write_summary(Average_return & avg, Average_retur
     for(int d=0; d< 3; d++) r+=kpts(i,d)*kpts(i,d);
     r=sqrt(r);
     os << "sk_out " <<  r << "   " << sk << "   " << skerr 
-      << kpts(i,0) << "   " << kpts(i,1) << "   " << kpts(i,2) << endl;
+      << "  " << kpts(i,0) << "   " << kpts(i,1) << "   " << kpts(i,2) << endl;
   }
   
 }
 //############################################################################
 
+void Average_twobody_correlation::read(System * sys, Wavefunction_data * wfdata, 
+                                       vector <string> & words) { 
+  doublevar range;
+  unsigned int pos=0;
+  if(!readvalue(words,pos=0,resolution, "RESOLUTION"))
+    resolution=0.1;
+  if(!readvalue(words,pos=0,range,"RANGE"))
+    range=10.0;
+  if(readvalue(words, pos=0, direction, "DIRECTION")) { 
+    direction+=2;
+  }
+  else
+    direction=0;
+  
+  npoints=int(range/resolution)+1;  
+  
+}
+
+//-----------------------------------------------------------------------------
+
+void Average_twobody_correlation::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+                                        System * sys, Sample_point * sample, Average_return & avg) {
+  avg.type="gr";
+  int nelectrons=sample->electronSize();
+  avg.vals.Resize(2*npoints); //for like and unlike
+  avg.vals=0;
+  int nup=sys->nelectrons(0);
+  int ndown=nelectrons-nup;
+  sample->updateEEDist();
+  Array1 <doublevar> dist(5);
+  for(int e=0; e< nup; e++) {
+    for(int e2=e+1; e2 < nup; e2++) {
+      sample->getEEDist(e,e2,dist);
+      int place=int(fabs(dist(direction))/resolution);
+      if(place < npoints) { 
+        avg.vals(place)+=1;
+      }
+    }
+    for(int e2=nup; e2 < nelectrons; e2++) { 
+      sample->getEEDist(e,e2,dist);
+      int place=int(fabs(dist(direction))/resolution);
+      if(place < npoints) { 
+        avg.vals(npoints+place)+=1;
+      }
+    }
+  }
+  
+  for(int e=nup; e < nelectrons; e++) { 
+    for(int e2=e+1; e2< nelectrons; e2++) { 
+      sample->getEEDist(e,e2,dist);
+      int place=int(fabs(dist(direction))/resolution);
+      if(place < npoints) { 
+        avg.vals(place) += 1.0;
+      }
+    }
+  }
+  
+  if(direction==0) { 
+    for(int i=0; i< npoints; i++) { 
+      double r=resolution*i;
+      avg.vals(i)/=4*pi*resolution*r*r;
+      avg.vals(npoints+i)/=4*pi*resolution*r*r;
+    }
+  }
+  
+  
+}
+
+//-----------------------------------------------------------------------------
+
+void Average_twobody_correlation::write_init(string & indent, ostream & os) { 
+  os << indent << "gr\n";
+  os << indent << "npoints " << npoints << endl;
+  os << indent << "resolution " << resolution << endl;
+  os << indent << "direction " << direction << endl;
+}
+//-----------------------------------------------------------------------------
+
+void Average_twobody_correlation::read(vector <string> & words) { 
+  unsigned int pos=0;
+  readvalue(words, pos=0, resolution, "resolution");
+  readvalue(words, pos=0, npoints, "npoints");
+  readvalue(words, pos=0, direction, "direction");
+}
+//-----------------------------------------------------------------------------
+
+void Average_twobody_correlation::write_summary(Average_return & avg, Average_return & err, ostream & os) { 
+  os << "Electron correlation for like and unlike spins\n";
+  os << "    r  g(r) sigma(g(r))   g(r)  sigma(g(r))" << endl;
+  assert(avg.vals.GetDim(0) >=2*npoints);
+  assert(err.vals.GetDim(0) >=2*npoints);
+  
+  for(int i=0; i< npoints; i++) {
+    os << "gr_out " << i*resolution << " " << avg.vals(i) << " " << err.vals(i) 
+    << "  " << avg.vals(i+npoints) << "  " << err.vals(i+npoints) << endl;
+  }
+  
+}

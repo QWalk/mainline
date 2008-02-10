@@ -85,7 +85,7 @@ public:
 int allocate(vector<string> & words, System * sys, Wavefunction_data * wfdata, Average_generator *& avg);
 int allocate(vector<string> & words, Average_generator * & avg);
 
-
+//##########################################################################
 
 class Average_dipole:public Average_generator { 
 public:
@@ -99,6 +99,8 @@ public:
 };
 
 
+//----------------------------------------------------------------------------
+
 class Average_structure_factor:public Average_generator { 
 public:
   virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
@@ -109,15 +111,29 @@ public:
   virtual void read(vector <string> & words);
   virtual void write_summary(Average_return &,Average_return &, ostream & os);
 private:
-  int nelectrons;    
   int npoints;
-  int np_side; //!< number of points on the side
-  
-  //Array1 <doublevar> grid; 
-  //Array2 <doublevar> gvec;
   Array2 <doublevar> kpts;
   
 };
+
+//----------------------------------------------------------------------------
+
+
+class Average_twobody_correlation:public Average_generator { 
+public:
+  virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+                        System * sys, Sample_point * sample, Average_return & );
+  virtual void read(System * sys, Wavefunction_data * wfdata, vector
+                    <string> & words);
+  virtual void write_init(string & indent, ostream & os);
+  virtual void read(vector <string> & words);
+  virtual void write_summary(Average_return &,Average_return &, ostream & os);
+private:
+  double resolution;
+  int npoints;
+  int direction; //we can look only in the x, y, or z direction if we like 0=r, 2=x,3=y,4=z.
+};
+
 
 
 #endif //AVERAGE_GENERATOR_H_INCLUDED
