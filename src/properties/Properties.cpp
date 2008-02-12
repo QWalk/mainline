@@ -1290,17 +1290,19 @@ void Properties_manager::endBlock() {
 
 
 void Properties_manager::initializeLog(Array1 <Average_generator*> & avg_gen) {
-  ofstream os(log_file.c_str(), ios::app);
-  os << "init { \n";
-  string indent="   ";
-  os << indent << "label " << log_label << endl;
-  for(int i=0; i< avg_gen.GetDim(0); i++) { 
-    os << indent << "average_generator { \n";
-    avg_gen(i)->write_init(indent,os);
-    os << indent << "}\n";
+  if(mpi_info.node==0 && log_file != ""){ 
+    ofstream os(log_file.c_str(), ios::app);
+    os << "init { \n";
+    string indent="   ";
+    os << indent << "label " << log_label << endl;
+    for(int i=0; i< avg_gen.GetDim(0); i++) { 
+      os << indent << "average_generator { \n";
+      avg_gen(i)->write_init(indent,os);
+      os << indent << "}\n";
+    }
+    os << "}\n";
+    os.close();
   }
-  os << "}\n";
-  os.close();
 }
 
 
