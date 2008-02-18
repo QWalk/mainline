@@ -912,7 +912,13 @@ void OBDM::init(vector <string> & words, System * sys,
     if(tempheight < smallestheight ) smallestheight=tempheight;
   }
 
-  dR=smallestheight/npoints/2;
+  // maximum distance for OBDM evaluation
+  pos=0;
+  doublevar cutoff;
+  if(!readvalue(words, pos=0, cutoff, "CUTOFF"))
+    dR=smallestheight/npoints/2;
+  else
+    dR=cutoff/npoints;
   
   // angles and weights for Gaussian quadrature (spherical averaging)
   // (the same material as in system/gesqua.cpp)
