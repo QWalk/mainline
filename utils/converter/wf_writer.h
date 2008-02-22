@@ -33,8 +33,10 @@ class Wf_writer {
 
 class Slat_wf_writer:public Wf_writer {
 public:
+  Slat_wf_writer() { magnification=-1; } 
   int nup, ndown; //number of up and down electrons
   int spin_dwn_start;  //the MO at which the down orbitals start(for a UHF calctype only)
+  double magnification;
   std::string calctype; //RHF, ROHF, UHF, or GVB
   std::string mo_matrix_type; //CUTOFF_MO, BLAS_MO, STANDARD_MO, etc
   std::string orbname;  //name of the orbitals file
@@ -129,5 +131,14 @@ void print_std_jastrow2(Jastrow2_wf_writer & jast2writer, std::ostream & os,
                         double basis_cutoff);
 
 void print_3b_jastrow2(std::ostream & os,std::vector<std::string> & unique_atoms, double cutoff=7.5);
+/*
+ Doubles a periodic cell in the specified direction.  latvec, moCoeff, and the atoms are all changed
+ to reflect the new cell.  Assumes atom-centered basis functions..
+ */
+void fold_kpoint(Slat_wf_writer & slwriter, 
+                 std::vector <std::vector <double> > & latvec,
+                 int dir,
+                 std::vector <std::vector < double> > & moCoeff,
+                 std::vector <Atom> & atoms);
 
 #endif

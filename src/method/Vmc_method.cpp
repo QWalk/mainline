@@ -48,28 +48,16 @@ void Vmc_method::read(vector <string> words,
     error("Need TIMESTEP in VMC section");
 
   //optional options
-  eref=0;
-  readvalue(words, pos=0, eref, "EREF");
-  
+
   if(!readvalue(words, pos=0, ndecorr, "NDECORR"))
     ndecorr=2;
-
-  if(haskeyword(words,pos=0,  "OLDSTORECONFIG"))
-    error("OLDSTORECONFIG is out of date.  Use the new configurations");
 
   if(readvalue(words, pos=0, storeconfig, "STORECONFIG"))
     canonical_filename(storeconfig);
 
-  if(haskeyword(words, pos=0,"OLDREADCONFIG")) 
-    error("OLDREADCONFIG is out of date.  Use the new configurations");
   if(readvalue(words, pos=0, readconfig, "READCONFIG"))
     canonical_filename(readconfig);
-
-  pos=0;
-  if(readvalue(words,pos, pathfile, "PATHFILE"))
-  {
-    canonical_filename(pathfile);
-  }
+  
 
   if(!readvalue(words, pos=0, log_label, "LABEL"))
     log_label="vmc";
@@ -86,17 +74,23 @@ void Vmc_method::read(vector <string> words,
     dynsec.push_back("SPLIT");
 
   allocate(dynsec, sampler);
-
+  
   vector<string> tmp_dens;
   pos=0;
   while(readsection(words, pos, tmp_dens, "DENSITY")) {
     dens_words.push_back(tmp_dens);
   }
+
   pos=0;
   while(readsection(words, pos, tmp_dens, "NONLOCAL_DENSITY")) {
     nldens_words.push_back(tmp_dens);
   }
-  
+
+  pos=0;
+  while(readsection(words, pos, tmp_dens, "AVERAGE")) {
+    avg_words.push_back(tmp_dens);
+  }
+    
 
   if(readvalue(words, pos=0, config_trace, "CONFIG_TRACE"))
     canonical_filename(config_trace);
@@ -177,6 +171,14 @@ int Vmc_method::allocateIntermediateVariables(System * locsys,
   locwfdata->generateWavefunction(wf);
   sample->attachObserver(wf);
 
+  
+  average_var.Resize(avg_words.size());
+  average_var=NULL;
+  for(int i=0; i< average_var.GetDim(0); i++) { 
+    allocate(avg_words[i], locsys, locwfdata, average_var(i));
+  }
+  
+  
   return 1;
 }
 
@@ -184,13 +186,14 @@ int Vmc_method::allocateIntermediateVariables(System * locsys,
 
 int Vmc_method::deallocateIntermediateVariables() {
   if(wf) delete wf;
-  //for(int i=0; i <nconfig; i++) {
-  //  if(electrons(i)) delete electrons(i);
-  //}  
   wf=NULL;
   if(sample) delete sample;
   sample=NULL;
-  //electrons=NULL;
+  
+  for(int i=0; i< average_var.GetDim(0); i++) { 
+    if(average_var(i)) delete average_var(i);
+    average_var(i)=NULL;
+  }
   return 1;
 }
 
@@ -346,15 +349,7 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
   mygather.squareWeight(1);
 
   output.precision(10);
-  ofstream path;
-  if(pathfile != "") {
-    if(output) {
-      cout << "Going to write path to " << pathfile << endl;
-    }
-    path.open(pathfile.c_str());
-    path.precision(15);
-  }
-
+  prop.initializeLog(average_var);
   //our averaging variables
   Array1 <doublevar> avglifetime(nblock);
   unsigned int maxlife=0;
@@ -376,9 +371,9 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
       wf->updateLap(wfdata, sample);
       
       if(print_wf_vals) { 
-	Wf_return wfval(nwf_guide,2);
-	wf->getVal(wfdata,0, wfval);
-	cout << "node " << mpi_info.node << "amp " << wfval.amp(0,0) << endl;
+        Wf_return wfval(nwf_guide,2);
+        wf->getVal(wfdata,0, wfval);
+        cout << "node " << mpi_info.node << "  amp " << wfval.amp(0,0) << endl;
       }
       
       for(int step=0; step< nstep; step++) {
@@ -426,16 +421,13 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
 	for(int i=0; i< nldensplt.GetDim(0); i++)
           nldensplt(i)->accumulate(sample,1.0,wfdata,wf);
 
+        pt.avgrets.Resize(average_var.GetDim(0));
+        for(int i=0; i< average_var.GetDim(0); i++) { 
+          average_var(i)->evaluate(wfdata, wf, sys, sample, pt.avgrets(i));
+        }
         pt.parent=walker;
         pt.nchildren=1; pt.children(0)=1;
         prop.insertPoint(step, walker, pt);
-
-        //--temporary debug stuff..
-        //if(fabs(pt.energy(0)+3.6) > 6.0) { 
-        //  cout << "large deviation " << pt.energy(0) 
-        //  << " kinetic " << pt.kinetic(0) << " nonlocal " << pt.nonlocal(0)
-        //  << "  pot " << pt.potential(0) << endl;
-        //}
         
         //This may screw up if we have >1 walker!
         if(config_trace!="" && block >0) {
@@ -489,7 +481,7 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
   if(output) {
     output << "-----------------Run Ended------------\n" << endl;
 
-    prop.printSummary(output);
+    prop.printSummary(output, average_var);
     output << endl;
     output << "Maximum lifetime " << double(maxlife)/double(ndecorr)
            << " steps "<<  endl;
@@ -502,8 +494,6 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
     output << "VMC Done. \n";
   }
  
-  path.close();
-
   wfdata->clearObserver();
   deallocateIntermediateVariables();
 }

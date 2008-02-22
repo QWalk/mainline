@@ -283,6 +283,12 @@ void Reptation_method::read(vector <string> words,
   while(readsection(words, pos, tmp_dens, "DENSITY")) {
     dens_words.push_back(tmp_dens);
   }
+  
+  pos=0;
+  while(readsection(words, pos, tmp_dens, "AVERAGE")) {
+    avg_words.push_back(tmp_dens);
+  }
+  
 
   //EXPERIMENTAL stuff!
   calc_full_gf=haskeyword(words,pos=0,"FULL_GF");
@@ -337,6 +343,11 @@ int Reptation_method::allocateIntermediateVariables(System * locsys,
   locwfdata->generateWavefunction(wf);
   sample->attachObserver(wf);
   
+  average_var.Resize(avg_words.size());
+  average_var=NULL;
+  for(int i=0; i< average_var.GetDim(0); i++) { 
+    allocate(avg_words[i], locsys, locwfdata, average_var(i));
+  }
 
   return 1;
 }
@@ -349,6 +360,12 @@ int Reptation_method::deallocateIntermediateVariables() {
   if(sample) delete sample;
   wf=NULL;
   sample=NULL;
+  
+  for(int i=0; i< average_var.GetDim(0); i++) { 
+    if(average_var(i)) delete average_var(i);
+    average_var(i)=NULL;
+  }
+  
   return 1;
 }
 
@@ -587,11 +604,11 @@ void Reptation_method::get_center_avg(deque <Reptile_point> & reptile,
 
 
 doublevar Reptation_method::slither(int direction,
-				    deque <Reptile_point> & reptile,
+                                    deque <Reptile_point> & reptile,
                                     Properties_gather & mygather, 
-				    Reptile_point & pt, 
-				    doublevar & main_diffusion, 
-				    Array1 <doublevar> & aux_diffusion) {
+                                    Reptile_point & pt, 
+                                    doublevar & main_diffusion, 
+                                    Array1 <doublevar> & aux_diffusion) {
   
   Dynamics_info dinfo;
   int nelectrons=sample->electronSize();
@@ -711,6 +728,12 @@ doublevar Reptation_method::slither(int direction,
     accept=0;
   }
   
+  
+  pt.prop.avgrets.Resize(average_var.GetDim(0));
+  for(int i=0; i< average_var.GetDim(0); i++) { 
+    average_var(i)->evaluate(mywfdata, wf, sys, sample, pt.prop.avgrets(i));
+  }
+  
   return accept;
 }
 
@@ -739,6 +762,7 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
   
   prop.setSize(wf->nfunc(), nblock, nstep, 1, 
                sys, wfdata, mygather.nAux(),n_aux_cvg);
+  prop.initializeLog(average_var);
 
   aux_timestep.Resize(mygather.nAux());
   aux_timestep=timestep;
@@ -750,7 +774,7 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
   
   prop_center.setSize(wf->nfunc(), nblock, nstep, 1, sys, 
                       wfdata,0);
-
+  prop_center.initializeLog(average_var);
 
 
   cout.precision(10);
@@ -758,7 +782,6 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
 
   Sample_point * center_samp(NULL);
   sys->generateSample(center_samp);
-
   
   deque <Reptile_point> reptile;
   int direction=1;
@@ -835,6 +858,9 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
       if(accept+rng.ulec() > 1.0) {
         recalc=0;
         naccept++;
+        
+        
+        
         main_diff+=main_diffusion;
         for(int a=0; a< naux; a++)
           aux_diff(a)+=aux_diffusion(a);
@@ -876,23 +902,24 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
       get_center_avg(reptile, centpt);
       centpt.parent=0; centpt.nchildren=1;
       centpt.children(0)=0;
+      
       prop_center.insertPoint(step, 0, centpt);
-
-
+      
       reptile[cpt].restorePos(center_samp);
+
       for(int i=0; i< densplt.GetDim(0); i++) 
         densplt(i)->accumulate(center_samp,1.0);
-
-
+      
+      
       if(center_trace != "" 
-	 && (block*nstep+step)%trace_wait==0) {
-	ofstream checkfile(center_trace.c_str(), ios::app);
-	if(!checkfile)error("Couldn't open ", center_trace);
-	checkfile << "SAMPLE_POINT { \n";
-	write_config(checkfile, sample);
-	checkfile << "}\n\n";
+         && (block*nstep+step)%trace_wait==0) {
+        ofstream checkfile(center_trace.c_str(), ios::app);
+        if(!checkfile)error("Couldn't open ", center_trace);
+        checkfile << "SAMPLE_POINT { \n";
+        write_config(checkfile, sample);
+        checkfile << "}\n\n";
       }
-
+      
       if(calc_hf_derivatives) {
 
         for(int i=0; i< sys->nIons(); i++) {
@@ -904,16 +931,15 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
       
     }   //step
 
-
     prop.endBlock();
     prop_center.endBlock();
     double ntot=parallel_sum(nstep);
     if(calc_hf_derivatives) {    
       for(int i=0; i< sys->nIons(); i++) {
-	for(int d=0; d< 3; d++) {
-	  derivatives_block(block, i,d)
-	    =parallel_sum(derivatives_step(i,d))/ntot;
-	}
+        for(int d=0; d< 3; d++) {
+          derivatives_block(block, i,d)
+          =parallel_sum(derivatives_step(i,d))/ntot;
+        }
       }
     }
 
@@ -974,9 +1000,9 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
   if(output) {
     output << "############## Reptation Done ################\n";
     output << "End averages " << endl;
-    prop.printSummary(output);
+    prop.printSummary(output,average_var);
     output << "Center averages " << endl;
-    prop_center.printSummary(output);
+    prop_center.printSummary(output,average_var);
 
     if(calc_hf_derivatives) {
       Array2 <doublevar> derivative_avg(sys->nIons(), 3, 0.0);

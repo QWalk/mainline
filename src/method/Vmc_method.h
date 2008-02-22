@@ -104,14 +104,9 @@ private:
   int nstep;
   int nconfig;
   int ndecorr;
-  doublevar eref;
   string storeconfig;
   string readconfig;
-  string pathfile;
   string log_label;
-  
-
-
 
   doublevar timestep;
   int nelectrons;
@@ -121,14 +116,12 @@ private:
   int low_io; //!< Only output the configurations and any Density objects at the end of the run, not every block
   string config_trace; //!< where to lay down a trace of configurations
 
-
   string guidetype;
 
   Guiding_function * guidewf;
 
   Pseudopotential * pseudo;
   System * sysprop;
-  //Array1 <Sample_point *>  electrons;
   Sample_point * sample;
   Array1 <Config_save_point> config_pos;
 
@@ -143,6 +136,8 @@ private:
   vector <vector <string> > dens_words;
   Array1 < Nonlocal_density_accumulator *> nldensplt;
   vector <vector <string> > nldens_words;
+  Array1 < Average_generator * > average_var;
+  vector <vector <string> > avg_words;
 
 };
 

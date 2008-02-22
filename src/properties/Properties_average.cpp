@@ -94,7 +94,12 @@ void Properties_final_average::blockReduce(Array1 <Properties_block> & block_avg
   aux_size=block_avg(start_block).aux_size;
 
   int nblock=end_block-start_block;  
-
+  
+  avgavg=block_avg(start_block).avgrets;
+  for(int i=0; i< avgavg.GetDim(0); i++) 
+    avgavg(i).vals=0;
+  avgerr=avgavg;
+  
   //Stealing Jeff's algorithm for finding the throw-away blocks:
   //average over the last 4/5 of the blocks, and find the block
   //with energy within the standard deviation of that average..
@@ -138,36 +143,41 @@ void Properties_final_average::blockReduce(Array1 <Properties_block> & block_avg
     doublevar thisweight=block_avg(block).totweight/totweight;
     for(int w=0; w< nwf; w++) {
       for(int d=0; d< 3; d++) 
-	z_pol(d)+=block_avg(block).z_pol(d)*thisweight;
+        z_pol(d)+=block_avg(block).z_pol(d)*thisweight;
       for(int i=0; i< NUM_QUANTITIES; i++) {
-	avg(i,w)+=block_avg(block).avg(i,w)*thisweight;
-	avgvar(i,w)+=block_avg(block).var(i,w)*thisweight;
+        avg(i,w)+=block_avg(block).avg(i,w)*thisweight;
+        avgvar(i,w)+=block_avg(block).var(i,w)*thisweight;
       }
       
       for(int i=0; i< autocorr_depth; i++) {
-	autocorr(w,i)+=block_avg(block).autocorr(w,i)*thisweight;
+        autocorr(w,i)+=block_avg(block).autocorr(w,i)*thisweight;
       }
       if(w > 0) 
-	diff_energy(w)+=(block_avg(block).avg(total_energy,w)
-			 -block_avg(block).avg(total_energy,0))*thisweight;
+        diff_energy(w)+=(block_avg(block).avg(total_energy,w)
+                         -block_avg(block).avg(total_energy,0))*thisweight;
       
       
     }
     
+    for(int i=0; i< avgavg.GetDim(0); i++) { 
+      for(int j=0; j< avgavg(i).vals.GetDim(0); j++) { 
+        avgavg(i).vals(j)+=block_avg(block).avgrets(i).vals(j)*thisweight;
+      }
+    }
     
     for(int i=0; i< naux; i++) {
       for(int d=0;d < 3; d++) 
-	aux_z_poldiff(i,d)+=(block_avg(block).aux_z_pol(i,d)-
-			     block_avg(block).z_pol(d))*thisweight;
+        aux_z_poldiff(i,d)+=(block_avg(block).aux_z_pol(i,d)-
+                             block_avg(block).z_pol(d))*thisweight;
       for(int w=0; w< n_cvg; w++) {
-	aux_diff(i,w)+=block_avg(block).aux_diff(i,w)*thisweight;
-	aux_energy(i,w)+=block_avg(block).aux_energy(i,w)*thisweight;
-	aux_energyvar(i,w)+=block_avg(block).aux_energyvar(i,w)*thisweight;
+        aux_diff(i,w)+=block_avg(block).aux_diff(i,w)*thisweight;
+        aux_energy(i,w)+=block_avg(block).aux_energy(i,w)*thisweight;
+        aux_energyvar(i,w)+=block_avg(block).aux_energyvar(i,w)*thisweight;
       }
     }
   }
-    
-    //int n2=nblock*nblock;
+  
+  //int n2=nblock*nblock;
   for(int block=start_block; block < end_block; block++) {
     //doublevar wt=block_avg(block).totweight/totweight;
     doublevar thisweight=block_avg(block).totweight/(nblock*totweight);
@@ -179,36 +189,47 @@ void Properties_final_average::blockReduce(Array1 <Properties_block> & block_avg
     }
     for(int w=0; w< nwf; w++) {
       for(int i=0; i< NUM_QUANTITIES; i++) {
-	err(i,w)+=(block_avg(block).avg(i,w)-avg(i,w))
-	  *(block_avg(block).avg(i,w)-avg(i,w))*thisweight;
+        err(i,w)+=(block_avg(block).avg(i,w)-avg(i,w))
+        *(block_avg(block).avg(i,w)-avg(i,w))*thisweight;
       }
       
       for(int i=0; i< autocorr_depth; i++) {
-	autocorrerr(w,i)+=(block_avg(block).autocorr(w,i)-autocorr(w,i))
-	  *(block_avg(block).autocorr(w,i)-autocorr(w,i))*thisweight;
-        }
-      if(w > 0) {
-	doublevar ediff=block_avg(block).avg(total_energy,w)
-	  -block_avg(block).avg(total_energy,0);
-	diff_energyerr(w)+=(ediff-diff_energy(w))*(ediff-diff_energy(w))*thisweight;
+        autocorrerr(w,i)+=(block_avg(block).autocorr(w,i)-autocorr(w,i))
+        *(block_avg(block).autocorr(w,i)-autocorr(w,i))*thisweight;
       }
-      
-      
+      if(w > 0) {
+        doublevar ediff=block_avg(block).avg(total_energy,w)
+        -block_avg(block).avg(total_energy,0);
+        diff_energyerr(w)+=(ediff-diff_energy(w))*(ediff-diff_energy(w))*thisweight;
+      }
+    }
+    
+    for(int i=0; i< avgavg.GetDim(0); i++) { 
+      for(int j=0; j< avgavg(i).vals.GetDim(0); j++) { 
+        avgerr(i).vals(j)+=(block_avg(block).avgrets(i).vals(j)-avgavg(i).vals(j))
+          *(block_avg(block).avgrets(i).vals(j)-avgavg(i).vals(j))*thisweight;
+      }
     }
     
     for(int i=0; i< naux; i++) {
       for(int d=0; d< 3; d++) {
-	dcomplex diff=(block_avg(block).aux_z_pol(i,d)-
-		       block_avg(block).z_pol(d)-aux_z_poldiff(i,d));
-	aux_z_poldiff_err(i,d)+=dcomplex(diff.real()*diff.real(),
-					 diff.imag()*diff.imag())*thisweight;
+        dcomplex diff=(block_avg(block).aux_z_pol(i,d)-
+                       block_avg(block).z_pol(d)-aux_z_poldiff(i,d));
+        aux_z_poldiff_err(i,d)+=dcomplex(diff.real()*diff.real(),
+                                         diff.imag()*diff.imag())*thisweight;
       }
       for(int w=0; w< n_cvg; w++) {
-	doublevar diff=block_avg(block).aux_diff(i,w);
-	aux_differr(i,w)+=(diff-aux_diff(i,w))*(diff-aux_diff(i,w))*thisweight;
-	aux_energyerr(i,w)=(block_avg(block).aux_energy(i,w)-aux_energy(i,w))
-	  *(block_avg(block).aux_energy(i,w)-aux_energy(i,w))*thisweight;
+        doublevar diff=block_avg(block).aux_diff(i,w);
+        aux_differr(i,w)+=(diff-aux_diff(i,w))*(diff-aux_diff(i,w))*thisweight;
+        aux_energyerr(i,w)=(block_avg(block).aux_energy(i,w)-aux_energy(i,w))
+          *(block_avg(block).aux_energy(i,w)-aux_energy(i,w))*thisweight;
       }
+    }
+  }
+  
+  for(int i=0; i< avgavg.GetDim(0); i++) { 
+    for(int j=0; j< avgavg(i).vals.GetDim(0); j++) { 
+      avgerr(i).vals(j)=sqrt(avgerr(i).vals(j));
     }
   }
   
@@ -244,27 +265,27 @@ void Properties_final_average::averageReduce(Array1 <Properties_final_average> &
   aux_size=final_avg(start).aux_size;
 
   int nblock=end-start;  
-
+  
   //cout << "summing weights" << endl;
-
+  
   totweight=0;
   for(int block=start; block < end; block++) {
     totweight+=final_avg(block).totweight;
     for(int w=0; w< nwf; w++) {
       for(int d=0; d< 3; d++) 
-	z_pol(d)+=dcomplex(final_avg(block).z_pol(d).real()/nblock, 
-			   final_avg(block).z_pol(d).imag()/nblock);
+        z_pol(d)+=dcomplex(final_avg(block).z_pol(d).real()/nblock, 
+                           final_avg(block).z_pol(d).imag()/nblock);
       for(int i=0; i< NUM_QUANTITIES; i++) {
-	avg(i,w)+=final_avg(block).avg(i,w)/nblock;
-	avgvar(i,w)+=final_avg(block).avgvar(i,w)/nblock;
+        avg(i,w)+=final_avg(block).avg(i,w)/nblock;
+        avgvar(i,w)+=final_avg(block).avgvar(i,w)/nblock;
       }
       
       for(int i=0; i< autocorr_depth; i++) {
-	autocorr(w,i)+=final_avg(block).autocorr(w,i)/nblock;
+        autocorr(w,i)+=final_avg(block).autocorr(w,i)/nblock;
       }
       if(w > 0) 
-	diff_energy(w)+=(final_avg(block).avg(total_energy,w)
-			 -final_avg(block).avg(total_energy,0))/nblock;
+        diff_energy(w)+=(final_avg(block).avg(total_energy,w)
+                         -final_avg(block).avg(total_energy,0))/nblock;
       
       
     }
@@ -272,11 +293,11 @@ void Properties_final_average::averageReduce(Array1 <Properties_final_average> &
     
     for(int i=0; i< naux; i++) {
       for(int w=0; w< n_cvg; w++) 
-	aux_diff(i,w)+=final_avg(block).aux_diff(i,w)/nblock;
+        aux_diff(i,w)+=final_avg(block).aux_diff(i,w)/nblock;
     }
   }
-    
-
+  
+  
   int n2=nblock*nblock;
   for(int block=start; block < end; block++) {
     doublevar thisweight=1.0/n2;
@@ -286,14 +307,14 @@ void Properties_final_average::averageReduce(Array1 <Properties_final_average> &
     }
     for(int w=0; w< nwf; w++) {
       for(int i=0; i< NUM_QUANTITIES; i++) {
-	err(i,w)+=final_avg(block).err(i,w)*thisweight;
+        err(i,w)+=final_avg(block).err(i,w)*thisweight;
       }
       
       for(int i=0; i< autocorr_depth; i++) {
-	autocorrerr(w,i)+=final_avg(block).autocorrerr(w,i)*thisweight;
+        autocorrerr(w,i)+=final_avg(block).autocorrerr(w,i)*thisweight;
       }
       if(w > 0) {
-	diff_energyerr(w)+=final_avg(block).diff_energyerr(w)*thisweight;
+        diff_energyerr(w)+=final_avg(block).diff_energyerr(w)*thisweight;
       }
       
       
@@ -301,7 +322,7 @@ void Properties_final_average::averageReduce(Array1 <Properties_final_average> &
     
     for(int i=0; i< naux; i++) {
       for(int w=0; w< n_cvg; w++) {
-	aux_differr(i,w)+=final_avg(block).aux_differr(i,w)*thisweight;
+        aux_differr(i,w)+=final_avg(block).aux_differr(i,w)*thisweight;
       }
     }
   }
@@ -342,7 +363,7 @@ void complex_angle(dcomplex & val, dcomplex & err,
 
 //----------------------------------------------------------------------
 
-void Properties_final_average::showSummary(ostream & os) {
+void Properties_final_average::showSummary(ostream & os, Array1 <Average_generator*> & avg_gen) {
   int nwf=avg.GetDim(1);
   int naux=aux_energy.GetDim(0);
   int autocorr_depth=autocorr.GetDim(1);
@@ -390,14 +411,10 @@ void Properties_final_average::showSummary(ostream & os) {
     else
       os << "z_pol" << d << "  " << z_pol(d).real()<< " + i " << z_pol(d).imag()
        << " +/- " << err.real() << " + i " << err.imag() << endl;
-    
-
-
-
   }
   
-    
-    
+  
+  
   if(naux > 0) 
     os << endl << endl << "Auxillary differences " << endl;
   assert(aux_size.GetDim(0)==naux);
@@ -405,15 +422,21 @@ void Properties_final_average::showSummary(ostream & os) {
   for(int i=0; i< naux; i++) {
     for(int w=0; w< n_cvg; w++) {
       os << "final_auxdiff" << i << "-" << w << "   "
-         << aux_diff(i,w)/aux_size(i) << "  +/-   " 
-         << sqrt(aux_differr(i,w))/aux_size(i) 
-         << "   (sigma " << sqrt(aux_differr(i,w))*indep_points << " ) "
-         << endl;
+      << aux_diff(i,w)/aux_size(i) << "  +/-   " 
+      << sqrt(aux_differr(i,w))/aux_size(i) 
+      << "   (sigma " << sqrt(aux_differr(i,w))*indep_points << " ) "
+      << endl;
     }
   }
   os << endl;
-
-
+  
+  
+  assert(avg_gen.GetDim(0)==avgavg.GetDim(0)==avgerr.GetDim(0));
+  for(int i=0; i< avg_gen.GetDim(0); i++) { 
+    avg_gen(i)->write_summary(avgavg(i),avgerr(i), os);
+  }
+  
+  
   doublevar totpoints=indep_points*indep_points;
   os << "approximate number of independent points: " 
      << totpoints << endl;

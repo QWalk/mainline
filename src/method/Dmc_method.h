@@ -123,7 +123,10 @@ public:
     sample=NULL;
     deallocate(wf);
     wf=NULL;
-    
+    for(int i=0; i< average_var.GetDim(0); i++) { 
+      if(average_var(i)) delete average_var(i);
+      average_var(i)=NULL;
+    }    
 
   }
 
@@ -144,7 +147,7 @@ public:
   
   int calcBranch();
   void find_cutoffs();
-  void loadbalance();
+  //void loadbalance();
   void updateEtrial(doublevar feedback);
   
 
@@ -200,6 +203,8 @@ public:
   vector <vector <string> > dens_words;
   Array1 < Nonlocal_density_accumulator *> nldensplt;
   vector <vector <string> > nldens_words;
+  Array1 < Average_generator * > average_var;
+  vector <vector <string> > avg_words;
 
 };
 

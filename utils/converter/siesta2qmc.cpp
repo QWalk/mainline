@@ -47,16 +47,24 @@ void fix_basis_norm(vector <Atom> & atoms, vector <Spline_basis_writer> & basis,
 
 int main(int argc, char ** argv) { 
   if(argc < 2) {
-    cout << "usage: siesta2qmc < -o basename > [siesta stdout]\n";
+    cout << "usage: siesta2qmc < -o basename > < -fold fold_dir nfold > [siesta stdout]\n";
     cout << "  -o          use basename as the prefix for QWalk.  Defaults to qwalk\n";
     exit(1);
   }
   string outputname="qwalk";
-
+  int fold_dir=-1;
+  int nfold=0;
+  
+  
   for(int i=1; i< argc-1; i++) { 
     if(!strcmp(argv[i],"-o") && i+1 < argc) { 
       outputname=argv[++i];
     }
+    if(!strcmp(argv[i],"-fold") && i+2 < argc) { 
+      fold_dir=atoi(argv[++i]);
+      nfold=atoi(argv[++i]);
+    }
+    
   }
   string infilename=argv[argc-1];
   
@@ -114,17 +122,24 @@ int main(int argc, char ** argv) {
       for(int i=0; i< 3; i++) atoms[at].pos[i]=0.0;
       for(int i=0; i< 3; i++) { 
         for(int j=0; j< 3; j++) { 
-          atoms[at].pos[i]+=tmpatoms[at].pos[j]*latvec[i][j];
+          atoms[at].pos[i]+=tmpatoms[at].pos[j]*latvec[j][i];
         }
       }
     }
   }
   
+  //this seems to work well no matter the system size, at least so 
+  //far
+  slwriter.magnification=10.0;
   
   vector <Spline_basis_writer> basis;
   read_basis(atoms, basis);
   read_psp(atoms, pseudo);
   fix_basis_norm(atoms,basis, moCoeff);
+
+  for(int i=0; i< nfold; i++) { 
+    fold_kpoint(slwriter, latvec,fold_dir,moCoeff,atoms);
+  }
   
   int nelectrons=0;
   for(vector<Atom>::iterator at=atoms.begin(); 
@@ -156,7 +171,7 @@ int main(int argc, char ** argv) {
   //-----------------ORB file
   
   os.open(slwriter.orbname.c_str());
-  //this is really redundant with gamess2qmc.cpp..should probably be refactored somehow
+  //this is really redundant with gamess2qmc.cpp..should probably be refactored 
   vector < Center> centers;
   vector <int> nbasis;
   centers.resize(atoms.size());
@@ -181,7 +196,6 @@ int main(int argc, char ** argv) {
   
   //---------------------sys file
   //May want to add a command-line switch to print out a molecule
-  //also, it should choose the cutoff divider properly
   string sysoutname=outputname+".sys";
   ofstream sysout(sysoutname.c_str());
   sysout << "SYSTEM { PERIODIC \n";
@@ -192,12 +206,19 @@ int main(int argc, char ** argv) {
   }
   
   sysout << "LATTICEVEC { \n";
+  double min_latsize=1e8;
   for(int i=0; i< 3; i++) { 
-    for(int j=0; j< 3; j++) sysout << latvec[i][j] << " ";
+    double length=0;
+    for(int j=0; j< 3; j++) {
+      sysout << latvec[i][j] << " ";
+      length+=latvec[i][j]*latvec[i][j];
+    }
     sysout << endl;
+    if(min_latsize > length) min_latsize=length;
   }
   sysout << "  }\n";
-
+  //Here we assume that nothing has a larger cutoff than 10.0 bohr..is that a good guess?
+  sysout << "  cutoff_divider " << sqrt(min_latsize)/10.0 << endl;
   sysout << "}\n\n\n";
   
   int npsp=pseudo.size();
@@ -533,6 +554,9 @@ void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis ) {
           case 3:
             tmp_basis.types.push_back("5D_siesta");
             break;
+          case 4:
+            tmp_basis.types.push_back("7F_siesta");
+            break;
           default:
             cout << "Don't support this l-value.  Bug the maintainer." << endl;
             exit(1);
@@ -723,11 +747,25 @@ void fix_basis_norm(vector <Atom> & atoms,
               cout << "error in mnorm assignment" << endl; exit(3);
           }
         }
+        else if(L==3) { 
+          switch(m) { 
+            case -2:
+              mnorm*=2;
+              break;
+          }
+        }
+        
               
                 
         //cout << "i " << i << "  mnorm " << mnorm << endl;
 
         for(int mo=0; mo < nmo; mo++) { 
+          //cout << moCoeff[mo].size() << " " << funcnum << endl;
+          if(moCoeff[mo].size() <= funcnum) { 
+            cout << "You have less MO coefficients than atomic orbitals in the ORB files.  This could be from a remnant\n"
+            "of a previous run.  The easiest solution is to rm ORB* and rerun the siesta calculation or try to guess\n"
+            "which ORB files are extraneous\n";
+          }
           assert(moCoeff[mo].size() > funcnum);
           moCoeff[mo][funcnum]*=mnorm;
         }

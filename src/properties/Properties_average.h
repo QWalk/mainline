@@ -22,7 +22,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Qmc_std.h"
 #include "Properties_block.h"
 #include <iomanip>
-
+#include "Average_generator.h"
 
 struct Properties_final_average {
 
@@ -40,7 +40,7 @@ struct Properties_final_average {
 
   void twoPointForces(Array2 <doublevar> & forces);
 
-  void showSummary(ostream & os);
+  void showSummary(ostream & os, Array1 <Average_generator*> & avg_gen);
 
   void showAutocorr(int i) {
     assert(i==0 || i==1);
@@ -57,6 +57,9 @@ struct Properties_final_average {
   Array2 <doublevar> avgvar; //!< average variances
 
 
+  Array1 <Average_return> avgavg;
+  Array1 <Average_return> avgerr;
+  
   Array1 <doublevar> diff_energy;
   Array1 <doublevar> diff_energyerr;
 

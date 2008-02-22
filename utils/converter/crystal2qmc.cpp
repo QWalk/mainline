@@ -393,8 +393,8 @@ int main(int argc, char ** argv) {
     for(int i=0; i< 3; i++) {
       double length=0;
       for(int j=0; j< 3; j++) {
-	sysout << latvec[i][j] << "   ";
-	length+=latvec[i][j]*latvec[i][j];
+        sysout << latvec[i][j] << "   ";
+        length+=latvec[i][j]*latvec[i][j];
       }
       sysout << endl;
       if(min_latsize > length) min_latsize=length;
