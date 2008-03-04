@@ -62,6 +62,36 @@ string Cubic_spline::symmetry_lookup(symmetry_type s) {
 }
 
 
+int Cubic_spline::symmetry_lvalue(symmetry_type s) { 
+  switch(s)
+  {
+    case sym_S:
+      return 0;
+      break;
+    case sym_P:
+    case sym_P_siesta:
+      return 1;
+      break;
+    case sym_5D:
+    case sym_6D:
+    case sym_D_siesta:
+      return 2;
+      break;
+    case sym_7F:
+    case sym_10F:
+    case sym_F_siesta:
+      return 3;
+      break;
+    case sym_15G:
+      return 4;
+      break;
+    default:
+      error("Cubic_spline::symmetry_lookup found unknown symmetry");
+  }
+}
+
+
+
 Cubic_spline::symmetry_type Cubic_spline::symmetry_lookup(string & s) { 
   if(caseless_eq(s, "S"))
     return sym_S;
@@ -85,9 +115,6 @@ Cubic_spline::symmetry_type Cubic_spline::symmetry_lookup(string & s) {
     return sym_F_siesta;  
   error("I don't understand symmetry type ", s, "\nShould be S,P,D,etc.");
   return sym_S;
-
-  
-
 }
 
 
@@ -123,6 +150,9 @@ int Cubic_spline::read(
     requested_cutoff=-1;
   }
 
+  enforce_cusp=false;
+  if(readvalue(words, pos=0, cusp, "CUSP")) enforce_cusp=true;
+  
 
   vector <string> basisspec;
   string read_file; //read positions from a file
@@ -186,7 +216,7 @@ int Cubic_spline::readspline(vector <string> & words) {
   
   
   for(int s=0; s< nsplines; s++) {
-    splines(s).readspline(splinefits[s]);
+    splines(s).readspline(splinefits[s], enforce_cusp, cusp/double(symmetry_lvalue(symmetry(s))+1));
     if(requested_cutoff > 0) { 
       splines(s).enforceCutoff(requested_cutoff);
     }
@@ -305,6 +335,10 @@ void Cubic_spline::findCutoffs()
   threshold=0;
   for(int i=0; i< rcut.GetDim(0); i++) {
     if(threshold < rcut(i)) threshold=rcut(i);
+  }
+  
+  for(int i=0; i< nsplines; i++) { 
+    splines(i).pad(threshold);
   }
 }
 //-------------------------------------------------------

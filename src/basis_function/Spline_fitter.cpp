@@ -19,6 +19,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 
 #include "Spline_fitter.h"
+#include "qmc_io.h"
 
 void Spline_fitter::raw_input(ifstream & input)
 {
@@ -50,7 +51,7 @@ invspacing=1.0/spacing;
 
 //ignore the first 'word' and spline to a file in form x y x y, etc
 //assumes that the x's are evenly spaced and in order.
-int Spline_fitter::readspline(vector <string> & words) {
+int Spline_fitter::readspline(vector <string> & words, bool enforce_cusp, doublevar cusp) {
 
   int n=(words.size()-1)/2;
   if(n < 4) {
@@ -87,8 +88,17 @@ int Spline_fitter::readspline(vector <string> & words) {
   threshold=x(n-1);
   invspacing=1.0/spacing;
   //--Estimate the derivatives on the boundaries
-  doublevar yp1=(y(1)-y(0))/spacing;
+  doublevar yp1=(y(2)-y(0))/(2.0*spacing);
   doublevar ypn=(y(n-1) - y(n-2) ) /spacing;
+  double lndr=yp1/(y(1));
+  if(enforce_cusp){ 
+    single_write(cout, "enforcing cusp condition : original dir ", lndr, "  new ", cusp);
+    single_write(cout, "\n");
+    yp1=cusp*y(0);
+  }
+  //if(lndr< -9) yp1=-10.0*(y(0))/1.0;
+  //else yp1=-10.0*(y(0))/2.0;
+  
   splinefit(x, y, yp1, ypn);
 
   return 1;
@@ -165,6 +175,27 @@ doublevar Spline_fitter::findCutoff() {
 
 //----------------------------------------------------------------------
 
+void Spline_fitter::pad(doublevar thresh) { 
+  if(threshold > thresh) return;
+  int n=coeff.GetDim(0);
+  int nnew=int((thresh-threshold)*invspacing)+1;
+  cout << "resizing from "<< n << " to " <<  n+nnew << endl;
+  Array2 <doublevar> c(n+nnew,4);
+  for(int i=0; i< n; i++) { 
+    for(int j=0; j< 4; j++) { 
+      c(i,j)=coeff(i,j);
+    }
+  }
+  for(int i=n; i< n+nnew; i++) { 
+    for(int j=0; j < 4; j++) { 
+      c(i,j)=0.0;
+    }
+  }
+  coeff=c;
+  threshold=thresh;
+}
+
+//----------------------------------------------------------------------
 
 void Spline_fitter::splinefit(Array1 <doublevar>& x, Array1 <doublevar>& y,
                              double yp1, double ypn)

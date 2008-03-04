@@ -48,8 +48,9 @@ class Spline_fitter {
     int interval=int(r*invspacing);
     //if(r >= threshold) cout << "r " << r << " threshold " << threshold << endl;
     assert(r < threshold);
-    assert(interval*spacing <=r);
-    assert((interval+1)*spacing >= r);    
+    //cout << "interval " << interval << " spacing " << spacing << " r " << r << endl;
+    //assert(interval*spacing <=r);
+    //assert((interval+1)*spacing >= r);    
     return interval;
   }
 
@@ -76,7 +77,7 @@ class Spline_fitter {
     f2dir=2*coeff(i,2)+6*height*coeff(i,3);    
   }
 
-  int readspline(vector <string> & words);
+  int readspline(vector <string> & words, bool enforce_cusp, doublevar cusp);
   int writeinput(string & indent, ostream & os); 
 
 
@@ -96,6 +97,10 @@ class Spline_fitter {
 
     return 1;
   }
+  
+  //pad with zeros out to thresh
+  //if we already have support past thresh, does nothing.
+  void pad(doublevar thresh);
 
  private:
     doublevar invspacing; //1/spacing, so we can do multiplications instead of divisions.

@@ -593,6 +593,7 @@ void UNR_sampler::getDriftEtc(Point & pt, Sample_point * sample,
   sample->updateEIDist();
   for(int at=0; at< nions; at++) {
     sample->getEIDist(e,at,dist);
+    //cout << "dist " << dist(0) << endl;
     if(dist(0) < z(0)) { 
       z=dist;
       closest_ion=at;
@@ -618,24 +619,28 @@ void UNR_sampler::getDriftEtc(Point & pt, Sample_point * sample,
   doublevar driftmag=0;
   for(int d=0; d< 3; d++) driftmag+=pt.drift(d)*pt.drift(d);
   driftmag=sqrt(driftmag);
-  for(int d=0;d < 3; d++) {
-    vhatdotzhat+=z(d+2)*pt.drift(d)/(driftmag*z(0));
-    //cout << "vhat " << vhatdotzhat << endl;
+  if(fabs(driftmag) > 1e-16) { 
+    for(int d=0;d < 3; d++) {
+      vhatdotzhat+=z(d+2)*pt.drift(d)/(driftmag*z(0));
+      //cout << "vhat " << vhatdotzhat << endl;
+    }
+    
+    //cout << "driftmag " << driftmag << endl;
+    //magic numbers!!  taken from UNR as usual
+    doublevar a=.5*(1+vhatdotzhat)
+      +charge*charge*z(0)*z(0)/(10*(4+charge*charge*z(0)*z(0)));
+    
+    doublevar prefac=(-1+sqrt(1+2*a*driftmag*driftmag*tstep))
+      /(a*driftmag*driftmag*tstep);
+    
+    driftmag=0;
+    for(int d=0;d < 3; d++) {
+      pt.drift(d)*=prefac;
+      driftmag+=pt.drift(d)*pt.drift(d);
+    }
+    driftmag=sqrt(driftmag);
+    //cout << "driftmag " << driftmag << endl;
   }
-
-  //magic numbers!!  taken from UNR as usual
-  doublevar a=.5*(1+vhatdotzhat)
-    +charge*charge*z(0)*z(0)/(10*(4+charge*charge*z(0)*z(0)));
-  
-  doublevar prefac=(-1+sqrt(1+2*a*driftmag*driftmag*tstep))
-    /(a*driftmag*driftmag*tstep);
-
-  driftmag=0;
-  for(int d=0;d < 3; d++) {
-    pt.drift(d)*=prefac;
-    driftmag+=pt.drift(d)*pt.drift(d);
-  }
-  driftmag=sqrt(driftmag);
   
   doublevar vz=vhatdotzhat*driftmag;
   Array1 <doublevar> rho(3);
@@ -651,7 +656,8 @@ void UNR_sampler::getDriftEtc(Point & pt, Sample_point * sample,
   for(int d=0;d < 3; d++) {
     pt.drift(d)=rnuc(d)+rhoscale*rho(d)+zpp*z(d+2)/z(0);
   }
-
+  
+    
   probability=0.5*erfc((z(0)+vz*tstep)/sqrt(2*tstep)); 
 
 }
