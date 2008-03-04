@@ -42,7 +42,8 @@ private:
   string symmetry_lookup(symmetry_type );
   symmetry_type symmetry_lookup(string &);
   void assign_indiv_symmetries();
-  
+  int symmetry_lvalue(symmetry_type s);
+
   //symmetry type of the expansion(all functions.)
   enum indiv_symm_type {
     isym_S, isym_Px, isym_Py, isym_Pz,
@@ -92,6 +93,9 @@ private:
   string norm_type; //!< normalization type(CRYSTAL, GAMESS, etc.)
   bool renormalize; //!< Whether or not to renormalize the basis functions
 
+  bool enforce_cusp; //!< whether or not to force the spline to have a cusp (only works for SPLINE inputs for now)
+  double cusp;
+
   Array1 <Spline_fitter> splines;
 
   void findCutoffs();
@@ -102,6 +106,7 @@ private:
     Make this work for all symmetries.  This requires an input spec change
   */
   int readspline(vector <string> & words);
+
 public:
 
   Cubic_spline()
