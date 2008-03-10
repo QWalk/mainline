@@ -36,9 +36,16 @@ void getInit(vector <string> & words, vector <string> & labels, Array1 < Array1 
     inittext.push_back(tmp);
   int ninit=inittext.size();
   int nlabels=labels.size();
+  //cout << "ninit " << ninit << endl;
   //if we have multiple init sections, we should check to see that they're 
   //all identical.  For now, let's take the first one.
   avg_gen.Resize(nlabels);
+  
+  if(ninit==0) { 
+    for(int i=0; i< nlabels; i++) avg_gen(i).Resize(0); 
+    return; 
+  }
+
   for(int i=0; i< nlabels; i++) { 
     int ini=0;
     string inilabel;
@@ -120,6 +127,7 @@ void getBlocks(vector <string> & words, vector <string> & labels,
     nb_read(lab)++;
     allblocks(lab)(i).restoreFromLog(blocktext[b]);
   }
+  
   getInit(words, labels, avg_gen);
   
 }
@@ -320,7 +328,6 @@ int main(int argc, char ** argv) {
           cout << labels[lab] << ":  "<< allblocks(lab).GetDim(0) 
             << " total blocks reblocked into " << neffblock << endl;
           cout << "#####################" << endl;
-          
           avg.showSummary(cout,avg_gen(lab));
         }
         
