@@ -40,7 +40,7 @@ struct Properties_final_average {
 
   void twoPointForces(Array2 <doublevar> & forces);
 
-  void showSummary(ostream & os, Array1 <Average_generator*> & avg_gen);
+  void showSummary(ostream & os, Array1 <Average_generator*> avg_gen);
 
   void showAutocorr(int i) {
     assert(i==0 || i==1);

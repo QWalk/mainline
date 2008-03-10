@@ -363,7 +363,7 @@ void complex_angle(dcomplex & val, dcomplex & err,
 
 //----------------------------------------------------------------------
 
-void Properties_final_average::showSummary(ostream & os, Array1 <Average_generator*> & avg_gen) {
+void Properties_final_average::showSummary(ostream & os, Array1 <Average_generator*>  avg_gen) {
   int nwf=avg.GetDim(1);
   int naux=aux_energy.GetDim(0);
   int autocorr_depth=autocorr.GetDim(1);
@@ -430,12 +430,12 @@ void Properties_final_average::showSummary(ostream & os, Array1 <Average_generat
   }
   os << endl;
   
-  
+ 
   assert(avg_gen.GetDim(0)==avgavg.GetDim(0)==avgerr.GetDim(0));
   for(int i=0; i< avg_gen.GetDim(0); i++) { 
     avg_gen(i)->write_summary(avgavg(i),avgerr(i), os);
   }
-  
+   
   
   doublevar totpoints=indep_points*indep_points;
   os << "approximate number of independent points: " 
