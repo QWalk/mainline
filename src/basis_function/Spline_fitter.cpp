@@ -176,10 +176,10 @@ doublevar Spline_fitter::findCutoff() {
 //----------------------------------------------------------------------
 
 void Spline_fitter::pad(doublevar thresh) { 
-  if(threshold > thresh) return;
+  if(threshold >= thresh) return;
   int n=coeff.GetDim(0);
   int nnew=int((thresh-threshold)*invspacing)+1;
-  cout << "resizing from "<< n << " to " <<  n+nnew << endl;
+  //cout << "resizing from "<< n << " to " <<  n+nnew << endl;
   Array2 <doublevar> c(n+nnew,4);
   for(int i=0; i< n; i++) { 
     for(int j=0; j< 4; j++) { 
