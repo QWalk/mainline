@@ -415,6 +415,7 @@ doublevar Optimize_method::derivatives(int n, Array1 <double> & parms, Array1 <d
   doublevar avgnon=0;
   //pseudo->setDeterministic(1);
   //cout << "loop " << endl;
+  last_ens.Resize(nconfig);
   for(int walker=0; walker< nconfig; walker++) {
     config_pos(walker).restorePos(sample);
     wf->updateLap(wfdata, sample);
@@ -458,8 +459,9 @@ doublevar Optimize_method::derivatives(int n, Array1 <double> & parms, Array1 <d
     assert(nfunctions==1); //note that we implicitly assume this throughout
     for(int w=0; w< nfunctions; w++)
     {
-      
       doublevar energy=kinetic(w) + coulpot+ nonloc(w);
+      last_ens(walker)=energy;
+
       avgkin+=kinetic(w);
       avgpot+=coulpot;
       avgnon+=nonloc(w);
@@ -558,6 +560,16 @@ void Optimize_method::iteration_print(double f, double gg, double tol,  int itn,
              << "  Optimizing wave function (percentage is worst-case)" << endl;
       rapout.close();
     }
+    /*  This is useful for studying how the optimization goes..not sure if it should
+        be a regular feature or not, though.
+    int nc=last_ens.GetDim(0);
+    double avg=0;
+    for(int i=0; i< nc; i++) { 
+      cout << "iteration_energy_disp: " << itn <<  "  " << last_ens(i) << endl;
+      avg+=last_ens(i)/nc;
+    }
+    cout << "iteration_energy_avg: " << itn << " " << avg << endl;
+    */
   }
   
 }

@@ -1,0 +1,394 @@
+\documentclass[12pt]{article}
+\usepackage{makeidx}
+\usepackage{url}
+%\usepackage[pdftex]{hyperref}
+\usepackage{fullpage}
+\makeindex
+\begin{document}
+\begin{titlepage}
+\begin{center}
+
+\vspace{1cm}
+{\Huge {\sc U s e r' s \, \, G u i d e}}
+
+\vspace{1cm}
+\hrulefill
+\vspace{1cm}
+
+{\Huge {\bf Q W A L K }}
+
+\vspace{1cm}
+\hrulefill
+\vspace{1cm}
+\end{center}
+
+\end{titlepage}
+
+\tableofcontents
+
+\newpage
+
+\section{Introduction}
+
+\section{Trial functions: conversion}
+
+\subsection{GAMESS}
+Description
+
+Basic usage: gamess2qmc -o [outputroot]  [gamess output root] \\
+Additional options: \\
+
+\begin{tabular}{lp{8cm}}
+\hline
+ Option & Description \\
+\hline
+-o [outputroot] & Use [outputroot] as the base for the QWalk run.
+Gamess2qmc will then create files like outputroot.slater, etc.\\
+-compare\_punch [filename]  &  Compares the orbitals in the current punch file to the one specifiedhere.  Will print what orbitals have changed/rotated, and if any cannot be mapped back between the two wave functions. \\
+-virtual [number] & Include this number of virtual orbitals into the orb file.  Defaults to 3. \\
+\hline
+\end{tabular}
+
+\newpage
+\subsection{Gaussian}
+\subsubsection{Notes on Running Gaussian}
+
+Options necessary: \\
+\begin{tabular}{lp{8cm}}
+iop(3/24=10) & Print gaussian functions \\
+iop(3/18=1) & Print pseudopotentials \\
+6d 10f & Use 6d and 10f functions, which is what the converter was written for (this requirement could be removed in the future, if someone has the will) \\
+\end{tabular}
+
+Useful options \\
+\begin{tabular}{lp{8cm}}
+pseudo=read & read in the pseudopotentials \\
+gen & i.e., UHF/gen, etc. Allows you to enter the basis. \\
+\end{tabular}
+
+For example, your com file may look like \\
+\begin{verbatim}
+%chk=foo.chk
+#P B3LYP/gen 6d 10f scf opt test iop(3/24=10) iop(3/18=1) pseudo=read
+ ...
+\end{verbatim}
+After running g03 (g03 foo.com, for example), you must then format the
+check file as \\
+\begin{verbatim}
+formchk foo.chk foo.fchk
+\end{verbatim}
+and finally you're ready to use the converter.
+
+\subsubsection{Conversion}
+Basic usage: g032qmc -log foo.log -fchk foo.fchk -out [outputoot]  \\
+Additional options: \\
+\begin{tabular}{lp{8cm}}
+Option & Description \\
+-out [comfile] & Use [outputroot] as the base for the QWalk run.
+G032qmc will then create files like outputroot.slater, etc. \\
+-h & print help message for more advanced usage\\
+\end{tabular}
+
+\newpage
+\subsection{Crystal}
+
+
+Basic usage:  crystal2qmc -o [outputroot]  [crystal output file] \\
+Additional options: \\
+\begin{tabular}{lp{8cm}}
+-fort10file [filename]  &  Read from the output created by the 
+readcrys10.f utility and match the orbitals to the one in
+the crystal output file.  These are generally more accurate than the ones
+in the output file. \\
+\end{tabular}
+
+
+
+\subsubsection{Crystal98}
+
+One needs to put the options: \\
+\begin{verbatim}
+COORPRT
+\end{verbatim}
+at the end of the geometry section, and \\
+\begin{verbatim}
+PRINTOUT
+BASISSET
+EIGENVAL
+-1
+EIGENVEC
+-1
+END
+\end{verbatim}
+in the third section(the one after the basis set section). 
+
+\subsubsection{Crystal2003}
+
+ For crystal 2003, put <br>
+\begin{verbatim}
+PRINTOUT
+EIGENVAL
+-1
+EIGENVEC
+-100
+END
+\end{verbatim}
+in the third section as above.  To get the correct basis set, use the properties input: \\
+\begin{verbatim}
+BASISSET
+0
+END
+\end{verbatim}
+and cat the output into the end of the output file.  A script to do this is at the end of this section.
+The -100 under EIGENVEC prints out the first 100 k-points used.  If you end up with more k-points, 
+increase the absolute value of this number.  At least for 2003(and maybe 98), crystal2qmc can find all the
+real k-points and prepare an input file for qwalk at non-zero k-points.  This can reduce the finite
+size error in the kinetic energy significantly if you choose your k-point well(in a cubic supercell, the 
+111 direction minimizes the error, for example).
+
+To use the fort10file option with crystal98 or 2003, one must use NOSYMADA in
+the last section.  This turns off a feature that boosts the speed quite a bit in certain circumstances, but
+mangles the wavefunction in fort.10.  
+
+Further considerations:\\
+Finite size errors are a bit more problematic within QMC, since we do the calculation for only one
+k-point, and there are finite size effects related to the electron correlation hole.  There are papers in the literature that discuss this problem extensively.
+So, we have to use a supercell, at least  2x2x2.
+
+
+
+\subsubsection{Script to run crystal2003}
+
+Make sure to put the PRINTOUT, etc in the input file..  Also, you may need to change SCRATCH, CRYSTAL, and 
+PROPERTIES to reflect the location of these files/directories on your system.
+\begin{verbatim}
+#!/bin/bash
+
+
+SCRATCH=/state/partition1/scratch/$USER
+if [ ! -e $SCRATCH ]
+    then
+    #first try to make the scratch directory.
+    mkdir $SCRATCH
+    #if it's still not there, error
+    if [ ! -e $SCRATCH ]
+    then echo "Scratch directory $SCRATCH doesn't exist and I couldn't make it"
+    exit 1;
+    fi
+fi
+
+CRYSTAL=/home/apps/crystal2003/crystal
+PROPERTIES=/home/apps/crystal2003/properties
+CURRDIR=`pwd`
+echo $CURRDIR
+
+inputfile=$(basename $1)
+echo $inputfile
+mkdir $SCRATCH/$inputfile
+cp $1 $SCRATCH/$inputfile/
+
+if [ -e fort.20 ]
+    then cp fort.20 $SCRATCH/$inputfile
+fi
+
+cd $SCRATCH/$inputfile
+
+$CRYSTAL < $inputfile > $CURRDIR/$inputfile.o
+echo "BASISSET" > prop.in
+echo "0" >> prop.in
+echo "END" >> prop.in
+echo "" >> prop.in
+$PROPERTIES < prop.in >> $CURRDIR/$inputfile.o
+cp fort.9 $CURRDIR/$inputfile.9
+cp fort.10 $CURRDIR/$inputfile.10
+rm -Rf $SCRATCH/$inputfile
+\end{verbatim}
+
+\newpage
+\subsection{Siesta}
+Basic usage: siesta2qmc -o [outputroot]  [siesta output file] 
+
+If outputroot is not given, it will default to qwalk.
+
+Getting a good trial wave function from Siesta can be a little
+tricky, so here are some techniques that have worked in the past.
+These are not guaranteed to obtain the most accurate numbers possible,
+so be careful!
+
+\subsubsection{Siesta Options}
+
+The following options are required for the converter to work:
+\begin{verbatim}
+%block WaveFuncKPoints
+0.0 0.0 0.0
+%endblock WaveFuncKPoints
+LongOutput .true.
+LatticeConstant 
+\end{verbatim}
+
+You need the lattice constant variable even if you're calculating
+a molecule, since Siesta apparently doesn't print out the orbital
+coefficients unless the lattice constant is given explicitly.  If you
+are doing an actual molecule, you may want to change PERIODIC in the
+QWalk .sys file to MOLECULE, which will increase the speed and accuracy.
+
+\subsubsection{Pseudopotential}
+
+One can use the pseudopotentials generated for QMC, although they can be
+quite a pain to convert for use in Siesta, since they are usually
+written in a Gaussian expansion.  Current thought is that PBE psp's are
+probably your best bet.  Siesta
+may have exact exchange in the future, in which case hybrid or
+Hartree-Fock psueudopotentials may be better.  To be clear, the
+pseudopotentials should be tested, by, for example, calculating
+the binding energy of small molecules.
+
+
+\subsubsection{Basis set}
+
+You may find that you need to use a larger basis set than is typical for
+Siesta.  It appears that a triple-zeta quality with polarization or better
+is necessary.  If the basis set is too small, the variance of the local
+energy is too large, because the basis cannot describe the one-body
+part of the wave function well enough.  For molecules, you may also
+need to extend the cutoff radius of the basis functions significantly to
+keep the variance down and the wave function accurate.
+
+
+\newpage
+\subsection{Homogeneous electron gas}
+
+\newpage
+\section{Methods}
+\subsection{Variational Monte Carlo sampling}
+Evaluates the expectation value $ <\Psi|O|\Psi>/<\Psi|\Psi>$
+stochastically, where $O$ is an observable.
+
+Required options: \\
+\begin{tabular}{lp{12cm}}
+{\bf NCONFIG} & Integer. Number of sample points to use at one time,
+per processor.  This will also be the number that is put into the 
+configuration files if STORECONFIG is set.\\
+{\bf NSTEP} & Integer.  Number of average points to take in a block \\
+
+{\bf NBLOCK} & Integer.  Number of blocks to take \\
+
+{\bf TIMESTEP} & Float.  A measure of how large each Metropolis move
+should be.  Adjust such that the acceptance ratio is somewhat greater than
+0.5 \\
+\end{tabular}
+
+
+Other options \\
+\begin{tabular}{lp{12cm}}
+{\bf NDECORR} &   Integer.
+       Number of Metropolis steps to take before evaluating the energy.
+           Since VMC steps don't require an energy evaluation, this serves
+           to decorrelate the averaging points before doing an expensive
+           evaluation of the energy(mostly pseudopotentials). Defaults to 2.\\
+{\bf STORECONFIG} & String.  Write the configurations to 
+this file every block.  In parallel, each processor will write its configurations to this file with \_n appended, where n is the processor number. \\
+{\bf READCONFIG } & String.  Read from a configuration file
+previously written by STORECONFIG.  If there are more or less configurations 
+than NCONFIG, new configurations will be generated or old ones left out to
+make the number exactly NCONFIG. \\
+{\bf GUIDETYPE} &  String.
+     Possible options: SUMSQUARES($ \Psi_T^2 = \Psi_1^2+\Psi_2^2 $), 
+      SUM($ (\Psi_1 + \Psi_2)^2 $), FIRST($ \Psi_T = \Psi_1 $). Specify
+the importance-sampling function. This will importance-sample only
+with respect to wave functions defined in the TRIALFUNC section.  Ones
+defined in AUX\_WF/AUX\_SYS will not be used, since they are auxillary, not
+guiding functions. Defaults to SUMSQUARES.\\
+{\bf DYNAMICS} &  Section.
+      Control the pseudo-dynamics of the sampling.  Insert a 
+          Dynamics section here. Defaults to \{ SPLIT \}.  For runs not 
+using pseudopotentials, you may want to consider \{ UNR \}. \\
+\end{tabular}
+
+\newpage
+\subsection{Wave function optimization: conjugate gradients}
+The approach here is to use a fixed set of configurations and 
+a conjugate gradient routine to minimize some quantity such as 
+variance or mean absolute deviation.  This method is quite fast, 
+but is not very effective at minimizing total energy or nodal 
+structure.  The method keyword is OPTIMIZE.
+
+Required options: \\
+\begin{tabular}{lp{12cm}}
+{\bf NCONFIG} &  Integer. Number of configurations per processor. \\
+{\bf READCONFIG} & String. Where to read the configurations from. This 
+should come from a previous VMC run.\\
+\end{tabular}
+
+Other options: \\
+\begin{tabular}{lp{12cm}}
+{\bf MINFUNCTION} & String.  Options are: 
+\begin{itemize}
+\item VARIANCE (default) : $ \sum{(E_l - E_{ref})^2} $
+\item  ABSOLUTE : $ \sum{ | E_l - E_{ref} | } $
+\item  LORENTZ : $ \sum{ log(1+(E_l-E_{ref})^2/2) } $
+\item ENERGY : $ \frac{1}{N} \sum { E_l }  $
+\item MIXED : $ mixing \frac{1}{N} \sum { E_l } + (1-mixing) \sum{(E_l - E_{ref})^2}  $
+\end{itemize}
+For an energy minimization, it's advisable to also use USE\_WEIGHTS. \\
+{\bf USE\_WEIGHTS} & Flag. Turn on correlated sampling reweighting.  Otherwise all sums are done without weights.\\
+{\bf MIXING} & Float.  If MINFUNCTION=MIXING, what proportion of energy to put in the optimization.  Defaults to 0.95, 95\% energy optimization.\\
+{\bf ITERATIONS} &  Integer.  Maximum number of optimization iterations.  Defaults to 30. \\
+{\bf EREF} & Float.  Guess at the optimized total energy.  If not set, it will be guessed from the initial walkers.  For large systems, sometimes this may need to be set by hand.\\
+{\bf WFOUTPUT} & String.  Where to put the optimized wave function.  Defaults to runid.wfout.\\
+\end{tabular}
+
+\newpage
+\subsection{Wave function optimization: Newton's method}
+Uses Levenberg-Marquardt algorithm to minimize wavefunction's
+energy/variance or mixture of both. It uses self-adjustable 
+damping parameter which is added to the diagonal of corresponding hessian.
+Consequently a Newton step is performed to get new parameters.    
+(See C. J. Umrigar and C. Filippi.  Phys. Rev. Lett. 94, 150201 (2005) )
+The keyword is OPTIMIZE2.
+
+Except for some experimental features, it takes the same options as OPTIMIZE 
+above.  This optimize method also only supports VARIANCE, ENERGY, and 
+MIXED optimizations, since the primary use is for energy optimization.
+
+\newpage
+\subsection{Diffusion Monte Carlo}
+The purpose of diffusion Monte Carlo is to go beyond a variational 
+\emph{ansatz}.  The major approximation is the fixed-node one.  
+The energies obtained here are generally the lowest 
+available upper bounds to the exact ground state energy, at least for 
+large systems.  
+
+In this implementation of DMC, we use something similar to the Umrigar
+Nightingale, Runge paper, with some modifications.  Electrons are moved 
+one-by-one, and there is an effective timestep for the branching part of 
+the green's function.  We use a modification of the branching algorithm 
+that ensures a constant number of walkers, which improves the 
+parallel efficiency--it is easy to scale up to thousands of processors
+with 99\% efficiency.
+
+
+\subsection{Reptation Monte Carlo}
+\subsection{Walker dynamics}
+
+
+\section{Basis functions}
+
+\section{Wave functions}
+\subsection{Slater}
+\subsection{Jastrow}
+\subsection{Slater-Jastrow/Multiply}
+
+\section{Molecular orbitals}
+\subsection{Cutoff MO}
+\subsection{BLAS} 
+\subsection{Standard}
+
+\section{Local density accumulators}
+
+\section{Average accumulators}
+
+\section{Qavg}
+
+
+\end{document}
