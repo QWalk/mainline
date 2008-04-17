@@ -538,7 +538,9 @@ doublevar Periodic_system::calcLoc(Sample_point * sample)
   //cout << "ion_ewald " << ion_ewald << " self_ii " << self_ii
   //     << " self_ee " << self_ee << " self_ei " << self_ei << endl;
   //cout << " ewalde " << ewalde << " xc_correction " << xc_correction << endl;
-  return ion_ewald+self_ii+self_ee+self_ei+ewalde+xc_correction;
+  //we do not wont the xc_correction in the total energy in order to compare 
+  //to all other qmc codes, it is still printed out so can be added by hand 
+  return ion_ewald+self_ii+self_ee+self_ei+ewalde; //+xc_correction;
 }
 
 //----------------------------------------------------------------------
