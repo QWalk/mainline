@@ -74,7 +74,7 @@ int Periodic_system::showinfo(ostream & os)
   os << "Self e-i " << self_ei << endl;
   os << "Self e-e " << self_ee << endl;
   os << "Self i-i " << self_ii << endl;
-  os << "xc correction " << xc_correction << endl;
+  os << "xc correction " << xc_correction <<" Warning: not added to E_total!"<< endl;
   os << "ion sum of ewald " << ion_ewald << endl;
   os << endl;
   ions.showinfo(os);
