@@ -357,7 +357,7 @@ void read_gamess_output(string & outputfilename,
   while(getline(is, line)) {
     split(line, space, words);
     //cout << line;
-    //if(words.size() > 0) cout << words[0] << endl;
+    //if(words.size() > 0) cout << " firstword " << words[0] << endl;
        
     //Atoms
     if(words.size() > 2 && words[0]=="CHARGE" && words[1]=="X" && words[2] == "Y") {

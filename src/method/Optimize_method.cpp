@@ -73,28 +73,18 @@ void Optimize_method::read(vector <string> words,
   pos=0;
   if(readvalue(words, pos, functiontype_str, "MINFUNCTION"))
   {
-    if(functiontype_str== "VARIANCE")
-    {
+    if(caseless_eq(functiontype_str, "VARIANCE"))
       min_function=min_variance;
-    }
-    else if(functiontype_str=="ABSOLUTE")
-    {
+    else if(caseless_eq(functiontype_str,"ABSOLUTE"))
       min_function=min_abs;
-    }
-    else if(functiontype_str=="LORENTZ")
-    {
+    else if(caseless_eq(functiontype_str,"LORENTZ"))
       min_function=min_lorentz;
-    }
-    else if(functiontype_str=="ENERGY") {
+    else if(caseless_eq(functiontype_str,"ENERGY")) 
       min_function=min_energy;
-    }
-    else if(functiontype_str=="MIXED") {
+    else if(caseless_eq(functiontype_str,"MIXED")) 
       min_function=min_mixed;
-    }
     else
-    {
       error("I don't know ", functiontype_str, " for MINFUNCTION.");
-    }
   }
   else
   {
@@ -479,19 +469,31 @@ doublevar Optimize_method::derivatives(int n, Array1 <double> & parms, Array1 <d
           }
           break;
         case min_abs:
-          variance(w)+=fabs(energy-eref)*weight; error("haven't implemented abs yet");
+          variance(w)+=fabs(energy-eref)*weight;
+          for(int p=0; p < nparms; p++) { 
+            if(energy > eref) deriv(p)+=(kin_deriv(p)+nonloc_deriv(p))*weight;
+            else deriv(p)-=(kin_deriv(p)+nonloc_deriv(p))*weight;
+          }
           break;
         case min_lorentz:
           variance(w)+=log(1+(energy-eref)*(energy-eref)/2)*weight;
-          error("haven't implemented lorentz yet");
+          for(int p=0; p< nparms; p++) { 
+            deriv(p)+=weight*2.0*(energy-eref)*(kin_deriv(p)+nonloc_deriv(p))/(1+(energy-eref)*(energy-eref)/2.0);
+          }
           break;
         case min_energy:
           variance(w)+=energy*weight;
-          error("haven't implemented energy yet");
+          for(int p=0; p< nparms; p++) { 
+            deriv(p)+=weight*(kin_deriv(p)+nonloc_deriv(p));
+          }
           break;
         case min_mixed:
           variance(w)+=(mixing*energy+(1.0-mixing)*(energy-eref)*(energy-eref))*weight;
-          error("haven't implemented mixed yet");
+          for(int p=0; p < nparms; p++) { 
+            for(int p=0; p < nparms; p++) { 
+              deriv(p)+=(mixing*(kin_deriv(p)+nonloc_deriv(p))+(1.0-mixing)*2.0*(energy-eref)*(kin_deriv(p)+nonloc_deriv(p)))*weight;
+            }            
+          }
           break;
         default:
           error("Optimize_method::variance() : min_function has a very strange value");
