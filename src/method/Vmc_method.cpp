@@ -348,6 +348,11 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
 	       mygather.nAux());
   mygather.squareWeight(1);
 
+  
+  //Properties_point pt;
+  //mygather.gatherData(pt, psp, sys, wfdata, wf, 
+  //                    sample, guidewf);
+  //cout << "energy test " << pt.energy(0) << endl;
   output.precision(10);
   prop.initializeLog(average_var);
   //our averaging variables
