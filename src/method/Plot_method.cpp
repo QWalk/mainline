@@ -54,6 +54,13 @@ void Plot_method::read(vector <string> words,
     minmax(i)=atof(Tminmax[i].c_str());
   }
 
+  if(haskeyword(words, pos=0, "JEEP_CUBE") )
+    jeep_like_cube_file=1;
+  else  jeep_like_cube_file=0; 
+
+  if(haskeyword(words, pos=0, "PERIODIC") )
+    periodic=1;
+  else periodic=0; 
 
   sysprop=NULL;
   allocate(options.systemtext[0],  sysprop);
@@ -104,13 +111,17 @@ void Plot_method::run(Program_options & options, ostream & output) {
   Array1 <int> D_array1(3); //dummy array1
   D_array1=0; //sets all 3 components to 0. use as counter for gridpoints
 
-  D_array1(0)=roundoff((minmax(1)-minmax(0))/resolution);
-  D_array1(1)=roundoff((minmax(3)-minmax(2))/resolution);
-  D_array1(2)=roundoff((minmax(5)-minmax(4))/resolution);
+  for(int d=0;d<3;d++)
+    D_array1(d)=roundoff((minmax(2*d+1)-minmax(2*d))/resolution);
 
-  resolution_array(0)=(minmax(1)-minmax(0))/(D_array1(0)-1);  
-  resolution_array(1)=(minmax(3)-minmax(2))/(D_array1(1)-1);
-  resolution_array(2)=(minmax(5)-minmax(4))/(D_array1(2)-1);
+  if(periodic){
+    for(int d=0;d<3;d++)
+      resolution_array(d)=(minmax(2*d+1)-minmax(2*d))/(D_array1(d));
+  }
+  else{
+    for(int d=0;d<3;d++)
+      resolution_array(d)=(minmax(2*d+1)-minmax(2*d))/(D_array1(d)-1);
+  }
 
   int npts=D_array1(0)*D_array1(1)*D_array1(2);
   Array2 <doublevar> grid(orbs.GetSize(),npts);
@@ -181,8 +192,9 @@ void Plot_method::run(Program_options & options, ostream & output) {
       os <<minmax(4)<<" "<<minmax(5)<<" "<<minmax(2)<<" "<<minmax(3)
          <<" "<<minmax(0)<<" "<<minmax(1)<<endl;
 
+      os.setf(ios::scientific);
       for(int j=0; j<(D_array1(0)*D_array1(1)*D_array1(2)); j++) {
-        os<<grid(i,j)<<endl;
+        os<<setw(16)<<setprecision(8)<<grid(i,j)<<endl;
       }
       os.close();
     }
@@ -203,9 +215,23 @@ void Plot_method::run(Program_options & options, ostream & output) {
         os << "   " << mywalker->getIonCharge(at) << "   0.0000    " << pos(0) 
             <<"    " << pos(1) << "   " << pos(2) << endl;
       }
-      
+       //optional output for mesh orbital
+      if(jeep_like_cube_file){
+	os << "  " << natoms<<endl;
+	for(int at=0; at< natoms; at++) {
+	  mywalker->getIonPos(at,pos);
+	  os << "   " << mywalker->getIonCharge(at) << "   0.0000    " << pos(0) 
+	     <<"    " << pos(1) << "   " << pos(2) << endl;
+	}
+	os << "  1 " << endl;
+	os << "  "<< minmax(0)<<"  "<< minmax(2)<<"  "<< minmax(4)<<endl;
+	os << "  "<< minmax(1)-minmax(0)<<"  "<< minmax(3)-minmax(2)<<"  "<< minmax(5)-minmax(4)<<endl;
+	os <<endl<<endl;
+	os << "  "<<D_array1(0)<<"  "<<D_array1(1)<<"  "<<D_array1(2)<<endl;
+      }
+      os.setf(ios::scientific);
       for(int j=0; j< npts; j++) {
-        os << grid(i,j) <<  "    ";
+        os <<setw(16)<<setprecision(8)<< grid(i,j) <<  "    ";
         if(j%6 ==5) os << endl;
       }
       os << endl;
@@ -231,13 +257,14 @@ void Plot_method::run(Program_options & options, ostream & output) {
     os << "   " << mywalker->getIonCharge(at) << "   0.0000    " << pos(0) 
         <<"    " << pos(1) << "   " << pos(2) << endl;
   }
-      
+ 
+  os.setf(ios::scientific);
   for(int j=0; j< npts; j++) {
-    os << density(j) <<  "    ";
+    os <<setw(16)<<setprecision(8)<<density(j);
     if(j%6 ==5) os << endl;
   }
   os << endl;
-  os.close(); 
+  os.close();    
 
 }
 

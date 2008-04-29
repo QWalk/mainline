@@ -110,6 +110,8 @@ private:
   Array2 <doublevar> mymovals; //(i,j) where i=MO#, j=0 default (for now)
   System * sysprop;
   int print_derivatives;
+  int jeep_like_cube_file;
+  int periodic;
 };
 
 #endif //PLOT_METHOD_H_INCLUDED
