@@ -28,6 +28,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "MO_matrix_blas.h"
 #include "MO_matrix_basfunc.h"
 #include "MO_matrix_bspline.h"
+#include "MO_matrix_Cbasfunc.h"
 
 int allocate(vector <string> & words, System * sys, MO_matrix *& moptr) {
   assert(moptr==NULL);
@@ -42,6 +43,8 @@ int allocate(vector <string> & words, System * sys, MO_matrix *& moptr) {
     moptr=new MO_matrix_basfunc;
   else if(words[0]=="BSPLINE_MO")
     moptr=new MO_matrix_bspline;
+  else if(words[0]=="CBASFUNC_MO")
+    moptr=new MO_matrix_Cbasfunc;
   else {
     cout << "****WARNING*****  Assuming you want a cutoff MO."
     "  In the future, you'll need to specify.\n";

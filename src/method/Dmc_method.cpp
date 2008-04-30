@@ -421,7 +421,26 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
           else { 
             mygather.gatherData(pt, pseudo, sys, wfdata, wf, 
                                 sample, guidingwf, aux_converge,0);
-          }
+	    
+	    // gradient of phase added to potential in the case of fixed
+	    // phase method. Cannot be inside gatherData, since that one
+	    // is called also in VMC. However, this way we calculate the
+	    // wf value & derivative twice, which is quite silly (getLap
+	    // recalculates things on every call)
+	    Wf_return wf_val(nwf,5);
+	    wf->getVal(wfdata, 0, wf_val);
+	    if ( wf_val.is_complex == 1 ) {
+	      for(int w=0; w< nwf; w++) {
+		for(int e=0; e< nelectrons; e++) {
+		  wf->getLap(wfdata,e,wf_val);
+		  pt.potential(w)+=
+		    0.5*( wf_val.phase(w,1)*wf_val.phase(w,1)
+			  +wf_val.phase(w,2)*wf_val.phase(w,2)
+			  +wf_val.phase(w,3)*wf_val.phase(w,3) );
+		}
+	      }
+	    }
+	  }
           
           Dmc_history new_hist;
           new_hist.main_en=pts(walker).prop.energy(0);

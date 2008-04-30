@@ -102,7 +102,7 @@ void Wf_return::write(string & indent, ostream & os) {
 
 //----------------------------------------------------------------------
 
-
+/*
 void Wf_return::setVals(Array2 <dcomplex> & vals, 
                         Array1 <doublevar> &  p) {
 
@@ -162,8 +162,41 @@ void Wf_return::setVals(Array2 <dcomplex> & vals,
     }
 
   }
-    
-    
+     
+}
+*/
+
+
+void Wf_return::setVals(Array2 <dcomplex> & vals, 
+                        Array1 <doublevar> &  p) {
+
+  // here we extract amplitude and phase, and their gradients and laplacians,
+  // from the complex value and its gradient and derivative
+
+  is_complex=1;
+  cvals=vals;
+  int ntype=vals.GetDim(1);
+  int nwf=vals.GetDim(0);
+  for (int w=0; w< nwf; w++) {
+    amp(w,0)=vals(w,0).real();
+    phase(w,0)=p(w);
+
+    doublevar sum_ii=0;
+    doublevar sum_ri=0;
+    if (ntype>=4) {
+      for (int i=1; i<4; i++) {
+        amp(w,i)=vals(w,i).real();
+	phase(w,i)=vals(w,i).imag();
+	sum_ii+=phase(w,i)*phase(w,i);
+	sum_ri+=amp(w,i)*phase(w,i);
+      }
+    }
+
+    if (ntype>=5) {
+      amp(w,4)=vals(w,4).real()+sum_ii;
+      phase(w,4)=vals(w,4).imag()-2*sum_ri;
+    }
+  }
   
 }
 
