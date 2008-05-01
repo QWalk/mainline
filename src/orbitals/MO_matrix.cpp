@@ -43,8 +43,6 @@ int allocate(vector <string> & words, System * sys, MO_matrix *& moptr) {
     moptr=new MO_matrix_basfunc;
   else if(words[0]=="BSPLINE_MO")
     moptr=new MO_matrix_bspline;
-  else if(words[0]=="CBASFUNC_MO")
-    moptr=new MO_matrix_Cbasfunc;
   else {
     cout << "****WARNING*****  Assuming you want a cutoff MO."
     "  In the future, you'll need to specify.\n";
@@ -60,6 +58,8 @@ int allocate(vector <string> & words, System * sys,
              Complex_MO_matrix *& moptr) {
   if(words[0]=="MO_1D")
     moptr=new MO_1d;
+  else if(words[0]=="CBASFUNC_MO")
+    moptr=new MO_matrix_Cbasfunc;
   else 
     error("Unknown complex MO: ", words[0]);
 
