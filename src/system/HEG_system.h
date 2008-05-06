@@ -34,9 +34,17 @@ as a simplification of crystalline Periodic_system.
 
 Keyword: HEG
 
-There are two choices for e-e interaction:
+There are two choices for Coulomb e-e interaction:
   1) Ewald
+       interaction { Ewald }
   2) truncated Coulomb a.k.a. MPC [Fraser et al., PRB 53, 1814 (1994)]
+       interaction { truncCoul }     
+  
+and some others for model calculations:
+  3) Gaussian e-e well (needs overall amplitude and standard deviation
+     to be given in the .sys file)
+       interaction { Gauss amp -5. stdev .5 }
+     
 At present, the default is 2.
 
 */
@@ -166,12 +174,15 @@ private:
   */
   doublevar calcLocEwald(Sample_point *);
   doublevar calcLocTrunc(Sample_point *);
+  doublevar calcLocGauss(Sample_point *);
+  doublevar Gauss_a, Gauss_s, Gauss_s2;
   doublevar (HEG_system::*calcLocChoice)(Sample_point *);
   /*!
     description for chosen model (for status info)
     0  default (truncated Coulomb)
     1  Ewald
     2  truncated Coulomb
+    3  short-range gaussian well
   */
   int eeModel;  
   
