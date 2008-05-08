@@ -18,25 +18,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  
 */
 
-
-//--------------------------------------------------------------------------
-//
-// The reason for this exercise is to efficiently evaluate molecular orbitals,
-// when a molecular orbital is directly a basis function. Good for homogeneous
-// electron gas and related stuff. This MO evaluator is constructed as
-// a simplification of MO_matrix_standard.
-//
-// Obviously, orb-file format is different from standard, cutoff and blas MOs.
-// Here, each MO is defined by a pair AO# Center# -> two columns of integers
-// in the orb-file.
-//
-// I am not sure if this class should be MO_matrix type, since it represents
-// different data (no coefficients, just links MO -> basis function), more
-// appropriate might be General_MO_matrix, if it is possible (would need
-// one more allocate in MO_matrix.h and likely other changes as well).
-//
-//--------------------------------------------------------------------------
-
 #ifndef MO_MATRIX_BASFUNC_H_INCLUDED
 #define MO_MATRIX_BASFUNC_H_INCLUDED
 
@@ -50,21 +31,46 @@ class System;
 class Sample_point;
 //----------------------------------------------------------------------------
 
+/*!
+The reason for this exercise is to efficiently evaluate molecular orbitals,
+when a molecular orbital is directly a basis function. Good for homogeneous
+electron gas and related stuff (HEG_system). This MO evaluator is constructed
+as a simplification of MO_matrix_standard. Equivalent complex-valued
+functionality is provided by MO_matrix_Cbasfunc.
+
+Obviously, orb-file format is different from MO_matrix_standard,
+MO_matrix_cutoff and MO_matrix_blas. Here, each MO is defined by a pair
+AO# center# -> two columns of integers in the orb-file.
+
+JK: I am not sure if this class should be MO_matrix type, since it represents
+different data (no coefficients, just links MO -> basis function), more
+appropriate might be General_MO_matrix, if it is possible (would need
+one more allocate in MO_matrix.h and likely other changes as well).
+*/
+
+//--------------------------------------------------------------------------
+
 class MO_matrix_basfunc: public MO_matrix
 {
 protected:
   void init();
 private:
-  // basisMO replaces moCoeff, links given MO to its basis function
   Array2 <int> basisMO;
-  // moLists(spin,.) lists MO's corresponding to the given spin,
-  // the same thing as totoccupation in Slat_wf_data
+  //!< basisMO replaces moCoeff, links given MO to its basis function
   Array1 <int> eq_centers;
   Array1 < Array1 <int> > moLists;
-  Array1 <doublevar>  kptfac;
+  /*!< \brief moLists(spin,.) lists MO's corresponding to the given spin,
+       the same thing as totoccupation in Slat_wf_data
+  */
+  Array1 <doublevar> kptfac;
+  /*!< \brief
+    phase factor multiplying basis functions associated with
+    a given center, N.B. equivalent centers differ by integer
+    multiple of a lattice vector
+  */
   
   Array1 <doublevar> obj_cutoff; //!< cutoff for each basis object
-  Array1 <doublevar> cutoff;  //!< Cutoff for individual basis functions
+  Array1 <doublevar> cutoff;     //!< cutoff for individual basis functions
     
 public:
 

@@ -18,21 +18,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  
 */
 
-
-//--------------------------------------------------------------------------
-//
-// The reason for this exercise is to efficiently evaluate molecular orbitals,
-// when a molecular orbital is directly a basis function. Good for homogeneous
-// electron gas and related stuff. Real version of this MO evaluator was
-// constructed as a simplification of MO_matrix_standard. Complex version
-// is a modification of the real version.
-//
-// Obviously, orb-file format is different from standard, cutoff and blas MOs.
-// Here, each MO is defined by a pair AO# Center# -> two columns of integers
-// in the orb-file.
-//
-//--------------------------------------------------------------------------
-
 #ifndef MO_MATRIX_CBASFUNC_H_INCLUDED
 #define MO_MATRIX_CBASFUNC_H_INCLUDED
 
@@ -46,12 +31,30 @@ class System;
 class Sample_point;
 //----------------------------------------------------------------------------
 
+/*!
+The reason for this exercise is to efficiently evaluate molecular orbitals,
+when a molecular orbital is directly a basis function. Good for homogeneous
+electron gas and related stuff (HEG_system). This MO evaluator is constructed
+as a retype of MO_matrix_basfunc, which in turn is a simplification of
+MO_matrix_standard.
+
+There are some extra declarations in MO_matrix_Cbasfunc compared to its real
+valued version MO_matrix_basfunc, since Complex_MO_matrix lacks some
+functionality of MO_matrix. Maybe it would have been better to enhance
+Complex_MO_matrix than to put it here. After all, we want to have more complex
+functionality in the future.
+*/
+
+//--------------------------------------------------------------------------
+
 class MO_matrix_Cbasfunc: public Complex_MO_matrix
 {
 protected:
   void init();
 private:
   
+  // -----
+  // transferred from MO_matrix
   Center_set centers;
   Array1 <CBasis_function *> basis;
   int nmo;
@@ -59,20 +62,27 @@ private:
   string orbfile;
   int totbasis;
   int maxbasis;
+  Array1 <doublevar> kpoint;
+  //!< the k-point of the orbitals in fractional units(1 0 0) is X, etc..
+  // -----
 
-  // basisMO replaces moCoeff, links given MO to its basis function
   Array2 <int> basisMO;
-  // moLists(spin,.) lists MO's corresponding to the given spin,
-  // the same thing as totoccupation in Slat_wf_data
+  //!< basisMO replaces moCoeff, links given MO to its basis function
   Array1 <int> eq_centers;
   Array1 < Array1 <int> > moLists;
+  /*!< \brief moLists(spin,.) lists MO's corresponding to the given spin,
+    the same thing as totoccupation in Slat_wf_data
+  */
   Array1 <dcomplex>  kptfac;
+  /*!< \brief
+    phase factor multiplying basis functions associated with
+    a given center, N.B. equivalent centers differ by integer
+    multiple of a lattice vector
+  */
   
   Array1 <doublevar> obj_cutoff; //!< cutoff for each basis object
-  Array1 <doublevar> cutoff;  //!< Cutoff for individual basis functions
+  Array1 <doublevar> cutoff;     //!< cutoff for individual basis functions
     
-  Array1 <doublevar> kpoint; //!< the k-point of the orbitals in fractional units(1 0 0) is X, etc..
-
 public:
 
   /*!
