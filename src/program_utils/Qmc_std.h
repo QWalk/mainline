@@ -108,6 +108,10 @@ using namespace std;
 const double pi=3.1415926535897932385;
 #endif
 
+#ifndef I
+const dcomplex I(0.0,1.0);
+#endif
+
 //--------------------------------------------------------------------------
 // include/Burk_standard.h
 //

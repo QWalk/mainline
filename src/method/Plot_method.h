@@ -112,6 +112,8 @@ private:
   int print_derivatives;
   int jeep_like_cube_file;
   int periodic;
+  Array2 <doublevar> LatticeVec;
+  Array1 <doublevar> kpoint,origin;
 };
 
 #endif //PLOT_METHOD_H_INCLUDED

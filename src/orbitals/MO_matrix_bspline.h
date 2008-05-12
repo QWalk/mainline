@@ -29,6 +29,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "MO_matrix.h"
 #include "jeep_utils.h"
 #include "qmc_io.h"
+#include "MatrixAlgebra.h"
 
 // USE_RESTRICT with -std=gnu++98 flag for g++; needed for bspline.h 
 #ifdef USE_RESTRICT
@@ -50,101 +51,415 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 class System;
 class Sample_point;
 class EinsplineOrb {
+ protected:
+  int periodic;
+  Array1 <doublevar> origin, box_size, spacing;
+  Array2 <doublevar> RecipLatVec, LatVec;
+  Array1 <doublevar> kpointt;
+ public:
+  virtual void getorigin(Array1 <doublevar> & a){
+    a.Resize(3);
+    a=origin;
+  }
+  virtual void getbox_size(Array1 <doublevar> & a){
+    a.Resize(3);
+    a=box_size;
+  }
+  virtual void getspacing(Array1 <doublevar> & a){
+    a.Resize(3);
+    a=spacing;
+  }
+  virtual void setperiodic(int & i){
+    periodic=i;
+  }
+  virtual void kpoint (Array1 < doublevar > & kvector){
+    kpointt.Resize(3);
+    kpointt=kvector;
+  }
+  virtual void setorigin (Array1 < doublevar > & o){
+    origin.Resize(3);
+    origin=o;
+  }
+  virtual void setRecipLattice(Array2 <doublevar> & a){
+    RecipLatVec.Resize(3,3);
+    RecipLatVec=a;
+  }
+  virtual void setBounds(Array2 <doublevar> & a){
+    LatVec.Resize(3,3);
+    LatVec=a;
+  }
+  virtual void evaluate_spline (const Array1 < doublevar > & r, dcomplex & val)
+  { error ("evaluate_spline not defined!");};
+  virtual void evaluate_spline (const Array1 < doublevar > & r, dcomplex & val, Array1 <dcomplex> & grad, dcomplex & lap)
+  {error ("evaluate_spline not defined!");};
+  virtual void evaluate_spline (const Array1 < doublevar > & r, dcomplex & val, Array1 <dcomplex> & grad, Array2 <dcomplex> & hess)
+  {error ("evaluate_spline not defined!");};
+  virtual void evaluate_spline (const Array1 < doublevar > & r, doublevar & val)
+  {error ("evaluate_spline not defined!");};
+  virtual void evaluate_spline (const Array1 < doublevar > & r, doublevar & val, Array1 <doublevar> & grad, doublevar & lap)
+  {error ("evaluate_spline not defined!");};
+  virtual void evaluate_spline (const Array1 < doublevar > & r, doublevar & val, Array1 <doublevar> & grad, Array2 <doublevar> & hess)
+  {error ("evaluate_spline not defined!");};
+  virtual void read (ifstream & ORB_0)=0;
+  virtual ~EinsplineOrb() { };
+};
+
+
+//-------------------------------------------------------------------
+
+class EinsplineOrbReal : public EinsplineOrb {
  private:
   #ifdef USE_EINSPLINE
   UBspline_3d_d *Spline;
   #endif
  public:
-  Array1 <doublevar> origin, box_size, spacing;
-  int periodic;
-  void evaluate_spline (const Array1 < doublevar > & r, Array1 <doublevar> & newvals) {
-    assert( newvals.GetSize()<=5);
-    doublevar val;
+  virtual void evaluate_spline (const Array1 < doublevar > & r, doublevar & val) {
+    val=0;
+    for(int d=0;d<3;d++){
+      if(!periodic){
+	if((r(d)<origin(d)) || (r(d)>origin(d)+box_size(d))){
+	  cout  <<"WARNING! electron at "<<r(0)<<"  "<<r(1)<<"  "<<r(2);
+	  cout <<" is outside the box, orbitals value is set zero"<<endl;
+	  return;
+	}
+      }
+      else{
+	if((r(d)<0) || (r(d)>1.0)){
+	  cout  <<"WARNING! electron at "<<r(0)<<"  "<<r(1)<<"  "<<r(2);
+	  cout <<" is outside the box, orbitals value is set zero"<<endl;
+	  return;
+	}
+      }
+    }
+
 #ifdef USE_EINSPLINE
     eval_UBspline_3d_d (Spline, r(0), r(1), r(2), &val);
 #else
     error("need EINSPLINE library for eval_UBspline_3d_d");
 #endif
-    newvals(0)=val;
   }
 
-  void evaluate_spline_vgl (const Array1 < doublevar > & r, Array1 <doublevar> & newvals){
-    assert( newvals.GetSize()==5);
-    doublevar val,lap;
-    Array1 <doublevar> grad(3);
+  virtual void evaluate_spline (const Array1 < doublevar > & r, doublevar & val, Array1 <doublevar> & grad, doublevar & lap){ 
+    val=lap=0;
+    grad=0;
+    for(int d=0;d<3;d++){
+      if(!periodic){
+	if((r(d)<origin(d)) || (r(d)>origin(d)+box_size(d)) ){
+	  cout <<"WARNING! electron at "<<r(0)<<"  "<<r(1)<<"  "<<r(2);
+	  cout <<" is outside the box, orbitals val, grad and lap are set to zero"<<endl;
+	  return;
+	}
+      }
+      else{
+	if((r(d)<0) || (r(d)>1.0)){
+	  cout  <<"WARNING! electron at "<<r(0)<<"  "<<r(1)<<"  "<<r(2);
+	  cout  <<" is outside the box, orbitals val, grad and lap are set to zero"<<endl;
+	  return;
+	}
+      }
+    }
+   
 #ifdef USE_EINSPLINE
     eval_UBspline_3d_d_vgl (Spline, r(0), r(1), r(2),
 			    &val, grad.v, &lap);
 #else
     error("need EINSPLINE library for eval_UBspline_3d_d_vgl");
 #endif
-    newvals(0)=val;
-    for(int d=1;d<4;d++)
-       newvals(d)=grad(d-1);
-    newvals(4)=lap;
   }
 
-  void evaluate_spline_vgh (const Array1 < doublevar > & r, Array1 <doublevar> &  newvals){
-    assert( newvals.GetSize()==10);
-    doublevar val;
-    Array1 <doublevar> grad(3);
-    Array2 <doublevar> hessian(3,3);
+  virtual void evaluate_spline (const Array1 < doublevar > & r, doublevar & val, Array1 <doublevar> & grad, Array2 <doublevar> & hess){
+    val=0;
+    grad=0;
+    hess=0;
+    for(int d=0;d<3;d++){
+      if(!periodic){
+	if((r(d)<origin(d)) || (r(d)>origin(d)+box_size(d)) ){
+	  cout <<"WARNING! electron at "<<r(0)<<"  "<<r(1)<<"  "<<r(2);
+	  cout <<" is outside the box, orbitals val, grad and hess are set to zero"<<endl;
+	  return;
+	}
+      }
+      else{
+	if((r(d)<0) || (r(d)>1.0)){
+	  cout  <<"WARNING! electron at "<<r(0)<<"  "<<r(1)<<"  "<<r(2);
+	  cout  <<" is outside the box, orbitals val, grad and hess are set to zero"<<endl;
+	  return;
+	}
+      }
+    }
+    
 #ifdef USE_EINSPLINE
-    eval_UBspline_3d_d_vgh (Spline, r(0), r(1), r(2), &val, grad.v, hessian.v);
+    eval_UBspline_3d_d_vgh (Spline, r(0), r(1), r(2), &val, grad.v, hess.v);
 #else
  error("need EINSPLINE library for eval_UBspline_3d_d_vgh");
 #endif
-    newvals(0)=val;
-     for(int d=1;d<4;d++)
-       newvals(d)=grad(d-1);
-     int d=4;
-     for(int i=0;i<3;i++)
-       for(int j=i;j<3;j++)
-	 newvals(d++)=hessian(i,j);
   }
 
-  void read (ifstream & ORB_0){
+  virtual void read (ifstream & ORB_0){
     single_write(cout, "reading in plotfile\n");
     Array3 <doublevar> grid;
     get_grid_from_plot(ORB_0, grid, box_size, origin);
 #ifdef USE_EINSPLINE
     BCtype_d xBC, yBC, zBC;
+    Ugrid x_grid, y_grid, z_grid;
     if(periodic){
       xBC.lCode = xBC.rCode = PERIODIC;
       yBC.lCode = yBC.rCode = PERIODIC;
       zBC.lCode = zBC.rCode = PERIODIC;
+
+      //spline calculation is in fractional coordinates of lattice vectors
+      x_grid.start = 0.0; x_grid.end = 1.0; x_grid.num =grid.GetDim(0) ;
+      y_grid.start = 0.0; y_grid.end = 1.0; y_grid.num =grid.GetDim(1) ;
+      z_grid.start = 0.0; z_grid.end = 1.0; z_grid.num =grid.GetDim(2) ;
+
+      //overwrite box_size from get_grid_from_plot
+      for(int d=0;d<3;d++)
+	box_size(d)=LatVec(0,d)+LatVec(1,d)+LatVec(2,d);
     }
     else{
       xBC.lCode = xBC.rCode = NATURAL;
       yBC.lCode = yBC.rCode = NATURAL;
       zBC.lCode = zBC.rCode = NATURAL;
+      
+      x_grid.start = origin(0); x_grid.end = origin(0)+box_size(0); x_grid.num =grid.GetDim(0) ;
+      y_grid.start = origin(1); y_grid.end = origin(1)+box_size(1); y_grid.num =grid.GetDim(1) ;
+      z_grid.start = origin(2); z_grid.end = origin(2)+box_size(2); z_grid.num =grid.GetDim(2) ;
     }
-
-    Ugrid x_grid, y_grid, z_grid;
-    x_grid.start = origin(0); x_grid.end = origin(0)+box_size(0); x_grid.num =grid.GetDim(0) ;
-    y_grid.start = origin(1); y_grid.end = origin(1)+box_size(1); y_grid.num =grid.GetDim(1) ;
-    z_grid.start = origin(2); z_grid.end = origin(2)+box_size(2); z_grid.num =grid.GetDim(2) ;
-    
-    spacing.Resize(3); 
-    if(periodic){
-      for(int d=0;d<3;d++)
-	spacing(d)=box_size(d)/(grid.GetDim(d));
-    }
-    else
-      for(int d=0;d<3;d++)
-	spacing(d)=box_size(d)/(grid.GetDim(d)-1); 
-
     single_write(cout, "creating spline\n");
     Spline=create_UBspline_3d_d (x_grid, y_grid, z_grid, xBC, yBC, zBC, grid.v);
+    single_write(cout, "done creating spline\n");
+    grid.clear() ;
+   
+    //getting the spacing from the Spline object
+    spacing.Resize(3); 
+
+    if(!periodic){
+      spacing(0)=Spline->x_grid.delta;
+      spacing(1)=Spline->y_grid.delta;
+      spacing(2)=Spline->z_grid.delta;
+
+    }
+    else{
+      //adjusted by lenght of each latice vector;    
+      Array1 <doublevar> LatVecNorm(3);
+      LatVecNorm=0;
+      for(int i=0;i<3;i++){
+	for(int j=0;j<3;j++)
+	  LatVecNorm(i)+=LatVec(i,j)*LatVec(i,j);	
+	LatVecNorm(i)=sqrt(LatVecNorm(i));
+      }
+      spacing(0)=LatVecNorm(0)*Spline->x_grid.delta;
+      spacing(1)=LatVecNorm(1)*Spline->y_grid.delta;
+      spacing(2)=LatVecNorm(2)*Spline->z_grid.delta;
+    }
+
+#else
+    error("need EINSPLINE library for create_UBspline_3d_d");
+#endif
+  }
+  virtual ~EinsplineOrbReal() { };
+};
+
+
+//-------------------------------------------------------------------
+
+
+
+class EinsplineOrbComplex : public EinsplineOrb {
+ private:
+  #ifdef USE_EINSPLINE
+  UBspline_3d_z *Spline; 
+  #endif
+ public:
+  virtual void evaluate_spline (const Array1 < doublevar > & r, dcomplex & val) {
+    val=dcomplex(0.0,0.0);
+    for(int d=0;d<3;d++){
+      if(!periodic){
+	if((r(d)<origin(d)) || (r(d)>origin(d)+box_size(d)) ){
+	  cout <<"WARNING! electron at "<<r(0)<<"  "<<r(1)<<"  "<<r(2);
+	  cout <<" is outside the box, orbital value is set to zero"<<endl;
+	  return;
+	}
+      }
+      else{
+	if((r(d)<0) || (r(d)>1.0)){
+	  cout  <<"WARNING! electron at "<<r(0)<<"  "<<r(1)<<"  "<<r(2);
+	  cout  <<" is outside the box, orbital value is set to zero"<<endl;
+	  return;
+	}
+      }
+    }
+
+#ifdef USE_EINSPLINE
+    eval_UBspline_3d_z (Spline, r(0), r(1), r(2), &val);
+#else
+    error("need EINSPLINE library for eval_UBspline_3d_d");
+#endif
+  }
+
+  virtual void evaluate_spline (const Array1 < doublevar > & r, dcomplex & val, Array1 <dcomplex> & grad, dcomplex & lap){
+    val=lap=0;
+    grad=dcomplex(0.0,0.0);
+    for(int d=0;d<3;d++){
+      if(!periodic){
+	if((r(d)<origin(d)) || (r(d)>origin(d)+box_size(d)) ){
+	  cout <<"WARNING! electron at "<<r(0)<<"  "<<r(1)<<"  "<<r(2);
+	  cout <<" is outside the box, orbitals val, grad and lap are set to zero"<<endl;
+	  return;
+	}
+      }
+      else{
+	if((r(d)<0) || (r(d)>1.0)){
+	  cout  <<"WARNING! electron at "<<r(0)<<"  "<<r(1)<<"  "<<r(2);
+	  cout  <<" is outside the box, orbitals val, grad and lap are set to zero"<<endl;
+	  return;
+	}
+      }
+    }
+   
+#ifdef USE_EINSPLINE
+    eval_UBspline_3d_z_vgl (Spline, r(0), r(1), r(2),
+			    &val, grad.v, &lap);
+#else
+    error("need EINSPLINE library for eval_UBspline_3d_d_vgl");
+#endif
+  }
+
+  virtual void evaluate_spline (const Array1 < doublevar > & r, dcomplex & val, Array1 <dcomplex> & grad, Array2 <dcomplex> & hess){
+    val=0;
+    grad=dcomplex(0.0,0.0);
+    hess=dcomplex(0.0,0.0);;
+    for(int d=0;d<3;d++){
+      if(!periodic){
+	if((r(d)<origin(d)) || (r(d)>origin(d)+box_size(d)) ){
+	  cout <<"WARNING! electron at "<<r(0)<<"  "<<r(1)<<"  "<<r(2);
+	  cout <<" is outside the box, orbitals val, grad and hess are set to zero"<<endl;
+	  return;
+	}
+      }
+      else{
+	if((r(d)<0) || (r(d)>1.0)){
+	  cout  <<"WARNING! electron at "<<r(0)<<"  "<<r(1)<<"  "<<r(2);
+	  cout  <<" is outside the box, orbitals val, grad and hess are set to zero"<<endl;
+	  return;
+	}
+      }
+    }
+    
+#ifdef USE_EINSPLINE
+    eval_UBspline_3d_z_vgh (Spline, r(0), r(1), r(2), &val, grad.v, hess.v);
+#else
+ error("need EINSPLINE library for eval_UBspline_3d_d_vgh");
+#endif
+  }
+
+ 
+  virtual void read (ifstream & ORB_0){
+    //single_write(cout, "reading in plotfile\n");
+    Array3 <doublevar> grid;
+    get_grid_from_plot(ORB_0, grid, box_size, origin);
+#ifdef USE_EINSPLINE
+    BCtype_z xBC, yBC, zBC;
+    Ugrid x_grid, y_grid, z_grid;
+    if(periodic){
+      xBC.lCode = xBC.rCode = PERIODIC;
+      yBC.lCode = yBC.rCode = PERIODIC;
+      zBC.lCode = zBC.rCode = PERIODIC;
+
+      //spline calculation is in fractional coordinates of lattice vectors
+      x_grid.start = 0.0; x_grid.end = 1.0; x_grid.num =grid.GetDim(0) ;
+      y_grid.start = 0.0; y_grid.end = 1.0; y_grid.num =grid.GetDim(1) ;
+      z_grid.start = 0.0; z_grid.end = 1.0; z_grid.num =grid.GetDim(2) ;
+
+      //overwrite box_size from get_grid_from_plot
+      for(int d=0;d<3;d++)
+	box_size(d)=LatVec(0,d)+LatVec(1,d)+LatVec(2,d);
+
+      Array1 <doublevar> resolution_array(3);
+      for(int i=0;i<3;i++){
+	  resolution_array(i)=1.0/grid.GetDim(i);
+      }
+       
+      //make complex grid by multiplying by exp(-2*i*pi*k*r)
+      //be aware that kvector in the code includes factor 2!
+
+      Array3 <dcomplex> cgrid(x_grid.num,y_grid.num,z_grid.num);
+      Array1 <doublevar> xyz(3);  //fractional coordinates of Lattice vectors
+      for(int xx=0;xx<grid.GetDim(0);xx++){
+	xyz(0)=xx*resolution_array(0);
+	for(int yy=0;yy<grid.GetDim(1);yy++){
+	  xyz(1)=yy*resolution_array(1);
+	  for(int zz=0;zz<grid.GetDim(2);zz++){
+	    xyz(2)=zz*resolution_array(2);
+	    //cout <<xyz(0)<<"  "<<xyz(1)<<"  "<<xyz(2)<<endl;
+	    dcomplex eikr=exp(-I*pi*dot(xyz, kpointt));
+	    cgrid(xx,yy,zz)=grid(xx,yy,zz)*eikr;
+	    //if(xx==10 && yy==15)
+	    //  cout << xyz(2) <<"  "<<grid(xx,yy,zz)<<"  "<<cgrid(xx,yy,zz).real()<<"  "<<cgrid(xx,yy,zz).imag()<<"  "<<eikr.real()<<"  "<<eikr.imag()<<endl;
+	  } 
+	}
+      }
+      grid.clear();
+      single_write(cout, "creating spline\n");
+      Spline=create_UBspline_3d_z (x_grid, y_grid, z_grid, xBC, yBC, zBC, cgrid.v);
+      single_write(cout, "done creating spline\n");
+      cgrid.clear();
+
+      //getting the spacing from the Spline object
+      //adjusted by lenght of each latice vector;       
+      Array1 <doublevar> LatVecNorm(3);
+      LatVecNorm=0;
+      for(int i=0;i<3;i++){
+	for(int j=0;j<3;j++)
+	  LatVecNorm(i)+=LatVec(i,j)*LatVec(i,j);	
+	LatVecNorm(i)=sqrt(LatVecNorm(i));
+      }
+      
+      spacing.Resize(3);
+      spacing(0)=LatVecNorm(0)*Spline->x_grid.delta;
+      spacing(1)=LatVecNorm(1)*Spline->y_grid.delta;
+      spacing(2)=LatVecNorm(2)*Spline->z_grid.delta;
+      
+      
+    }
+    else{ //not periodic 
+      xBC.lCode = xBC.rCode = NATURAL;
+      yBC.lCode = yBC.rCode = NATURAL;
+      zBC.lCode = zBC.rCode = NATURAL;
+      x_grid.start = origin(0); x_grid.end = origin(0)+box_size(0); x_grid.num =grid.GetDim(0) ;
+      y_grid.start = origin(1); y_grid.end = origin(1)+box_size(1); y_grid.num =grid.GetDim(1) ;
+      z_grid.start = origin(2); z_grid.end = origin(2)+box_size(2); z_grid.num =grid.GetDim(2) ;
+      
+      //in the future will read in complex data on the grid, its all real now;
+      Array3 <dcomplex> cgrid(x_grid.num,y_grid.num,z_grid.num);
+      for(int xx=0;xx<grid.GetDim(0);xx++){
+	for(int yy=0;yy<grid.GetDim(1);yy++){
+	  for(int zz=0;zz<grid.GetDim(0);zz++){
+	    cgrid(xx,yy,zz).real()=grid(xx,yy,zz);
+	    cgrid(xx,yy,zz).imag()=0.0;
+	  }
+	}
+      }
+      grid.clear();
+      single_write(cout, "creating spline\n");
+      Spline=create_UBspline_3d_z (x_grid, y_grid, z_grid, xBC, yBC, zBC, cgrid.v);
+      single_write(cout, "done creating spline\n");
+      cgrid.clear();
+      //getting the spacing from the Spline object
+      
+      spacing(0)=Spline->x_grid.delta;
+      spacing(1)=Spline->y_grid.delta;
+      spacing(2)=Spline->z_grid.delta;
+    }
 #else
  error("need EINSPLINE library for create_UBspline_3d_d");
 #endif
-    grid.clear() ;
   }
-  
- ~EinsplineOrb() 
-   {}
+  virtual ~EinsplineOrbComplex() { };
 };
+
+
+
 
 //----------------------------------------------------------------------------
 
@@ -155,14 +470,18 @@ protected:
 private:
   Array1 < Array1 <int> > moLists;
   Array1 <EinsplineOrb *> Einspline;
+  Array1 <EinsplineOrbReal *> EinsplineReal;
+  Array1 <EinsplineOrbComplex *> EinsplineComplex;
   vector <string> valfiles;
- 
-public:
+  Array1  <doublevar> kpoint;
+  Array1  <doublevar> origin;
+  int complexspline;
   int periodic;
+  Array2  <doublevar> RecipLatVec;
+  Array2  <doublevar> LatVec;
+public:
   virtual void buildLists(Array1 <Array1 <int> > & occupations);
-
   virtual int showinfo(ostream & os);
-
   virtual int writeinput(string &, ostream &);
   virtual void read(vector <string> & words, unsigned int & startpos, System * sys);
   virtual void writeorb(ostream &, Array2 <doublevar> & rotation, 

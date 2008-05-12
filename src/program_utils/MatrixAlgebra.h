@@ -25,6 +25,12 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Array.h"
 #include "Qmc_std.h"
 
+doublevar dot(const Array1 <doublevar> & a,  const Array1 <doublevar> & b);
+dcomplex  dot(const Array1 <doublevar> & a,  const Array1 <dcomplex> & b);
+dcomplex  dot(const Array1 <dcomplex> & a,  const Array1 <doublevar> & b);
+dcomplex  dot(const Array1 <dcomplex> & a,  const Array1 <dcomplex> & b);
+
+
 doublevar Determinant(const Array2 <doublevar> & a, const int n);
 dcomplex Determinant(const Array2 <dcomplex> & a, const int n);
 
