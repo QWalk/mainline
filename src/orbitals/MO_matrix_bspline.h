@@ -435,8 +435,7 @@ class EinsplineOrbComplex : public EinsplineOrb {
       for(int xx=0;xx<grid.GetDim(0);xx++){
 	for(int yy=0;yy<grid.GetDim(1);yy++){
 	  for(int zz=0;zz<grid.GetDim(0);zz++){
-	    cgrid(xx,yy,zz).real()=grid(xx,yy,zz);
-	    cgrid(xx,yy,zz).imag()=0.0;
+	    cgrid(xx,yy,zz)=dcomplex(grid(xx,yy,zz),0.0);
 	  }
 	}
       }
