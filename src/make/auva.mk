@@ -5,8 +5,9 @@ CXX:=/share/apps/mpich-1.2.7/bin/mpiCC
 #CXX:=/opt/mpich/gnu/bin/mpiCC
 
 
-CXXFLAGS:= -O3 -fomit-frame-pointer -funroll-loops -ffast-math 
-CXXFLAGS += -DUSE_MPI -DUSE_BLAS -DUSE_LAPACK  ${INCLUDEPATH}
+CXXFLAGS:= -std=gnu++98 -O3 -ffast-math -fomit-frame-pointer \
+            -fstrict-aliasing -funroll-loops  
+CXXFLAGS += -DUSE_MPI -DUSE_BLAS -DUSE_LAPACK -DUSE_EINSPLINE -DUSE_RESTRICT ${INCLUDEPATH}
 
 LAPACK_LIBS := -L/share/apps/ATLAS/lib/Linux_HAMMER64SSE3_2 -llapack -lf77blas -lcblas -latlas -lg2c
 LAPACK_INCLUDE := -I/share/apps/ATLAS/include
@@ -14,6 +15,12 @@ LAPACK_INCLUDE := -I/share/apps/ATLAS/include
 BLAS_LIBS := $(LAPACK_LIBS)
 BLAS_INCLUDE := $(LAPACK_INCLUDE)
 
+EINSPLINE_LIBS := -L/usr/lib/einspline/lib -leinspline
+EINSPLINE_INCLUDE :=-I/usr/lib/einspline/include/einspline
+
+
+BLAS_LIBS += $(EINSPLINE_LIBS)
+BLAS_INCLUDE += $(EINSPLINE_INCLUDE)
 
 
 #DEBUG := -Wall  -DRANGE_CHECKING -DDEBUG_WRITE
