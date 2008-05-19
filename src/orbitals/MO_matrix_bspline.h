@@ -635,6 +635,7 @@ class MultiEinsplineOrbReal : public MultiEinsplineOrb {
   }
 
   virtual void read (vector <string> & valfiles, int & nmo){
+#ifdef USE_EINSPLINE
     for(int m=0; m < nmo; m++) {
       string orbfile_0=valfiles[m];
       ifstream ORB_0(orbfile_0.c_str());
@@ -644,7 +645,6 @@ class MultiEinsplineOrbReal : public MultiEinsplineOrb {
       single_write(cout,"Reading Orbfile: ",orbfile_0,"\n"); 
       Array3 <doublevar> grid;
       get_grid_from_plot(ORB_0, grid, box_size, origin);
-
       BCtype_d xBC, yBC, zBC;
       Ugrid x_grid, y_grid, z_grid;
       if(m==0){
@@ -671,11 +671,7 @@ class MultiEinsplineOrbReal : public MultiEinsplineOrb {
 	  y_grid.start = origin(1); y_grid.end = origin(1)+box_size(1); y_grid.num =grid.GetDim(1) ;
 	  z_grid.start = origin(2); z_grid.end = origin(2)+box_size(2); z_grid.num =grid.GetDim(2) ;
 	}
-#ifdef USE_EINSPLINE
 	MultiSpline = create_multi_UBspline_3d_d (x_grid, y_grid, z_grid, xBC, yBC, zBC, nmo);
-#else
-	error("need EINSPLINE library for create_UBspline_3d_d");
-#endif
       }
       single_write(cout, "creating spline\n");
       set_multi_UBspline_3d_d (MultiSpline, m, grid.v);
@@ -704,6 +700,9 @@ class MultiEinsplineOrbReal : public MultiEinsplineOrb {
       spacing(1)=LatVecNorm(1)*MultiSpline->y_grid.delta;
       spacing(2)=LatVecNorm(2)*MultiSpline->z_grid.delta;
     }
+#else
+	error("need EINSPLINE library for create_UBspline_3d_d");
+#endif
   }
   virtual ~MultiEinsplineOrbReal() { };
 };
@@ -828,6 +827,7 @@ class MultiEinsplineOrbComplex : public MultiEinsplineOrb {
  
   virtual void read (vector <string> & valfiles, int & nmo){
     Array1 <doublevar> resolution_array(3);
+#ifdef USE_EINSPLINE
     for(int m=0; m < nmo; m++) {
       string orbfile_0=valfiles[m];
       ifstream ORB_0(orbfile_0.c_str());
@@ -837,7 +837,7 @@ class MultiEinsplineOrbComplex : public MultiEinsplineOrb {
       single_write(cout,"Reading Orbfile: ",orbfile_0,"\n"); 
       Array3 <doublevar> grid;
       get_grid_from_plot(ORB_0, grid, box_size, origin);
-#ifdef USE_EINSPLINE
+
       if(periodic){
 	if(m==0){
 	   BCtype_z xBC, yBC, zBC;
@@ -860,11 +860,7 @@ class MultiEinsplineOrbComplex : public MultiEinsplineOrb {
 	  }
 	  //make complex grid by multiplying by exp(-2*i*pi*k*r)
 	  //be aware that kvector in the code includes factor 2!
-#ifdef USE_EINSPLINE
 	  MultiSpline = create_multi_UBspline_3d_z (x_grid, y_grid, z_grid, xBC, yBC, zBC, nmo);
-#else
-	  error("need EINSPLINE library for create_UBspline_3d_d");
-#endif
 	}//m==0
 	else{
 	  if(MultiSpline->x_grid.num!=grid.GetDim(0) || 
