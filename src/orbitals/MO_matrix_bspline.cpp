@@ -165,7 +165,6 @@ int MO_matrix_bspline::writeinput(string & indent, ostream & os)
     os << indent2 << valfiles[i] <<endl; 
 
   os << indent2 << "}"<<endl;
-  os << indent << "}" << endl;
   if(multi_spline)
     os << indent << "USE_MULTI_SPLINE" << endl;
   return 1;
