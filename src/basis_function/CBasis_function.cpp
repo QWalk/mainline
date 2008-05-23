@@ -22,6 +22,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "CBasis_function.h"
 #include "qmc_io.h"
 #include "CPlanewave_function.h"
+#include "Blochwave_function.h"
 
 int allocate(vector <string> & basistext, CBasis_function * & bptr)
 {
@@ -31,6 +32,8 @@ int allocate(vector <string> & basistext, CBasis_function * & bptr)
   readnext(basistext, pos, type);
   if(caseless_eq(type,"CPLANEWAVE"))
     bptr=new CPlanewave_function;
+  else if(caseless_eq(type,"BLOCHWAVE"))
+    bptr=new Blochwave_function;
   else
     error("Didn't understand the basis section type ", type,
           " in basis section ", basistext[0]);

@@ -100,7 +100,7 @@ int main(int argc, char* argv[])
     //output << "Solving Schroedinger's equation using our feet!\n";
     output << "Primary author     : Lucas K Wagner\n";
     output << "Contributions from : Michal Bajdich, Jindrich Kolorenc,\n"
-           <<  "Kino Hiori, Zack Helms and others\n";
+           <<  "Shuming Hu, Kino Hiori, Zack Helms and others\n";
     output << "Mental Magic from  : Lubos Mitas \n";
     output << "Written at North Carolina State University \n";
     output << "------------------------------------------------\n";
