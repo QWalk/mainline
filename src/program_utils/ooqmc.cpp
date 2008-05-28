@@ -99,7 +99,8 @@ int main(int argc, char* argv[])
     output << "Quantum Walk development version\n";
     output << "Solving Schroedinger's equation using our feet!\n";
     output << "Primary author     : Lucas K Wagner\n";
-    output << "Contributions from : Zack Helms, Michal Bajdich\n";
+    output << "Contributions from : Michal Bajdich, Jindrich Kolorenc, Hiori Kino, Zack Helms,\n";
+    output << "Shuming Hu, and others\n";
     output << "Mental Magic from  : Lubos Mitas \n";
     output << "Written at North Carolina State University \n";
     output << "------------------------------------------------\n";
