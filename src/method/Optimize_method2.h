@@ -51,16 +51,23 @@ public:
     if(sysprop) delete sysprop;
 
     deallocate(wfdata);
-    for(int i=0; i< nconfig; i++)
-    {
-      deallocate(wf(i));
-      delete electrons(i);
+    
+    if(dynamic_wf){
+      deallocate(wf(0));
+      delete sample(0);
+    }
+    else{
+      for(int i=0; i< nconfig; i++){
+	deallocate(wf(i));
+	delete sample(i);
+      }
     }
 
   }
 
   int showinfo(ostream & os);
-  void readcheck(string & readconfig, string & oldreadconfig);
+  //void readcheck(string & readconfig, string & oldreadconfig);
+  void readcheck(string & readconfig);
 
 private:
   void func_val(int n, const Array1 <double> & parms, double & val, double & energy, double & variance, 
@@ -92,11 +99,13 @@ private:
   int nfunctions; //!< Number of wavefunctions we have.
   enum min_function_type { min_variance, min_energy, min_mixed } min_function;
   int use_weights; //!< Whether to use weights in the correlated sampling
-  int analytic_pp_derivative;
+  int dynamic_pp;
+  int dynamic_wf;
+  int analytic_wf_ders;
+  int debug_out;
   
   Array1 <Wf_return > orig_vals; //!< Original wave function values before opt
   doublevar ln_norm_orig_vals;
-  string pseudostore; //!< Where to put the temporary pseudo file
   Pseudo_buffer psp_buff;
   string wfoutputfile;//!< Where to put the wavefunction output
   Primary guide_wf; //!< Guiding function
@@ -110,12 +119,16 @@ private:
   int multiply;//!< by home much do I increase the nconfig
   int maxnparmsatonce; //!< maximum parameters optimized at once
   Array1 <doublevar> weight; //weights for each walker in optimization
-  System * sysprop;
-  Array1 <Sample_point *> electrons;
-  Array1 <Wavefunction * > wf;
+  Array1 <doublevar> E_local;
+  System * sysprop; //system object
+  Array1 < Sample_point * > sample; //array of walkers, resized to 1 or nconfig
+  Array1 < Config_save_point> config_pos; //array of walkers pos, resized to 1 or nconfig
+  Array1 < Wavefunction * > wf; //array of wf objects, resized to 1 or nconfig
   Wavefunction_data * wfdata;
   Pseudopotential * pseudo;
   Array1 < Array1 <doublevar> > psp_test;
+  Array1 <doublevar> dmc_weight; //not needed here now
+
 };
 
 #endif //OPTIMIZE_METHOD2_H_INCLUDED
