@@ -279,7 +279,7 @@ void Optimize_method::run(Program_options & options, ostream & output)
     wfoutput.close();
   }
 #ifdef USE_MPI
-  MPI_Barrier(MPI_COMM_WORLD);
+  MPI_Barrier(MPI_Comm_grp);
 #endif
 
   //Put the wave function into options.trialfunc so further methods can use it.

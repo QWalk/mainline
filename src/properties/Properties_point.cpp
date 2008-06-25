@@ -59,38 +59,38 @@ void Properties_point::mpiSend(int node) {
   int n_aux_cvg=aux_energy.GetDim(1);
   //cout << mpi_info.node << "  " << nwf << "  " << naux << endl;
 
-  MPI_Send(&nwf, 1, MPI_INT, node, 0, MPI_COMM_WORLD);
-  MPI_Send(&naux, 1, MPI_INT, node, 0, MPI_COMM_WORLD);
-  MPI_Send(&n_aux_cvg, 1, MPI_INT, node, 0, MPI_COMM_WORLD);
+  MPI_Send(&nwf, 1, MPI_INT, node, 0, MPI_Comm_grp);
+  MPI_Send(&naux, 1, MPI_INT, node, 0, MPI_Comm_grp);
+  MPI_Send(&n_aux_cvg, 1, MPI_INT, node, 0, MPI_Comm_grp);
 
   MPI_Send(children.v, children.GetDim(0), MPI_INT,
-           node, 0,MPI_COMM_WORLD);
-  MPI_Send(&nchildren, 1, MPI_INT, node, 0, MPI_COMM_WORLD);
-  MPI_Send(&parent, 1, MPI_INT, node, 0, MPI_COMM_WORLD);
-  MPI_Send(&count, 1, MPI_INT, node, 0, MPI_COMM_WORLD);
+           node, 0,MPI_Comm_grp);
+  MPI_Send(&nchildren, 1, MPI_INT, node, 0, MPI_Comm_grp);
+  MPI_Send(&parent, 1, MPI_INT, node, 0, MPI_Comm_grp);
+  MPI_Send(&count, 1, MPI_INT, node, 0, MPI_Comm_grp);
   MPI_Send(kinetic.v, kinetic.GetDim(0), MPI_DOUBLE, 
-           node, 0, MPI_COMM_WORLD);
+           node, 0, MPI_Comm_grp);
   MPI_Send(potential.v, potential.GetDim(0), MPI_DOUBLE,
-           node, 0, MPI_COMM_WORLD);
+           node, 0, MPI_Comm_grp);
   MPI_Send(nonlocal.v, nonlocal.GetDim(0), MPI_DOUBLE, 
-           node, 0, MPI_COMM_WORLD);
+           node, 0, MPI_Comm_grp);
   MPI_Send(weight.v, weight.GetDim(0), MPI_DOUBLE, node, 
-           0, MPI_COMM_WORLD);
+           0, MPI_Comm_grp);
   MPI_Send(wf_val.amp.v, wf_val.amp.GetDim(0)*wf_val.amp.GetDim(1),
-           MPI_DOUBLE, node, 0, MPI_COMM_WORLD);
+           MPI_DOUBLE, node, 0, MPI_Comm_grp);
   MPI_Send(wf_val.phase.v, wf_val.phase.GetDim(0)*wf_val.phase.GetDim(1),
-           MPI_DOUBLE, node, 0, MPI_COMM_WORLD);
+           MPI_DOUBLE, node, 0, MPI_Comm_grp);
   
   // cout << mpi_info.node << ":sending aux_energy " << endl;
-  MPI_Send(&gf_weight, 1, MPI_DOUBLE, node, 0, MPI_COMM_WORLD);  
+  MPI_Send(&gf_weight, 1, MPI_DOUBLE, node, 0, MPI_Comm_grp);  
   MPI_Send(aux_energy.v, aux_energy.GetDim(0)*aux_energy.GetDim(1),
-           MPI_DOUBLE, node, 0, MPI_COMM_WORLD);
+           MPI_DOUBLE, node, 0, MPI_Comm_grp);
   MPI_Send(aux_weight.v, aux_weight.GetDim(0)*aux_weight.GetDim(1),
-           MPI_DOUBLE, node, 0, MPI_COMM_WORLD);
+           MPI_DOUBLE, node, 0, MPI_Comm_grp);
   MPI_Send(aux_gf_weight.v, aux_gf_weight.GetDim(0),
-           MPI_DOUBLE, node, 0, MPI_COMM_WORLD);
+           MPI_DOUBLE, node, 0, MPI_Comm_grp);
   MPI_Send(aux_jacobian.v, aux_jacobian.GetDim(0), MPI_DOUBLE,
-           node, 0, MPI_COMM_WORLD); 
+           node, 0, MPI_Comm_grp); 
   for(int i=0; i< naux; i++) {
     aux_wf_val(i).mpiSend(node);
   }
@@ -118,41 +118,41 @@ void Properties_point::mpiReceive(int node) {
 
   int naux, nwf;
   int n_aux_cvg;
-  MPI_Recv(&nwf, 1, MPI_INT, node, 0, MPI_COMM_WORLD, &status);
-  MPI_Recv(&naux, 1, MPI_INT, node, 0, MPI_COMM_WORLD, &status);
-  MPI_Recv(&n_aux_cvg, 1, MPI_INT, node, 0, MPI_COMM_WORLD, &status);
+  MPI_Recv(&nwf, 1, MPI_INT, node, 0, MPI_Comm_grp, &status);
+  MPI_Recv(&naux, 1, MPI_INT, node, 0, MPI_Comm_grp, &status);
+  MPI_Recv(&n_aux_cvg, 1, MPI_INT, node, 0, MPI_Comm_grp, &status);
   //cout << mpi_info.node << "  " << nwf << "  " << naux << endl;
 
   setSize(nwf, naux, n_aux_cvg);
   MPI_Recv(children.v, children.GetDim(0), MPI_INT,
-           node, 0,MPI_COMM_WORLD, &status);
-  MPI_Recv(&nchildren, 1, MPI_INT, node, 0, MPI_COMM_WORLD, &status);
-  MPI_Recv(&parent, 1, MPI_INT, node, 0, MPI_COMM_WORLD, &status);
+           node, 0,MPI_Comm_grp, &status);
+  MPI_Recv(&nchildren, 1, MPI_INT, node, 0, MPI_Comm_grp, &status);
+  MPI_Recv(&parent, 1, MPI_INT, node, 0, MPI_Comm_grp, &status);
 
-  MPI_Recv(&count, 1, MPI_INT, node, 0, MPI_COMM_WORLD, &status);
+  MPI_Recv(&count, 1, MPI_INT, node, 0, MPI_Comm_grp, &status);
   MPI_Recv(kinetic.v, kinetic.GetDim(0), MPI_DOUBLE, 
-           node, 0, MPI_COMM_WORLD, & status);
+           node, 0, MPI_Comm_grp, & status);
   MPI_Recv(potential.v, potential.GetDim(0), MPI_DOUBLE,
-           node, 0, MPI_COMM_WORLD, & status);
+           node, 0, MPI_Comm_grp, & status);
 
   MPI_Recv(nonlocal.v, nonlocal.GetDim(0), MPI_DOUBLE, 
-           node, 0, MPI_COMM_WORLD, & status);
+           node, 0, MPI_Comm_grp, & status);
   MPI_Recv(weight.v, weight.GetDim(0), MPI_DOUBLE, node, 
-           0, MPI_COMM_WORLD, & status);
+           0, MPI_Comm_grp, & status);
   MPI_Recv(wf_val.amp.v, wf_val.amp.GetDim(0)*wf_val.amp.GetDim(1),
-           MPI_DOUBLE,node, 0, MPI_COMM_WORLD, & status);
+           MPI_DOUBLE,node, 0, MPI_Comm_grp, & status);
   MPI_Recv(wf_val.phase.v, wf_val.phase.GetDim(0)*wf_val.phase.GetDim(1),
-           MPI_DOUBLE,node, 0, MPI_COMM_WORLD, & status);
+           MPI_DOUBLE,node, 0, MPI_Comm_grp, & status);
 
-  MPI_Recv(&gf_weight, 1, MPI_DOUBLE, node, 0, MPI_COMM_WORLD, & status);
+  MPI_Recv(&gf_weight, 1, MPI_DOUBLE, node, 0, MPI_Comm_grp, & status);
   MPI_Recv(aux_energy.v, aux_energy.GetDim(0)*aux_energy.GetDim(1),
-           MPI_DOUBLE, node, 0, MPI_COMM_WORLD, & status);
+           MPI_DOUBLE, node, 0, MPI_Comm_grp, & status);
   MPI_Recv(aux_weight.v, aux_weight.GetDim(0)*aux_weight.GetDim(1),
-           MPI_DOUBLE, node, 0, MPI_COMM_WORLD, & status);
+           MPI_DOUBLE, node, 0, MPI_Comm_grp, & status);
   MPI_Recv(aux_gf_weight.v, aux_gf_weight.GetDim(0),
-           MPI_DOUBLE, node, 0, MPI_COMM_WORLD, & status);
+           MPI_DOUBLE, node, 0, MPI_Comm_grp, & status);
   MPI_Recv(aux_jacobian.v, aux_jacobian.GetDim(0),
-           MPI_DOUBLE, node, 0, MPI_COMM_WORLD, & status);
+           MPI_DOUBLE, node, 0, MPI_Comm_grp, & status);
   for(int i=0; i< naux; i++) {
     aux_wf_val(i).mpiRecieve(node);
   } 

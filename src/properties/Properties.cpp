@@ -246,7 +246,7 @@ void One_particle_density::write() {
   while(ptr<last) { 
     int region=min( int(last-ptr) , interval);
     MPI_Reduce(ptr, ptr2, region, MPI_DOUBLE, MPI_SUM,
-	       0, MPI_COMM_WORLD);
+	       0, MPI_Comm_grp);
     ptr+=region;
     ptr2+=region;
   }
@@ -448,9 +448,9 @@ void Electron_correlation::write() {
   
 #ifdef USE_MPI
   Array1 <doublevar> down_tmp(npoints),up_tmp(npoints),unlike_tmp(npoints);
-  MPI_Reduce(gr_down.v,down_tmp.v,npoints,MPI_DOUBLE, MPI_SUM, 0,MPI_COMM_WORLD);
-  MPI_Reduce(gr_up.v,up_tmp.v,npoints,MPI_DOUBLE, MPI_SUM, 0,MPI_COMM_WORLD);
-  MPI_Reduce(gr_unlike.v,unlike_tmp.v,npoints,MPI_DOUBLE, MPI_SUM, 0,MPI_COMM_WORLD);
+  MPI_Reduce(gr_down.v,down_tmp.v,npoints,MPI_DOUBLE, MPI_SUM, 0,MPI_Comm_grp);
+  MPI_Reduce(gr_up.v,up_tmp.v,npoints,MPI_DOUBLE, MPI_SUM, 0,MPI_Comm_grp);
+  MPI_Reduce(gr_unlike.v,unlike_tmp.v,npoints,MPI_DOUBLE, MPI_SUM, 0,MPI_Comm_grp);
 
 #else
 
@@ -553,7 +553,7 @@ void Structure_factor::write() {
   Array1 <doublevar> grid_tmp(npoints);
   grid_tmp=0;
   MPI_Reduce(grid.v, grid_tmp.v, npoints, MPI_DOUBLE,MPI_SUM,
-	     0,MPI_COMM_WORLD);
+	     0,MPI_Comm_grp);
 #else
   Array1 <doublevar> & grid_tmp(grid);
   
@@ -687,9 +687,9 @@ void Local_moments::write() {
 
 #ifdef USE_MPI
   MPI_Reduce(moment.v, this_block.moment.v, natoms+1, MPI_DOUBLE,MPI_SUM,
-	     0,MPI_COMM_WORLD);
+	     0,MPI_Comm_grp);
   MPI_Reduce(charge.v, this_block.charge.v, natoms+1, MPI_DOUBLE,MPI_SUM,
-	     0,MPI_COMM_WORLD);
+	     0,MPI_Comm_grp);
 #else
   this_block.moment=moment;
   this_block.charge=charge;
@@ -1067,7 +1067,7 @@ void OBDM::write(string & log_label) {
   Array1 <doublevar> dmtrx_tmp(npoints);
   dmtrx_tmp=0;
   MPI_Reduce(dmtrx.v, dmtrx_tmp.v, npoints, MPI_DOUBLE,MPI_SUM,
-	     0,MPI_COMM_WORLD);
+	     0,MPI_Comm_grp);
 #else
   Array1 <doublevar> & dmtrx_tmp(dmtrx);
 #endif

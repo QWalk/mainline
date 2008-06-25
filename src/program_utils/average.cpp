@@ -53,7 +53,7 @@ void average(int start, int end,
   if(paravg)
   {
     MPI_Allreduce(&npoints, &totpoints, 1,
-                  MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+                  MPI_INT, MPI_SUM, MPI_Comm_grp);
   }
   else
   {
@@ -76,7 +76,7 @@ void average(int start, int end,
     if(paravg)
     {
       MPI_Allreduce(&average_temp, &(average(n)), 1,
-                    MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                    MPI_DOUBLE, MPI_SUM, MPI_Comm_grp);
     }
     else
     {
@@ -104,7 +104,7 @@ void average(int start, int end,
     if(paravg)
     {
       MPI_Allreduce(&variance_temp, &(variance(n)), 1,
-                    MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                    MPI_DOUBLE, MPI_SUM, MPI_Comm_grp);
     }
     else
     {
@@ -157,11 +157,11 @@ void average(int start, int end,
   {
 
     MPI_Allreduce(&weight_temp, &(weightsum), 1,
-                  MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                  MPI_DOUBLE, MPI_SUM, MPI_Comm_grp);
     MPI_Allreduce(&avg_temp, &(average), 1,
-                  MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                  MPI_DOUBLE, MPI_SUM, MPI_Comm_grp);
     MPI_Allreduce(&negweight_temp, &(negweightsum), 1,
-                  MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                  MPI_DOUBLE, MPI_SUM, MPI_Comm_grp);
 
     average/=weightsum;
   }
@@ -204,7 +204,7 @@ void average(int start, int end,
   if(paravg)
   {
     MPI_Allreduce(&var_temp, &(variance), 1,
-                  MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                  MPI_DOUBLE, MPI_SUM, MPI_Comm_grp);
     //cout << mpi_info.node << " var_temp " << var_temp << endl;
     //cout << mpi_info.node << " variance " << variance(n) << endl;
   }
@@ -267,11 +267,11 @@ void average(int start, int end,
     {
 
       MPI_Allreduce(&weight_temp, &(weightsum(n)), 1,
-                    MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                    MPI_DOUBLE, MPI_SUM, MPI_Comm_grp);
       MPI_Allreduce(&avg_temp, &(average(n)), 1,
-                    MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                    MPI_DOUBLE, MPI_SUM, MPI_Comm_grp);
       MPI_Allreduce(&negweight_temp, &(negweightsum(n)), 1,
-                    MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                    MPI_DOUBLE, MPI_SUM, MPI_Comm_grp);
 
       average(n)/=weightsum(n);
     }
@@ -319,7 +319,7 @@ void average(int start, int end,
     if(paravg)
     {
       MPI_Allreduce(&var_temp, &(variance(n)), 1,
-                    MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                    MPI_DOUBLE, MPI_SUM, MPI_Comm_grp);
       //cout << mpi_info.node << " var_temp " << var_temp << endl;
       //cout << mpi_info.node << " variance " << variance(n) << endl;
     }

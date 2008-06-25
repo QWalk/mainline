@@ -220,25 +220,29 @@ void Wf_return::setVals(Array2 <doublevar> & vals, Array1 <doublevar> & sign) {
 }
 //----------------------------------------------------------------------
 
+//JK: these communications do not seem to be called anywhere, their implementation
+//    uses global communicator MPI_Comm_grp, which is not compatible with the
+//    multiple-job rewrite I am trying to do. Since I don't know the intended purpose
+//    of these routines, I don't know how to rewrite them and thus I just drop them.
 
 void Wf_return::mpiSend(int node) {
 #ifdef USE_MPI
   int nwf, nst;
   nwf=amp.GetDim(0); nst=amp.GetDim(1);
-  MPI_Send(&nwf, 1, MPI_INT, node, 0, MPI_COMM_WORLD);
-  MPI_Send(&nst, 1, MPI_INT, node, 0, MPI_COMM_WORLD);
-  MPI_Send(&is_complex, 1, MPI_INT, node, 0, MPI_COMM_WORLD);
+  MPI_Send(&nwf, 1, MPI_INT, node, 0, MPI_Comm_grp);
+  MPI_Send(&nst, 1, MPI_INT, node, 0, MPI_Comm_grp);
+  MPI_Send(&is_complex, 1, MPI_INT, node, 0, MPI_Comm_grp);
   
-  MPI_Send(amp.v, nwf*nst, MPI_DOUBLE, node, 0, MPI_COMM_WORLD);
-  MPI_Send(phase.v, nwf*nst, MPI_DOUBLE, node, 0, MPI_COMM_WORLD);
+  MPI_Send(amp.v, nwf*nst, MPI_DOUBLE, node, 0, MPI_Comm_grp);
+  MPI_Send(phase.v, nwf*nst, MPI_DOUBLE, node, 0, MPI_Comm_grp);
 
   if(is_complex) {  
     for(int w=0; w < nwf; w++) {
       for(int i=0; i < nst; i++) {
         doublevar tmp=cvals(w,i).real();
-        MPI_Send(&tmp, 1, MPI_DOUBLE, node, 0, MPI_COMM_WORLD);
+        MPI_Send(&tmp, 1, MPI_DOUBLE, node, 0, MPI_Comm_grp);
         tmp=cvals(w,i).imag();
-        MPI_Send(&tmp, 1, MPI_DOUBLE, node, 0, MPI_COMM_WORLD);
+        MPI_Send(&tmp, 1, MPI_DOUBLE, node, 0, MPI_Comm_grp);
       }
     }
   }
@@ -252,19 +256,19 @@ void Wf_return::mpiRecieve(int node) {
   int nwf, nst;
   MPI_Status status;
   
-  MPI_Recv(&nwf, 1, MPI_INT, node, 0, MPI_COMM_WORLD, &status);
-  MPI_Recv(&nst, 1, MPI_INT, node, 0, MPI_COMM_WORLD, &status);
-  MPI_Recv(&is_complex, 1, MPI_INT, node, 0, MPI_COMM_WORLD, &status);
+  MPI_Recv(&nwf, 1, MPI_INT, node, 0, MPI_Comm_grp, &status);
+  MPI_Recv(&nst, 1, MPI_INT, node, 0, MPI_Comm_grp, &status);
+  MPI_Recv(&is_complex, 1, MPI_INT, node, 0, MPI_Comm_grp, &status);
   
   Resize(nwf, nst);
-  MPI_Recv(amp.v, nwf*nst, MPI_DOUBLE, node, 0, MPI_COMM_WORLD, & status);
-  MPI_Recv(phase.v, nwf*nst, MPI_DOUBLE, node, 0, MPI_COMM_WORLD, &status);
+  MPI_Recv(amp.v, nwf*nst, MPI_DOUBLE, node, 0, MPI_Comm_grp, & status);
+  MPI_Recv(phase.v, nwf*nst, MPI_DOUBLE, node, 0, MPI_Comm_grp, &status);
   if(is_complex) {  
     for(int w=0; w < nwf; w++) {
       for(int i=0; i < nst; i++) {
         doublevar tmp1, tmp2;
-        MPI_Recv(&tmp1, 1, MPI_DOUBLE, node, 0, MPI_COMM_WORLD, &status);
-        MPI_Recv(&tmp2, 1, MPI_DOUBLE, node, 0, MPI_COMM_WORLD, &status);
+        MPI_Recv(&tmp1, 1, MPI_DOUBLE, node, 0, MPI_Comm_grp, &status);
+        MPI_Recv(&tmp2, 1, MPI_DOUBLE, node, 0, MPI_Comm_grp, &status);
         cvals(w,i)=dcomplex(tmp1, tmp2);
       }
     }
@@ -272,7 +276,6 @@ void Wf_return::mpiRecieve(int node) {
   
 #endif
 }
-
 
 //----------------------------------------------------------------------
 

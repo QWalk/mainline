@@ -837,7 +837,7 @@ void Dmc_method::updateEtrial(doublevar feed) {
 #ifdef USE_MPI
   doublevar mpitot=0;
   MPI_Allreduce(&totweight,&mpitot, 1,
-                MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                MPI_DOUBLE, MPI_SUM, MPI_Comm_grp);
   etrial=eref-feed*log(mpitot/double(mpi_info.nprocs*nconfig));
 #endif
   
@@ -937,7 +937,7 @@ int Dmc_method::calcBranch() {
   for(int walker=0; walker < nconfig; walker++)
     my_weights(walker)=pts(walker).weight;
 #ifdef USE_MPI
-  MPI_Allgather(my_weights.v,nconfig, MPI_DOUBLE, weights.v,nconfig,MPI_DOUBLE, MPI_COMM_WORLD);
+  MPI_Allgather(my_weights.v,nconfig, MPI_DOUBLE, weights.v,nconfig,MPI_DOUBLE, MPI_Comm_grp);
 #else
   weights=my_weights;
 #endif
@@ -1003,20 +1003,20 @@ int Dmc_method::calcBranch() {
       my_weights(i)=weights(i);
     }
 #ifdef USE_MPI
-    MPI_Bcast(nwalkers.v, mpi_info.nprocs, MPI_INT, mpi_info.node, MPI_COMM_WORLD);
+    MPI_Bcast(nwalkers.v, mpi_info.nprocs, MPI_INT, mpi_info.node, MPI_Comm_grp);
     for(int i=1; i< mpi_info.nprocs; i++) {
-      MPI_Send(branch.v+i*nconfig,nconfig,MPI_INT,i,0,MPI_COMM_WORLD);
-      MPI_Send(weights.v+i*nconfig, nconfig, MPI_DOUBLE, i,0,MPI_COMM_WORLD);
+      MPI_Send(branch.v+i*nconfig,nconfig,MPI_INT,i,0,MPI_Comm_grp);
+      MPI_Send(weights.v+i*nconfig, nconfig, MPI_DOUBLE, i,0,MPI_Comm_grp);
     }
 #endif
                
   }
   else { 
 #ifdef USE_MPI
-    MPI_Bcast(nwalkers.v, mpi_info.nprocs, MPI_INT, root, MPI_COMM_WORLD);
+    MPI_Bcast(nwalkers.v, mpi_info.nprocs, MPI_INT, root, MPI_Comm_grp);
     MPI_Status status;
-    MPI_Recv(my_branch.v,nconfig, MPI_INT,root,0,MPI_COMM_WORLD, &status);
-    MPI_Recv(my_weights.v,nconfig, MPI_DOUBLE,root,0,MPI_COMM_WORLD, &status);
+    MPI_Recv(my_branch.v,nconfig, MPI_INT,root,0,MPI_Comm_grp, &status);
+    MPI_Recv(my_weights.v,nconfig, MPI_DOUBLE,root,0,MPI_Comm_grp, &status);
 #endif	
   }
   //--end if/else clause
@@ -1125,7 +1125,7 @@ void Dmc_method::loadbalance() {
 
   double * weights=new double[mpi_info.nprocs];
   MPI_Allgather(&totwt, 1, MPI_DOUBLE, weights, 1, MPI_DOUBLE,
-                MPI_COMM_WORLD);
+                MPI_Comm_grp);
 
   vector <procwt> procs(mpi_info.nprocs);
   int nprocs=mpi_info.nprocs;
@@ -1159,7 +1159,7 @@ void Dmc_method::loadbalance() {
   }
       
   //loadout << mpi_info.node << " here " << myplace << endl;
-//MPI_Barrier(MPI_COMM_WORLD);
+//MPI_Barrier(MPI_Comm_grp);
 
   int mate=0;
   if(myplace > nprocs/2) {
@@ -1193,18 +1193,18 @@ void Dmc_point::mpiSend(int node) {
   prop.mpiSend(node);
   config_pos.mpiSend(node);
   int n=past_energies.size();
-  MPI_Send(&n,1, MPI_INT,node,0,MPI_COMM_WORLD);
+  MPI_Send(&n,1, MPI_INT,node,0,MPI_Comm_grp);
   for(deque<Dmc_history>::iterator i=past_energies.begin();
       i!= past_energies.end(); i++) { 
     i->mpiSend(node);
   }
   
-  MPI_Send(&weight,1,MPI_DOUBLE,node,0,MPI_COMM_WORLD);
-  MPI_Send(&ignore_walker,1, MPI_INT,node,0,MPI_COMM_WORLD);
+  MPI_Send(&weight,1,MPI_DOUBLE,node,0,MPI_Comm_grp);
+  MPI_Send(&ignore_walker,1, MPI_INT,node,0,MPI_Comm_grp);
 
   int nelectrons=age.GetDim(0);
-  MPI_Send(&nelectrons,1, MPI_INT,node,0,MPI_COMM_WORLD);
-  MPI_Send(age.v,nelectrons, MPI_DOUBLE, node,0,MPI_COMM_WORLD);
+  MPI_Send(&nelectrons,1, MPI_INT,node,0,MPI_Comm_grp);
+  MPI_Send(age.v,nelectrons, MPI_DOUBLE, node,0,MPI_Comm_grp);
 #endif
 }
 
@@ -1214,31 +1214,31 @@ void Dmc_point::mpiReceive(int node) {
   config_pos.mpiReceive(node);
   int n;
   MPI_Status status;
-  MPI_Recv(&n,1,MPI_INT,node,0,MPI_COMM_WORLD, &status);
+  MPI_Recv(&n,1,MPI_INT,node,0,MPI_Comm_grp, &status);
   Dmc_history tmp_hist;
   past_energies.clear();
   for(int i=0; i< n; i++) {
     tmp_hist.mpiReceive(node);
     past_energies.push_back(tmp_hist);
   }
-  MPI_Recv(&weight,1,MPI_DOUBLE,node,0,MPI_COMM_WORLD, &status);
-  MPI_Recv(&ignore_walker,1,MPI_INT,node,0,MPI_COMM_WORLD, &status);
+  MPI_Recv(&weight,1,MPI_DOUBLE,node,0,MPI_Comm_grp, &status);
+  MPI_Recv(&ignore_walker,1,MPI_INT,node,0,MPI_Comm_grp, &status);
       
   int nelectrons;
-  MPI_Recv(&nelectrons,1,MPI_INT,node,0,MPI_COMM_WORLD,&status);
+  MPI_Recv(&nelectrons,1,MPI_INT,node,0,MPI_Comm_grp,&status);
   age.Resize(nelectrons);
-  MPI_Recv(age.v,nelectrons,MPI_DOUBLE, node,0,MPI_COMM_WORLD,&status);
+  MPI_Recv(age.v,nelectrons,MPI_DOUBLE, node,0,MPI_Comm_grp,&status);
 #endif
 }
 
 void Dmc_history::mpiSend(int node) { 
 #ifdef USE_MPI
-  MPI_Send(&main_en,1,MPI_DOUBLE,node,0,MPI_COMM_WORLD);
+  MPI_Send(&main_en,1,MPI_DOUBLE,node,0,MPI_Comm_grp);
   int n1=aux_en.GetDim(0);
   int n2=aux_en.GetDim(1);
-  MPI_Send(&n1,1,MPI_INT,node,0,MPI_COMM_WORLD);
-  MPI_Send(&n2,1,MPI_INT,node,0,MPI_COMM_WORLD);
-  MPI_Send(aux_en.v,n1*n2,MPI_DOUBLE,node,0,MPI_COMM_WORLD);
+  MPI_Send(&n1,1,MPI_INT,node,0,MPI_Comm_grp);
+  MPI_Send(&n2,1,MPI_INT,node,0,MPI_Comm_grp);
+  MPI_Send(aux_en.v,n1*n2,MPI_DOUBLE,node,0,MPI_Comm_grp);
 #endif
 }
 
@@ -1246,10 +1246,10 @@ void Dmc_history::mpiReceive(int node) {
 #ifdef USE_MPI
   MPI_Status status;
   int n1,n2;
-  MPI_Recv(&main_en,1,MPI_DOUBLE,node,0,MPI_COMM_WORLD,&status);
-  MPI_Recv(&n1,1,MPI_INT,node,0,MPI_COMM_WORLD,&status);
-  MPI_Recv(&n2,1,MPI_INT,node,0,MPI_COMM_WORLD,&status);
+  MPI_Recv(&main_en,1,MPI_DOUBLE,node,0,MPI_Comm_grp,&status);
+  MPI_Recv(&n1,1,MPI_INT,node,0,MPI_Comm_grp,&status);
+  MPI_Recv(&n2,1,MPI_INT,node,0,MPI_Comm_grp,&status);
   aux_en.Resize(n1,n2);
-  MPI_Recv(aux_en.v,n1*n2,MPI_DOUBLE,node,0,MPI_COMM_WORLD,&status);  
+  MPI_Recv(aux_en.v,n1*n2,MPI_DOUBLE,node,0,MPI_Comm_grp,&status);  
 #endif
 }

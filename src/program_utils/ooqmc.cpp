@@ -51,35 +51,59 @@ int main(int argc, char* argv[])
 {
 #ifdef USE_MPI
   MPI_Init(&argc, &argv);
-  MPI_Comm_size(MPI_COMM_WORLD, &(mpi_info.nprocs));
-  MPI_Comm_rank(MPI_COMM_WORLD, &(mpi_info.node));
-  //cout << "processor " << mpi_info.node << " alive " << endl;
 #endif
 
+  int inputfilestart=1;
+  for(int i=1; i< argc-1; i++) {
+    string arg(argv[i]);
+    if(caseless_eq(arg,"-rappture")) {
+      global_options::rappture=1;
+      inputfilestart=i+1;
+    }
+  }
+
+  // No. of indeendent processes in the pack = No. of inputfiles
+  int processcount=argc-inputfilestart;
+  int group;   // indexes groups of independent processes (needed mainly to assign
+               // correct inputfile
+#ifdef USE_MPI
+  int nprocs, node, group_size, ingroup;
+  MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
+  MPI_Comm_rank(MPI_COMM_WORLD, &node);
+  group_size=nprocs/processcount;
+  if ( (nprocs-1)/group_size > processcount-1 )
+    error("Number of CPUs not divisible by the number of inputfiles; \n don't know what to do with leftover nodes.");
+  group=node/group_size;                    // modulo (selects group)
+  ingroup=node%group_size;                  // remainder (gives ordering in the group)
+  MPI_Comm_split(MPI_COMM_WORLD,group,ingroup,&MPI_Comm_grp);
+  MPI_Comm_size(MPI_Comm_grp, &(mpi_info.nprocs));
+  MPI_Comm_rank(MPI_Comm_grp, &(mpi_info.node));
+#else
+  group=0;
+  if ( processcount>1 ) 
+    error("More than one input file specified, but this is not a parallel (MPI) version.");
+#endif
+
+  string inputfiles[processcount];
+  if(argc >= inputfilestart) {
+    for(int i=0; i<processcount; i++) inputfiles[i]=argv[i+inputfilestart];
+  } else {
+    error("usage: ", argv[0],  " [-rappture] filename(s)");
+  }
+
+  // allocate per-process variables
   Program_options options;
   ifstream inputfile;
   string outputfile;
-  for(int i=1; i< argc-1; i++) {
-    string arg(argv[i]);
-    if(caseless_eq(arg,"-rappture")) global_options::rappture=1;
-  }
-  if(argc >= 2)
-  {
-    inputfile.open(argv[argc-1]);
-    options.runid=argv[argc-1];
-    outputfile=argv[argc-1];
-    outputfile+=".o";
-  }
-  else
-  {
-    error("usage: ", argv[0],  " filename");
-  }
-  if(!inputfile)
-  {
-    error("Couldn't open ", argv[1]);
-  }
 
-
+  inputfile.open(inputfiles[group].c_str());
+  if(!inputfile) {
+    error("Couldn't open ",inputfiles[group]);
+  }
+  options.runid=inputfiles[group];
+  outputfile=inputfiles[group];
+  outputfile+=".o";
+  
   ofstream output;
   if(mpi_info.node==0)
   {
