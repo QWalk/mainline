@@ -69,10 +69,6 @@ struct Wf_return {
   
   void write(string & indent, ostream & os);
   void read(istream & is);
-  //JK: these communications do not seem to be called anywhere, their implementation
-  //    uses global communicator MPI_COMM_WORLD, which is not compatible with the
-  //    multiple-job rewrite I am trying to do. Since I don't know the intended purpose
-  //    of these routines, I don't know how to rewrite them and thus I just drop them.
   void mpiSend(int node);
   void mpiRecieve(int node);
   

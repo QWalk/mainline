@@ -220,11 +220,6 @@ void Wf_return::setVals(Array2 <doublevar> & vals, Array1 <doublevar> & sign) {
 }
 //----------------------------------------------------------------------
 
-//JK: these communications do not seem to be called anywhere, their implementation
-//    uses global communicator MPI_Comm_grp, which is not compatible with the
-//    multiple-job rewrite I am trying to do. Since I don't know the intended purpose
-//    of these routines, I don't know how to rewrite them and thus I just drop them.
-
 void Wf_return::mpiSend(int node) {
 #ifdef USE_MPI
   int nwf, nst;
