@@ -64,8 +64,8 @@ int main(int argc, char* argv[])
 
   // No. of indeendent processes in the pack = No. of inputfiles
   int processcount=argc-inputfilestart;
-  int group;   // indexes groups of independent processes (needed mainly to assign
-               // correct inputfile
+  int group;   // indexes groups of independent processes (needed to assign
+               // correct inputfile)
 #ifdef USE_MPI
   int nprocs, node, group_size, ingroup;
   MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
     error("More than one input file specified, but this is not a parallel (MPI) version.");
 #endif
 
-  string inputfiles[processcount];
+  vector<string> inputfiles(processcount);
   if(argc >= inputfilestart) {
     for(int i=0; i<processcount; i++) inputfiles[i]=argv[i+inputfilestart];
   } else {
