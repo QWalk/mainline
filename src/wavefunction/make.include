@@ -4,6 +4,8 @@ MY_SOURCES:= \
         Backflow_wf_data.cpp \
         Backflow_pf_wf.cpp \
         Backflow_pf_wf_data.cpp \
+	BCS_wf.cpp \
+	BCS_wf_data.cpp \
 	Cslat_wf.cpp \
 	Jastrow2_wf.cpp \
         Jastrow2_one.cpp \

@@ -25,7 +25,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Jastrow2_wf.h"
 #include "Backflow_wf_data.h"
 #include "Backflow_pf_wf_data.h"
-#include "Pfaff_wf_data.h" 
+#include "Pfaff_wf_data.h"
+#include "BCS_wf_data.h"
 #include "qmc_io.h"
 
 int allocate(vector <string> & wftext, System * sys, Wavefunction_data * & wfptr)
@@ -46,6 +47,8 @@ int allocate(vector <string> & wftext, System * sys, Wavefunction_data * & wfptr
     wfptr=new Backflow_pf_wf_data;
   else if(caseless_eq(wftext[0],"PFAFFIAN")) 
     wfptr=new Pfaff_wf_data;
+  else if(caseless_eq(wftext[0],"BCS"))
+    wfptr=new BCS_wf_data;
   else
     error("Error parsing the trial wavefunction section; unknown keyword ",
           wftext[0]);
