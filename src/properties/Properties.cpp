@@ -30,14 +30,12 @@ void allocate(vector<string> & words, System * sys, string & runid,
   if(words.size() < 1) error("empty density section");
   if(caseless_eq(words[0], "DENSITY"))
     denspt=new One_particle_density;
-  else if(caseless_eq(words[0], "SK"))
-    denspt=new Structure_factor;
+  //else if(caseless_eq(words[0], "SK"))
+  //  denspt=new Structure_factor;
   else if(caseless_eq(words[0], "LM"))
     denspt=new Local_moments;
-  else if(caseless_eq(words[0],"POL"))
-    denspt=new Polarization;
-  else if(caseless_eq(words[0],"GR"))
-    denspt=new Electron_correlation;
+  //else if(caseless_eq(words[0],"GR"))
+  //  denspt=new Electron_correlation;
   else
     error("Didn't understand density keyword",words[0]);
   denspt->init(words, sys, runid);
@@ -274,6 +272,7 @@ void One_particle_density::write() {
     }
     os << endl;
     os.close();
+    /*  This isn't really used by anyone, is it?  It takes up a lot of space to write the density twice..
     string outputfile2 = outputfile+".dx";
     os.clear();
     os.open(outputfile2.c_str());
@@ -328,7 +327,7 @@ void One_particle_density::write() {
     
     
     os.close();
-    
+    */
     //////// ######### ion .dx write #############
     /* This needs to utilize the format for .dx code which specifies
       * the attributes of each point based on a non-uniform grid.
@@ -341,229 +340,6 @@ void One_particle_density::write() {
 }
 
 //----------------------------------------------------------------------
-//######################################################################
-
-void Electron_correlation::init(vector <string> & words, System * sys, 
-                                string & runid) { 
-  outputfile=runid+".gr";
-  resolution=.1;
-  doublevar range=10.0;
-  npoints=int(range/resolution);
-  gr_up.Resize(npoints); gr_down.Resize(npoints);
-  gr_unlike.Resize(npoints);
-  gr_up=0.0; gr_down=0.0; gr_unlike=0.0;
-  nsample_up=nsample_down=nsample_unlike=0;
-  nup=sys->nelectrons(0);
-  
-  ifstream is(outputfile.c_str());
-  if(is) { 
-    is.ignore(180,'\n'); //we currently can't set npoints & resolution
-    string dum;
-    is >> dum;
-    is >> nsample_up >> nsample_down >> nsample_unlike;
-    nsample_up/=mpi_info.nprocs;
-    nsample_down/=mpi_info.nprocs;
-    nsample_unlike/=mpi_info.nprocs;
-    is.ignore(180,'\n'); //finish line
-    is.ignore(180,'\n'); //info line
-    double ddum;
-    for(int i=0; i< npoints; i++) { 
-      is >> ddum >> gr_up(i) >> gr_down(i) >> gr_unlike(i);
-      gr_up(i)*=nsample_up;
-      gr_down(i)*=nsample_down;
-      gr_unlike(i)*=nsample_unlike;
-    }
-    
-    is.close();
-  }
-}
-
-//----------------------------------------------------------------------
-
-
-void Electron_correlation::accumulate(Sample_point * sample, double weight) { 
-  //cout << "acc " << endl;
-  int nelectrons=sample->electronSize();
-  int nions=sample->ionSize();
-  sample->updateEEDist();
-  sample->updateEIDist();
-  Array1 <doublevar> dist(5);
-  Array1 <doublevar> dist_ion(5);
-  for(int e=0; e< nup; e++) {
-
-    for(int e2=e+1; e2 < nup; e2++) { 
-      sample->getEEDist(e,e2,dist);
-      int place=int(dist(0)/resolution);
-      if(place < npoints) { 
-        gr_up(place)+=weight/(4*pi*resolution*dist(1));
-        nsample_up+=weight;
-      }
-    }
-    //cout << "unlike " << endl;
-    //unlike spins
-    for(int e2=nup; e2 < nelectrons; e2++) {
-      
-      sample->getEEDist(e,e2,dist);
-      int place=int(dist(0)/resolution);
-      if(place < npoints) { 
-        gr_unlike(place)+=weight/(4*pi*resolution*dist(1));
-        nsample_unlike+=weight;
-      }
-    }    
-  }
-  //cout << "down " << endl;
-  
-  //like down spins
-  for(int e=nup; e < nelectrons; e++) { 
-    for(int e2=e+1; e2< nelectrons; e2++) { 
-      sample->getEEDist(e,e2,dist);
-      int place=int(dist(0)/resolution);
-      if(place < npoints) { 
-        gr_down(place) += weight/(4*pi*resolution*dist(1));
-        nsample_down+=weight;
-      }
-    }
-  }
-  //cout << "done " << endl;
-}
-
-//----------------------------------------------------------------------
-
-
-void Electron_correlation::write() { 
-  doublevar n_up_tmp=parallel_sum(nsample_up);
-  doublevar n_down_tmp=parallel_sum(nsample_down);
-  doublevar n_unlike_tmp=parallel_sum(nsample_unlike);
-  
-#ifdef USE_MPI
-  Array1 <doublevar> down_tmp(npoints),up_tmp(npoints),unlike_tmp(npoints);
-  MPI_Reduce(gr_down.v,down_tmp.v,npoints,MPI_DOUBLE, MPI_SUM, 0,MPI_COMM_WORLD);
-  MPI_Reduce(gr_up.v,up_tmp.v,npoints,MPI_DOUBLE, MPI_SUM, 0,MPI_COMM_WORLD);
-  MPI_Reduce(gr_unlike.v,unlike_tmp.v,npoints,MPI_DOUBLE, MPI_SUM, 0,MPI_COMM_WORLD);
-
-#else
-
-  Array1 <doublevar> & down_tmp(gr_down);
-  Array1 <doublevar> & up_tmp(gr_up);
-  Array1 <doublevar> & unlike_tmp(gr_unlike);
-#endif
-  
-  if(mpi_info.node==0) { 
-    ofstream os(outputfile.c_str());
-    os << "#npoints " << npoints << " resolution " << resolution << endl;
-    os << "#weights " << n_up_tmp << "  " << n_down_tmp << "  " << n_unlike_tmp << endl;
-    os << "#r    g(r)(spin up)  g(r)(spin down)   g(r)(unlike spins) \n";
-    for(int i=0; i< npoints; i++) { 
-      os << (i+.5)*resolution << "   " << up_tmp(i)/n_up_tmp
-      << "  " << down_tmp(i)/n_down_tmp << "  " << unlike_tmp(i)/n_unlike_tmp
-      << endl;
-    }
-  }
-  
-}
-
-//######################################################################
-void Structure_factor::init(vector <string> & words, System * sys,
-			 string & runid) { 
-
-  single_write(cout, "Structure factor calculation!");
-  outputfile=runid+".sk";
-
-  nsample=0;
-  wnsample=0.0;
-  unsigned int pos=0;
-  if(!readvalue(words, pos=0, np_side, "NGRID")) 
-    np_side=5;
-  
-  npoints=np_side*np_side*np_side; 
-  grid.Resize(npoints);
-  grid=0.0;
-
-  vector <string> gvec_sec;
-  if(readsection(words, pos=0, gvec_sec, "GVEC")) {
-    int count=0;
-    gvec.Resize(3,3);
-    for(int i=0; i< 3; i++) { 
-      for(int j=0; j< 3; j++) { 
-        gvec(i,j)=atof(gvec_sec[count++].c_str());
-      }
-    }
-  }
-  else { 
-    if(!sys->getRecipLattice(gvec)) 
-      error("You don't have a periodic cell and you haven't specified GVEC for S(k)");
-  }
-  
-  kpts.Resize(npoints, 3);
-  kpts=0;
-  int c=0;
-  for(int ix=0; ix < np_side; ix++) {
-    for(int iy=0; iy < np_side; iy++) {
-      for(int iz=0; iz < np_side; iz++) {
-        for(int i=0; i< 3; i++)
-          kpts(c,i)+=2*pi*(gvec(0,i)*ix+gvec(1,i)*iy+gvec(2,i)*iz);
-        c++;
-      }
-    }
-  }
-}
-
-//----------------------------------------------------------------------
-
-void Structure_factor::accumulate(Sample_point * sample, doublevar weight) { 
-  nelectrons=sample->electronSize();
-
-  Array1 <doublevar> pos(3);
-  Array1 <doublevar> k(3);
-
-  for(int p=0; p < npoints; p++) { 
-    doublevar sum_cos=0, sum_sin=0;
-    
-    for(int e=0; e< nelectrons; e++) {
-      sample->getElectronPos(e,pos);
-      doublevar dot=0;
-      for(int d=0; d< 3; d++) dot+=pos(d)*kpts(p,d);
-      sum_cos+=cos(dot);
-      sum_sin+=sin(dot);
-    }
-    grid(p)+=weight*(sum_cos*sum_cos+sum_sin*sum_sin);
-    
-  }
-  nsample+=1;
-  wnsample+=weight;
-}
-
-//----------------------------------------------------------------------
-
-void Structure_factor::write() { 
-  int nsample_tmp=parallel_sum(nsample);
-  doublevar wnsample_tmp=parallel_sum(wnsample);
-#ifdef USE_MPI
-  Array1 <doublevar> grid_tmp(npoints);
-  grid_tmp=0;
-  MPI_Reduce(grid.v, grid_tmp.v, npoints, MPI_DOUBLE,MPI_SUM,
-	     0,MPI_COMM_WORLD);
-#else
-  Array1 <doublevar> & grid_tmp(grid);
-  
-#endif  
-
-  if(mpi_info.node==0) { 
-    ofstream out(outputfile.c_str());
-    out << "#nsamples  " << nsample_tmp << " ("
-	<< wnsample_tmp << " weighted)" << endl;
-    out << "#k  s(k)  kx  ky  kz" << endl;
-    
-    for(int i=0; i< npoints; i++) {
-      doublevar sk=grid_tmp(i)/wnsample_tmp;
-      doublevar r=0;
-      for(int d=0; d< 3; d++) r+=kpts(i,d)*kpts(i,d);
-      r=sqrt(r);
-      out << r << "   " << sk/nelectrons << "   "
-          << kpts(i,0) << "   " << kpts(i,1) << "   " << kpts(i,2) << endl;
-    }
-  }
-}
 //######################################################################
 
 
@@ -750,86 +526,7 @@ void Local_moments::write() {
 }
 //######################################################################
 
-void Polarization::init(vector <string> & words, System * sys, string & runid) { 
-  outputfile=runid+".pol";
-  if(!sys->getRecipLattice(gvec))
-    error("There must be a reciprocal lattice for polarization to work");
-  ncvg=6;
-  single_pol_cvg.Resize(ncvg,3);
-  manye_pol_cvg.Resize(ncvg,3);
-  single_pol_cvg=dcomplex(0.0,0.0);
-  manye_pol_cvg=dcomplex(0.0,0.0);
-  nsample=0;
-}
 
-//------------------------------------------------------------------------
-
-
-void Polarization::accumulate(Sample_point * sample, doublevar weight) { 
-  int nelectrons=sample->electronSize();
-  Array1 <doublevar> sum(3,0.0);
-  Array1 <doublevar> pos(3);
-  for(int e=0; e< nelectrons; e++) { 
-    sample->getElectronPos(e,pos);
-    for(int i=0; i< 3; i++) { 
-      doublevar tmp=0;
-      for(int d=0; d< 3; d++) { 
-        tmp+=gvec(i,d)*pos(d);
-      }
-      sum(i)+=tmp;
-      for(int n=0; n< ncvg; n++) { 
-        int nf=n+1;
-        single_pol_cvg(n,i)+=weight*dcomplex(cos(nf*2*pi*tmp),sin(nf*2*pi*tmp))/doublevar(nelectrons);
-      }
-    }
-  }
-  
-  for(int n=0; n < ncvg; n++) { 
-    for(int i=0; i< 3; i++) { 
-      int nf=n+1;
-      manye_pol_cvg(n,i)+=weight*dcomplex(cos(nf*2*pi*sum(i)),sin(nf*2*pi*sum(i)));
-    }
-  }
-  nsample+=weight;
-                                       
-}
-
-//------------------------------------------------------------------------
-
-void Polarization::write() { 
-  for(int n=0; n < ncvg; n++) { 
-    for(int i=0; i< 3; i++) { 
-      single_pol_cvg(n,i)=parallel_sum(single_pol_cvg(n,i));
-      manye_pol_cvg(n,i)=parallel_sum(manye_pol_cvg(n,i));
-    }
-  }
-  nsample=parallel_sum(nsample);
-  
-  if(mpi_info.node==0) { 
-    
-    ofstream out(outputfile.c_str(), ios::app);
-    out.precision(15);
-    
-    for(int n=0; n< ncvg; n++) {
-      for(int i=0; i< 3; i++) { 
-        out << single_pol_cvg(n,i).real()/nsample  << "  " << single_pol_cvg(n,i).imag()/nsample << "   ";
-      }
-      for(int i=0; i< 3; i++) { 
-        out << manye_pol_cvg(n,i).real()/nsample << "  " << manye_pol_cvg(n,i).imag()/nsample << "  ";
-      }
-    }
-    out << endl;
-    out.close();
-
-  }
-  nsample=0;
-  single_pol_cvg=dcomplex(0.0,0.0);
-  manye_pol_cvg=dcomplex(0.0,0.0);
-}
-
-
-
-//######################################################################
 
 //--------------------------------------------------
 

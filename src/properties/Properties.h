@@ -177,43 +177,7 @@ class One_particle_density:public Local_density_accumulator {
 };
 
 
-/*!
- */
 
-class Electron_correlation: public Local_density_accumulator { 
-public:
-  virtual void init(vector <string> & , System *, string & runid);
-  virtual void accumulate(Sample_point *, doublevar weight);
-  virtual void write();
-private:
-    string outputfile;
-  Array1 <doublevar> gr_up, gr_down, gr_unlike;
-  doublevar resolution;
-  int npoints;
-  doublevar nsample_up, nsample_down, nsample_unlike;
-  int nup;
-};
-
-
-
-class Structure_factor:public Local_density_accumulator { 
- public:
-    virtual void init(vector <string> & , System *, string & runid);
-    virtual void accumulate(Sample_point *, doublevar weight);
-    virtual void write();
- protected:
-    string outputfile;
-    int nsample;
-    doublevar wnsample;
-    int nelectrons;    
-    int npoints;
-    int np_side; //!< number of points on the side
-
-    Array1 <doublevar> grid; 
-    Array2 <doublevar> gvec;
-    Array2 <doublevar> kpts;
-
-};
 
 
 class LM_storage {
@@ -254,23 +218,6 @@ class Local_moments:public Local_density_accumulator {
 };
 
 
-class Polarization:public Local_density_accumulator { 
-public:
-  virtual void init(vector <string> & , System *, string & runid);
-  virtual void accumulate(Sample_point *, doublevar weight);
-  /*!
-    Write out the density.  Note that when running in parallel, this
-   must be called by all processes!
-   */
-  virtual void write();
-private:
-    string outputfile;
-  Array2 <dcomplex> single_pol_cvg;
-  Array2 <doublevar> gvec;
-  Array2 <dcomplex> manye_pol_cvg;
-  doublevar nsample;
-  int ncvg;
-};
 
 
 
