@@ -431,7 +431,7 @@ void Properties_final_average::showSummary(ostream & os, Array1 <Average_generat
   os << endl;
   
  
-  assert(avg_gen.GetDim(0)==avgavg.GetDim(0)==avgerr.GetDim(0));
+  assert(avg_gen.GetDim(0)==avgavg.GetDim(0) && avgavg.GetDim(0)==avgerr.GetDim(0));
   for(int i=0; i< avg_gen.GetDim(0); i++) { 
     avg_gen(i)->write_summary(avgavg(i),avgerr(i), os);
   }
