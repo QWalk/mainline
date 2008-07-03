@@ -261,10 +261,12 @@ keep the variance down and the wave function accurate.
 \newpage
 \section{Methods}
 \subsection{Variational Monte Carlo sampling}
+Keyword: VMC \\
+
 Evaluates the expectation value $ <\Psi|O|\Psi>/<\Psi|\Psi>$
 stochastically, where $O$ is an observable.
 
-Required options: \\
+Required keywords: \\
 \begin{tabular}{lp{12cm}}
 {\bf NCONFIG} & Integer. Number of sample points to use at one time,
 per processor.  This will also be the number that is put into the 
@@ -299,21 +301,20 @@ the importance-sampling function. This will importance-sample only
 with respect to wave functions defined in the TRIALFUNC section.  Ones
 defined in AUX\_WF/AUX\_SYS will not be used, since they are auxillary, not
 guiding functions. Defaults to SUMSQUARES.\\
-{\bf DYNAMICS} &  Section.
-      Control the pseudo-dynamics of the sampling.  Insert a 
-          Dynamics section here. Defaults to \{ SPLIT \}.  For runs not 
-using pseudopotentials, you may want to consider \{ UNR \}. \\
 \end{tabular}
 
 \newpage
 \subsection{Wave function optimization: conjugate gradients}
+Keyword: OPTIMIZE \\
+
+
 The approach here is to use a fixed set of configurations and 
 a conjugate gradient routine to minimize some quantity such as 
 variance or mean absolute deviation.  This method is quite fast, 
 but is not very effective at minimizing total energy or nodal 
 structure.  The method keyword is OPTIMIZE.
 
-Required options: \\
+Required keywords: \\
 \begin{tabular}{lp{12cm}}
 {\bf NCONFIG} &  Integer. Number of configurations per processor. \\
 {\bf READCONFIG} & String. Where to read the configurations from. This 
@@ -340,6 +341,8 @@ For an energy minimization, it's advisable to also use USE\_WEIGHTS. \\
 
 \newpage
 \subsection{Wave function optimization: Newton's method}
+Keyword: OPTIMIZE2 \\
+
 Uses Levenberg-Marquardt algorithm to minimize wavefunction's
 energy/variance or mixture of both. It uses self-adjustable 
 damping parameter which is added to the diagonal of corresponding hessian.
@@ -353,6 +356,8 @@ MIXED optimizations, since the primary use is for energy optimization.
 
 \newpage
 \subsection{Diffusion Monte Carlo}
+Keyword: DMC \\
+
 The purpose of diffusion Monte Carlo is to go beyond a variational 
 \emph{ansatz}.  The major approximation is the fixed-node one.  
 The energies obtained here are generally the lowest 
@@ -362,17 +367,144 @@ large systems.
 In this implementation of DMC, we use something similar to the Umrigar
 Nightingale, Runge paper, with some modifications.  Electrons are moved 
 one-by-one, and there is an effective timestep for the branching part of 
-the green's function.  We use a modification of the branching algorithm 
+the green's function.  We use a branching algorithm 
 that ensures a constant number of walkers, which improves the 
 parallel efficiency--it is easy to scale up to thousands of processors
 with 99\% efficiency.
 
+Required keywords: \\
+\begin{tabular}{lp{12cm}}
+{\bf NCONFIG} &  Integer. The desired number of walkers
+per node.  This should match the VMC number used to generate the walkers. \\
+{\bf NSTEP} & Integer.   Number of average points to take in a block.
+ Should be such that NSTEP*TIMESTEP is approximately 1. \\
+{\bf NBLOCK} & Integer.  Number of blocks to take\\
+{\bf TIMESTEP} & Float.  A measure of how large each move 
+should be.  Adjust such that the acceptance ratio is about .99. Acceptance ratio
+is just a general guide, however, and it's useful to do several time steps, extrapolating
+to zero, if you need highly accurate results.\\
+{\bf  READCONFIG } & String.  Read from a configuration file
+previously written by STORECONFIG.  If there are more  configurations 
+than NCONFIG, DMC will read NCONFIG.  This should either be from a VMC 
+run or a previous DMC run. \\
+\end{tabular}
+
+Other options: \\
+\begin{tabular}{lp{12cm}}
+{\bf STORECONFIG} & String.   Write the configurations and DMC 
+weights to this file every block.  In parallel, each processor will write its configurations to this file with \_n appended, where n is the processor number. \\
+{\bf TMOVES} & Flag. Use Michele Casula's T-moves, which
+  makes DMC rigorously variational when there are non-local pseudopotentials
+  at the cost of increasing the timestep error slightly.  Defaults to off \\
+\end{tabular}
+
+More advanced options that change internal parameters in the DMC calculation.  These
+can generally be left as they are without affecting the accuracy of the calculation, 
+so don't change these unless you know what you're doing.\\
+\begin{tabular}{lp{10cm}}
+{\bf LOW\_IO} & Flag. Try to limit the amount of I/O, which
+is useful when the run is faster than the I/O, or in the case of writing to
+flaky NFS servers.  Currently it just turns off writing 
+configurations and one-body densities in intermediate blocks, only writing at the end of the run.\\
+{\bf FEEDBACK } & Float.  The strength of the population control.  Set it to
+ roughly 1/n, where n is the number of steps that it should take to return the 
+average weight of the walkers to one. \\
+{\bf FEEDBACK\_INTERVAL} & Integer.  Number of steps to wait before doing 
+population control.  This can affect efficiency because of the way that QWalk 
+handles more than one walker per node.  If this is too small, then the calculation 
+will run slighly slower, and if it is too large, the fluctuations in 
+weights tend to increase.  The default is 5, which works in most instances.\\
+{\bf BRANCH\_START\_CUTOFF} & Float.  When a walker's energy is very low, we slow down the accumulation 
+          of weights, eventually cutting it off.  The cutoff starts at 
+          BRANCH\_START\_CUTOFF*sigma, where sigma is the standard deviation
+          of the local energy.  When doing highly accurate calculations, it's 
+          sometimes the case that eref appears to be biased.  One can increase
+          this value, which should alleviate the problem.  The default is 10. \\
+\end{tabular}
+
+\newpage
 
 \subsection{Reptation Monte Carlo}
+Keyword: REPTATION \\
+
+This is an implementation of the Reptation Monte Carlo method(PRL 82, 4745 (1999)).  There are quite a few modifications to the algorithm as presented in the above paper. 
+ Some are outlined in a paper by Pierleoni and Ceperley that's floating around on the net, most importantly the bounce algorithm.  RMC is conceptually similar to DMC, in t
+hat we sample the distribution $\Psi_T e^{-H\tau} \Psi_T $, with the projection operator interpreted as a random walk.  At each end of the walk, we have sampled $\Psi_T \Phi_0$, the mixed distribution.  In the center, we have $\Phi_0^2$, since on either side there are projection operators.  DMC only moves forward, so the center 
+distribution is unavailable, except by forward walking, which simulates the effect of projection operators.  In RMC, the random variable is the path, which, for finite len
+gth, can be a probability density.  Therefore, there's no branching and no population control bias.  
+
+
+The biases (and speed) are controlled by the timestep(just like DMC) a
+nd the length of the path.  The larger the timestep and shorter the reptile, the more efficient and inaccurate the simulation. The length of the reptile should be 
+around 1-3 a.u., depending on the quality of the trial wave function.
+
+RMC accumulates two estimators: label and label\_cen.  label contains the 
+mixed estimators, which are useful for the total energy and correlated
+sampling energy differences.  
+label\_cen contains the 'pure' estimator, which is useful for the local 
+potential energy and polarization, as well as other properties that 
+are specified with a DENSITY section(these automatically use the 
+center estimator).
+
+Required keywords:\\
+\begin{tabular}{lp{12cm}}
+{\bf NSTEP } & Integer.   Number of average points to take in a block. \\
+{\bf NBLOCK} & Integer. Number of blocks to take \\
+{\bf TIMESTEP} & Float. A measure of how large each move 
+should be.  Adjust such that the acceptance ratio is about .99. Acceptance ratio
+is just a general guide, however, and it's useful to do several time steps if you
+need highly accurate results. \\
+{\bf LENGTH} & Integer.  Number of points in the reptile.  Energy will be converged 
+to LENGTH points, and all other quantities(density, potential, etc) will be converged to LENGTH/2 points. \\
+{\bf READCONFIG } & String. Read from a configuration file
+previously written by STORECONFIG.  Since RMC only uses one walker/node for memory reasons, if it is a VMC
+configuration file, it will only take the first config, and ignore the rest.  The upshot of this is that you
+only need to generate one config/node in VMC. \\
+\end{tabular}
+
+
+Optional keywords: \\
+\begin{tabular}{lp{12cm}}
+{\bf STORECONFIG } & String. Write the reptile to the file specified at the end of each block.  In parallel, each processor will write its configurations to this file with \_n a
+ppended, where n is the processor number. \\
+{\bf LABEL} & String.  Label in the .log file.  Defaults to rmc.\\
+\end{tabular}
+
+\newpage 
+
 \subsection{Walker dynamics}
 
+VMC, DMC, and RMC all use a pluggable object to choose the walker steps.  There are
+two options implemented at the time of this writing: SPLIT and UNR. 
+
+ SPLIT consists
+of the moves outlined in the Foulkes {\it et al.} RMP with a slight wrinkle: it 
+can retry failed moves while maintaining detailed balance.  This mostly increases 
+the efficiency when performing large moves; i.e., VMC.  It is the best 
+choice when using pseudopotentials.
+
+UNR uses the algorithm of Umrigar, Nightingale, and Runge.  It is the preferred 
+algorithm for full-core atoms.
+
+So, in summary, when performing calculations with pseudopotentials, either do nothing 
+or put DYNAMICS \{ SPLIT DEPTH 2 \} in the VMC section.  With full-core atoms, put 
+DYNAMICS \{ UNR \}.
+
+\newpage
 
 \section{Basis functions}
+
+A basis function is a function of three dimensions.  This is a general 
+class that is used in many places throughout the code; both in evaluation of the 
+trial wave function and in other places.
+
+\subsection{Radial cubic spline}
+
+Keyword: AOSPLINE \\
+
+
+
+\newpage
 
 \section{Wave functions}
 \subsection{Slater}

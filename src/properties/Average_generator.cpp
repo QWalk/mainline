@@ -10,6 +10,8 @@ int decide_averager(string & label, Average_generator *& avg) {
     avg=new Average_structure_factor;
   else if(caseless_eq(label, "GR"))
     avg=new Average_twobody_correlation;
+  else if(caseless_eq(label, "MANYBODY_POL"))
+    avg=new Average_manybody_polarization;
   else 
     error("Didn't understand ", label, " in Average_generator.");
   
@@ -307,3 +309,67 @@ void Average_twobody_correlation::write_summary(Average_return & avg, Average_re
   }
   
 }
+
+
+//############################################################################
+
+
+void Average_manybody_polarization::read(System *sys, Wavefunction_data * wfdata, vector <string> & words) { 
+  gvec.Resize(3,3);
+  if(!sys->getRecipLattice(gvec) ) { 
+    error("The manybody polarization operator works only for periodic systems!");
+  }
+}
+
+//-----------------------------------------------------------------------------
+void Average_manybody_polarization::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+                                             System * sys, Sample_point * sample, Average_return & avg) {
+  avg.type="manybody_pol";
+  int nelectrons=sample->electronSize();
+  avg.vals.Resize(6);
+  Array1 <doublevar> sum(3,0.0);
+  Array1 <doublevar> pos(3);
+  for(int e=0; e< nelectrons; e++) { 
+    sample->getElectronPos(e,pos);
+    for(int i=0; i< 3; i++) { 
+      for(int d=0; d< 3; d++) { 
+        sum(i)+=gvec(i,d)*pos(d);
+      }
+    }
+  }
+  for(int i=0; i< 3; i++) { 
+    avg.vals(2*i)=cos(2*pi*sum(i));
+    avg.vals(2*i+1)=sin(2*pi*sum(i));
+  }
+}
+//-----------------------------------------------------------------------------
+
+void Average_manybody_polarization::write_init(string & indent, ostream & os) { 
+  os << indent << "manybody_pol" << endl;
+  os << indent << "gvec { ";
+  for(int i=0; i< 3; i++) 
+    for(int j=0; j< 3; j++) os << gvec(i,j) << "  ";
+  os << "}\n";
+}
+//-----------------------------------------------------------------------------
+void Average_manybody_polarization::read(vector <string> & words) { 
+  unsigned int pos=0;
+  vector <string> gvec_sec;
+  readsection(words, pos=0, gvec_sec, "gvec");
+  int count=0;
+  gvec.Resize(3,3);
+  for(int i=0; i< 3; i++)
+    for(int j=0; j< 3; j++) gvec(i,j)=atof(gvec_sec[count++].c_str());
+  
+}
+//-----------------------------------------------------------------------------
+
+
+void Average_manybody_polarization::write_summary(Average_return & avg, Average_return & err, ostream & os) { 
+  os << "Manybody polarization operator " << endl;
+  for(int i=0; i< 3; i++) { 
+    os << avg.vals(2*i) << " + i " << avg.vals(2*i+1) << " +/- " << err.vals(2*i) << " + i " << err.vals(2*i+1) << endl;
+  }
+}
+
+
