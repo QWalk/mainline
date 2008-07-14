@@ -34,10 +34,18 @@ as a simplification of crystalline Periodic_system.
 
 Keyword: HEG
 
-There are two choices for e-e interaction:
-  1) Ewald
-  2) truncated Coulomb a.k.a. MPC [Fraser et al., PRB 53, 1814 (1994)]
-At present, the default is 2.
+There are two choices for Coulomb e-e interaction:
+\li Ewald \n
+       <tt>interaction { Ewald }</tt>
+\li truncated Coulomb a.k.a. MPC [Fraser et al., PRB 53, 1814 (1994)] \n
+       <tt>interaction { truncCoul }</tt>
+  
+and some others for model calculations:
+\li Gaussian e-e well (needs overall amplitude and standard deviation,
+     i.e., interaction range, to be given in the \c system input deck) \n
+       <tt>interaction { Gauss amp -5. stdev .5 }</tt>
+     
+At present, the default is the truncated Coulomb.
 
 */
 
@@ -110,70 +118,86 @@ private:
 
   friend class HEG_sample;
 
-  Array1 <int> nspin;
-
+  Array1 <int> nspin;             //!< number of spin-up and -down electrons
+  int totnelectrons;              //!< total number of electrons
+  
   Array2 <doublevar> centerpos;
+  //!< position of centers to which basis is bound, could perhaps be simplified in this system
 
-  Array1 <doublevar> origin;  //!< the origin of the simulation cell
+  Array1 <doublevar> origin;      //!< the origin of the simulation cell
 
   Array2 <doublevar> latVec;
   //!< lattice vectors, first index is a,b,c, second is x,y,z
-  Array1 <doublevar> kpt; //!< the k-point we're simulating at.    
+  Array1 <doublevar> kpt;         //!< the k-point we're simulating at.    
   Array2 <doublevar> recipLatVec; //!<reciprocal lattice vectors
-  Array2 <doublevar> normVec;  //!< normal vectors to the sides, pointing out
-  Array2 <doublevar> corners; //!< the position of the corner by moving one lattice vector
-  doublevar smallestheight;   //!< smallest distance that spans the cell
+  Array2 <doublevar> normVec;     //!< normal vectors to the sides, pointing out
+  Array2 <doublevar> corners;     //!< the position of the corner by moving one lattice vector
+  doublevar smallestheight;       //!< smallest distance that spans the cell
+  doublevar cellVolume;           //!< Simulation cell volume
 
-  int totnelectrons; //!< number of electrons
-  doublevar cellVolume; //!< Simulation cell volume
-
-  Array2 <doublevar> gpoint; //!< A list of non-zero g points in the ewald sum
+  Array2 <doublevar> gpoint;      //!< A list of non-zero g points in the Ewald sum
   Array1 <doublevar> gweight;
   //!< A list of the weights(\f$4\pi exp(|g|^2/4 \alpha^2) \over V_{cell}|g|^2\f$)
+  int ngpoints;                   //!< number of k points in ewald sum
+  doublevar alpha;                //!< the Ewald parameter
+  doublevar self_ee;              //!< self electron-electron energy
+  doublevar xc_correction;        //!< exchange-correlation correction
 
-  int ngpoints; //!< number of k points in ewald sum
-  doublevar alpha; //!< the ewald parameter
-  doublevar self_ee; //!< self electron-electron energy
-  doublevar xc_correction; //!< exchange-correlation correction
+  doublevar backgr_trunc;
+  //!< constant to adjust truncated Coulomb for positive background charge
+  
+  doublevar Gauss_a;              //!< amplitude of Gaussian interaction
+  doublevar Gauss_s;              //!< std. deviation (i.e., range) of Gaussian interaction
+  doublevar Gauss_s2;             //!< \c Gauss_s squared
 
-  doublevar backgr_trunc; //!< constant to adjust truncated Coulomb for positive background charge
-
-
-  /*!
+  int eeModel;
+  /*!< \brief
+   *  description for chosen e-e interaction model (used in showinfo())
+   *  \li 0  default (truncated Coulomb)
+   *  \li 1  Ewald
+   *  \li 2  truncated Coulomb
+   *  \li 3  short-range gaussian well
+  */
+  
+  doublevar (HEG_system::*calcLocChoice)(Sample_point *);
+  //!< pointer to the selected local energy evaluator
+  
+  /*! \brief
     Initializations for Ewald sum evaluation
   */
   int setupEwald(Array2 <doublevar> & crossProduct);
     
-  /*!
+  /*! \brief
     Set the constant ewald terms
    */
   void constEwald();
 
-  /*!
+  /*! \brief
     electron-electron interaction (Ewald formula)
    */
   doublevar ewaldElectron(Sample_point * sample);
 
   
-  /*!
+  /*! \brief
     Initializations for truncated Coulomb evaluation
   */
   int setupTruncCoulomb(); 
 
 
-  /*!
-    local energy evaluators and pointer to the selected one
+  /*! \brief
+    evaluates local energy for Ewald model
   */
   doublevar calcLocEwald(Sample_point *);
-  doublevar calcLocTrunc(Sample_point *);
-  doublevar (HEG_system::*calcLocChoice)(Sample_point *);
-  /*!
-    description for chosen model (for status info)
-    0  default (truncated Coulomb)
-    1  Ewald
-    2  truncated Coulomb
+
+  /*! \brief
+    evaluates local energy for truncated Coulomb model
   */
-  int eeModel;  
+  doublevar calcLocTrunc(Sample_point *);
+
+  /*! \brief
+    evaluates local energy for Gaussian short-range interaction
+  */
+  doublevar calcLocGauss(Sample_point *);
   
 };
 

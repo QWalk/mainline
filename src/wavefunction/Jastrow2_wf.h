@@ -202,6 +202,11 @@ public:
   virtual int getParmDeriv(Wavefunction_data *, Sample_point *,
                            Parm_deriv_return & );
 
+  // JK: to implement analytical derivatives in BCS_wf (which uses two-body
+  // Jastrow piece as a pair orbital), "electron-resolved" ParamDeriv is needed
+  int get_twobody_ParmDeriv(Sample_point *, Array3<doublevar> & );
+    
+    
   void get_twobody(Array3 <doublevar>& twobody) { 
     twobody=two_body_save;
   }

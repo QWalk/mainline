@@ -1601,3 +1601,44 @@ void sort_according_list(const Array1 <doublevar> & vals, Array1 <doublevar> & n
     newvals(i)=vals(list(i));
   }
 }
+
+//----------------------------------------------------------------------
+doublevar dot(const Array1 <doublevar> & a,  const Array1 <doublevar> & b){
+  int dim=a.GetSize();
+  assert(a.GetSize()==b.GetSize());
+  doublevar sum=0;
+  for(int i=0;i<dim;i++)
+    sum+=a(i)*b(i);
+  return sum;
+}
+//----------------------------------------------------------------------
+
+dcomplex  dot(const Array1 <doublevar> & a,  const Array1 <dcomplex> & b){
+  int dim=a.GetSize();
+  assert(a.GetSize()==b.GetSize());
+  dcomplex sum(0.0,0.0);
+  for(int i=0;i<dim;i++)
+    sum+=a(i)*b(i);
+  return sum;
+}
+//----------------------------------------------------------------------
+
+dcomplex  dot(const Array1 <dcomplex> & a,  const Array1 <doublevar> & b){
+  int dim=a.GetSize();
+  assert(a.GetSize()==b.GetSize());
+  dcomplex sum(0.0,0.0);
+  for(int i=0;i<dim;i++)
+    sum+=a(i)*b(i);
+  return sum;
+}
+
+//----------------------------------------------------------------------
+
+dcomplex  dot(const Array1 <dcomplex> & a,  const Array1 <dcomplex> & b){
+  int dim=a.GetSize();
+  assert(a.GetSize()==b.GetSize());
+  dcomplex sum(0.0,0.0);
+  for(int i=0;i<dim;i++)
+    sum+=a(i)*b(i);
+  return sum;
+}

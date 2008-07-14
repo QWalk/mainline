@@ -1498,3 +1498,61 @@ int Jastrow2_wf::getParmDeriv(Wavefunction_data *wfdata , Sample_point * sample,
 
 //--------------------------------------------------------------------------
 
+// JK: to implement analytical derivatives in BCS_wf (which uses two-body
+// Jastrow piece as a pair orbital), "electron-resolved" ParamDeriv is needed
+int Jastrow2_wf::get_twobody_ParmDeriv(Sample_point * sample,
+				       Array3<doublevar>& twobody_parm_deriv ) {
+  
+  sample->updateEEDist();
+
+  int parm_count=-1;
+  int nparm=0;
+  
+  int ng=parent->group.GetDim(0);
+  for(int g=0; g< ng; g++) {
+    if(parent->group(g).hasTwoBody()&& parent->group(g).two_body->nparms()) {
+      nparm+=parent->group(g).two_body->nparms();
+    }
+  }
+
+  twobody_parm_deriv.Resize(nelectrons, nelectrons,nparm);
+
+  for(int g=0; g< ng; g++) {
+    if(parent->group(g).hasTwoBody()&& parent->group(g).two_body->nparms()) {
+      
+      Array3 <doublevar> eetotal(nelectrons, nelectrons, maxeebasis);
+      eetotal=-1;
+      Array3 <doublevar> eebasis(nelectrons, maxeebasis, 5);
+      for(int e=0; e< nelectrons; e++) { 
+	parent->group(g).updateEEBasis(e,sample,eebasis);
+	for(int j=0; j< e; j++) { 
+	  for(int b=0; b< maxeebasis; b++) {
+	    eetotal(j,e,b)=eebasis(j,b,0);
+	  }
+	}
+      }
+      
+
+      // JK: how do I know that the only parameters are those for linear
+      // combination of basis functions?
+      // how do I know the ordering is consistent with the rest of the code?
+
+
+      int np=parent->group(g).two_body->nparms();
+      for (int p=0; p<np; p++) {
+	parm_count++;
+	for (int i=0; i<nelectrons; i++) {
+	  for (int j=0; j<nelectrons; j++) {
+	    twobody_parm_deriv(i,j,parm_count)=eetotal(i,j,p);
+	  }
+	}
+      }
+     
+    }
+  }
+     
+  return 1;
+
+}
+
+//--------------------------------------------------------------------------

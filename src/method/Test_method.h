@@ -31,6 +31,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Guiding_function.h"
 class Program_options;
 class Basis_function;
+#include "Backflow_wf_data.h"
 #include "System.h"
 /*!
 \brief
@@ -53,6 +54,7 @@ public:
 
   int showinfo(ostream & os);
  private:
+  void testBackflow();
   void plotCusp(Wavefunction * mywf, Sample_point * sample);
   void testParmDeriv(Wavefunction * mywf, Sample_point * sample);
   int nelectrons; //!< Number of electrons
@@ -66,6 +68,7 @@ public:
   Pseudopotential * psp;
   Basis_function * basis;
 
+  Backflow_wrapper backflow;
   int test_backflow;
   int plot_cusp;
   int parms_ders;

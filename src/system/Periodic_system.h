@@ -131,6 +131,9 @@ public:
     kp=kpt;
   }
 
+  virtual void getorigin (Array1 <doublevar> & o) {
+    o=origin;
+  }
 
 private:
   friend class Periodic_sample;

@@ -1,0 +1,55 @@
+####################################################################
+# Set platform and build specific information
+#   any of these can be overridden by environment variables of the
+#   same name, or by command line options "make target PLATFORM=foo"
+PLATFORM = $(shell uname -s)
+DVLPATH = .
+
+####################################################################
+# Derived paths, all relative to the base path.  These shouldn't
+# change without restructuring the make environment
+
+MAKEPATH:=$(DVLPATH)/make
+OBJPATH:=$(DVLPATH)/obj/$(PLATFORM)
+SRCPATH:=$(DVLPATH)
+PROJECT:=$(DVLPATH)/averr-$(PLATFORM)
+DEPENDFILE:=$(OBJPATH)/depend.averr
+
+include make.include
+
+SOURCES:=properties/Properties_average.cpp \
+         properties/Properties_block.cpp \
+         program_utils/Qmc_std.cpp \
+         program_utils/qmc_io.cpp \
+         properties/averr.cpp
+
+
+#remove the directory prefix and .cpp extension, and add the .o extension
+OBJS:= $(addprefix $(OBJPATH)/,$(addsuffix .o,$(notdir $(basename $(SOURCES)))))
+NODEPENDGOALS = depend clean totalclean cleanhtml html all
+
+####################################################################
+# Special rules
+DEFAULT: $(PROJECT) 
+all: $(PROJECT) 
+.PHONY: clean totalclean depend cleanhtml
+#.SILENT:
+####################################################################
+# Included files for dependency and platform specific defines
+include $(MAKEPATH)/$(PLATFORM).mk
+include $(DEPENDFILE)
+
+####################################################################
+# Project and build rules
+
+$(PROJECT):$(OBJS)
+	@echo ________________________________________________________________
+	@echo Linking $@
+	$(CXX) $(DEBUG) $(CXXFLAGS) -o $(PROJECT) $(OBJS) $(LDFLAGS) $(BLAS_LIBS)
+
+clean:
+	@echo ________________________________________________________________
+	@echo Cleaning object files...
+	rm -f $(OBJS) core $(PROJECT)
+
+include make.rules

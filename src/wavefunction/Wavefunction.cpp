@@ -29,9 +29,13 @@ void extend_parm_deriv(Parm_deriv_return & ret1, const Parm_deriv_return & ret2)
   int nparms1=ret1.gradient.GetDim(0);
   int nparms2=ret2.gradient.GetDim(0);
   //ignoring nparms_start and nparms_end..those should really be input variables, no?
+  //yes they are input variables, but in princile should be reflected when making the 
+  //final gradients and hessians, I am not changing it for now. M.
   //cout << "nparms " << nparms << "  " << nparms1 << " " << nparms2 << endl;
   Parm_deriv_return derivatives;
   derivatives.need_hessian=ret1.need_hessian;
+  derivatives.nparms_start=ret1.nparms_start;
+  derivatives.nparms_end=ret1.nparms_end;
 
   derivatives.gradient.Resize(nparms);
   derivatives.hessian.Resize(nparms,nparms);
@@ -98,7 +102,7 @@ void Wf_return::write(string & indent, ostream & os) {
 
 //----------------------------------------------------------------------
 
-
+/*
 void Wf_return::setVals(Array2 <dcomplex> & vals, 
                         Array1 <doublevar> &  p) {
 
@@ -158,8 +162,41 @@ void Wf_return::setVals(Array2 <dcomplex> & vals,
     }
 
   }
-    
-    
+     
+}
+*/
+
+
+void Wf_return::setVals(Array2 <dcomplex> & vals, 
+                        Array1 <doublevar> &  p) {
+
+  // here we extract amplitude and phase, and their gradients and laplacians,
+  // from the complex value and its gradient and derivative
+
+  is_complex=1;
+  cvals=vals;
+  int ntype=vals.GetDim(1);
+  int nwf=vals.GetDim(0);
+  for (int w=0; w< nwf; w++) {
+    amp(w,0)=vals(w,0).real();
+    phase(w,0)=p(w);
+
+    doublevar sum_ii=0;
+    doublevar sum_ri=0;
+    if (ntype>=4) {
+      for (int i=1; i<4; i++) {
+        amp(w,i)=vals(w,i).real();
+	phase(w,i)=vals(w,i).imag();
+	sum_ii+=phase(w,i)*phase(w,i);
+	sum_ri+=amp(w,i)*phase(w,i);
+      }
+    }
+
+    if (ntype>=5) {
+      amp(w,4)=vals(w,4).real()+sum_ii;
+      phase(w,4)=vals(w,4).imag()-2*sum_ri;
+    }
+  }
   
 }
 
@@ -183,25 +220,24 @@ void Wf_return::setVals(Array2 <doublevar> & vals, Array1 <doublevar> & sign) {
 }
 //----------------------------------------------------------------------
 
-
 void Wf_return::mpiSend(int node) {
 #ifdef USE_MPI
   int nwf, nst;
   nwf=amp.GetDim(0); nst=amp.GetDim(1);
-  MPI_Send(&nwf, 1, MPI_INT, node, 0, MPI_COMM_WORLD);
-  MPI_Send(&nst, 1, MPI_INT, node, 0, MPI_COMM_WORLD);
-  MPI_Send(&is_complex, 1, MPI_INT, node, 0, MPI_COMM_WORLD);
+  MPI_Send(&nwf, 1, MPI_INT, node, 0, MPI_Comm_grp);
+  MPI_Send(&nst, 1, MPI_INT, node, 0, MPI_Comm_grp);
+  MPI_Send(&is_complex, 1, MPI_INT, node, 0, MPI_Comm_grp);
   
-  MPI_Send(amp.v, nwf*nst, MPI_DOUBLE, node, 0, MPI_COMM_WORLD);
-  MPI_Send(phase.v, nwf*nst, MPI_DOUBLE, node, 0, MPI_COMM_WORLD);
+  MPI_Send(amp.v, nwf*nst, MPI_DOUBLE, node, 0, MPI_Comm_grp);
+  MPI_Send(phase.v, nwf*nst, MPI_DOUBLE, node, 0, MPI_Comm_grp);
 
   if(is_complex) {  
     for(int w=0; w < nwf; w++) {
       for(int i=0; i < nst; i++) {
         doublevar tmp=cvals(w,i).real();
-        MPI_Send(&tmp, 1, MPI_DOUBLE, node, 0, MPI_COMM_WORLD);
+        MPI_Send(&tmp, 1, MPI_DOUBLE, node, 0, MPI_Comm_grp);
         tmp=cvals(w,i).imag();
-        MPI_Send(&tmp, 1, MPI_DOUBLE, node, 0, MPI_COMM_WORLD);
+        MPI_Send(&tmp, 1, MPI_DOUBLE, node, 0, MPI_Comm_grp);
       }
     }
   }
@@ -215,19 +251,19 @@ void Wf_return::mpiRecieve(int node) {
   int nwf, nst;
   MPI_Status status;
   
-  MPI_Recv(&nwf, 1, MPI_INT, node, 0, MPI_COMM_WORLD, &status);
-  MPI_Recv(&nst, 1, MPI_INT, node, 0, MPI_COMM_WORLD, &status);
-  MPI_Recv(&is_complex, 1, MPI_INT, node, 0, MPI_COMM_WORLD, &status);
+  MPI_Recv(&nwf, 1, MPI_INT, node, 0, MPI_Comm_grp, &status);
+  MPI_Recv(&nst, 1, MPI_INT, node, 0, MPI_Comm_grp, &status);
+  MPI_Recv(&is_complex, 1, MPI_INT, node, 0, MPI_Comm_grp, &status);
   
   Resize(nwf, nst);
-  MPI_Recv(amp.v, nwf*nst, MPI_DOUBLE, node, 0, MPI_COMM_WORLD, & status);
-  MPI_Recv(phase.v, nwf*nst, MPI_DOUBLE, node, 0, MPI_COMM_WORLD, &status);
+  MPI_Recv(amp.v, nwf*nst, MPI_DOUBLE, node, 0, MPI_Comm_grp, & status);
+  MPI_Recv(phase.v, nwf*nst, MPI_DOUBLE, node, 0, MPI_Comm_grp, &status);
   if(is_complex) {  
     for(int w=0; w < nwf; w++) {
       for(int i=0; i < nst; i++) {
         doublevar tmp1, tmp2;
-        MPI_Recv(&tmp1, 1, MPI_DOUBLE, node, 0, MPI_COMM_WORLD, &status);
-        MPI_Recv(&tmp2, 1, MPI_DOUBLE, node, 0, MPI_COMM_WORLD, &status);
+        MPI_Recv(&tmp1, 1, MPI_DOUBLE, node, 0, MPI_Comm_grp, &status);
+        MPI_Recv(&tmp2, 1, MPI_DOUBLE, node, 0, MPI_Comm_grp, &status);
         cvals(w,i)=dcomplex(tmp1, tmp2);
       }
     }
@@ -235,7 +271,6 @@ void Wf_return::mpiRecieve(int node) {
   
 #endif
 }
-
 
 //----------------------------------------------------------------------
 

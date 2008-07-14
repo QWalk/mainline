@@ -21,6 +21,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Center_set.h"
 #include "qmc_io.h"
 #include "Basis_function.h"
+#include "CBasis_function.h"
 #include "Sample_point.h"
 
 //----------------------------------------------------------------------
@@ -109,6 +110,35 @@ void Center_set::read(vector <string> & words, unsigned int pos,
 //------------------------------------------------------------
 
 void Center_set::assignBasis(Array1 <Basis_function *> basisfunc)
+{
+  int totbasis=basisfunc.GetDim(0);
+  basis.Resize(ncenters, totbasis);
+
+  for(int i=0; i< ncenters; i++)
+  {
+    int found=0;
+    for(int j=0; j < totbasis; j++)
+    {
+      if(basisfunc(j)->label() == labels[i])
+      {
+        appendbasis(j,i);
+        found=1;
+        //break;
+      }
+
+    }
+    if(!found)
+    {
+      cout << "\n****WARNING*****\n"
+      << "Couldn't find basis for atom " << labels[i]
+      << endl;
+    }
+  }
+}
+
+//------------------------------------------------------------
+
+void Center_set::assignBasis(Array1 <CBasis_function *> basisfunc)
 {
   int totbasis=basisfunc.GetDim(0);
   basis.Resize(ncenters, totbasis);

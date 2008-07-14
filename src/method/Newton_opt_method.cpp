@@ -738,7 +738,7 @@ void Newton_opt_method::Get_correlated_energies_and_variances(Array1 < Array1 <d
       string wfoutputfile_tmp=wfoutputfile+"_aux"+strbuff;
       write_wf(parms(i), wfoutputfile_tmp, wfdata);
 #ifdef USE_MPI
-      MPI_Barrier(MPI_COMM_WORLD);
+      MPI_Barrier(MPI_Comm_grp);
 #endif
       ifstream wfinput(wfoutputfile_tmp.c_str());
       parsefile(wfinput, aux_wftext[ii]);
@@ -749,7 +749,7 @@ void Newton_opt_method::Get_correlated_energies_and_variances(Array1 < Array1 <d
   string wfoutputfile_tmp=wfoutputfile+"_ref";
   write_wf(parms(1), wfoutputfile_tmp, wfdata);
 #ifdef USE_MPI
-      MPI_Barrier(MPI_COMM_WORLD);
+      MPI_Barrier(MPI_Comm_grp);
 #endif
 
   //do correlated run with parms(0) and get energy diffrences: 
@@ -1582,7 +1582,7 @@ void Newton_opt_method::run(Program_options & options, ostream & output)
 	   <<  best_energy <<" +/-" <<best_energy_err<< " and dispersion: "<<sqrt(best_variance)<< endl;
   }
 #ifdef USE_MPI
-  MPI_Barrier(MPI_COMM_WORLD);
+  MPI_Barrier(MPI_Comm_grp);
 #endif
   //Put the wave function into options.trialfunc so further methods can use it.
   ifstream wfinput(wfoutputfile.c_str());
