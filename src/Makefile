@@ -31,7 +31,7 @@ NODEPENDGOALS = depend clean totalclean cleanhtml html all
 
 ####################################################################
 # Special rules
-all: $(PROJECT) gosling averr 
+all: $(PROJECT) gosling  
 .PHONY: clean totalclean depend  gosling pw2lcao
 #.SILENT:
 ####################################################################
@@ -52,9 +52,6 @@ gosling:
 
 pw2lcao:
 	$(MAKE) -f Makefile.pw2lcao
-
-averr:
-	$(MAKE) -f Makefile.averr
 
 clean:
 	@echo ________________________________________________________________
