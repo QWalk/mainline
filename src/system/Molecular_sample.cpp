@@ -197,6 +197,12 @@ void Molecular_sample::randomGuess()
   const doublevar range=3.0;  //range of the cube around atoms to fill
   Array1 <doublevar> trialPos(3);
 
+  Array1 <doublevar> ioncenter(3); ioncenter=0;
+  for(int ion=0; ion < parent->ions.size(); ion++) {
+    for(int d=0;d < 3; d++) ioncenter(d)+=parent->ions.r(d,ion)/parent->ions.size();
+  }
+  
+  
   int e=0;
   //Try to put them around the ions
   //cout << "nions " << ions.size() << endl;
@@ -237,7 +243,7 @@ void Molecular_sample::randomGuess()
   {
     for(int d=0; d< 3; d++)
     {
-      trialPos(d)=4*range*(rng.ulec()-.5);
+      trialPos(d)=4*range*(rng.ulec()-.5)+ioncenter(d);
       //elecpos(e,d)=4*range*(rng.ulec()-.5);
     }
     setElectronPos(e,trialPos);
