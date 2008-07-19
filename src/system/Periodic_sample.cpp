@@ -305,8 +305,12 @@ void Periodic_sample::randomGuess()
   int e=0;
   //Try to put them around the ions
   //cout << "nions " << ions.size() << endl;
-  for(int spin=0; spin < 2; spin++)
-  {
+  Array1 <doublevar> ioncenter(3); ioncenter=0;
+  for(int ion=0; ion < parent->ions.size(); ion++) {
+    for(int d=0;d < 3; d++) ioncenter(d)+=parent->ions.r(d,ion)/parent->ions.size();
+  }
+  
+  for(int spin=0; spin < 2; spin++) {
     for(int ion=0; ion< parent->ions.size(); ion++)
     {
       //cout << "charge " << ions.charge(ion) << endl;
@@ -333,12 +337,12 @@ void Periodic_sample::randomGuess()
   //if(e > nelectrons)
   //  error("internal:  electrons overflowed in Periodic_sample::randomGuess");
 
-  //Throw the rest randomly
+  //Throw the rest randomly around the center of the ions
   for(;e<nelectrons; e++)
   {
     for(int d=0; d< 3; d++)
     {
-      trialPos(d)=4*range*(rng.ulec()-.5);
+      trialPos(d)=4*range*(rng.ulec()-.5)+ioncenter(d);
     }
     setElectronPos(e, trialPos);
   }
