@@ -53,6 +53,10 @@ public:
 };
 extern mpi_info_struct mpi_info;
 
+#ifdef USE_MPI
+extern MPI_Comm MPI_Comm_grp;  // communicator for each independent process
+#endif
+
 typedef double doublevar;
 typedef complex <doublevar> dcomplex;
 int parallel_sum(int inp);
@@ -106,6 +110,10 @@ using namespace std;
 
 #ifndef pi
 const double pi=3.1415926535897932385;
+#endif
+
+#ifndef I
+const dcomplex I(0.0,1.0);
 #endif
 
 //--------------------------------------------------------------------------

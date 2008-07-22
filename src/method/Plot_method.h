@@ -106,10 +106,18 @@ private:
   Array1 <doublevar> minmax;	//xmin xmax ymin ymax zmin zmax
   doublevar resolution;	//grid coarsness: 10=coarser 0.1=finer
   MO_matrix * mymomat; //will hold MO information
+  Complex_MO_matrix * cmymomat ;//will hold MO information
   Sample_point * mywalker; //a single configuration/walker
   Array2 <doublevar> mymovals; //(i,j) where i=MO#, j=0 default (for now)
+  Array2 <dcomplex> cmymovals; //(i,j) where i=MO#, j=0 default (for now)
   System * sysprop;
   int print_derivatives;
+  int jeep_like_cube_file;
+  int periodic; 
+  int use_complex;
+  int totmo;
+  Array2 <doublevar> LatticeVec;
+  Array1 <doublevar> kpoint,origin;
 };
 
 #endif //PLOT_METHOD_H_INCLUDED

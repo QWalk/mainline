@@ -74,7 +74,7 @@ int Periodic_system::showinfo(ostream & os)
   os << "Self e-i " << self_ei << endl;
   os << "Self e-e " << self_ee << endl;
   os << "Self i-i " << self_ii << endl;
-  os << "xc correction " << xc_correction << endl;
+  os << "xc correction " << xc_correction <<" Warning: not added to E_total!"<< endl;
   os << "ion sum of ewald " << ion_ewald << endl;
   os << endl;
   ions.showinfo(os);
@@ -538,7 +538,9 @@ doublevar Periodic_system::calcLoc(Sample_point * sample)
   //cout << "ion_ewald " << ion_ewald << " self_ii " << self_ii
   //     << " self_ee " << self_ee << " self_ei " << self_ei << endl;
   //cout << " ewalde " << ewalde << " xc_correction " << xc_correction << endl;
-  return ion_ewald+self_ii+self_ee+self_ei+ewalde+xc_correction;
+  //we do not wont the xc_correction in the total energy in order to compare 
+  //to all other qmc codes, it is still printed out so can be added by hand 
+  return ion_ewald+self_ii+self_ee+self_ei+ewalde; //+xc_correction;
 }
 
 //----------------------------------------------------------------------

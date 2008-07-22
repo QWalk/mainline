@@ -84,6 +84,11 @@ int Spline_fitter::readspline(vector <string> & words, bool enforce_cusp, double
       error("I need equal spacing for all the spline points.");
     }
   }
+  //Check that the points start at x(0)=0; this is needed 
+  //if we get interval as:  int interval=int(r*invspacing);
+  //otherwise all the coef(i,j) are shifted by x(0); added by M.B.
+  if(x(0)<0 || x(0)>1e-20)
+    error("Need x values in SPLINE starting at zero.");
 
   threshold=x(n-1);
   invspacing=1.0/spacing;
@@ -156,9 +161,11 @@ doublevar Spline_fitter::findCutoff() {
       max=fabs(coeff(i,0));
   }
 
+   //if we have all-electron wfs or PP which have max >> 1.0
+  //but, we want max<=1.0; added by M.B.
+  max=min(max, (doublevar) 1.0);
   cutoff_threshold*=max;
-
-
+  
   for(doublevar x=threshold-step; x >=0; x-=step) {
     int interval=getInterval(x);
     doublevar height=x-interval*spacing;

@@ -23,6 +23,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Array.h"
 #include "System.h"
 class Basis_function;
+class CBasis_function;
 class Sample_point;
 /*!
 \brief
@@ -64,6 +65,7 @@ public:
   void read(vector <string> & words, unsigned int pos,
             System * sys);
   void assignBasis(Array1 <Basis_function *>);
+  void assignBasis(Array1 <CBasis_function *>);
 
   void updateDistance(int, Sample_point *);
   void getDistance(const int e, const int cent,

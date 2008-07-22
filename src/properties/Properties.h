@@ -149,6 +149,16 @@ class Local_density_accumulator {
     virtual ~Local_density_accumulator() { }
 };
 
+class Nonlocal_density_accumulator {
+ public:
+    virtual void init(vector <string> & , System *, string & runid)=0;
+    virtual void accumulate(Sample_point *, doublevar weight,
+			    Wavefunction_data *, Wavefunction *)=0;
+    virtual void write(string & log_label)=0;
+    virtual ~Nonlocal_density_accumulator() { }
+};
+
+
 class One_particle_density:public Local_density_accumulator { 
  public:
   void init(vector <string> & , System *, string & runid);
@@ -202,6 +212,7 @@ class Local_moments:public Local_density_accumulator {
   virtual void write();
  protected:
   string outputfile;
+  string outputfilelog;
   int nsample;         // samples in a block
   doublevar wnsample;  // weighted sample count in a block
   int nblock;
@@ -220,9 +231,37 @@ class Local_moments:public Local_density_accumulator {
 
 
 
+class OBDM:public Nonlocal_density_accumulator { 
+ public:
+    virtual void init(vector <string> & , System *, string & runid);
+    virtual void accumulate(Sample_point *, doublevar weight,
+			    Wavefunction_data *, Wavefunction *);
+    virtual void write(string & log_label);
+ protected:
+    string outputfilelog;
+    int nsample;
+    doublevar wnsample;
+    int nelectrons;    
+    int npoints;
+    int np_side;  //!< number of points on the side
+
+    doublevar dR; //!< increment in the parameter of ODBM
+
+    int np_aver;  //!< number of points of quadrature for spherical average
+    Array1 <doublevar> wt;  //!< angles and weights for Gaussian quadrature
+    Array2 <doublevar> ptc; //!< cartesian coordinates of integration points
+
+    Array2 <doublevar> latVec;
+    Array1 <doublevar> dmtrx;
+
+};
+
+
 
 void allocate(vector<string> & words, System * sys, string & runid,
 	 Local_density_accumulator  *& denspt);
+void allocate(vector<string> & words, System * sys, string & runid,
+	 Nonlocal_density_accumulator  *& nldenspt);
 
 //---------------------------------------------------------------------
 

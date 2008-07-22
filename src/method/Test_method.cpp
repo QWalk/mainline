@@ -57,6 +57,17 @@ void Test_method::read(vector <string> words,
   }
 
   vector <string> backtxt;
+  test_backflow=0;
+  if(readsection(words,pos=0, backtxt,"BACKFLOW_TEST")) { 
+    test_backflow=1;
+    Array1 <Array1 <int> >  occupation(1);
+    occupation(0).Resize(sysprop->nelectrons(0));
+    for(int i=0; i< sysprop->nelectrons(0); i++) { 
+      occupation(0)(i)=i;
+    }
+    backflow.readOrbitals(sysprop,backtxt);
+    backflow.init(sysprop,occupation,backtxt);
+  }
   
   if(haskeyword(words, pos=0, "PLOT_EE_CUSP"))
     plot_cusp=1;
@@ -88,7 +99,7 @@ void Test_method::read(vector <string> words,
 int Test_method::showinfo(ostream & os)
 {
   os << "#############Testing#################\n";
-  //wfdata->showinfo(os);
+  wfdata->showinfo(os);
   //sysprop->showinfo(os);
 
   return 1;
@@ -126,9 +137,13 @@ void Test_method::run(Program_options & options, ostream & output)
   cout << "in run " << endl;
 
   cout.precision(15);
+  
+  
+  Wavefunction * mywf=NULL;
   Sample_point * sample=NULL;
+  
+  wfdata->generateWavefunction(mywf);
   sysprop->generateSample(sample);
-  const doublevar del=1e-6;
 
   if(readconfig!="") {
     ifstream checkfile(readconfig.c_str());
@@ -139,92 +154,69 @@ void Test_method::run(Program_options & options, ostream & output)
       if(read_config(dummy, checkfile, sample)) break;
     }
   }
-  else {
-    sample->randomGuess();
+  
+  sample->attachObserver(mywf);
+  Array1 <Wf_return> first_calc(nelectrons);
+  cout <<"**********updateLap " << endl;
+  mywf->updateLap(wfdata, sample);
+  cout << "******done " << endl;
+  string indent="";
+  for(int i=0; i< nelectrons; i++) {
+    first_calc(i).Resize(mywf->nfunc(),5);
+    mywf->getLap(wfdata,i, first_calc(i));
+    //first_calc(i).write(indent,cout);
+  }
+  
+  cout << "#############checking derivatives" << endl;
+  
+  const doublevar del=1e-6;
+  Array1 <doublevar> epos(3);
+  Array1 <doublevar> new_epos(3);
+  Wf_return test_wf(mywf->nfunc(), 5);
+  for(int e=0; e < nelectrons; e++) {
+    cout << "#######################\n";
+    cout << "####electron " << e << " #####" << endl;
+    cout << "#######################\n";
+    sample->getElectronPos(e,epos);
+    doublevar lap=0;
+    for(int d=0;d < 3; d++) {
+      new_epos=epos;
+      new_epos(d)+=del;
+      sample->setElectronPos(e, new_epos);
+      //mywf->notify(all_electrons_move,0);
+      mywf->updateLap(wfdata, sample);
+      mywf->getLap(wfdata,e,test_wf);
+      //mywf->updateVal(wfdata, sample);
+      //mywf->getVal(wfdata,e,test_wf);
+      doublevar ratio=exp(test_wf.amp(0,0)-first_calc(0).amp(0,0));
+      doublevar derivative=(ratio-1)/del;
+      lap+=(test_wf.amp(0,d+1)*ratio-first_calc(e).amp(0,d+1))/del;
+      check_numbers(derivative,first_calc(e).amp(0,d+1),cout);
+    }
+    cout << "laplacian " << endl;
+    check_numbers(lap,first_calc(e).amp(0,4),cout);
+    sample->setElectronPos(e,epos);
+    mywf->updateVal(wfdata, sample);
   }
   
   
-  if(wfdata !=NULL) { 
-    Wavefunction * mywf=NULL;
-    
-    wfdata->generateWavefunction(mywf);
-    
-    
-    sample->attachObserver(mywf);
-    Array1 <Wf_return> first_calc(nelectrons);
-    cout <<"**********updateLap " << endl;
-    mywf->updateLap(wfdata, sample);
-    cout << "******done " << endl;
-    string indent="";
-    for(int i=0; i< nelectrons; i++) {
-      first_calc(i).Resize(mywf->nfunc(),5);
-      mywf->getLap(wfdata,i, first_calc(i));
-      //first_calc(i).write(indent,cout);
-    }
-    
-    cout << "#############checking derivatives" << endl;
-    
-    Array1 <doublevar> epos(3);
-    Array1 <doublevar> new_epos(3);
-    Wf_return test_wf(mywf->nfunc(), 5);
-    for(int e=0; e < nelectrons; e++) {
-      cout << "#######################\n";
-      cout << "####electron " << e << " #####" << endl;
-      cout << "#######################\n";
-      sample->getElectronPos(e,epos);
-      doublevar lap=0;
-      for(int d=0;d < 3; d++) {
-        new_epos=epos;
-        new_epos(d)+=del;
-        sample->setElectronPos(e, new_epos);
-        //mywf->notify(all_electrons_move,0);
-        mywf->updateLap(wfdata, sample);
-        mywf->getLap(wfdata,e,test_wf);
-        //mywf->updateVal(wfdata, sample);
-        //mywf->getVal(wfdata,e,test_wf);
-        doublevar ratio=exp(test_wf.amp(0,0)-first_calc(0).amp(0,0));
-        doublevar derivative=(ratio-1)/del;
-        lap+=(test_wf.amp(0,d+1)*ratio-first_calc(e).amp(0,d+1))/del;
-        check_numbers(derivative,first_calc(e).amp(0,d+1),cout);
-      }
-      cout << "laplacian " << endl;
-      check_numbers(lap,first_calc(e).amp(0,4),cout);
-      sample->setElectronPos(e,epos);
-      mywf->updateVal(wfdata, sample);
-    }
-    
-    if(plot_cusp){
-      plotCusp(mywf, sample);
-    }
-    
-    if(parms_ders){
-      testParmDeriv(mywf, sample);
-    }
-    delete mywf; mywf=NULL;
-
-  }
-  cout << "here " << endl;
 
   if(basis!=NULL) { 
-    string indent="";
-    basis->showinfo(indent, cout);
-    //for(double r=0; r < 10.0; r+=.05) { 
-    //  Array1 <double> rscan(5); rscan=0.0;
-    //  rscan(0)=r; rscan(1)=r*r; rscan(2)=r;
-    //  Array2 <doublevar> vals(basis->nfunc(),5);
-    //  basis->calcLap(rscan,vals);
-     // cout << "basisplot " << r << "  " << vals(0,0)  << " " << vals(0,4) << endl;
-    //}
+    for(double r=0; r < 10.0; r+=.05) { 
+      Array1 <double> rscan(5); rscan=0.0;
+      rscan(0)=r; rscan(1)=r*r; rscan(2)=r;
+      Array2 <doublevar> vals(basis->nfunc(),5);
+      basis->calcLap(rscan,vals);
+      cout << "basisplot " << r << "  " << vals(0,0)  << " " << vals(0,4) << endl;
+    }
     
     Array2 <doublevar> finite_der(basis->nfunc(),3,0.0);
     Array3 <doublevar> finite_hessian(basis->nfunc(),3,3,0.0);
     Array2 <doublevar> hessian(basis->nfunc(),10);
     Array2 <doublevar> tmp_hess(basis->nfunc(),10);
-    //Array1 <doublevar> finite_lap(basis->nfunc(), 0.0);
     sample->updateEIDist();
     Array1 <doublevar> dist(5);
     sample->getEIDist(0,0,dist);
-    //basis->calcLap(dist, hessian);
     basis->calcHessian(dist,hessian);
     Array1 <doublevar> epos(3);
     Array1 <doublevar> npos(3);
@@ -235,7 +227,6 @@ void Test_method::run(Program_options & options, ostream & output)
       sample->setElectronPos(0,npos);
       sample->updateEIDist();      
       sample->getEIDist(0,0,dist);
-      //basis->calcLap(dist, tmp_hess);
       basis->calcHessian(dist,tmp_hess);
       for(int f=0; f< basis->nfunc(); f++) { 
 	  
@@ -244,8 +235,6 @@ void Test_method::run(Program_options & options, ostream & output)
           finite_hessian(f,d,d1)=(tmp_hess(f,d1+1)-hessian(f,d1+1))/del;
         }
       }
-      
-      
     }
 
     for(int f=0; f< basis->nfunc(); f++) { 
@@ -266,10 +255,20 @@ void Test_method::run(Program_options & options, ostream & output)
 
   
 
+  if(plot_cusp){
+    plotCusp(mywf, sample);
+  }
+  
+  if(parms_ders){
+    testParmDeriv(mywf, sample);
+  }
 
-  cout << "there " << endl;
+  if(test_backflow) { 
+    testBackflow();
+  }
   
 
+  delete mywf; mywf=NULL;
   delete sample;
   sample=NULL;
   if(basis) delete basis;
@@ -438,3 +437,167 @@ void Test_method::plotCusp(Wavefunction * mywf, Sample_point * sample){
 }
 
 //----------------------------------------------------------------------
+
+void Test_method::testBackflow() {
+  
+  Sample_point * sample=NULL;
+  sysprop->generateSample(sample);
+
+  if(readconfig!="") {
+    ifstream checkfile(readconfig.c_str());
+    string dummy;
+    while(checkfile >> dummy) {
+      if(read_config(dummy, checkfile, sample)) break;
+    }
+  }
+
+  Array2 <doublevar>  newvals(sysprop->nelectrons(0),10);
+  Array3 <doublevar> coor_deriv, deriv_tmp;
+  Array2 <doublevar>  coor_laplacian, lap_tmp;
+
+  Jastrow2_wf jast;
+  jast.init(&backflow.jdata);
+  sample->attachObserver(&jast);
+
+  jast.keep_ion_dep();
+  
+
+  int e=2;
+
+  backflow.updateLap(sample,jast,e,0,newvals,coor_deriv,coor_laplacian);
+  
+
+  Sample_point * tmp_sample=NULL;
+  sysprop->generateSample(tmp_sample);
+
+  int nelectrons=sample->electronSize();
+  int natoms=sample->ionSize();
+
+  Array3 <doublevar> jast_corr_base;
+  Array3 <doublevar> onebody;
+  Array3 <doublevar> threebody_diffspin;
+
+  
+  
+  jast.updateVal(&backflow.jdata,sample);
+  jast.get_twobody(jast_corr_base);
+  jast.get_onebody(onebody);
+  backflow.updateValjastgroup(sample,e,threebody_diffspin);
+  backflow_config(sample,e,jast_corr_base,onebody, threebody_diffspin, tmp_sample);
+
+  Array1 <doublevar> base_pos(3);
+  tmp_sample->getElectronPos(0,base_pos);
+  Array1 <doublevar> diff_pos(3);
+  Array3 <doublevar> jast_corr=jast_corr_base;
+  doublevar del=1e-6;
+
+  for(int j=0; j< nelectrons; j++) {
+
+    cout << "checking for electron "<< j  << endl;
+    Array1 <doublevar> lap2(3,0.0);
+    for(int a=0; a< 3; a++) {
+      Array1 <doublevar> save_pos(3);
+      sample->getElectronPos(j,save_pos);
+      Array1 <doublevar> new_pos=save_pos;
+      new_pos(a)+=del;
+      sample->setElectronPos(j,new_pos);
+      jast.notify(all_electrons_move,0);
+      jast.updateLap(&backflow.jdata,sample);
+      jast.get_twobody(jast_corr);
+      jast.get_onebody(onebody);
+      backflow.updateLapjastgroup(sample,e,threebody_diffspin);
+      
+      backflow_config(sample,e,jast_corr,onebody,threebody_diffspin,tmp_sample);
+      
+      backflow.updateLap(sample,jast,e,0,newvals,deriv_tmp,lap_tmp);
+      
+      tmp_sample->getElectronPos(0,diff_pos);
+      //if(j>e) { 
+      //cout << "jastrow(j=" << j << ") ";
+      //check_numbers((jast_corr(e,j,0)-jast_corr_base(e,j,0))/del,
+      //	      jast_corr_base(j,e,a+1),cout);
+      //}
+      for(int b=0; b< 3; b++) { 
+	lap2(b)+=(deriv_tmp(j,a,b)-coor_deriv(j,a,b))/del;
+	check_numbers((diff_pos(b)-base_pos(b))/del,coor_deriv(j,a,b),cout);
+      }
+      sample->setElectronPos(j,save_pos);
+    }
+
+    cout << "laplacian 2 " << endl;
+    for(int a=0; a< 3; a++) { 
+      check_numbers(lap2(a),coor_laplacian(j,a),cout);
+    }
+  }
+
+
+  ofstream bare("backflow_bare.xyz");
+  ofstream dressed("backflow_dressed.xyz");
+  
+  /*
+  bare << nelectrons << endl;
+  bare << "name" << endl;
+  for(int j=0; j< nelectrons; j++) {
+    sample->getElectronPos(j,base_pos);
+    bare << "1 ";
+    for(int d=0;d < 3; d++) { 
+      bare << base_pos(d) <<"  " ;
+    
+    }
+    bare << endl;
+  }
+  bare << endl;
+  */
+  
+  int nframes=100;
+  
+  Array1 <doublevar> dressed_pos(3);
+  Array1 < Array1 <doublevar> > bare_pos_saved(nelectrons);
+  for(int f=0; f< nframes; f++) { 
+    sample->getElectronPos(0,base_pos);
+    base_pos(0)-=.05;
+    sample->setElectronPos(0,base_pos);
+    bare << nelectrons << endl;
+    bare << "name" << endl;
+    for(int j=0; j< nelectrons; j++) { 
+      sample->getElectronPos(j,base_pos);
+      bare_pos_saved(j)=base_pos;
+      bare << "1 ";
+      for(int d=0;d < 3; d++) { 
+	bare << base_pos(d) <<"  " ;
+      }
+      bare << endl;     
+    }
+
+    jast.updateLap(&backflow.jdata,sample);
+    jast.get_twobody(jast_corr);
+    jast.get_onebody(onebody);
+
+    dressed << nelectrons << endl;
+    dressed << "name " << endl;
+    for(int j=0; j< nelectrons; j++) { 
+      backflow.updateLapjastgroup(sample,j,threebody_diffspin);
+      backflow_config(sample,j,jast_corr,onebody,threebody_diffspin,tmp_sample);
+      tmp_sample->getElectronPos(0,dressed_pos);
+      dressed << "1 ";
+      for(int d=0; d< 3; d++) { 
+	dressed << dressed_pos(d) << "  ";
+      }
+      //print out also distance
+      dressed <<sqrt((dressed_pos(0)-bare_pos_saved(j)(0))*(dressed_pos(0)-bare_pos_saved(j)(0))+
+		     (dressed_pos(1)-bare_pos_saved(j)(1))*(dressed_pos(1)-bare_pos_saved(j)(1))+
+		     (dressed_pos(2)-bare_pos_saved(j)(2))*(dressed_pos(2)-bare_pos_saved(j)(2)));
+      dressed << endl;
+    }
+    
+  }
+
+  bare.close();
+  dressed.close();
+
+  delete sample;
+  delete tmp_sample;
+  
+}
+
+//------------------------------------------------------------------------

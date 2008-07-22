@@ -42,10 +42,7 @@ void Optimize_method2::read(vector <string> words,
     eref_exists=0;
     eref=0;
   }
-  if(!readvalue(words, pos=0, pseudostore, "PSEUDOTEMP") ) 
-    pseudostore=options.runid+".pseudo";
-  canonical_filename(pseudostore);
-
+ 
   if(!readvalue(words, pos=0, wfoutputfile, "WFOUTPUT") )
     wfoutputfile=options.runid+".wfout";
   else  use_weights=0; 
@@ -53,9 +50,14 @@ void Optimize_method2::read(vector <string> words,
     use_extended_output=1;
   else  use_extended_output=0; 
   
-  if(haskeyword(words, pos=0, "ANALYTIC_PP_DERIVATIVE") )
-    analytic_pp_derivative=1;
-  else  analytic_pp_derivative=0; 
+  if(haskeyword(words, pos=0, "DYNAMIC_PP") )
+    dynamic_pp=1;
+  else  dynamic_pp=0; 
+  
+  if(haskeyword(words, pos=0, "DYNAMIC_WF") )
+     dynamic_wf=1;
+  else  dynamic_wf=0; 
+
 
   if(!readvalue(words,pos=0, mixing, "MIXING"))
     mixing=0.95;
@@ -101,37 +103,59 @@ void Optimize_method2::read(vector <string> words,
     error("READCONFIG required for OPTIMIZE2 method!");
   canonical_filename(readconfig);
 
+  /*
   string oldreadconfig;
   if(readvalue(words, pos=0, oldreadconfig, "OLDREADCONFIG"))
     canonical_filename(oldreadconfig);
-  
+  */
 
   //--Set up variables
   sysprop=NULL;
   allocate(options.systemtext[0],  sysprop);
-  sysprop->notify(sample_static,0);
-  sysprop->generatePseudo(options.pseudotext, pseudo);
-
-  electrons.Resize(nconfig);
-  electrons=NULL;
-  //alocate wf object for each config
-  //might be expensive to store all the inverse matrices
-  wf.Resize(nconfig);
-  wf=NULL;
-
-  for(int i=0; i< nconfig; i++) {
-    electrons(i)=NULL;
-    sysprop->generateSample(electrons(i));
-  }
-
   debug_write(cout, "wfdata allocate\n");
   wfdata=NULL;
   allocate(options.twftext[0], sysprop, wfdata);
+
+  analytic_wf_ders=0;
+  if(wfdata->supports(parameter_derivatives))
+    analytic_wf_ders=1;
+
+  
+  
+  sysprop->generatePseudo(options.pseudotext, pseudo);
+
+  //alocate wf object for each config
+  //might be expensive to store all the inverse matrices
+  //if dynamic_wf=1, only one wf is stored
+  if(dynamic_wf){
+    sample.Resize(1);
+    sample(0)=NULL;
+    sysprop->generateSample(sample(0));
+    wf.Resize(1); 
+    wf(0)=NULL;
+    wfdata->generateWavefunction(wf(0));
+    sample(0)->attachObserver(wf(0));
+    //sysprop->notify(sample_dynamic,0);
+  }
+  else{
+    sample.Resize(nconfig);
+    wf.Resize(nconfig);
+    for(int walker=0; walker<nconfig; walker++){
+      sample(walker)=NULL;
+      sysprop->generateSample(sample(walker));
+      wf(walker)=NULL;
+      wfdata->generateWavefunction(wf(walker));
+      sample(walker)->attachObserver(wf(walker));
+    }
+    //sysprop->notify(sample_static,0);
+  }
+
   if(!readvalue(words,pos=0, maxnparmsatonce, "MAXNPARMS_AT_ONCE")) {
     maxnparmsatonce=wfdata->nparms();
   }
 
-  readcheck(readconfig,oldreadconfig);
+  readcheck(readconfig);
+  
   if(!readvalue(words,pos=0, min_nconfig_read, "START_NCONFIG")) {
     min_nconfig_read=nconfig;
   }
@@ -141,15 +165,19 @@ void Optimize_method2::read(vector <string> words,
       cout << "setting it >nconfig "<<endl;
       min_nconfig_read=nconfig;
     }
-
-  if(!wfdata->supports(parameter_derivatives))
-    analytic_pp_derivative=0;
-
-
+  //set the printout level
+  debug_out=0;
 }
 
-void Optimize_method2::readcheck(string & readconfig,string & oldreadconfig) {
+void Optimize_method2::readcheck(string & readconfig) {
   int configsread=0;
+  int nwread=0;
+  if(dynamic_wf)
+    config_pos.Resize(nconfig);
+  else
+    config_pos.Resize(1);
+  dmc_weight.Resize(nconfig);
+  dmc_weight=1.0;
   if(readconfig !="") {
     ifstream checkfile(readconfig.c_str());
     if(!checkfile) 
@@ -160,31 +188,57 @@ void Optimize_method2::readcheck(string & readconfig,string & oldreadconfig) {
     checkfile >> dummy;
     if(dummy != "RANDNUM") error("Expected RANDNUM in checkfile");
     checkfile >> is1 >> is2;
-    
-    
-    while(checkfile >>dummy && configsread < nconfig) {
-      if(read_config(dummy, checkfile, electrons(configsread)))
-        configsread++;
+
+    while(checkfile >>dummy && configsread < nconfig && nwread < nconfig) {
+      
+      if(dynamic_wf){
+	if(read_config(dummy, checkfile, sample(0))) {
+	  config_pos(configsread++).savePos(sample(0));
+	}
+      }
+      else{
+	if(read_config(dummy, checkfile, sample(configsread))) {
+	  // config_pos(configsread++).savePos(sample(configsread));
+	  configsread++;
+	}
+      }
+      if(dummy=="DMC") {
+	checkfile >> dummy;
+	if(dummy != "{") error("Need a { after DMC");
+	checkfile >> dummy >> dmc_weight(nwread);
+	if(dummy != "DMCWEIGHT") {
+	  error("expected DMCWEIGHT, got ", dummy);
+	}
+	int nwf_temp;
+	checkfile >> dummy >> nwf_temp;
+	if(dummy != "VALEN") {
+	  error("expected VALEN, got ", dummy);
+	}
+	//if(nwf_temp != nwf) {
+	// error("Wrong number of wavefunctions in the checkpoint file");
+	nwread++;
+      }
     }
     checkfile.close();    
   }
 
-  if(readconfig =="") {
-    ifstream configin(oldreadconfig.c_str());
-    if(!configin)
-      error("Couldn't open ", oldreadconfig);
-    configsread=read_array(electrons, configin);
-    configin.close();
+  if(readconfig ==""){
+    error("No file name given for READCONFIG ", readconfig);
   }
 
-  if(configsread < nconfig) {
+  if(configsread < nconfig)
+  {
     nconfig=configsread;
     cout << "processor " << mpi_info.node << " : "
     << "WARNING: Didn't find enough configurations in the "
-    << "file. \n Running optimization with only " << nconfig
+    << "file.  Running optimization with only " << nconfig
     << " sample points." << endl;
   }
 }
+
+
+
+
 
 
 int Optimize_method2::showinfo(ostream & os)
@@ -198,16 +252,31 @@ int Optimize_method2::showinfo(ostream & os)
   pseudo->showinfo(os);
   os << endl << endl;
   os << "-----------------------------" << endl;
-  os << "Wave function optimization " << endl;
+  os << "Wavefunction optimization " << endl;
   os << "Iterations : "  << iterations << endl;
-  os << "Configurations per processor: " <<  nconfig   << endl;
-  os << "Number of processors: "        <<  mpi_info.nprocs << endl;
-  os << "Total configurations: " <<          nconfig*mpi_info.nprocs << endl;
+  os << "Configurations per processor : " <<  nconfig   << endl;
+  os << "Number of processors : "        <<  mpi_info.nprocs << endl;
+  os << "Total configurations : " <<          nconfig*mpi_info.nprocs << endl;
   os << "Number of starting configurations : " << min_nconfig_read << endl;
   os << "Number of fixed iterations : "  << iter_min_read << endl;
   os << "Maximum number of parameters done at once : " <<  maxnparmsatonce<<endl;
   os << "Multiplicative factor : "  <<  multiply<< endl;
   os << "nparms " << wfdata->nparms() << endl;
+  os << "Wavefunction parameter derivatives : ";
+  if(analytic_wf_ders)
+    os << "analytic" << endl;
+  else
+    os << "finite difference" << endl;
+  os << "Wavefunction storage mode : ";
+  if(dynamic_wf)
+    os << "one wf for all walkers" << endl;
+  else
+    os << "one wf for each walker" << endl;
+  os << "Nonlocal PP calculation mode : ";
+  if(dynamic_pp)
+    os << "dynamic" << endl;
+  else
+    os << "static" << endl;
   if(eref_exists && !use_weights)
     os << "Reference energy : "           << eref << endl;
   else
@@ -237,9 +306,7 @@ int Optimize_method2::showinfo(ostream & os)
 
 void Optimize_method2::run(Program_options & options, ostream & output)
 {
-  
   int nparms=wfdata->nparms(); //Number of variables
-  
   Array1 <double> delta(nparms);
   Array1 <double> grad(nparms);  //Storage for the derivative
   //best delta is 0.0001 if parameters are det weights 
@@ -259,34 +326,48 @@ void Optimize_method2::run(Program_options & options, ostream & output)
 
   orig_vals.Resize(nconfig);
   local_energy.Resize(nconfig);
-  if(analytic_pp_derivative){
+  if(dynamic_pp){
     psp_test.Resize(nconfig);
   }
   doublevar sum_tmp=0.0;
   for(int walker=0; walker < nconfig; walker++)  {
-    wfdata->generateWavefunction(wf(walker));
     if(walker==0)
       nfunctions=wf(0)->nfunc();
     orig_vals(walker).Resize(nfunctions, 2);
-    electrons(walker)->attachObserver(wf(walker));
-    wf(walker)->updateLap(wfdata, electrons(walker));
-    wf(walker)->getVal(wfdata, 0, orig_vals(walker));
+    if(dynamic_wf){
+      config_pos(walker).restorePos(sample(0));
+      wf(0)->updateLap(wfdata, sample(0));
+      wf(0)->getVal(wfdata, 0, orig_vals(walker));
+      local_energy(walker)=sysprop->calcLoc(sample(0));
+    }
+    else{
+      wf(walker)->updateLap(wfdata, sample(walker));
+      wf(walker)->getVal(wfdata, 0, orig_vals(walker));
+      local_energy(walker)=sysprop->calcLoc(sample(walker));
+    }
     sum_tmp+=orig_vals(walker).amp(0,0);
-    local_energy(walker)=sysprop->calcLoc(electrons(walker));
-    pseudo->initializeStatic(wfdata, electrons(walker), wf(walker), psp_buff);
-    if(analytic_pp_derivative){
+    if(dynamic_pp){
+      //generate random numbers for PP integration
       psp_test(walker).Resize(pseudo->nTest());
       for(int i=0; i< pseudo->nTest(); i++) { 
 	psp_test(walker)(i)=rng.ulec();
       }
+    } 
+    else{ //not dynamic_pp
+      if(dynamic_wf){
+	pseudo->initializeStatic(wfdata, sample(0), wf(0), psp_buff);
+	//wf(0)->notify(sample_static,0);
+      }
+      else{
+	pseudo->initializeStatic(wfdata, sample(walker), wf(walker), psp_buff);
+	wf(walker)->notify(sample_static,0);
+      }
     }
-    else{
-      wf(walker)->notify(sample_static,0);
-    }
-  }
+  }//walker
+
   ln_norm_orig_vals=parallel_sum(sum_tmp/nconfig)/parallel_sum(1);
   if(use_weights || !eref_exists){
-    //cout << "1st function calculation to get estimation of ref energy";
+    // cout << "1st function calculation to get estimation of ref energy";
     func_val(nparms, temp_parms, value, energy, variance, nconfig, output);
     eref=energy;
   }
@@ -318,8 +399,8 @@ void Optimize_method2::run(Program_options & options, ostream & output)
     nparms_end+=maxnparmsatonce;
   }
 
+  //final evaluation before exit
   func_val(nparms, temp_parms, value, energy, variance, nconfig, output);
-  remove(pseudostore.c_str());
 
   if(output)
   {
@@ -336,7 +417,7 @@ void Optimize_method2::run(Program_options & options, ostream & output)
     wfoutput.close();
   }
 #ifdef USE_MPI
-  MPI_Barrier(MPI_COMM_WORLD);
+  MPI_Barrier(MPI_Comm_grp);
 #endif
 
   //Put the wave function into options.trialfunc so further methods can use it.
@@ -363,14 +444,22 @@ void Optimize_method2::func_val(int n, const Array1 <double> & parms, double & v
     temp_parms(i)=parms(i);
   }
   
-  Wf_return  wfval(nfunctions,2);
+  Array1 < Wf_return > wfval(min_nconfig);
   wfdata->setVarParms(temp_parms);
     
   doublevar sum_tmp=0.0;
   for(int walker=0; walker< min_nconfig; walker++){
-    wf(walker)->updateVal(wfdata, electrons(walker));
-    wf(walker)->getVal(wfdata, 0, wfval);
-    sum_tmp+=wfval.amp(0,0);
+    wfval(walker).Resize(nfunctions,2);
+    if(dynamic_wf){
+      config_pos(walker).restorePos(sample(0)); 
+      wf(0)->updateVal(wfdata, sample(0));
+      wf(0)->getVal(wfdata, 0, wfval(walker));
+    }
+    else{
+      wf(walker)->updateVal(wfdata, sample(walker));
+      wf(walker)->getVal(wfdata, 0, wfval(walker));
+    }
+    sum_tmp+=wfval(walker).amp(0,0);
   }
   
   doublevar ln_norm_new_vals=parallel_sum(sum_tmp/min_nconfig)/parallel_sum(1);
@@ -382,20 +471,48 @@ void Optimize_method2::func_val(int n, const Array1 <double> & parms, double & v
   doublevar energy_sum=0;
   doublevar weightsum=0;
   Array1 <doublevar> kinetic(nfunctions), nonloc(nfunctions);
-  psp_buff.start_again();
+  if(!dynamic_pp){
+    psp_buff.start_again();
+  }
   doublevar weight_max=1;
-  for(int walker=0; walker< min_nconfig; walker++)
-  {
-    wf(walker)->updateLap(wfdata, electrons(walker));
-    sysprop->calcKinetic(wfdata, electrons(walker), wf(walker), kinetic);
+  for(int walker=0; walker< min_nconfig; walker++){
+    if(dynamic_wf){
+      config_pos(walker).restorePos(sample(0)); 
+      wf(0)->updateLap(wfdata, sample(0));
+      sysprop->calcKinetic(wfdata, sample(0), wf(0), kinetic);
+      //wf(0)->getVal(wfdata, 0, wfval);
+    }
+    else{
+      wf(walker)->updateLap(wfdata, sample(walker));
+      sysprop->calcKinetic(wfdata, sample(walker), wf(walker), kinetic);
+      //wf(walker)->getVal(wfdata, 0, wfval);
+    }
+ 
     doublevar coulpot=local_energy(walker);
-    pseudo->calcNonlocWithFile(wfdata, electrons(walker), wf(walker),
-                               nonloc, psp_buff);
-    wf(walker)->getVal(wfdata, 0, wfval);
+    if(dynamic_pp){
+      if(dynamic_wf)
+	pseudo->calcNonlocWithTest(wfdata, sample(0), wf(0), psp_test(walker), nonloc );    
+      else{
+	pseudo->calcNonlocWithTest(wfdata, sample(walker), wf(walker), psp_test(walker), nonloc );  
+      }
+    }
+    else{
+      if(dynamic_wf)
+	pseudo->calcNonlocWithFile(wfdata, sample(0), wf(0),
+				   nonloc, psp_buff);
+      else
+	pseudo->calcNonlocWithFile(wfdata, sample(walker), wf(walker),
+				   nonloc, psp_buff);
+    }
+
+    if(debug_out)
+      cout << "kinetic(0) "<<kinetic(0)<<" coulpot "<<coulpot<<" nonloc(0) "<<nonloc(0)<<endl;
+
     doublevar energy=kinetic(0) + coulpot+ nonloc(0);
     doublevar reweight=1.0;
+    //get the reweighting factor
     if(use_weights) {
-      reweight=exp(2*(wfval.amp(0,0)-orig_vals(walker).amp(0,0)-ln_norm_new_vals+ln_norm_orig_vals));
+      reweight=exp(2*(wfval(walker).amp(0,0)-orig_vals(walker).amp(0,0)-ln_norm_new_vals+ln_norm_orig_vals));
       //reweight=2.0*reweight/(1+reweight);
     }
     doublevar weight=reweight;
@@ -408,7 +525,7 @@ void Optimize_method2::func_val(int n, const Array1 <double> & parms, double & v
       if(weight > weight_max)
         weight_max=weight;
     }
-  }
+  }//walker
    
   if(use_weights){
     //doublevar average_weight=weightsum/min_nconfig;
@@ -471,25 +588,60 @@ void Optimize_method2::energy_grad(Array1 <double> & parms, int nparms_start, in
     wfdata->setVarParms(temp_parms);
     doublevar sum_tmp=0.0;
     for(int walker=0; walker< min_nconfig; walker++){
-      wf(walker)->updateVal(wfdata, electrons(walker));
-      wf(walker)->getVal(wfdata, 0, wfval);
+      if(dynamic_wf){
+	config_pos(walker).restorePos(sample(0)); 
+	wf(0)->updateVal(wfdata, sample(0));
+	wf(0)->getVal(wfdata, 0, wfval);
+      }
+      else{
+	wf(walker)->updateVal(wfdata, sample(walker));
+	wf(walker)->getVal(wfdata, 0, wfval);
+      }
       sum_tmp+=wfval.amp(0,0);
     }
     doublevar ln_norm_new_vals=parallel_sum(sum_tmp/min_nconfig)/parallel_sum(1);
     
     //if(output && i==0)
-    //cout << "(energy grad)Aver. Sum of ln(psi)/min_nconfig= "<<ln_norm_new_vals<<endl;
-    psp_buff.start_again();
+    //  cout << "(energy grad)Aver. Sum of ln(psi)/min_nconfig= "<<ln_norm_new_vals<<endl;
+    if(!dynamic_pp)
+      psp_buff.start_again();
     for(int walker=0; walker< min_nconfig; walker++){
-      wf(walker)->updateLap(wfdata, electrons(walker));
-      sysprop->calcKinetic(wfdata, electrons(walker), wf(walker), kinetic);
+      if(dynamic_wf){
+	config_pos(walker).restorePos(sample(0)); 
+	wf(0)->updateLap(wfdata, sample(0));
+	sysprop->calcKinetic(wfdata, sample(0), wf(0), kinetic);
+	wf(0)->getVal(wfdata, 0, wfval);
+      }
+      else{
+	wf(walker)->updateLap(wfdata, sample(walker));
+	sysprop->calcKinetic(wfdata, sample(walker), wf(walker), kinetic);	
+	wf(walker)->getVal(wfdata, 0, wfval);
+      }
       doublevar coulpot=local_energy(walker);
-      pseudo->calcNonlocWithFile(wfdata, electrons(walker), wf(walker),
-                                                 nonloc, psp_buff);
-      wf(walker)->getVal(wfdata, 0, wfval);
+
+      if(dynamic_pp){
+	if(dynamic_wf){
+	  pseudo->calcNonlocWithTest(wfdata, sample(0), wf(0), psp_test(walker),nonloc );
+	}
+	else{
+	  pseudo->calcNonlocWithTest(wfdata, sample(walker), wf(walker), psp_test(walker),nonloc );
+	}
+      }
+      else{
+	if(dynamic_wf){
+	  pseudo->calcNonlocWithFile(wfdata, sample(0), wf(0),
+				     nonloc, psp_buff);
+	}
+	else{  
+	  pseudo->calcNonlocWithFile(wfdata, sample(walker), wf(walker),
+				     nonloc, psp_buff);
+	}
+      }
+      
+      
       if (i==0) {
         e_local0(walker)=kinetic(0) + coulpot+ nonloc(0);
-        // cout <<"&& "<<kinetic(0)<<" "<<coulpot<<" "<<nonloc(0)<<endl;
+        //cout <<"&& "<<kinetic(0)<<" "<<coulpot<<" "<<nonloc(0)<<endl;
         psi0(walker,0)= wfval.sign(0);
         psi0(walker,1)= wfval.amp(0,0);
       }
@@ -591,29 +743,63 @@ void Optimize_method2::func_hessian(Array1 <double> & parms, int nparms_start, i
       wfdata->setVarParms(temp_parms);
       doublevar sum_tmp=0.0;
       for(int walker=0; walker< min_nconfig; walker++){
-        wf(walker)->updateVal(wfdata, electrons(walker));
-        wf(walker)->getVal(wfdata, 0, wfval);
+	if(dynamic_wf){
+	  config_pos(0).restorePos(sample(0)); 
+	  wf(0)->updateVal(wfdata, sample(0));
+	  wf(0)->getVal(wfdata, 0, wfval);
+	}
+	else{
+	  wf(walker)->updateVal(wfdata, sample(walker));
+	  wf(walker)->getVal(wfdata, 0, wfval);
+	}
         sum_tmp+=wfval.amp(0,0);
       }
       doublevar ln_norm_new_vals=parallel_sum(sum_tmp/min_nconfig)/parallel_sum(1);
       //cout << "(hess) Sum of ln(psi)/min_nconfig= "<<sum_tmp/min_nconfig<<endl;
       //if(output)
-      //cout << "(hess) Aver. Sum of ln(psi)/min_nconfig= "<<ln_norm_new_vals<<endl;
-      psp_buff.start_again();
+      //	cout << "(hess) Aver. Sum of ln(psi)/min_nconfig= "<<ln_norm_new_vals<<endl;
+
+      if(!dynamic_pp)
+	psp_buff.start_again();
       for(int walker=0; walker< min_nconfig; walker++){
+	if(dynamic_wf)
+	  config_pos(walker).restorePos(sample(0)); 
 	if(i==0){
-          wf(walker)->updateLap(wfdata, electrons(walker));
-	  sysprop->calcKinetic(wfdata, electrons(walker), wf(walker), kinetic);
+	  if(dynamic_wf){
+	    wf(0)->updateLap(wfdata, sample(0));
+	    sysprop->calcKinetic(wfdata, sample(0), wf(0), kinetic);
+	    wf(0)->getVal(wfdata, 0, wfval);
+	  }
+	  else{
+	    wf(walker)->updateLap(wfdata, sample(walker));
+	    sysprop->calcKinetic(wfdata, sample(walker), wf(walker), kinetic);
+	    wf(walker)->getVal(wfdata, 0, wfval);
+	  }
 	  doublevar coulpot=local_energy(walker);
-	  pseudo->calcNonlocWithFile(wfdata, electrons(walker), wf(walker),
-                                     nonloc, psp_buff);
-          wf(walker)->getVal(wfdata, 0, wfval);
+	  if(dynamic_pp){
+	    if(dynamic_wf)
+	      pseudo->calcNonlocWithTest(wfdata, sample(0), wf(0), psp_test(walker),nonloc );
+	    else
+	      pseudo->calcNonlocWithTest(wfdata, sample(walker), wf(walker), psp_test(walker),nonloc );
+	  }
+	  else{
+	    if(dynamic_wf){
+	      pseudo->calcNonlocWithFile(wfdata, sample(0), wf(0),
+					 nonloc, psp_buff);
+	    }
+	    else{
+	      pseudo->calcNonlocWithFile(wfdata, sample(walker), wf(walker),
+					 nonloc, psp_buff);
+	    }
+	  }
+	  e_local(j)(walker)=kinetic(0) + coulpot+ nonloc(0);
+
           reweight=1.0;
           if(use_weights) {
             reweight=exp(2*(wfval.amp(0,0)-orig_vals(walker).amp(0,0)-ln_norm_new_vals+ln_norm_orig_vals));
           }
           weight=reweight;
-          e_local(j)(walker)=kinetic(0) + coulpot+ nonloc(0);
+         
           
           //if j=0 we store Psi0(walker))
           if(j==0){
@@ -693,8 +879,14 @@ void Optimize_method2::func_hessian(Array1 <double> & parms, int nparms_start, i
             
 	  }//i==1 && walker==0 
 	  //collecting  double index quantities
-          wf(walker)->updateVal(wfdata, electrons(walker));
-          wf(walker)->getVal(wfdata, 0, wfval);
+	  if(dynamic_wf){
+	    wf(0)->updateVal(wfdata, sample(0));
+	    wf(0)->getVal(wfdata, 0, wfval);
+	  }
+	  else{
+	    wf(walker)->updateVal(wfdata, sample(walker));
+	    wf(walker)->getVal(wfdata, 0, wfval);
+	  }
           reweight=1.0;
           if(use_weights) {
             reweight=exp(2*(wfval.amp(0,0)-orig_vals(walker).amp(0,0)-ln_norm_new_vals+ln_norm_orig_vals));
@@ -745,7 +937,6 @@ void Optimize_method2::func_hessian(Array1 <double> & parms, int nparms_start, i
       temp_parms(i-1+nparms_start)-=ddelta(i-1); 
   }//end of loop over i
   //cout <<endl;
-
 
   // doing averages over processor for double index quantities
   // + calculation of final hessian.
@@ -819,7 +1010,7 @@ void Optimize_method2::energy_grad_analytical(Array1 <double> & parms, int nparm
   int nparms=nparms_end-nparms_start;
 
   Array1 <doublevar> temp_parms(nparms_full);
-  Wf_return  wfval(nfunctions,2);
+  Array1 < Wf_return > wfval(min_nconfig);
   Parm_deriv_return derivatives;
   derivatives.nparms_start=nparms_start;
   derivatives.nparms_end=nparms_end;
@@ -828,7 +1019,6 @@ void Optimize_method2::energy_grad_analytical(Array1 <double> & parms, int nparm
   Array1 <doublevar> grad_var(nparms);
   Array1 <doublevar> grad_wf_tmp(nparms);
   doublevar weightsum;
-  doublevar e_local;
   grad_var=0;
   grad_wf_tmp=0;
   weightsum=0;
@@ -838,39 +1028,69 @@ void Optimize_method2::energy_grad_analytical(Array1 <double> & parms, int nparm
   wfdata->setVarParms(temp_parms);
   doublevar sum_tmp=0.0;
   weight.Resize(min_nconfig);
+  E_local.Resize(min_nconfig);
 
   for(int walker=0; walker< min_nconfig; walker++){
-    wf(walker)->updateVal(wfdata, electrons(walker));
-    wf(walker)->getVal(wfdata, 0, wfval);
-    sum_tmp+=wfval.amp(0,0);
+    wfval(walker).Resize(nfunctions,2);
+    if(dynamic_wf){
+      config_pos(walker).restorePos(sample(0)); 
+      wf(0)->updateVal(wfdata, sample(0));
+      wf(0)->getVal(wfdata, 0, wfval(walker));
+    }
+    else{
+      wf(walker)->updateVal(wfdata, sample(walker));
+      wf(walker)->getVal(wfdata, 0, wfval(walker));
+    }
+    sum_tmp+=wfval(walker).amp(0,0);
   }
   doublevar ln_norm_new_values=parallel_sum(sum_tmp/min_nconfig)/parallel_sum(1);
   //cout << "(energy grad)Sum of ln(psi)/min_nconfig= "<<sum_tmp/min_nconfig<<endl;
   if(output)
     cout << "(energy grad)Aver. Sum of ln(psi)/min_nconfig= "<<ln_norm_new_values<<endl;
-
-  psp_buff.start_again();
+  if(!dynamic_pp){
+    psp_buff.start_again();
+  }
   for(int walker=0; walker< min_nconfig; walker++){
-    //cout <<"walker "<<walker<<endl;
-    wf(walker)->updateLap(wfdata, electrons(walker));
-    sysprop->calcKinetic(wfdata, electrons(walker), wf(walker), kinetic);
+    if(dynamic_wf){
+      config_pos(walker).restorePos(sample(0));
+      wf(0)->updateLap(wfdata, sample(0));
+      sysprop->calcKinetic(wfdata, sample(0), wf(0), kinetic);
+      wf(0)->getParmDeriv(wfdata, sample(0), derivatives);
+    }
+    else {
+      wf(walker)->updateLap(wfdata, sample(walker));
+      sysprop->calcKinetic(wfdata, sample(walker), wf(walker), kinetic);
+      wf(walker)->getParmDeriv(wfdata, sample(walker), derivatives);
+    }
     doublevar coulpot=local_energy(walker);
-    pseudo->calcNonlocWithFile(wfdata, electrons(walker), wf(walker),nonloc, psp_buff);
-    wf(walker)->getVal(wfdata, 0, wfval);
-    wf(walker)->getParmDeriv(wfdata, electrons(walker), derivatives);
-    e_local=kinetic(0) + coulpot+ nonloc(0);
+    if(dynamic_pp){
+      if(dynamic_wf)
+	pseudo->calcNonlocWithTest(wfdata, sample(0), wf(0), psp_test(walker),nonloc );    
+      else{
+	pseudo->calcNonlocWithTest(wfdata, sample(walker), wf(walker), psp_test(walker),nonloc );
+      }
+    }
+    else { //not dynamic_pp
+      if(dynamic_wf)
+	pseudo->calcNonlocWithFile(wfdata, sample(0), wf(0),nonloc, psp_buff);
+      else
+	pseudo->calcNonlocWithFile(wfdata, sample(walker), wf(walker),nonloc, psp_buff);
+    }
+    
+    E_local(walker)=kinetic(0) + coulpot+ nonloc(0);
     doublevar reweight=1.0;
     if(use_weights) {
-      reweight=exp(2*(wfval.amp(0,0)-orig_vals(walker).amp(0,0)-ln_norm_new_values+ln_norm_orig_vals));
+      reweight=exp(2*(wfval(walker).amp(0,0)-orig_vals(walker).amp(0,0)-ln_norm_new_values+ln_norm_orig_vals));
     }
     weight(walker)=reweight;
     for(int i=0; i< nparms; i++){
       //be carefull how you get grad for partial number of parms. 
-      grad_var(i)+=2.0*derivatives.gradient(i)*(e_local-eref)*weight(walker);
+      grad_var(i)+=2.0*derivatives.gradient(i)*(E_local(walker)-eref)*weight(walker);
       grad_wf_tmp(i)+=derivatives.gradient(i)*weight(walker);
     }
     weightsum+=weight(walker);
-  }
+  }//walker
+
   //if (output)
   //  cout <<"Calculated Energy gradient and WF's gradient: "<<endl;
 
@@ -940,7 +1160,7 @@ void Optimize_method2::func_hessian_analytical(Array1 <double> & parms, int npar
     
   //set variables
   Array1 <Array1 <doublevar> > e_local_gradient(nparms);
-  Array1 <doublevar> e_local(min_nconfig);
+  
 
   for(int i=0;i<=nparms;i++){
     if (i<nparms){
@@ -954,40 +1174,80 @@ void Optimize_method2::func_hessian_analytical(Array1 <double> & parms, int npar
   Array1 <doublevar> nonloc_old(min_nconfig);
   Array1 < Array1 <doublevar> > nonloc_deriv(min_nconfig);
   
-  if(!analytic_pp_derivative){
+
+  //get the local energy components for ach walker
+  if(!dynamic_pp){
     psp_buff.start_again();
   }
   for(int walker=0; walker< min_nconfig; walker++){
-    wf(walker)->updateLap(wfdata, electrons(walker));
-    sysprop->calcKinetic(wfdata, electrons(walker), wf(walker), kinetic);
-    kinetic_old(walker)=kinetic(0);
-    doublevar coulpot=local_energy(walker);
-    if(analytic_pp_derivative){
-      nonloc_deriv(walker).Resize(nparms);
-      pseudo->calcNonlocParmDeriv(wfdata, electrons(walker), wf(walker),
-				  psp_test(walker), nonloc, nonloc_deriv(walker));
+    if(dynamic_wf){
+      config_pos(walker).restorePos(sample(0));
+      wf(0)->updateLap(wfdata, sample(0));
+      sysprop->calcKinetic(wfdata, sample(0), wf(0), kinetic);
     }
     else{
-      pseudo->calcNonlocWithFile(wfdata, electrons(walker), wf(walker),nonloc, psp_buff);
+      wf(walker)->updateLap(wfdata, sample(walker));
+      sysprop->calcKinetic(wfdata, sample(walker), wf(walker), kinetic);
+    }
+    kinetic_old(walker)=kinetic(0);
+    doublevar coulpot=local_energy(walker);
+
+    if(dynamic_pp){
+      nonloc_deriv(walker).Resize(nparms);
+      if(dynamic_wf)
+	pseudo->calcNonlocParmDeriv(wfdata, sample(0), wf(0),
+				    psp_test(walker), nonloc, nonloc_deriv(walker));
+      else{
+	pseudo->calcNonlocParmDeriv(wfdata, sample(walker), wf(walker),
+				    psp_test(walker), nonloc, nonloc_deriv(walker));
+      }
+    }
+    else{ //not dynamic_pp
+      if(dynamic_wf){
+	pseudo->calcNonlocWithFile(wfdata, sample(0), wf(0),nonloc, psp_buff);
+      }
+      else{
+	pseudo->calcNonlocWithFile(wfdata, sample(walker), wf(walker),nonloc, psp_buff);
+      }
       nonloc_old(walker)=nonloc(0);
     }
-    e_local(walker)=kinetic(0)+coulpot+nonloc(0);
+    E_local(walker)=kinetic(0)+coulpot+nonloc(0);
   }//walker
+  
+
   //getting derivatives of kinetic energy by finite difference
   for (int i=0;i<nparms;i++){
     temp_parms(i+nparms_start)+=ddelta(i);
     wfdata->setVarParms(temp_parms);
-    if(!analytic_pp_derivative){
+    if(!dynamic_pp){
       psp_buff.start_again();
     }
     for(int walker=0; walker< min_nconfig; walker++){
-      wf(walker)->updateLap(wfdata, electrons(walker));
-      sysprop->calcKinetic(wfdata, electrons(walker), wf(walker), kinetic);
-      if(analytic_pp_derivative){
-      e_local_gradient(i)(walker)=nonloc_deriv(walker)(i)+(kinetic(0)-kinetic_old(walker))/ddelta(i);
+      
+      if(dynamic_pp){
+	if(dynamic_wf){
+	  config_pos(walker).restorePos(sample(0)); 
+	  wf(0)->updateLap(wfdata, sample(0));
+	  sysprop->calcKinetic(wfdata, sample(0), wf(0), kinetic);
+	}
+	else{
+	  wf(walker)->updateLap(wfdata, sample(walker));
+	  sysprop->calcKinetic(wfdata, sample(walker), wf(walker), kinetic);
+	}
+	e_local_gradient(i)(walker)=nonloc_deriv(walker)(i)+(kinetic(0)-kinetic_old(walker))/ddelta(i);
       }
-      else{
-	pseudo->calcNonlocWithFile(wfdata, electrons(walker), wf(walker),nonloc, psp_buff);
+      else{//not dynamic_pp
+	if(dynamic_wf){
+	  config_pos(walker).restorePos(sample(0)); 
+	  wf(0)->updateLap(wfdata, sample(0));
+	  sysprop->calcKinetic(wfdata, sample(0), wf(0), kinetic);
+	  pseudo->calcNonlocWithFile(wfdata, sample(0), wf(0),nonloc, psp_buff);
+	}
+	else{
+	  wf(walker)->updateLap(wfdata, sample(walker));
+	  sysprop->calcKinetic(wfdata, sample(walker), wf(walker), kinetic);
+	  pseudo->calcNonlocWithFile(wfdata, sample(walker), wf(walker),nonloc, psp_buff);
+	}
 	e_local_gradient(i)(walker)=(kinetic(0)+nonloc(0)-kinetic_old(walker)-nonloc_old(walker))/ddelta(i);
       }
     }//walker
@@ -1006,11 +1266,11 @@ void Optimize_method2::func_hessian_analytical(Array1 <double> & parms, int npar
 	  break;
 	case min_variance:
 	  grad_var_tmp(i)+=2.0*(e_local_gradient(i)(walker)-grad_eng(i))*
-	                       (e_local(walker)-energy_mean)*weight(walker);
+	                       (E_local(walker)-energy_mean)*weight(walker);
 	  grad_e_local_tmp(i)+=e_local_gradient(i)(walker)*weight(walker);
 	  break;
 	case min_mixed:
-	  grad_var_tmp(i)+=2.0*(e_local_gradient(i)(walker)-grad_eng(i))*(e_local(walker)-energy_mean)*weight(walker);
+	  grad_var_tmp(i)+=2.0*(e_local_gradient(i)(walker)-grad_eng(i))*(E_local(walker)-energy_mean)*weight(walker);
 	  grad_e_local_tmp(i)+=e_local_gradient(i)(walker)*weight(walker);
 	  break;
 	}
@@ -1045,8 +1305,15 @@ void Optimize_method2::func_hessian_analytical(Array1 <double> & parms, int npar
 
   wfdata->setVarParms(temp_parms);
   for(int walker=0; walker< min_nconfig; walker++){
-    wf(walker)->updateVal(wfdata, electrons(walker));
-    wf(walker)->getParmDeriv(wfdata, electrons(walker),  wfders);
+    if(dynamic_wf){
+      config_pos(walker).restorePos(sample(0)); 
+      wf(0)->updateVal(wfdata, sample(0));
+      wf(0)->getParmDeriv(wfdata, sample(0),  wfders);
+    }
+    else{
+      wf(walker)->updateVal(wfdata, sample(walker));
+      wf(walker)->getParmDeriv(wfdata, sample(walker),  wfders);
+    }
     for (int i=0;i<nparms;i++){
       for (int j=i;j<nparms;j++){
 	switch(min_function)
@@ -1054,9 +1321,9 @@ void Optimize_method2::func_hessian_analytical(Array1 <double> & parms, int npar
 	  case min_energy:
 	    hess1_eng(i,j)+=(wfders.hessian(i,j)
 			     -wfders.gradient(i)*wfders.gradient(j))*
-	      (e_local(walker)-energy_mean)*weight(walker);
+	      (E_local(walker)-energy_mean)*weight(walker);
 	    hess2_eng(i,j)+=(wfders.gradient(i)-grad_wf(i))*
-	      (wfders.gradient(j)-grad_wf(j))*(e_local(walker)-energy_mean)*weight(walker);
+	      (wfders.gradient(j)-grad_wf(j))*(E_local(walker)-energy_mean)*weight(walker);
 	    hess3_1eng(i,j)+=wfders.gradient(i)*e_local_gradient(j)(walker)*weight(walker);
 	    hess3_2eng(i,j)+=wfders.gradient(j)*e_local_gradient(i)(walker)*weight(walker);	
 	    break;
@@ -1067,9 +1334,9 @@ void Optimize_method2::func_hessian_analytical(Array1 <double> & parms, int npar
 	  case min_mixed:
 	    hess1_eng(i,j)+=(wfders.hessian(i,j)
 			     -wfders.gradient(i)*wfders.gradient(j))*
-	      (e_local(walker)-energy_mean)*weight(walker);
+	      (E_local(walker)-energy_mean)*weight(walker);
 	    hess2_eng(i,j)+=(wfders.gradient(i)-grad_wf(i))*
-	      (wfders.gradient(j)-grad_wf(j))*(e_local(walker)-energy_mean)*weight(walker);
+	      (wfders.gradient(j)-grad_wf(j))*(E_local(walker)-energy_mean)*weight(walker);
 	    hess3_1eng(i,j)+=wfders.gradient(i)*e_local_gradient(j)(walker)*weight(walker);
 	    hess3_2eng(i,j)+=wfders.gradient(j)*e_local_gradient(i)(walker)*weight(walker);
 	    hess1_var(i,j)+=(e_local_gradient(i)(walker)-grad_eng(i))*

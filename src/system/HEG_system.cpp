@@ -77,6 +77,7 @@ int HEG_system::showinfo(ostream & os)
     os << endl;
   }
 
+  os << endl;
   os << "Model for \"periodic\" e-e interaction used:" << endl;
   switch (eeModel) {
   case 1:
@@ -85,6 +86,11 @@ int HEG_system::showinfo(ostream & os)
   case 2:
     os << "truncated Coulomb interaction, Fraser et al., PRB 53, 1814 (1994)"
        << endl;
+    break;
+  case 3:
+    os << "Gaussian short-range interaction" << endl;
+    os << "  amplitude      " << Gauss_a << endl;
+    os << "  std. deviation " << Gauss_s << endl;
   }
   os << endl;
 
@@ -100,7 +106,7 @@ int HEG_system::showinfo(ostream & os)
   os << "rs "  << rs << endl;
 
   // mean-fields should be close for small rs (high densities)
-  os << "approximate energies (for unpolarized system of given rs)" << endl;
+  os << "approximate energies (for unpolarized Coulomb system of given rs)" << endl;
   doublevar ene=pow(9*pi/4,2.0/3)*3.0/(10*rs*rs) 
     - pow(9*pi/4,1.0/3)*3/(pi*4*rs);
   os << "  Hartree-Fock         "
@@ -184,6 +190,24 @@ int HEG_system::read(vector <string> & words,
     } else if (caseless_eq(interactiontxt[0],"TRUNCCOUL")) {
       calcLocChoice=&HEG_system::calcLocTrunc;
       eeModel=2;
+    } else if (caseless_eq(interactiontxt[0],"GAUSS")) {
+      int npair=(interactiontxt.size()-1)/2;
+      bool amp=false, stdev=false;
+      for (int pair=0; pair < npair; pair++ ) {
+	if ( caseless_eq(interactiontxt[2*pair+1],"AMP") ) {
+	  sscanf(interactiontxt[2*pair+2].c_str(),"%lf",&Gauss_a);
+	  amp=true;
+	}
+	if ( caseless_eq(interactiontxt[2*pair+1],"STDEV") ) {
+	  sscanf(interactiontxt[2*pair+2].c_str(),"%lf",&Gauss_s);
+	  stdev=true;
+	}
+      }
+      if ( !(amp) || !(stdev) ) error("Gauss interaction model requested, but not all required data given.");
+      calcLocChoice=&HEG_system::calcLocGauss;
+      eeModel=3;
+      Gauss_s2=Gauss_s*Gauss_s;
+      // we will want to read the parameters of this interacton here too
     } else
       error("Unknown interaction model requested."); 
   } else {
@@ -472,6 +496,29 @@ doublevar HEG_system::calcLocTrunc(Sample_point * sample)
   }
   
   return ee_pot-backgr_trunc;
+}
+
+//---------
+
+doublevar HEG_system::calcLocGauss(Sample_point * sample)
+{
+  //cout << "Gaussian toy local energy" << endl;
+  
+  sample->updateEEDist();
+
+  doublevar ee_pot=0.0;
+  Array1 <doublevar> r1(3);
+  Array1 <doublevar> eidist(5);
+  
+  for(int e1=0; e1< totnelectrons; e1++) {
+    for(int e2 =e1+1; e2 < totnelectrons; e2++) {
+      sample->getEEDist(e1,e2, eidist);
+      for(int d=0; d< 3; d++) r1(d)=eidist(d+2);
+      ee_pot+=exp(-(r1(0)*r1(0)+r1(1)*r1(1)+r1(2)*r1(2))/2.0/Gauss_s2);
+    }
+  }
+  
+  return Gauss_a*ee_pot/Gauss_s/sqrt(2*pi);
 }
 
 

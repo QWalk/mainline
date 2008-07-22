@@ -883,6 +883,7 @@ int Pseudopotential::showinfo(ostream & os)
 //	       << setw(10) << integralpt(at,i,2)
 //	       << setw(10)  << integralweight(at, i) << endl;
 //	  }	
+	os << "Cutoff for static calculation "<<cutoff(at)<<endl;
         radial_basis(at)->showinfo(indent, os);
       }
     }

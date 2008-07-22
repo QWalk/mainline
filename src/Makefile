@@ -31,7 +31,7 @@ NODEPENDGOALS = depend clean totalclean cleanhtml html all
 
 ####################################################################
 # Special rules
-all: $(PROJECT) gosling 
+all: $(PROJECT) gosling  
 .PHONY: clean totalclean depend  gosling pw2lcao
 #.SILENT:
 ####################################################################

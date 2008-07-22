@@ -118,6 +118,155 @@ void gesqua (int & nq,
       
     }
   }
+  else if( nq >= 18 && nq < 26)
+  {
+    //see Handbook of mathematical functions, Abramowitz, pg. 894
+    nq=18;
+    for(int i=0; i< nq; i++)
+    {
+      if(i<6)
+	wq(i)=1./30.;
+      else
+	wq(i)=1./15.;
+    }
+    xq=yq=zq=0;
+    xq(0)=  1;
+    xq(1)= -1;
+
+    yq(2)=  1;
+    yq(3)= -1;
+
+    zq(4)=  1;
+    zq(5)= -1;
+
+    doublevar cstha=1./sqrt(2);
+    xq(6)=cstha;
+    yq(6)=cstha;
+
+    xq(7)=-cstha;
+    yq(7)=cstha;
+
+    xq(8)=cstha;
+    yq(8)=-cstha;
+
+    xq(9)=-cstha;
+    yq(9)=-cstha;
+
+    xq(10)=cstha;
+    zq(10)=cstha;
+
+    xq(11)=-cstha;
+    zq(11)=cstha;
+
+    xq(12)=cstha;
+    zq(12)=-cstha;
+
+    xq(13)=-cstha;
+    zq(13)=-cstha;
+
+    zq(14)=cstha;
+    yq(14)=cstha;
+
+    zq(15)=-cstha;
+    yq(15)=cstha;
+
+    zq(16)=cstha;
+    yq(16)=-cstha;
+
+    zq(17)=-cstha;
+    yq(17)=-cstha;
+  }
+  else if( nq == 26)
+  {
+    for(int i=0; i< nq; i++)
+    {
+      if(i<6)
+	wq(i)=40./840.;
+      else if(i<18)
+	wq(i)=32./840.;
+      else
+	wq(i)=27./840.;
+    }
+    xq=yq=zq=0;
+    xq(0)=  1;
+    xq(1)= -1;
+
+    yq(2)=  1;
+    yq(3)= -1;
+
+    zq(4)=  1;
+    zq(5)= -1;
+
+    doublevar cstha=1./sqrt(2);
+    xq(6)=cstha;
+    yq(6)=cstha;
+
+    xq(7)=-cstha;
+    yq(7)=cstha;
+
+    xq(8)=cstha;
+    yq(8)=-cstha;
+
+    xq(9)=-cstha;
+    yq(9)=-cstha;
+
+    xq(10)=cstha;
+    zq(10)=cstha;
+
+    xq(11)=-cstha;
+    zq(11)=cstha;
+
+    xq(12)=cstha;
+    zq(12)=-cstha;
+
+    xq(13)=-cstha;
+    zq(13)=-cstha;
+
+    zq(14)=cstha;
+    yq(14)=cstha;
+
+    zq(15)=-cstha;
+    yq(15)=cstha;
+
+    zq(16)=cstha;
+    yq(16)=-cstha;
+
+    zq(17)=-cstha;
+    yq(17)=-cstha;
+
+    doublevar csthb=1./sqrt(3);
+    xq(18)=csthb;
+    yq(18)=csthb;
+    zq(18)=csthb;
+
+    xq(19)=csthb;
+    yq(19)=-csthb;
+    zq(19)=csthb;
+
+    xq(20)=csthb;
+    yq(20)=csthb;
+    zq(20)=-csthb;
+
+    xq(21)=csthb;
+    yq(21)=-csthb;
+    zq(21)=-csthb;
+
+    xq(22)=-csthb;
+    yq(22)=csthb;
+    zq(22)=csthb;
+
+    xq(23)=-csthb;
+    yq(23)=-csthb;
+    zq(23)=csthb;
+
+    xq(24)=-csthb;
+    yq(24)=csthb;
+    zq(24)=-csthb;
+
+    xq(25)=-csthb;
+    yq(25)=-csthb;
+    zq(25)=-csthb;
+  }
   else
   {
     error("Bad number of AIP's: ", nq);

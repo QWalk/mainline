@@ -25,6 +25,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Dmc_method.h"
 #include "Test_method.h"
 #include "Plot_method.h"
+#include "Localize_method.h"
 #include "Nodes_method.h"
 #include "Reptation_method.h"
 #include "Postprocess_method.h"
@@ -55,7 +56,10 @@ int allocate(vector <string> & words,
   
   else if(caseless_eq(words[0],"PLOT"))
     methptr=new Plot_method;
-  
+
+   else if(caseless_eq(words[0],"LOCALIZE"))
+    methptr=new Localize_method;
+ 
   else if(caseless_eq(words[0],"NODES"))
     methptr=new Nodes_method;
   

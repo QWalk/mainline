@@ -88,14 +88,14 @@ void Config_save_point::mpiReceive(int node) {
 #ifdef USE_MPI
   MPI_Status status;
   int nelectrons;
-  MPI_Recv(&nelectrons,1, MPI_INT, node, 0, MPI_COMM_WORLD,
+  MPI_Recv(&nelectrons,1, MPI_INT, node, 0, MPI_Comm_grp,
            &status);
   electronpos.Resize(nelectrons);
   for(int e=0; e< nelectrons; e++) {
     electronpos(e).Resize(3);
     for(int d=0; d< 3; d++) {
       MPI_Recv(&(electronpos(e)(d)), 1, MPI_DOUBLE,
-               node, 0, MPI_COMM_WORLD, &status);
+               node, 0, MPI_Comm_grp, &status);
     }
   }
 #endif
@@ -104,13 +104,14 @@ void Config_save_point::mpiReceive(int node) {
 void Config_save_point::mpiSend(int node) {
 #ifdef USE_MPI
   int nelectrons=electronpos.GetDim(0);
-  MPI_Send(&nelectrons,1, MPI_INT, node, 0, MPI_COMM_WORLD);
+  MPI_Send(&nelectrons,1, MPI_INT, node, 0, MPI_Comm_grp);
   for(int e=0; e< nelectrons; e++) {
     for(int d=0; d< 3; d++) {
       MPI_Send(&(electronpos(e)(d)), 1, MPI_DOUBLE,
-                 node, 0, MPI_COMM_WORLD);
+                 node, 0, MPI_Comm_grp);
     }
   }
 #endif
 }
+
 //----------------------------------------------------------------------
