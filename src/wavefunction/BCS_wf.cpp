@@ -61,8 +61,8 @@ void BCS_wf::init(Wavefunction_data * wfdata)
   ndim=3;
 
   if(nelectrons(0) != nelectrons(1)) { 
-    error("for BCS wave function, the number of spin up electrons must"
-	  " be greater equal to the number of spin down electrons.");
+    error("For BCS wave function, the number of spin up electrons must"
+	  " be equal to the number of spin down electrons.");
   }
 
   spin.Resize(tote);
