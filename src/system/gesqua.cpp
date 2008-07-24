@@ -139,7 +139,7 @@ void gesqua (int & nq,
     zq(4)=  1;
     zq(5)= -1;
 
-    doublevar cstha=1./sqrt(2);
+    doublevar cstha=1./sqrt(2.);
     xq(6)=cstha;
     yq(6)=cstha;
 
@@ -197,7 +197,7 @@ void gesqua (int & nq,
     zq(4)=  1;
     zq(5)= -1;
 
-    doublevar cstha=1./sqrt(2);
+    doublevar cstha=1./sqrt(2.);
     xq(6)=cstha;
     yq(6)=cstha;
 
@@ -234,7 +234,7 @@ void gesqua (int & nq,
     zq(17)=-cstha;
     yq(17)=-cstha;
 
-    doublevar csthb=1./sqrt(3);
+    doublevar csthb=1./sqrt(3.);
     xq(18)=csthb;
     yq(18)=csthb;
     zq(18)=csthb;
