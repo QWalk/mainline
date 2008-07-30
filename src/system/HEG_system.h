@@ -159,6 +159,9 @@ private:
    *  \li 3  short-range gaussian well
   */
   
+  bool same_spin_int;             //!< switch for same spin interaction
+  bool diff_spin_int;             //!< switch for different spin interaction
+
   doublevar (HEG_system::*calcLocChoice)(Sample_point *);
   //!< pointer to the selected local energy evaluator
   

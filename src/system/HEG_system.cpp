@@ -31,6 +31,7 @@ Periodic_system.
 #include "Sample_point.h"
 #include "HEG_sample.h"
 #include "qmc_io.h"
+#include "MatrixAlgebra.h"
 
 void HEG_system::notify(change_type change, int n)
 {
@@ -94,6 +95,11 @@ int HEG_system::showinfo(ostream & os)
   }
   os << endl;
 
+  if (!same_spin_int)
+    os << "Interaction between like spins switched off." << endl << endl;
+  if (!diff_spin_int)
+    os << "Interaction between unlike spins switched off." << endl << endl;
+
   if ( eeModel == 1 ) {
     os << "total number of points in reciprocal ewald sum: "
        << ngpoints << endl;
@@ -122,7 +128,6 @@ int HEG_system::showinfo(ostream & os)
 
 
 //----------------------------------------------------------------------
-#include "MatrixAlgebra.h"
 /*!
 */
 int HEG_system::read(vector <string> & words,
@@ -183,37 +188,38 @@ int HEG_system::read(vector <string> & words,
   }
 
   vector <string> interactiontxt;
+  // default is truncated Coulomb
+  calcLocChoice=&HEG_system::calcLocTrunc;
+  eeModel=2;
+  same_spin_int=true;
+  diff_spin_int=true;
   if(readsection(words, pos=0, interactiontxt, "INTERACTION")) {
-    if (caseless_eq(interactiontxt[0],"EWALD")) {
+    if( haskeyword(interactiontxt, pos=0, "EWALD") ) {
       calcLocChoice=&HEG_system::calcLocEwald;
       eeModel=1;
-    } else if (caseless_eq(interactiontxt[0],"TRUNCCOUL")) {
+    }
+    if( haskeyword(interactiontxt, pos=0, "TRUNCCOUL") ) {
       calcLocChoice=&HEG_system::calcLocTrunc;
       eeModel=2;
-    } else if (caseless_eq(interactiontxt[0],"GAUSS")) {
-      int npair=(interactiontxt.size()-1)/2;
-      bool amp=false, stdev=false;
-      for (int pair=0; pair < npair; pair++ ) {
-	if ( caseless_eq(interactiontxt[2*pair+1],"AMP") ) {
-	  sscanf(interactiontxt[2*pair+2].c_str(),"%lf",&Gauss_a);
-	  amp=true;
-	}
-	if ( caseless_eq(interactiontxt[2*pair+1],"STDEV") ) {
-	  sscanf(interactiontxt[2*pair+2].c_str(),"%lf",&Gauss_s);
-	  stdev=true;
-	}
-      }
-      if ( !(amp) || !(stdev) ) error("Gauss interaction model requested, but not all required data given.");
+    }
+    if( haskeyword(interactiontxt, pos=0, "GAUSS") ) {
       calcLocChoice=&HEG_system::calcLocGauss;
       eeModel=3;
+      if(!readvalue(interactiontxt,pos=0,Gauss_a, "AMP"))
+	error("Gauss interaction model requested, but no AMP given.");
+      if(!readvalue(interactiontxt,pos=0,Gauss_s, "STDEV"))
+	error("Gauss interaction model requested, but no STDEV given.");
       Gauss_s2=Gauss_s*Gauss_s;
-      // we will want to read the parameters of this interacton here too
-    } else
-      error("Unknown interaction model requested."); 
-  } else {
-    calcLocChoice=&HEG_system::calcLocTrunc;
-    eeModel=2;
+    }
+    if( haskeyword(interactiontxt, pos=0, "NO_SAME_SPIN") )
+      same_spin_int=false;
+    if( haskeyword(interactiontxt, pos=0, "NO_DIFF_SPIN") )
+      diff_spin_int=false;
   }
+
+  if ( eeModel==1 && ( !same_spin_int || !diff_spin_int ) )
+    error("Spin-dependent Ewald interaction not supported.");
+
   
 
   //-------------cross products
@@ -484,17 +490,31 @@ doublevar HEG_system::calcLocTrunc(Sample_point * sample)
   sample->updateEEDist();
   
   doublevar ee_pot=0.0;
-  Array1 <doublevar> r1(3);
   Array1 <doublevar> eidist(5);
-  
-  for(int e1=0; e1< totnelectrons; e1++) {
-    for(int e2 =e1+1; e2 < totnelectrons; e2++) {
-      sample->getEEDist(e1,e2, eidist);
-      for(int d=0; d< 3; d++) r1(d)=eidist(d+2);
-      ee_pot+=1.0/sqrt(r1(0)*r1(0)+r1(1)*r1(1)+r1(2)*r1(2));
+
+  if (diff_spin_int) {
+    for(int e1=0; e1< nspin(0); e1++) {
+      for(int e2 =nspin(0); e2 < totnelectrons; e2++) {
+	sample->getEEDist(e1,e2, eidist);
+	ee_pot+=1.0/eidist(0);
+      }
     }
   }
-  
+  if (same_spin_int) {
+    for(int e1=0; e1< nspin(0); e1++) {
+      for(int e2 =e1+1; e2 < nspin(0); e2++) {
+	sample->getEEDist(e1,e2, eidist);
+	ee_pot+=1.0/eidist(0);
+      }
+    }
+    for(int e1=nspin(0); e1< totnelectrons; e1++) {
+      for(int e2 =e1+1; e2 < totnelectrons; e2++) {
+	sample->getEEDist(e1,e2, eidist);
+	ee_pot+=1.0/eidist(0);
+      }
+    }   
+  }
+
   return ee_pot-backgr_trunc;
 }
 
@@ -507,17 +527,31 @@ doublevar HEG_system::calcLocGauss(Sample_point * sample)
   sample->updateEEDist();
 
   doublevar ee_pot=0.0;
-  Array1 <doublevar> r1(3);
   Array1 <doublevar> eidist(5);
   
-  for(int e1=0; e1< totnelectrons; e1++) {
-    for(int e2 =e1+1; e2 < totnelectrons; e2++) {
-      sample->getEEDist(e1,e2, eidist);
-      for(int d=0; d< 3; d++) r1(d)=eidist(d+2);
-      ee_pot+=exp(-(r1(0)*r1(0)+r1(1)*r1(1)+r1(2)*r1(2))/2.0/Gauss_s2);
+  if (diff_spin_int) {
+    for(int e1=0; e1< nspin(0); e1++) {
+      for(int e2 =nspin(0); e2 < totnelectrons; e2++) {
+	sample->getEEDist(e1,e2, eidist);
+	ee_pot+=exp(-eidist(1)/2.0/Gauss_s2);
+      }
     }
   }
-  
+  if (same_spin_int) {
+    for(int e1=0; e1< nspin(0); e1++) {
+      for(int e2 =e1+1; e2 < nspin(0); e2++) {
+	sample->getEEDist(e1,e2, eidist);
+	ee_pot+=exp(-eidist(1)/2.0/Gauss_s2);
+      }
+    }
+    for(int e1=nspin(0); e1< totnelectrons; e1++) {
+      for(int e2 =e1+1; e2 < totnelectrons; e2++) {
+	sample->getEEDist(e1,e2, eidist);
+	ee_pot+=exp(-eidist(1)/2.0/Gauss_s2);
+      }
+    }   
+  }
+
   return Gauss_a*ee_pot/Gauss_s/sqrt(2*pi);
 }
 
