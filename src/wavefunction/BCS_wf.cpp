@@ -620,3 +620,14 @@ int BCS_wf::getParmDeriv(Wavefunction_data *wfdata , Sample_point * sample,
 
 
 //-------------------------------------------------------------------------
+
+void BCS_wf::plot1DInternals(Array1 <doublevar> & xdata,
+			     vector <Array1 <doublevar> > & data,
+			     vector <string> & desc,
+			     string desc0) {
+
+  jast.plot1DInternals(xdata,data,desc,"BCS, ");
+
+}
+
+//-------------------------------------------------------------------------

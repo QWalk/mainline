@@ -99,6 +99,20 @@ public:
   //                      Array2 <doublevar> & lap, int begin_fill);
 
 
+  /*! \brief
+    these come in handy when we need parameters visible, e.g. in
+    Jastrow2_wf::plot1DInternals
+  */
+  void unfreeze() { freeze=0; }
+  void refreeze() { freeze=1; }
+
+  
+  /*! \brief
+    need to export this, so that Jastrow2_wf::plot1DInternals can map
+    from "uniquie parameters" to atomic basis
+  */
+  int atom_kind(int at) { return parm_centers(at); }
+
   Jastrow_onebody_piece():freeze(0) { }
 private:
   Array2 <doublevar> unique_parameters;

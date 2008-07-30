@@ -85,6 +85,10 @@ public:
   void getVarParms(Array1 <doublevar> & parms);
   void setVarParms(Array1 <doublevar> & parms);
 
+  void getEEbasisPlot(Array1 <doublevar> &, Array1 <doublevar> &);
+  void getEIbasisPlotInfo(vector <string> &, Array1 <int> &);
+  void getEIbasisPlot(int, Array1 <doublevar> &, Array1 <doublevar> &);
+
 private:
   int check_consistency();
   vector <string> atomnames;
@@ -201,6 +205,12 @@ public:
  
   virtual int getParmDeriv(Wavefunction_data *, Sample_point *,
                            Parm_deriv_return & );
+
+  virtual void plot1DInternals(Array1 <doublevar> &,
+			       vector <Array1 <doublevar> > &,
+			       vector <string> &,
+			       string );
+
 
   // JK: to implement analytical derivatives in BCS_wf (which uses two-body
   // Jastrow piece as a pair orbital), "electron-resolved" ParamDeriv is needed

@@ -103,6 +103,11 @@ public:
 			    Sample_point *,
 			    Parm_deriv_return & );
 
+  virtual void plot1DInternals(Array1 <doublevar> &,
+			       vector <Array1 <doublevar> > &,
+			       vector <string> &,
+			       string );
+
 private:
   friend class Slat_Jastrow_data;
   Wavefunction * slater_wf;

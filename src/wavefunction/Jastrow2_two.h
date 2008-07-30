@@ -91,7 +91,7 @@ class Jastrow_twobody_piece {
 public:
   virtual void set_up(vector <string> & words, System * sys);
   virtual int writeinput(string &, ostream &);
-virtual int showinfo(string &, ostream &);
+  virtual int showinfo(string &, ostream &);
 
   virtual int nparms() {if(freeze) return 0;  return parameters.GetDim(0);}
   virtual void getParms(Array1 <doublevar> & parms);
@@ -119,6 +119,14 @@ virtual int showinfo(string &, ostream &);
 
   virtual void parameterSaveLap(const Array4 <doublevar> & eebasis,
                         Array2 <doublevar> & save_lap, int begin_fill);
+
+  /*! \brief
+    these come in handy when we need parameters visible, e.g. in
+    Jastrow2_wf::plot1DInternals
+  */
+  virtual void unfreeze() { freeze=0; }
+  virtual void refreeze() { freeze=1; }
+
   virtual ~Jastrow_twobody_piece() {}
 private:
   Array1 <doublevar>  parameters;
@@ -161,6 +169,14 @@ public:
 
   virtual void parameterSaveLap(const Array4 <doublevar> & eebasis,
                         Array2 <doublevar> & save_lap, int begin_fill);
+
+  /*! \brief
+    these come in handy when we need parameters visible, e.g. in
+    Jastrow2_wf::plot1DInternals
+  */
+  virtual void unfreeze() { freeze=0; }
+  virtual void refreeze() { freeze=1; }
+
 private:
   Array2 <doublevar> spin_parms;
   int nspin_up;

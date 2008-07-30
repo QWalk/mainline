@@ -486,3 +486,20 @@ void Slat_Jastrow::updateForceBias(Wavefunction_data * wfdata, Sample_point * sa
   slater_wf->updateForceBias(dataptr->slater, sample);
   jastrow_wf->updateForceBias(dataptr->jastrow, sample);
 }
+
+
+//----------------------------------------------------------------------
+
+
+void Slat_Jastrow::plot1DInternals(Array1 <doublevar> & xdata,
+				   vector <Array1 <doublevar> > & data,
+				   vector <string> & desc,
+				   string desc0) {
+
+  slater_wf->plot1DInternals(xdata,data,desc,desc0);
+  jastrow_wf->plot1DInternals(xdata,data,desc,desc0);
+
+}
+
+
+//----------------------------------------------------------------------
