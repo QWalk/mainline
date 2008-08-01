@@ -1325,10 +1325,16 @@ void Jastrow2_wf::generateStorage(Wavefunction_storage *& wfstore) {
   wfstore=store;
   int ngroups=eibasis_save.GetDim(0);
   store->eibasis.Resize(ngroups);
+  store->eibasis_2.Resize(ngroups);
+
+
   for(int g=0; g< ngroups; g++) {
     store->eibasis(g).Resize(eibasis_save(g).GetDim(1), eibasis_save(g).GetDim(2), 
                              eibasis_save(g).GetDim(3));
+    store->eibasis_2(g).Resize(eibasis_save(g).GetDim(1), eibasis_save(g).GetDim(2), 
+                             eibasis_save(g).GetDim(3));
   }
+  
   
 }
 
@@ -1336,6 +1342,7 @@ void Jastrow2_wf::saveUpdate(Sample_point * sample, int e,
                              Wavefunction_storage * wfstore){
   Jastrow2_storage * j2store;
   recast(wfstore, j2store);
+ 
   for(int d=0; d< 5; d++) {
     j2store->one_body_part(d)=one_body_save(e,d);
   }
@@ -1411,6 +1418,154 @@ void Jastrow2_wf::restoreUpdate(Sample_point * sample, int e, Wavefunction_stora
 
 }
 
+//----------------------------------------------------------
+void Jastrow2_wf::saveUpdate(Sample_point * sample, int e1, int e2,
+                             Wavefunction_storage * wfstore){
+  Jastrow2_storage * j2store;
+  recast(wfstore, j2store);
+
+  for(int d=0; d< 5; d++) {
+    j2store->one_body_part(d)=one_body_save(e1,d);
+  }
+
+  for(int i=0; i< nelectrons; i++) {
+    for(int d=0; d< 5; d++) {
+      j2store->two_body_part_e(i,d)=two_body_save(e1,i,d);
+    }
+  }
+  for(int j=0; j< nelectrons; j++) {
+    for(int d=0; d< 5; d++) {
+      j2store->two_body_part_others(j,d)=two_body_save(j,e1,d);
+    }
+  }
+  
+  for(int g=0; g< eibasis_save.GetDim(0); g++) {
+    for(int at=0; at < eibasis_save(g).GetDim(1); at++) {
+      for(int i=0; i < eibasis_save(g).GetDim(2); i++) {
+        for(int d=0; d < eibasis_save(g).GetDim(3); d++) {
+          j2store->eibasis(g)(at,i,d)=eibasis_save(g)(e1,at,i,d);
+        }
+      }
+    }
+  }
+  
+  for(int d=0; d< 5; d++) {
+    j2store->one_body_part_2(d)=one_body_save(e2,d);
+  }
+  
+  for(int i=0; i< nelectrons; i++) {
+    for(int d=0; d< 5; d++) {
+      j2store->two_body_part_e_2(i,d)=two_body_save(e2,i,d);
+    }
+  }
+  
+  for(int j=0; j< nelectrons; j++) {
+    for(int d=0; d< 5; d++) {
+      j2store->two_body_part_others_2(j,d)=two_body_save(j,e2,d);
+    }
+  }
+  
+  for(int g=0; g< eibasis_save.GetDim(0); g++) {
+    for(int at=0; at < eibasis_save(g).GetDim(1); at++) {
+      for(int i=0; i < eibasis_save(g).GetDim(2); i++) {
+        for(int d=0; d < eibasis_save(g).GetDim(3); d++) {
+          j2store->eibasis_2(g)(at,i,d)=eibasis_save(g)(e2,at,i,d);
+        }
+      }
+    }
+  }
+}
+
+void Jastrow2_wf::restoreUpdate(Sample_point * sample, int e1, int e2, Wavefunction_storage * wfstore){
+  Jastrow2_storage * j2store;
+  recast(wfstore, j2store);
+  
+  assert( spin(e1) != spin(e2) );
+
+  doublevar old_eval=0;
+  for(int i=0; i< e2; i++)
+    old_eval+=two_body_save(i,e2,0);
+  for(int j=e2+1; j< nelectrons; j++)
+    old_eval+=two_body_save(e2,j,0);
+  
+  for(int g=0; g< eibasis_save.GetDim(0); g++) {
+    for(int at=0; at < eibasis_save(g).GetDim(1); at++) {
+      for(int i=0; i < eibasis_save(g).GetDim(2); i++) {
+        for(int d=0; d < eibasis_save(g).GetDim(3); d++) {
+          eibasis_save(g)(e2,at,i,d)=j2store->eibasis_2(g)(at,i,d);
+        }
+      }
+    }
+  }
+
+  for(int d=0; d< 5; d++) 
+    one_body_save(e2,d)=j2store->one_body_part_2(d);
+
+  for(int i=0; i< nelectrons; i++) {
+    for(int d=0; d< 5; d++) {
+      two_body_save(e2,i,d)=j2store->two_body_part_e_2(i,d);
+    }
+  }
+  for(int j=0; j< nelectrons; j++) {
+    for(int d=0; d< 5; d++) {
+      two_body_save(j,e2,d)=j2store->two_body_part_others_2(j,d);
+    }
+  }
+  
+
+
+  doublevar new_eval=0;
+  for(int i=0; i< e2; i++)
+    new_eval+=two_body_save(i,e2,0);
+  for(int j=e2+1; j< nelectrons; j++)
+    new_eval+=two_body_save(e2,j,0);
+
+  u_twobody += new_eval-old_eval;
+
+
+  for(int g=0; g< eibasis_save.GetDim(0); g++) {
+    for(int at=0; at < eibasis_save(g).GetDim(1); at++) {
+      for(int i=0; i < eibasis_save(g).GetDim(2); i++) {
+        for(int d=0; d < eibasis_save(g).GetDim(3); d++) {
+          eibasis_save(g)(e1,at,i,d)=j2store->eibasis(g)(at,i,d);
+        }
+      }
+    }
+  }
+
+  old_eval=0;
+  for(int i=0; i< e1; i++)
+    old_eval+=two_body_save(i,e1,0);
+  for(int j=e1+1; j< nelectrons; j++)
+    old_eval+=two_body_save(e1,j,0);
+
+  
+  for(int d=0; d< 5; d++) {
+    one_body_save(e1,d)=j2store->one_body_part(d);
+  }
+
+  for(int i=0; i< nelectrons; i++) {
+    for(int d=0; d< 5; d++) {
+      two_body_save(e1,i,d)=j2store->two_body_part_e(i,d);
+    }
+  }
+  for(int j=0; j< nelectrons; j++) {
+    for(int d=0; d< 5; d++) {
+      two_body_save(j,e1,d)=j2store->two_body_part_others(j,d);
+    }
+  }
+  
+
+
+  new_eval=0;
+  for(int i=0; i< e1; i++)
+    new_eval+=two_body_save(i,e1,0);
+  for(int j=e1+1; j< nelectrons; j++)
+    new_eval+=two_body_save(e1,j,0);
+
+  u_twobody+=new_eval-old_eval;
+	
+}
 //----------------------------------------------------------
 
 void Jastrow2_wf::storeParmIndVal(Wavefunction_data * dataptr, Sample_point *

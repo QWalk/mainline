@@ -310,6 +310,32 @@ class OBDM:public Nonlocal_density_accumulator {
 };
 
 
+// Added by Matous
+class TBDM:public Nonlocal_density_accumulator { 
+ public:
+    virtual void init(vector <string> & , System *, string & runid);
+    virtual void accumulate(Sample_point *, doublevar weight,
+			    Wavefunction_data *, Wavefunction *);
+    virtual void write(string & log_label);
+ protected:
+    string outputfilelog;
+    int nsample;
+    doublevar wnsample;
+    int nelectrons;    
+    int npoints;
+    int np_side;  //!< number of points on the side
+
+    doublevar dR; //!< increment in the parameter of TDBM
+
+    int np_aver;  //!< number of points of quadrature for spherical average
+    Array1 <doublevar> wt;  //!< angles and weights for Gaussian quadrature
+    Array2 <doublevar> ptc; //!< cartesian coordinates of integration points
+
+    Array2 <doublevar> latVec;
+    Array1 <doublevar> dmtrx;
+
+};
+
 
 void allocate(vector<string> & words, System * sys, string & runid,
 	 Local_density_accumulator  *& denspt);

@@ -48,6 +48,8 @@ void allocate(vector<string> & words, System * sys, string & runid,
   if(words.size() < 1) error("empty non-local density section");
   if(caseless_eq(words[0],"OBDM"))
     nldenspt=new OBDM;
+  else if(caseless_eq(words[0],"TBDM"))
+    nldenspt=new TBDM;
   else
     error("Didn't understand non-local density keyword",words[0]);
   nldenspt->init(words, sys, runid);
@@ -884,8 +886,6 @@ void OBDM::init(vector <string> & words, System * sys,
   latVec.Resize(ndim,ndim);
   if(!sys->getBounds(latVec)) 
     error("As of now, OBDM is only implemented for periodic systems.");
-  //dR=sqrt(latVec(0,0)*latVec(0,0)
-  //	  +latVec(0,1)*latVec(0,1)+latVec(0,2)*latVec(0,2))/npoints;
 
   Array2 <doublevar> crossProduct(ndim,ndim);
   crossProduct(0,0)=(latVec(1,1)*latVec(2,2)-latVec(1,2)*latVec(2,1));
@@ -927,67 +927,25 @@ void OBDM::init(vector <string> & words, System * sys,
   if(!readvalue(words, pos=0, np_aver, "AIP")) np_aver=1;
   wt.Resize(np_aver);
   ptc.Resize(np_aver,3);             //!< cartesian coordinates of int. points
-  Array2 <doublevar> pts(np_aver,2); //!< spherical coordinates of int. points
+  Array1 <doublevar> x(np_aver), y(np_aver), z(np_aver);
 
   switch (np_aver) {
   case 1:
     // no spherical averaging
-    np_aver=1;
     wt=1;
-    pts(0,0)=pi/2;
-    pts(0,1)=0;
-    break;
-  case 12:
-    // icosahedron 12 point rule
-    wt=1.0/12;
-    pts(0,0)=0;
-    pts(0,1)=0;
-    pts(1,0)=pi;
-    pts(1,1)=0;
-    for (int i=0; i<5; i++) {
-      pts(i+2,0)=atan(2.0);
-      pts(i+2,1)=2*i*pi/5;
-      pts(i+7,0)=pi-atan(2.0);
-      pts(i+7,1)=(2*i+1)*pi/5;
-    }
-    break;
-  case 32:
-    // icosahedron 32 point rule
-    { // braces needed due to declaration of th1,th2 below
-      for (int i=0; i<12; i++) wt(i)=5.0/168;
-      for (int i=12; i<32; i++) wt(i)=27.0/840;
-      pts(0,0)=0;
-      pts(0,1)=0;
-      pts(1,0)=pi;
-      pts(1,1)=0;
-      double th1=acos((2+sqrt(5.0))/sqrt(15+6*sqrt(5.0)));
-      double th2=acos(1.0/sqrt(15+6*sqrt(5.0)));
-      for (int i=0; i<5; i++) {
-	pts(i+2,0)=atan(2.0);
-	pts(i+2,1)=2*i*pi/5;
-	pts(i+7,0)=pi-atan(2.0);
-	pts(i+7,1)=(2*i+1)*pi/5;
-	pts(i+12,0)=th1;
-	pts(i+12,1)=(2*i+1)*pi/5;
-	pts(i+17,0)=th2;
-	pts(i+17,1)=(2*i+1)*pi/5;
-	pts(i+22,0)=pi-th1;
-	pts(i+22,1)=2*i*pi/5;
-	pts(i+27,0)=pi-th2;
-	pts(i+27,1)=2*i*pi/5;
-      }
-    }
+    ptc(0,0)=1.0;
+    ptc(0,1)=0.0;
+    ptc(0,2)=0.0;
     break;
   default:
-    error("Invalid number of integration points (AIP) for spherical averaging in OBDM, allowed are 1, 12 and 32.");
+    gesqua(np_aver,x,y,z,wt);
+    for (int i=0; i<np_aver; i++) {
+      ptc(i,0)=x(i);
+      ptc(i,1)=y(i);
+      ptc(i,2)=z(i);
+    }
   }
-
-  for (int i=0; i<np_aver; i++) {
-    ptc(i,0)=sin(pts(i,0))*cos(pts(i,1));
-    ptc(i,1)=sin(pts(i,0))*sin(pts(i,1));
-    ptc(i,2)=cos(pts(i,0));
-  }
-
+    
   nsample=0;
   wnsample=0.0;
   
@@ -1036,8 +994,6 @@ void OBDM::accumulate(Sample_point * sample, doublevar weight,
     for ( int k=0; k<np_aver; k++) {
       // shift makes sense only up to half the lattice vector, we are hitting
       // periodicity for larger distances
-      //for (int j=0; j<3; j++) newpos(j)=oldpos(j)+i*latVec(0,j)/2/npoints;
-      //sample->setElectronPos(0,newpos);
       transl(0)=(i+1)*dR*pt(k,0);
       transl(1)=(i+1)*dR*pt(k,1);
       transl(2)=(i+1)*dR*pt(k,2);
@@ -1103,6 +1059,241 @@ void OBDM::write(string & log_label) {
 }
 //######################################################################
 
+// Added by Matous
+//######################################################################
+void TBDM::init(vector <string> & words, System * sys,
+		string & runid) { 
+
+  single_write(cout, "Two-body density matrix will be calculated.\n");
+  //  outputfile=runid+".tbdm";
+  outputfilelog=runid+".tbdm.log";
+
+  nelectrons=sys->nelectrons(0)+sys->nelectrons(1);
+
+  unsigned int pos=0;
+  if(!readvalue(words, pos=0, np_side, "NGRID")) 
+    np_side=5;
+  
+  // I assume spherical symmetry for now, shifts will be along the first
+  // lattice vector
+  npoints=np_side;          
+  dmtrx.Resize(npoints);
+  dmtrx=0.0;
+  
+  int ndim=3;
+  latVec.Resize(ndim,ndim);
+  if(!sys->getBounds(latVec)) 
+    error("As of now, TBDM is only implemented for periodic systems.");
+ 
+  Array2 <doublevar> crossProduct(ndim,ndim);
+  crossProduct(0,0)=(latVec(1,1)*latVec(2,2)-latVec(1,2)*latVec(2,1));
+  crossProduct(0,1)=(latVec(1,2)*latVec(2,0)-latVec(1,0)*latVec(2,2));
+  crossProduct(0,2)=(latVec(1,0)*latVec(2,1)-latVec(1,1)*latVec(2,0));
+
+  crossProduct(1,0)=(latVec(2,1)*latVec(0,2)-latVec(2,2)*latVec(0,1));
+  crossProduct(1,1)=(latVec(2,2)*latVec(0,0)-latVec(2,0)*latVec(0,2));
+  crossProduct(1,2)=(latVec(2,0)*latVec(0,1)-latVec(2,1)*latVec(0,0));
+
+  crossProduct(2,0)=(latVec(0,1)*latVec(1,2)-latVec(0,2)*latVec(1,1));
+  crossProduct(2,1)=(latVec(0,2)*latVec(1,0)-latVec(0,0)*latVec(1,2));
+  crossProduct(2,2)=(latVec(0,0)*latVec(1,1)-latVec(0,1)*latVec(1,0));
+  
+  doublevar smallestheight=1e99;
+  for(int i=0; i< ndim; i++) {
+    doublevar tempheight=0;
+    doublevar length=0;
+    for(int j=0; j< ndim; j++) {
+      tempheight+=crossProduct(i,j)*latVec(i,j);
+      length+=crossProduct(i,j)*crossProduct(i,j);
+    }
+    tempheight=fabs(tempheight)/sqrt(length);
+    if(tempheight < smallestheight ) smallestheight=tempheight;
+  }
+
+  // maximum distance for TBDM evaluation
+  pos=0;
+  doublevar cutoff;
+  if(!readvalue(words, pos=0, cutoff, "CUTOFF"))
+    dR=smallestheight/npoints/2;
+  else
+    dR=cutoff/npoints;
+  
+  // angles and weights for Gaussian quadrature (spherical averaging)
+  // (the same material as in system/gesqua.cpp)
+
+  pos=0;
+  if(!readvalue(words, pos=0, np_aver, "AIP")) np_aver=1;
+  wt.Resize(np_aver);
+  ptc.Resize(np_aver,3);             //!< cartesian coordinates of int. points
+  Array1 <doublevar> x(np_aver), y(np_aver), z(np_aver);
+
+  switch (np_aver) {
+  case 1:
+    // no spherical averaging
+    wt=1;
+    ptc(0,0)=1.0;
+    ptc(0,1)=0.0;
+    ptc(0,2)=0.0;
+    break;
+  default:
+    gesqua(np_aver,x,y,z,wt);
+    for (int i=0; i<np_aver; i++) {
+      ptc(i,0)=x(i);
+      ptc(i,1)=y(i);
+      ptc(i,2)=z(i);
+    }
+  }
+
+  nsample=0;
+  wnsample=0.0;
+  
+  if(mpi_info.node==0) { 
+    ofstream outlog(outputfilelog.c_str(),ios_base::app);
+    outlog << endl;
+    outlog << "#----------------------------------------------------------" 
+	   << endl;
+    outlog << "#Two-body density matrix, spherical average with "
+	   << np_aver << " points." << endl;
+    outlog << "#----------------------------------------------------------" 
+	   << endl;
+  }
+
+}
+
+//----------------------------------------------------------------------
+
+void TBDM::accumulate(Sample_point * sample, doublevar weight, 
+		      Wavefunction_data * wfdata, Wavefunction * wf) { 
+
+  //cout << "TBDM accumulate" << endl;
+
+  int nwf=wf->nfunc();
+  Wf_return wfval_new(nwf,2);   // this structure I just don't understand
+  Wf_return wfval_old(nwf,2);
+  
+  Wavefunction_storage * wfStore=NULL;
+  //Config_save_point  sampleStore;
+  Sample_storage * sampleStorage0=NULL, * sampleStorage1 = NULL;
+ 
+  Array1 <doublevar> oldpos(3), newpos(3), transl(3);
+  Array1 <doublevar> oldpos2(3); 
+
+  Array1 <doublevar> x(3), y(3), z(3);
+  Array2 <doublevar> pt(np_aver,3);
+  generate_random_rotation(x,y,z);
+  for (int i=0; i<np_aver; i++) {
+    pt(i,0)=ptc(i,0)*x(0)+ptc(i,1)*y(0)+ptc(i,2)*z(0);
+    pt(i,1)=ptc(i,0)*x(1)+ptc(i,1)*y(1)+ptc(i,2)*z(1);
+    pt(i,2)=ptc(i,0)*x(2)+ptc(i,1)*y(2)+ptc(i,2)*z(2);
+  }
+
+  wf->updateVal(wfdata, sample);
+	
+  //We need to generate storage capable to store two electron moves
+  wf->generateStorage( wfStore );
+  sample->generateStorage( sampleStorage0 ); 
+  sample->generateStorage( sampleStorage1 ); 
+
+  //The two elecrons to be moved should have opposite spin
+  int e0=0, e1=nelectrons-1;
+  assert( spin(e0) != spin(e1) );
+
+
+  wf->saveUpdate(sample,e0,e1,wfStore);
+  sample->saveUpdate( e0, sampleStorage0 );
+  sample->saveUpdate( e1, sampleStorage1 );
+
+
+  wf->getVal(wfdata, e0, wfval_old);
+  sample->getElectronPos(e0,oldpos);
+  sample->getElectronPos(e1,oldpos2);
+
+  for ( int k=0; k<np_aver; k++) {
+    
+    transl(0)=dR*pt(k,0);
+    transl(1)=dR*pt(k,1);
+    transl(2)=dR*pt(k,2);
+
+    for( int i=0; i<npoints; i++) {
+      // shift makes sense only up to half the lattice vector, we are hitting
+      // periodicity for larger distances
+      
+      sample->translateElectron(e0,transl);
+      sample->translateElectron(e1,transl);
+      wf->updateVal(wfdata, sample);
+      
+      wf->getVal(wfdata, e1, wfval_new);
+      
+      // how to handle the possibility of wf_old=0? Can it happen?
+      dmtrx(i)+=wt(k)*wfval_new.sign(0)*wfval_old.sign(0)
+	*exp(wfval_new.amp(0,0)-wfval_old.amp(0,0))*weight;
+    }
+
+    // The code should IMHO not depend on whether we return the electrons
+    // back or not since we store them in sample storage
+    // However, it affects the result
+    sample->setElectronPos(e0,oldpos);
+    sample->setElectronPos(e1,oldpos2);
+
+    sample->restoreUpdate(e1, sampleStorage1 );
+    sample->restoreUpdate(e0, sampleStorage0 );
+    wf->restoreUpdate(sample,e0,e1,wfStore);
+  }
+
+  
+  if(wfStore != NULL) delete wfStore;
+  if(sampleStorage0 != NULL) delete sampleStorage0;
+  if(sampleStorage1 != NULL) delete sampleStorage1;
+
+  nsample+=1;
+  wnsample+=weight;
+  
+}
+
+//----------------------------------------------------------------------
+
+void TBDM::write(string & log_label) { 
+
+  doublevar wnsample_tmp=parallel_sum(wnsample);
+#ifdef USE_MPI
+  Array1 <doublevar> dmtrx_tmp(npoints);
+  dmtrx_tmp=0;
+  MPI_Reduce(dmtrx.v, dmtrx_tmp.v, npoints, MPI_DOUBLE,MPI_SUM,
+	     0,MPI_Comm_grp);
+#else
+  Array1 <doublevar> & dmtrx_tmp(dmtrx);
+#endif
+
+  if(mpi_info.node==0) { 
+    
+    // the out, as it is now, is fine but not perfect because it gives
+    // wrong errorbars if blocks are too short and reblocking is
+    // needed.
+    ofstream outlog(outputfilelog.c_str(),ios_base::app);
+    outlog << endl;
+    outlog << "block {" << endl;
+    outlog << "   label " << log_label << endl;
+    outlog << "   totweight " << wnsample_tmp << endl;
+    
+    for(int i=0; i<npoints; i++)
+      outlog 
+	//<< "   r(" << i << ")="
+	<< dR*(i+1)
+	<< " { " << dmtrx_tmp(i)/wnsample_tmp
+	<< " } " << endl;
+
+    outlog << "}" << endl;
+    outlog.close();
+
+  } // if(mpi_info.node==0)
+
+  // reset per-block quantities
+  nsample=0;
+  wnsample=0.0;
+  dmtrx=0.0;
+  
+}
+//######################################################################
 
 //######################################################################
 

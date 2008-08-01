@@ -159,6 +159,9 @@ class Jastrow2_storage : public Wavefunction_storage {
       two_body_part_e.Resize(nelectrons,5);
       two_body_part_others.Resize(nelectrons,5);
 
+      one_body_part_2.Resize(5);
+      two_body_part_e_2.Resize(nelectrons,5);
+      two_body_part_others_2.Resize(nelectrons,5);
     }
   private:
     friend class Jastrow2_wf;
@@ -167,7 +170,11 @@ class Jastrow2_storage : public Wavefunction_storage {
     Array2 <doublevar> two_body_part_e; //!< parts with this electron as first index
     Array2 <doublevar> two_body_part_others; //!< parts with this electron as second index
     Array1 <Array3<doublevar> > eibasis;
-
+	
+    Array1 <doublevar> one_body_part_2;
+    Array2 <doublevar> two_body_part_e_2; //!< parts with this electron as first index
+    Array2 <doublevar> two_body_part_others_2; //!< parts with this electron as second index
+    Array1 <Array3<doublevar> > eibasis_2;
 };
 
 //######################################################################
@@ -194,6 +201,8 @@ public:
   virtual void saveUpdate(Sample_point *, int e, Wavefunction_storage *);
   virtual void restoreUpdate(Sample_point *, int e, Wavefunction_storage *);
 
+  virtual void saveUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *);
+  virtual void restoreUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *);
 
   virtual void storeParmIndVal(Wavefunction_data *, Sample_point *,
                                int, Array1 <doublevar> & );

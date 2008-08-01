@@ -176,7 +176,7 @@ void gesqua (int & nq,
     zq(17)=-cstha;
     yq(17)=-cstha;
   }
-  else if( nq == 26)
+  else if( nq >= 26 && nq < 32 )
   {
     for(int i=0; i< nq; i++)
     {
@@ -266,6 +266,57 @@ void gesqua (int & nq,
     xq(25)=-csthb;
     yq(25)=-csthb;
     zq(25)=-csthb;
+  }
+  else if( nq == 32 ) {
+    // icosahedron 32 point rule
+    for (int i=0; i<12; i++) wq(i)=5.0/168;
+    for (int i=12; i<32; i++) wq(i)=27.0/840;
+    xq(0)=0.0;
+    yq(0)=0.0;
+    zq(0)=1.0;
+
+    xq(1)=0.0;
+    yq(1)=0.0;
+    zq(1)=-1.0;
+    double th1=acos((2+sqrt(5.0))/sqrt(15+6*sqrt(5.0)));
+    double th2=acos(1.0/sqrt(15+6*sqrt(5.0)));
+    for (int i=0; i<5; i++) {
+      doublevar th=atan(2.0);
+      doublevar phi=2*i*pi/5;
+      xq(i+2)=sin(th)*cos(phi);
+      yq(i+2)=sin(th)*sin(phi);
+      zq(i+2)=cos(th);
+
+      th=pi-atan(2.0);
+      phi=(2*i+1)*pi/5;
+      xq(i+7)=sin(th)*cos(phi);
+      yq(i+7)=sin(th)*sin(phi);
+      zq(i+7)=cos(th);     
+
+      th=th1;
+      phi=(2*i+1)*pi/5;
+      xq(i+12)=sin(th)*cos(phi);
+      yq(i+12)=sin(th)*sin(phi);
+      zq(i+12)=cos(th);
+
+      th=th2;
+      phi=(2*i+1)*pi/5;
+      xq(i+17)=sin(th)*cos(phi);
+      yq(i+17)=sin(th)*sin(phi);
+      zq(i+17)=cos(th);
+
+      th=pi-th1;
+      phi=2*i*pi/5;
+      xq(i+22)=sin(th)*cos(phi);
+      yq(i+22)=sin(th)*sin(phi);
+      zq(i+22)=cos(th);
+
+      th=pi-th2;
+      phi=2*i*pi/5;
+      xq(i+27)=sin(th)*cos(phi);
+      yq(i+27)=sin(th)*sin(phi);
+      zq(i+27)=cos(th);
+    }
   }
   else
   {

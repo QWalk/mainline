@@ -40,6 +40,10 @@ private:
 
   //dimensions are [value gradient lap, MO]
   Array2 <doublevar>  moVal_temp;
+
+  // Added by Matous
+  Array2 <doublevar>  moVal_temp_2;
+ 
   Array3 < Array2 <doublevar> > inverse_temp;
   Array3 <doublevar> detVal_temp;
 
@@ -79,7 +83,10 @@ public:
   virtual void saveUpdate(Sample_point *, int e, Wavefunction_storage *);
   virtual void restoreUpdate(Sample_point *, int e, Wavefunction_storage *);
 
-
+  // Added by Matous
+  virtual void saveUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *);
+  virtual void restoreUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *);
+  
   virtual void storeParmIndVal(Wavefunction_data *, Sample_point *,
                                int, Array1 <doublevar> & );
   virtual void getParmDepVal(Wavefunction_data *,

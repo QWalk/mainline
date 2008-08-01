@@ -91,6 +91,10 @@ public:
   virtual void saveUpdate(Sample_point *, int e, Wavefunction_storage *);
   virtual void restoreUpdate(Sample_point *, int e, Wavefunction_storage *);
 
+  //Added by Matous
+  virtual void saveUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *);
+  virtual void restoreUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *);
+
   virtual void storeParmIndVal(Wavefunction_data *, Sample_point *,
                                int, Array1 <doublevar> & );
   virtual void getParmDepVal(Wavefunction_data *,

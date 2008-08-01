@@ -237,7 +237,14 @@ public:
     saves an electron update to the storage object
    */
   virtual void saveUpdate(Sample_point *, int e, Wavefunction_storage *)=0;
-
+  
+  /*!
+    \brief
+    saves an two electron update to the storage object
+    */
+  virtual void saveUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *)
+  {error("This Wavefunction object doesn't have two electron storage");}
+   
   /*!
     \brief
     restores an electron update from the storage object(previously stored      with saveUpdate).
@@ -246,7 +253,13 @@ public:
     move two or more electrons, and then restore, the behavior is undefined.
    */
   virtual void restoreUpdate(Sample_point *, int e, Wavefunction_storage *)=0;
-
+  
+  /*!
+   \brief
+   Restores  situation after two electron update
+   */
+  virtual void restoreUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *)
+  {error("This Wavefunction object doesn't have two electron storage");}
 
 
   /*!
@@ -365,8 +378,8 @@ public:
   {
     sample->restoreUpdate(e, sampStore);
     wf->restoreUpdate(sample, e, wfStore);
-//sample->restoreUpdate(e, sampStore);
   }
+
 
 
 private:

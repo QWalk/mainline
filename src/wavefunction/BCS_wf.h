@@ -50,6 +50,8 @@ private:
   Array1 <Array2 <doublevar> > inverse;
   //Array2 <doublevar> moVal;
   Array2 <doublevar> derivatives;
+  //Added by Matous
+  Array2 <doublevar> derivatives_2;
   Array1 <doublevar> detVal;
 
 };
@@ -101,6 +103,9 @@ public:
   virtual void saveUpdate(Sample_point *, int e, Wavefunction_storage *);
   virtual void restoreUpdate(Sample_point *, int e, Wavefunction_storage *);
 
+  //Added by Matous
+  virtual void saveUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *);
+  virtual void restoreUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *);
 
   virtual void storeParmIndVal(Wavefunction_data *, Sample_point *,
                                int, Array1 <doublevar> & );

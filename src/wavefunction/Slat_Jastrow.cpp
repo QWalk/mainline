@@ -76,6 +76,27 @@ void Slat_Jastrow::restoreUpdate(Sample_point * sample, int e, Wavefunction_stor
   jastrow_wf->restoreUpdate(sample, e, store->jast_store);
 }
 
+void Slat_Jastrow::saveUpdate(Sample_point * sample, int e1, int e2, Wavefunction_storage * wfstore)
+{
+  Slat_Jastrow_storage * store;
+  recast(wfstore, store);
+
+  slater_wf->saveUpdate(sample, e1, e2, store->slat_store);
+  jastrow_wf->saveUpdate(sample, e1, e2, store->jast_store);
+
+}
+
+void Slat_Jastrow::restoreUpdate(Sample_point * sample, int e1, int e2, Wavefunction_storage * wfstore)
+{
+  //cout << "restoreUpdate\n";
+  Slat_Jastrow_storage * store;
+  recast(wfstore, store);
+
+  slater_wf->restoreUpdate(sample, e1, e2, store->slat_store);
+  jastrow_wf->restoreUpdate(sample, e1, e2, store->jast_store);
+}
+
+
 
 void Slat_Jastrow::getVal(Wavefunction_data * wfdata,
                           int e, Wf_return & val)
