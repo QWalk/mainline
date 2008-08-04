@@ -11,7 +11,7 @@ G032QMCOBJS := g032qmcmain.o g03tools.o $(ALLOBJS)
 HEG2QMCOBJS := heg2qmc.o indexx.o
 HEG2QMCCOBJS := heg2qmcc.o indexx.o setk01.o
 
-all: gamess2qmc gamessci2qmc crystal2qmc siesta2qmc g032qmc heg2qmc heg2qmcc
+all: gamess2qmc gamessci2qmc crystal2qmc siesta2qmc g032qmc heg2qmc
 .PHONY: clean 
 
 gamess2qmc: $(GAMESS2QMCOBJS)
