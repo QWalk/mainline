@@ -50,9 +50,9 @@ void Optimize_method2::read(vector <string> words,
     use_extended_output=1;
   else  use_extended_output=0; 
   
-  if(haskeyword(words, pos=0, "DYNAMIC_PP") )
-    dynamic_pp=1;
-  else  dynamic_pp=0; 
+  if(haskeyword(words, pos=0, "DETERMINISTIC_PP") )
+    dynamic_pp=0;
+  else  dynamic_pp=1; 
   
   if(haskeyword(words, pos=0, "DYNAMIC_WF") )
      dynamic_wf=1;
