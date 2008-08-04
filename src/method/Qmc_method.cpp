@@ -29,6 +29,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Nodes_method.h"
 #include "Reptation_method.h"
 #include "Postprocess_method.h"
+#include "Plot1d_method.h"
 
 int allocate(vector <string> & words,
              Program_options & options,
@@ -68,6 +69,10 @@ int allocate(vector <string> & words,
   
   else if(caseless_eq(words[0],"POSTPROCESS"))
     methptr=new Postprocess_method;
+
+  else if(caseless_eq(words[0],"PLOT1D"))
+    methptr=new Plot1D_method;
+
   else
     error("Error parsing the method section; unknown keyword ",
           words[0]);

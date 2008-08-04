@@ -237,7 +237,14 @@ public:
     saves an electron update to the storage object
    */
   virtual void saveUpdate(Sample_point *, int e, Wavefunction_storage *)=0;
-
+  
+  /*!
+    \brief
+    saves an two electron update to the storage object
+    */
+  virtual void saveUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *)
+  {error("This Wavefunction object doesn't have two electron storage");}
+   
   /*!
     \brief
     restores an electron update from the storage object(previously stored      with saveUpdate).
@@ -246,7 +253,13 @@ public:
     move two or more electrons, and then restore, the behavior is undefined.
    */
   virtual void restoreUpdate(Sample_point *, int e, Wavefunction_storage *)=0;
-
+  
+  /*!
+   \brief
+   Restores  situation after two electron update
+   */
+  virtual void restoreUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *)
+  {error("This Wavefunction object doesn't have two electron storage");}
 
 
   /*!
@@ -272,6 +285,22 @@ public:
                              Wf_return &
                              //!< return values, same as from getVal()
                             )=0;
+
+  /*! \brief
+    Plots 1d functions from inside the wave function, e.g. constituents
+    of the Jastrow factor. Called from PLOT1D method.
+  */
+  virtual void plot1DInternals(Array1 <doublevar> &,
+			       //!< grid of x-values we plot at
+			       vector <Array1 <doublevar> > &,
+			       //!< one column for each plotted function
+			       vector <string> &,
+			       //!< description/identification of the column
+			       string 
+			       //!< prefix for description (BCS, Jastrow, ...)
+			       ) {
+  }
+
 
   /*!
     \brief
@@ -349,8 +378,8 @@ public:
   {
     sample->restoreUpdate(e, sampStore);
     wf->restoreUpdate(sample, e, wfStore);
-//sample->restoreUpdate(e, sampStore);
   }
+
 
 
 private:

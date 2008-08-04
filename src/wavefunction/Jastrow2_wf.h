@@ -85,6 +85,10 @@ public:
   void getVarParms(Array1 <doublevar> & parms);
   void setVarParms(Array1 <doublevar> & parms);
 
+  void getEEbasisPlot(Array1 <doublevar> &, Array1 <doublevar> &);
+  void getEIbasisPlotInfo(vector <string> &, Array1 <int> &);
+  void getEIbasisPlot(int, Array1 <doublevar> &, Array1 <doublevar> &);
+
 private:
   int check_consistency();
   vector <string> atomnames;
@@ -155,6 +159,9 @@ class Jastrow2_storage : public Wavefunction_storage {
       two_body_part_e.Resize(nelectrons,5);
       two_body_part_others.Resize(nelectrons,5);
 
+      one_body_part_2.Resize(5);
+      two_body_part_e_2.Resize(nelectrons,5);
+      two_body_part_others_2.Resize(nelectrons,5);
     }
   private:
     friend class Jastrow2_wf;
@@ -163,7 +170,11 @@ class Jastrow2_storage : public Wavefunction_storage {
     Array2 <doublevar> two_body_part_e; //!< parts with this electron as first index
     Array2 <doublevar> two_body_part_others; //!< parts with this electron as second index
     Array1 <Array3<doublevar> > eibasis;
-
+	
+    Array1 <doublevar> one_body_part_2;
+    Array2 <doublevar> two_body_part_e_2; //!< parts with this electron as first index
+    Array2 <doublevar> two_body_part_others_2; //!< parts with this electron as second index
+    Array1 <Array3<doublevar> > eibasis_2;
 };
 
 //######################################################################
@@ -190,6 +201,8 @@ public:
   virtual void saveUpdate(Sample_point *, int e, Wavefunction_storage *);
   virtual void restoreUpdate(Sample_point *, int e, Wavefunction_storage *);
 
+  virtual void saveUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *);
+  virtual void restoreUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *);
 
   virtual void storeParmIndVal(Wavefunction_data *, Sample_point *,
                                int, Array1 <doublevar> & );
@@ -201,6 +214,12 @@ public:
  
   virtual int getParmDeriv(Wavefunction_data *, Sample_point *,
                            Parm_deriv_return & );
+
+  virtual void plot1DInternals(Array1 <doublevar> &,
+			       vector <Array1 <doublevar> > &,
+			       vector <string> &,
+			       string );
+
 
   // JK: to implement analytical derivatives in BCS_wf (which uses two-body
   // Jastrow piece as a pair orbital), "electron-resolved" ParamDeriv is needed

@@ -28,8 +28,10 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "indexx.h" // Quicksort from Numerical Recipes
 
-//#define PRINT_VECS 1  // to print k-vectors of basis functions
-//#define PBC_ONLY 1    // to compile Gamma-point only version
+//#define PRINT_VECS 1        // to print k-vectors of basis functions
+//#define PRINT_SHELL_DETAILS // to print extra summary for each shell 
+//#define PBC_ONLY 1          // to compile Gamma-point only version
+
 
 using namespace std;
 
@@ -187,6 +189,9 @@ int main(int argc, char ** argv) {
       cout << pbc[tw[twist][i]];
     }
     cout << " (weight " << tw_weight[twist] << "), ";
+#ifdef PRINT_SHELL_DETAILS
+    cout << endl;
+#endif // PRINT_SHELL_DETAILS
   
   double Ekin_tw=0;
 
@@ -261,7 +266,13 @@ int main(int argc, char ** argv) {
 #ifdef PRINT_VECS
       cout << "----- " << setw(2) << shell+1 << " ("
 	   << setw(4) << shells[shell] << ") -----" << endl;
-#endif
+#endif // PRINT_VECS
+#ifdef PRINT_SHELL_DETAILS
+      cout << "shell: states ";
+      if ( k2[idx[seq]] == 0 ) { cout << 1; } else { cout << 2*inshell; }
+      cout << "; |k|=" << setprecision(outprec) << k0*sqrt(1.0*k2[idx[seq]])
+	   << endl;
+#endif // PRINT_SHELL_DETAILS
       inshell=0;
       shell++;
     }  

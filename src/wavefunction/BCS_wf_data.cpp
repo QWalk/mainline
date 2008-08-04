@@ -115,9 +115,10 @@ void BCS_wf_data::generateWavefunction(Wavefunction *& wf)
 int BCS_wf_data::showinfo(ostream & os)
 {
 
-  os << "BCS Determinant" << endl;
-
-
+  os << "BCS determinant with pair orbital of Jastrow form." << endl;
+  os << "START of pair orbital definition..." << endl << endl;
+  jastdata.showinfo(os);
+  os << "...END of pair orbital definition." << endl << endl;
 
   return 1;
 }

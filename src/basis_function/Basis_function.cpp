@@ -31,6 +31,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Rgaussian_function.h"
 #include "Gen_pade_function.h"
 #include "Step_function.h"
+#include "Group_function.h"
 
 int allocate(vector <string> & basistext, Basis_function * & bptr)
 {
@@ -58,6 +59,8 @@ int allocate(vector <string> & basistext, Basis_function * & bptr)
     bptr=new Gen_pade_function;
   else if(caseless_eq(type,"STEP"))
     bptr=new Step_function;
+  else if(caseless_eq(type,"BASIS_GROUPS"))
+    bptr=new Group_function;
   else
     error("Didn't understand the basis section type ", type,
           " in basis section ", basistext[0]);

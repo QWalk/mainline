@@ -40,6 +40,7 @@ void BCS_wf::generateStorage(Wavefunction_storage * & wfstore)
   store->detVal=detVal;
   //store->moVal.Resize(moVal.GetDim(1),moVal.GetDim(2));
   store->derivatives.Resize(derivatives.GetDim(0),derivatives.GetDim(2));
+  store->derivatives_2.Resize(derivatives.GetDim(0),derivatives.GetDim(2));
 }
 
 
@@ -61,8 +62,8 @@ void BCS_wf::init(Wavefunction_data * wfdata)
   ndim=3;
 
   if(nelectrons(0) != nelectrons(1)) { 
-    error("for BCS wave function, the number of spin up electrons must"
-	  " be greater equal to the number of spin down electrons.");
+    error("For BCS wave function, the number of spin up electrons must"
+	  " be equal to the number of spin down electrons.");
   }
 
   spin.Resize(tote);
@@ -266,6 +267,141 @@ void BCS_wf::restoreUpdate(Sample_point * sample, int e,
   updateEverythingLap=0;
   updateEverythingVal=0;
   	
+  //calcLap(sample);
+}
+
+//----------------------------------------------------------------------
+//Added by Matous
+
+void BCS_wf::saveUpdate(Sample_point * sample, int e1, int e2,
+                         Wavefunction_storage * wfstore)
+{
+  BCS_wf_storage * store;
+  recast(wfstore, store);
+  jast.saveUpdate(sample,e1,e2,store->jast_store);
+  store->inverse=inverse;
+  store->detVal=detVal;
+
+  //
+  // unpaired electrons go into extra one-body orbitals, this
+  // functionality will be resurrected later
+  //
+  //int nmo=moVal.GetDim(1);
+  //int nd=moVal.GetDim(2);
+  //for(int m=0; m< nmo; m++) { 
+  //  for(int d=0; d< nd; d++) { 
+  //    store->moVal(m,d)=moVal(e,m,d);
+  //  }
+  //}
+
+  // We assume the two electrons have opposite spins 
+  assert( spin(e1) != spin(e2) );
+
+  int e_up, e_down;
+
+  e_up = spin(e1) ? e2 : e1;
+  e_down = spin(e1) ? e1 : e2;
+
+
+  { 
+    int nj=derivatives.GetDim(1);
+    assert(nj==nelectrons(0));
+    int nd=derivatives.GetDim(2);
+    for(int j=0; j< nj; j++) { 
+      for(int d=0; d< nd; d++) { 
+	store->derivatives(j,d)=derivatives(e_up,j,d);
+      }
+    }
+    int ep=e_up+nelectrons(0);
+    for(int j=0; j< nj; j++) { 
+      for(int d=0; d< nd; d++) {
+	store->derivatives(j+nelectrons(0),d)=derivatives(ep,j,d);
+      }
+    }
+  }
+  { 
+    int ni=derivatives.GetDim(0);
+    assert(ni==2*nelectrons(0));
+    int nd=derivatives.GetDim(2);
+    int rede=e_down-nelectrons(0);
+    for(int i=0; i< ni; i++) { 
+      for(int d=0; d< nd; d++) { 
+	store->derivatives_2(i,d)=derivatives(i,rede,d);
+      }
+    }
+  } 
+	
+}
+
+//----------------------------------------------------------------------
+
+void BCS_wf::restoreUpdate(Sample_point * sample, int e1, int e2,
+                            Wavefunction_storage * wfstore)
+{
+	
+  BCS_wf_storage * store;
+  recast(wfstore, store);
+
+  jast.restoreUpdate(sample,e1,e2,store->jast_store);
+
+  detVal=store->detVal;
+  inverse=store->inverse;
+  
+  //
+  // unpaired electrons go into extra one-body orbitals, this
+  // functionality will be resurrected later
+  //
+  //int nmo=moVal.GetDim(1);
+  //int nd=moVal.GetDim(2);
+  //for(int m=0; m< nmo; m++) { 
+  //  for(int d=0; d< nd; d++) { 
+  //    moVal(e,m,d)=store->moVal(m,d);
+  //  }
+  //}
+  
+  // We assume the two electrons have opposite spins 
+  assert( spin(e1) != spin(e2) );
+
+  int e_up, e_down;
+
+  e_up = spin(e1) ? e2 : e1;
+  e_down = spin(e1) ? e1 : e2;
+
+  { 
+    int ni=derivatives.GetDim(0);
+    assert(ni==2*nelectrons(0));
+    int nd=derivatives.GetDim(2);
+    int rede=e_down-nelectrons(0);
+    for(int i=0; i< ni; i++) { 
+      for(int d=0; d< nd; d++) { 
+	derivatives(i,rede,d)=store->derivatives_2(i,d);
+      }
+    }
+  }
+  { 
+    int nj=derivatives.GetDim(1);
+    assert(nj==nelectrons(0));
+    int nd=derivatives.GetDim(2);
+    for(int j=0; j< nj; j++) { 
+      for(int d=0; d< nd; d++) { 
+	derivatives(e_up,j,d)=store->derivatives(j,d);
+      }
+    }
+    int ep=e_up+nelectrons(0);
+    for(int j=0; j< nj; j++) { 
+      for(int d=0; d< nd; d++) {
+	derivatives(ep,j,d)=store->derivatives(j+nelectrons(0),d);
+      }
+    }
+  }
+
+	  
+  electronIsStaleLap=0;
+  electronIsStaleVal=0;
+  updateEverythingLap=0;
+  updateEverythingVal=0;
+  	
+
   //calcLap(sample);
 }
 
@@ -618,5 +754,16 @@ int BCS_wf::getParmDeriv(Wavefunction_data *wfdata , Sample_point * sample,
 
 }
 
+
+//-------------------------------------------------------------------------
+
+void BCS_wf::plot1DInternals(Array1 <doublevar> & xdata,
+			     vector <Array1 <doublevar> > & data,
+			     vector <string> & desc,
+			     string desc0) {
+
+  jast.plot1DInternals(xdata,data,desc,"BCS, ");
+
+}
 
 //-------------------------------------------------------------------------

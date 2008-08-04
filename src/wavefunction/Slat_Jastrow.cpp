@@ -76,6 +76,27 @@ void Slat_Jastrow::restoreUpdate(Sample_point * sample, int e, Wavefunction_stor
   jastrow_wf->restoreUpdate(sample, e, store->jast_store);
 }
 
+void Slat_Jastrow::saveUpdate(Sample_point * sample, int e1, int e2, Wavefunction_storage * wfstore)
+{
+  Slat_Jastrow_storage * store;
+  recast(wfstore, store);
+
+  slater_wf->saveUpdate(sample, e1, e2, store->slat_store);
+  jastrow_wf->saveUpdate(sample, e1, e2, store->jast_store);
+
+}
+
+void Slat_Jastrow::restoreUpdate(Sample_point * sample, int e1, int e2, Wavefunction_storage * wfstore)
+{
+  //cout << "restoreUpdate\n";
+  Slat_Jastrow_storage * store;
+  recast(wfstore, store);
+
+  slater_wf->restoreUpdate(sample, e1, e2, store->slat_store);
+  jastrow_wf->restoreUpdate(sample, e1, e2, store->jast_store);
+}
+
+
 
 void Slat_Jastrow::getVal(Wavefunction_data * wfdata,
                           int e, Wf_return & val)
@@ -486,3 +507,20 @@ void Slat_Jastrow::updateForceBias(Wavefunction_data * wfdata, Sample_point * sa
   slater_wf->updateForceBias(dataptr->slater, sample);
   jastrow_wf->updateForceBias(dataptr->jastrow, sample);
 }
+
+
+//----------------------------------------------------------------------
+
+
+void Slat_Jastrow::plot1DInternals(Array1 <doublevar> & xdata,
+				   vector <Array1 <doublevar> > & data,
+				   vector <string> & desc,
+				   string desc0) {
+
+  slater_wf->plot1DInternals(xdata,data,desc,desc0);
+  jastrow_wf->plot1DInternals(xdata,data,desc,desc0);
+
+}
+
+
+//----------------------------------------------------------------------

@@ -9,6 +9,7 @@ MY_SOURCES:= \
 	Optimize_method2.cpp \
 	Optimize_method.cpp \
 	Plot_method.cpp \
+        Plot1d_method.cpp \
         Postprocess_method.cpp \
 	Qmc_method.cpp \
 	Reptation_method.cpp \
