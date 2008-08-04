@@ -257,7 +257,12 @@ class OBDM:public Nonlocal_density_accumulator {
 };
 
 
-// Added by Matous
+/*!
+Two-body density matrix (TBDM) implemented as Nonlocal_density_accumulator. More precisely, 
+ it is only a particular element of TBDM that allows
+ detection of up-down, BCS-like, condensate. Calculation of TBDM needs two-particle storage in Wavefunction,
+ which is supported in Slater, Jastrow and BCS so far. Implemented by Matous Ringel.
+*/
 class TBDM:public Nonlocal_density_accumulator { 
  public:
     virtual void init(vector <string> & , System *, string & runid);

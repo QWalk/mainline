@@ -926,9 +926,8 @@ void TBDM::accumulate(Sample_point * sample, doublevar weight,
 	*exp(wfval_new.amp(0,0)-wfval_old.amp(0,0))*weight;
     }
 
-    // The code should IMHO not depend on whether we return the electrons
-    // back or not since we store them in sample storage
-    // However, it affects the result
+    //The samples need to be restore because we're using the 
+    //translateElectron function (important for k-points)
     sample->setElectronPos(e0,oldpos);
     sample->setElectronPos(e1,oldpos2);
 
