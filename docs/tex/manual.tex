@@ -2,8 +2,15 @@
 \usepackage{makeidx}
 \usepackage{url}
 %\usepackage[pdftex]{hyperref}
+
+\newcommand{\bR}{{\bf R}}
+\newcommand{\bX}{{\bf X}}
+\newcommand{\bx}{{\bf x}}
+\newcommand{\br}{{\bf r}}
+\newcommand{\bk}{{\bf k}}
+\usepackage{amsmath}
 \usepackage{fullpage}
-\makeindex
+%\makeindex
 \begin{document}
 \begin{titlepage}
 \begin{center}
@@ -49,7 +56,7 @@ Gamess2qmc will then create files like outputroot.slater, etc.\\
 \hline
 \end{tabular}
 
-\newpage
+%\newpage
 \subsection{Gaussian}
 \subsubsection{Notes on Running Gaussian}
 
@@ -89,7 +96,7 @@ G032qmc will then create files like outputroot.slater, etc. \\
 -h & print help message for more advanced usage\\
 \end{tabular}
 
-\newpage
+%\newpage
 \subsection{Crystal}
 
 
@@ -124,7 +131,7 @@ in the third section(the one after the basis set section).
 
 \subsubsection{Crystal2003}
 
- For crystal 2003, put <br>
+ For crystal 2003, put 
 \begin{verbatim}
 PRINTOUT
 EIGENVAL
@@ -204,7 +211,7 @@ cp fort.10 $CURRDIR/$inputfile.10
 rm -Rf $SCRATCH/$inputfile
 \end{verbatim}
 
-\newpage
+%\newpage
 \subsection{Siesta}
 Basic usage: siesta2qmc -o [outputroot]  [siesta output file] 
 
@@ -303,7 +310,7 @@ defined in AUX\_WF/AUX\_SYS will not be used, since they are auxillary, not
 guiding functions. Defaults to SUMSQUARES.\\
 \end{tabular}
 
-\newpage
+%\newpage
 \subsection{Wave function optimization: conjugate gradients}
 Keyword: OPTIMIZE \\
 
@@ -339,7 +346,7 @@ For an energy minimization, it's advisable to also use USE\_WEIGHTS. \\
 {\bf WFOUTPUT} & String.  Where to put the optimized wave function.  Defaults to runid.wfout.\\
 \end{tabular}
 
-\newpage
+%\newpage
 \subsection{Wave function optimization: Newton's method}
 Keyword: OPTIMIZE2 \\
 
@@ -354,7 +361,7 @@ Except for some experimental features, it takes the same options as OPTIMIZE
 above.  This optimize method also only supports VARIANCE, ENERGY, and 
 MIXED optimizations, since the primary use is for energy optimization.
 
-\newpage
+%\newpage
 \subsection{Diffusion Monte Carlo}
 Keyword: DMC \\
 
@@ -422,7 +429,7 @@ weights tend to increase.  The default is 5, which works in most instances.\\
           this value, which should alleviate the problem.  The default is 10. \\
 \end{tabular}
 
-\newpage
+%\newpage
 
 \subsection{Reptation Monte Carlo}
 Keyword: REPTATION \\
@@ -470,7 +477,7 @@ ppended, where n is the processor number. \\
 {\bf LABEL} & String.  Label in the .log file.  Defaults to rmc.\\
 \end{tabular}
 
-\newpage 
+%\newpage 
 
 \subsection{Walker dynamics}
 
@@ -490,7 +497,7 @@ So, in summary, when performing calculations with pseudopotentials, either do no
 or put DYNAMICS \{ SPLIT DEPTH 2 \} in the VMC section.  With full-core atoms, put 
 DYNAMICS \{ UNR \}.
 
-\newpage
+%\newpage
 
 \section{Basis functions}
 
@@ -504,12 +511,259 @@ Keyword: AOSPLINE \\
 
 
 
-\newpage
+%\newpage
 
 \section{Wave functions}
 \subsection{Slater}
+
+Keyword: SLATER \\
+
+
+A Slater determinant or several determinants.  Also can use the same
+molecular orbitals to create several separate combinations of determinants.
+
+Required Keywords: \\
+\begin{tabular}{lp{12cm}}
+{\bf DETWT } & Section.  list of the weights of the determinants \\ 
+{\bf STATES} & Section. List of the occupations of the molecular orbitals, first
+spin up, then spin down.  For example, a RHF determinant might be 
+1 2 3 
+1 2 3 
+and a UHF might be 
+1 2 3 
+4 5 6 
+If there are more than one determinant, simply continue listing up and 
+down occupations.  Also, list several STATES functions, and they
+will be added as separate guiding functions. \\
+{\bf ORBITALS} & Section. input for a Molecular orbital matrix\\
+\end{tabular}
+
+Optional keywords: \\
+\begin{tabular}{lp{12cm}}
+{\bf NSPIN } & Section. Override the global parameter given in SYSTEM for this wave function. \\
+{\bf OPTIMIZE\_DET} & Flag.  Optimize the determinantal coefficients.  For a single 
+determinant, this does nothing. Defaults to off.\\
+\end{tabular}
+
+%\newpage
+
 \subsection{Jastrow}
+Keyword: JASTROW or JASTROW2
+
+A wave function as follows:
+
+\begin{equation} 
+\Psi_{Jastrow}(\bR)=\sum_{I,i<j} u(r_{Ii},r_{Ij}, r_{ij})
+\end{equation}
+where $I$ is the ionic/nuclear index and i/j are the electronic indices.  The actual form of $u$
+is determined by the `piece' requested; there are one-body only pieces that only depend on $r_{Ii}$ and 
+$r_{Ij}$, two-body pieces that depend only on $r_{ij}$, and three-body pieces that depend on all 
+distances.
+
+This is a multi-layered object: structure is as follows:
+\begin{verbatim}
+GROUP { 
+   <Basis for this group>
+   <Coefficients for this basis>
+}
+GROUP { 
+   <same as above>
+}
+\end{verbatim}
+This structure allows a fairly fine-grained control over optimization of the basis and coefficients; 
+one can turn optimization on and off for different logical sections.  The options are further broken
+down as follows: \\
+
+Group options: \\
+\begin{tabular}{lp{12cm}}
+{\bf OPTIMIZEBASIS } & Flag. Optimize the nonlinear parameters in the basis functions. By default is off. \\
+{\bf EIBASIS } & Electron-ion basis.  Multiple instances of these will be appended \\
+{\bf EEBASIS } & Electron-electron basis.  Multiple instances will also be appended \\
+{\bf ONEBODY } & Section. One-body part of the Jastrow expansion \\
+{\bf TWOBODY } & Section. Two-body part, with spin-independent coefficients \\
+{\bf TWOBODY\_SPIN } & Section. Two-body part, with spin-dependent (like/unlike) coefficents \\
+{\bf THREEBODY } & Section. Three-body part, with spin-independent coefficients \\
+\end{tabular}
+
+The ONEBODY part is as follows: 
+\begin{equation}
+ u(r_{Ii},r_{Ij},r_{ij})=\sum_k c_{k}^{(I)} a_k^{(I)}(r_{Ii})
+\end{equation}
+and the sum over $j$ is not performed.
+ONEBODY options: \\
+\begin{tabular}{lp{12cm}}
+{\bf FREEZE} & Flag. Do not optimize the coefficients \\
+{\bf COEFFICIENTS } & Section.  First element is the label of the atom type and then following are a number of coefficients equal to or less than the number of EIBASIS functions for that atom type \\
+\end{tabular}
+
+The TWOBODY part is:
+\begin{equation}
+ u(r_{Ii},r_{Ij},r_{ij})=\sum_k c_{k} b_k(r_{ij})
+\end{equation}
+and the sum over $I$ is not performed.
+TWOBODY options: \\
+\begin{tabular}{lp{12cm}}
+{\bf FREEZE} & Flag. Do not optimize the coefficients \\
+{\bf COEFFICIENTS } & Section.  A number of coefficients equal to or less than the number of EEBASIS functions  \\
+\end{tabular}
+
+TWOBODY\_SPIN options: \\
+\begin{tabular}{lp{12cm}}
+{\bf FREEZE} & Flag. Do not optimize the coefficients \\
+{\bf LIKE\_COEFFICIENTS } & Section.  A number of coefficients equal to or less than the number of EEBASIS functions  \\
+{\bf UNLIKE\_COEFFICIENTS } & Section.  A number of coefficients equal to or less than the number of EEBASIS functions  \\
+\end{tabular}
+
+The THREEBODY part is as follows: 
+\begin{equation}
+u(r_{Ii},r_{Ij},r_{ij})=\sum_{klm} c_{klm}^{(I)} (a_k(r_{Ii})a_l(r_{Ij})+a_l(r_{Ii})a_k(r_{Ij}))b_m(r_{ij})
+\end{equation}
+where the $a$'s are from the EIBASIS and the $b$'s are from the EEBASIS inputs.  
+THREEBODY options: \\
+\begin{tabular}{lp{12cm}}
+{\bf FREEZE} & Flag. Do not optimize the coefficients \\
+{\bf SM\_TERMS} & Section.  A list of the Schmidt-Moskowitz coefficients to include.  This is done by 
+specifying the $k$,$l$, and $m$ terms.  By default, this is \newline
+1 1 0 \newline
+1 0 1 \newline
+1 1 1 \newline
+2 2 0 \newline
+2 0 1 \newline
+2 0 2 \newline
+2 2 2 \newline
+3 3 0 \newline
+3 0 2 \newline
+3 3 2 \newline
+1 2 2 \newline
+2 3 2 
+\\
+{\bf COEFFICIENTS } & Section. A number of coefficients for each atom as in the ONEBODY input.  The 
+number of coefficients should be less than or equal to the number of SM\_TERMS \\
+\end{tabular}
+
+\subsection{Pfaffian}
+Keyword: PFAFFIAN
+
+
+A pfaffian (generalized determinant) or several pfaffians. 
+
+\begin{equation}
+\Psi=\sum_i w_i \Psi_i
+\end{equation}
+
+\begin{equation}
+\Psi_i={\rm pf}\left[ \begin{array}{ccc}
+{\boldsymbol \xi}^{\uparrow\uparrow}_i & 
+{\boldsymbol \Phi}^{\uparrow\downarrow}_i & 
+ {\boldsymbol\varphi}^{\uparrow}_i \\
+-{\boldsymbol \Phi}^{\uparrow\downarrow T}_i & 
+{\boldsymbol \xi}^{\downarrow\downarrow}_i &
+{\boldsymbol \varphi}^{\downarrow}_i \\
+-{\boldsymbol\varphi}^{\uparrow T}_i &
+ -{\boldsymbol\varphi}^{\downarrow T}_i &
+ 0 \;\; 
+\end{array}
+\right]
+\end{equation}
+
+where submatrices $ \boldsymbol \xi $, $ \boldsymbol  \Phi $ and $ \boldsymbol \varphi $ are defined in the Pfaffian group documentation
+and ordered according the ORBITAL\_ORDER section.
+
+Example:
+\begin{verbatim}
+Pfaffian wave function for the ground state of carbon pseudo-atom :
+PFAFFIAN
+  NPAIRS {  3  1  0  }
+  PFWT {  1  }
+  ORBITAL_ORDER {
+  1    1    1
+  1    1
+  1
+  }
+  PAIRING_ORBITAL {
+    ORBITALS_IN_PAIRING {  1  2  3  4  5  }
+    OPTIMIZE_PF {
+      NOCCUPIED 3
+      SINGLET_ALL
+    }
+    TRIPLET_UU_COEF {
+    0 0 0 0
+    1 0 0
+    0 0
+    0
+    }
+    TRIPLET_DD_COEF {
+    0 0 0 0
+    0 0 0
+    0 0
+    0
+    }
+    SINGLET_COEF {
+    1 0 0 0 0
+    0 0 0 0
+    0 0 0
+    0 0
+    0
+    }
+  }
+  ORBITALS {
+    CUTOFF_MO 
+    MAGNIFY 1 
+    INCLUDE c.basis 
+    NMO 5 
+    ORBFILE c.orb 
+    CENTERS { USEATOMS }
+    }
+  }
+\end{verbatim}
+
+Required Keywords: \\
+\begin{tabular}{lp{12cm}}
+{\bf NPAIRS} & Section. number of spin-up, spin-down and unpaired electrons (the sum of these 3 numbers defines
+ a pfaffian matrix of size $ N $)  \\
+{\bf PFWT } & Section. list of the weights of the pfaffians (also defines the number of Pfaffians) \\
+{\bf PAIRING\_ORBITAL} & Section. Section for a Pfaffian group defined below\\
+{\bf ORBITALS} & Section.  Input for a MO matrix. \\
+\end{tabular}
+
+Optional Keywords: \\
+\begin{tabular}{lp{12cm}}
+{\bf ORBITAL\_ORDER} &  Section.  i-th pairing orbital for i-th pfaffian matrix 
+>Contains upper-diagonal of $ N \times N $ matrix of pairing occupation numbers \\
+{\bf OPTIMIZE\_PFWT} & Keyword. Optimize the pfaffian weights. Defaults to off \\
+\end{tabular}
+
+
+The pairing orbitals are defined as follows:\\
+Keywords: \\
+\begin{tabular}{lp{12cm}}
+{\bf TRIPLET\_UU\_COEF} & Section. $ N(N-1)/2 $ normalized coefficients for triplet spin-up spin-up pair of form: 
+$ \chi(1,2)= {1 \over \sqrt(2)} \sum_{i>j} a_{i,j}( \varphi_i(1)\varphi_j(2)- \varphi_j(1)\varphi_i(2))$. Defaults to all zero \\
+{\bf TRIPLET\_DD\_COEF } & Section. same as above for spin-down case.  Also defaults to zero. \\
+{\bf SINGLET\_COEF } & Section.  
+$ N(N+1)/2 $ normalized coefficients 
+for singlet spin-up spin-down pair of form:
+$ \phi(1,2)= \sum_{i} s_{i,i} \varphi_i(1)\varphi_j(2) + {1 \over \sqrt(2)} \sum_{i>j} s_{i,j}( \varphi_i(1)\varphi_j(2)+\varphi_j(1)\varphi_i(2))$. Defaults to 1 on the diagonal for all occupied orbitals, zero otherwise. \\
+{\bf UNPAIRED\_COEF} & Section.  Number of spin down $\times$ the number normalized coefficients for unpaired electron orbital of form: 
+$ \varphi'_{i}(1)= \sum_{j} c_{i,j}\varphi_j(1)$. Defaults to all zero  \\
+
+\end{tabular}
+
+
+%\newpage
+
 \subsection{Slater-Jastrow/Multiply}
+
+Keyword: SLATER-JASTROW or MULTIPLY
+
+Multiply two wave functions
+
+Options:\\
+\begin{tabular}{lp{12cm}}
+{\bf WF1} &  Section. A wave function section \\
+{\bf WF2} & Section. A wave function section \\
+\end{tabular}
+
 
 \section{Molecular orbitals}
 \subsection{Cutoff MO}
