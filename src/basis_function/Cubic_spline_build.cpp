@@ -152,7 +152,15 @@ int Cubic_spline::read(
 
   enforce_cusp=false;
   if(readvalue(words, pos=0, cusp, "CUSP")) enforce_cusp=true;
-  
+
+  zero_derivative=false;
+  if(haskeyword(words, pos=0, "ZERO_DERIVATIVE")) zero_derivative=true;
+
+  doublevar spacing=basisparms(0);
+  if(readvalue(words, pos=0, spacing, "SPACING")) {
+    basisparms(0)=spacing;
+    basisparms(1)=50.0/spacing;
+  }
 
   vector <string> basisspec;
   string read_file; //read positions from a file
@@ -550,7 +558,11 @@ int Cubic_spline::readbasis(vector <string> & words,unsigned int & pos,
 
 
     //--Estimate the derivatives on the boundaries
-    yp1=(y(1)-y(0))/spacing;
+    if ( zero_derivative ) {
+      yp1=0.0;
+    } else {
+      yp1=(y(1)-y(0))/spacing;
+    }
     ypn=(y(n-1) - y(n-2) ) /spacing;
     splines(funcNum).splinefit(x,y,yp1, ypn);
   }
