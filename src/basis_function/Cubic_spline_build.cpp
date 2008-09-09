@@ -691,15 +691,18 @@ int Cubic_spline::showinfo(string & indent, ostream & os)
 {
   os << indent << "Cubic spline for " << atomname << endl;
   os << indent << nsplines << "  radial functions\n";
-
   os << indent << setw(10) << "function" << setw(10) << "symmetry"
      << setw(10) << "cutoff" << endl;
+  if(zero_derivative)
+    os << indent << "Zero derivative enforced at the orgin\n";
   int totfunc=0;
   for(int i=0; i< nsplines; i++) {
     os << indent << setw(10) << i << setw(10) << symmetry_lookup(symmetry(i))
        << setw(10) << rcut(totfunc) << endl;
     totfunc+=nfuncspline(i);
   }
+  
+
 
   return 1;
 }
@@ -713,6 +716,9 @@ int Cubic_spline::writeinput(string & indent, ostream & os)
   os << indent << "NORMTYPE  " << norm_type << endl;
   if(renormalize==false) {
     os << indent << "NORENORMALIZE\n";
+  }
+  if(zero_derivative) {
+    os << indent << "ZERO_DERIVATIVE\n";
   }
   if(requested_cutoff > 0 ) {
     os << indent << "CUTOFF " << requested_cutoff << endl;
