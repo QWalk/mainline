@@ -23,6 +23,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Pseudo_writer.h"
 #include <algorithm>
 #include <fstream>
+#include <cstring>
 #include "vecmath.h"
 #include "elements.h"
 using namespace std;

@@ -3,7 +3,7 @@
 Adopted for local needs from Numerical Recipes
 
 */
-
+#include <cstdlib>
 #include <iostream>
 
 using namespace std;

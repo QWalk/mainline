@@ -19,6 +19,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 #include "converter.h"
 #include <iomanip>
+#include <cstdlib>
+#include <algorithm>
 
 using namespace std;
 
