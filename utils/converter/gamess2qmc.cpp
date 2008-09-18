@@ -19,6 +19,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 #include "converter.h"
 #include <iostream>
+#include <cstdlib>
+#include <cstring>
 #include <string>
 #include <vector>
 #include <fstream>

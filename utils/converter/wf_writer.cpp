@@ -17,6 +17,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  
 */
+#include <cstdlib>
 #include "wf_writer.h"
 using namespace std;
 void Slat_wf_writer::print_wavefunction(ostream & inputfile ) {

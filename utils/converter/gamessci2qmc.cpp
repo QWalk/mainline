@@ -25,6 +25,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <vector>
 #include <fstream>
 #include <cmath>
+#include <cstring>
+#include <cstdlib>
 using namespace std;
 
 void reorder(vector <int> & orbs, double & det_weights){

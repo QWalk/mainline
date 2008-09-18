@@ -23,7 +23,8 @@
 #include <string>
 #include <fstream>
 #include <cmath>
-
+#include <cstdlib>
+#include <cstring>
 #include "basis_writer.h"
 #include "Pseudo_writer.h"
 #include "wf_writer.h"
