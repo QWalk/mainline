@@ -102,6 +102,7 @@ int main(int argc, char ** argv) {
       cout << "spin polarization " << spin_pol << endl;
     }
     if(currline.size() > 8 && currline[0]=="redata:" && currline[1]=="Net" && currline[2]=="charge") {
+      cout << "getting charge on " << line << endl;
       netCharge=atoi(currline[7].c_str());
       double tmp=atof(currline[7].c_str());
       if(fabs(netCharge-tmp) > 0.5) spin_pol+=1;
