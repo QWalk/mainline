@@ -32,14 +32,16 @@ void reorder(vector <int> & orbs, double & det_weights){
   int n=orbs.size();
   int tmp;
   for(int i=0; i < n; i++) {
-      for(int j=0; j < n; j++) {
-        if (orbs[i]>orbs[j]){
-          tmp=orbs[j];
-          orbs[j]=orbs[i];
-          orbs[i]=tmp;
-          det_weights=-det_weights;
-        }
+    if(fabs(orbs[i])>99)
+      cout <<"Excitation with orbital > 99. GAMESS formated file is not fully usable. Inspect your result! M.B."<<endl;
+    for(int j=0; j < n; j++) {
+      if (orbs[i]>orbs[j]){
+	tmp=orbs[j];
+	orbs[j]=orbs[i];
+	orbs[i]=tmp;
+	det_weights=-det_weights;
       }
+    }
   }
 }
 
@@ -263,8 +265,8 @@ int main(int argc, char ** argv) {
 	    
 	  }
 	  
-	  if ( line.size() ){
-	    if ( (words[0]=="CSF" && words[2]=="C(" )|| (words[0]=="C(" )){
+	  if ( line.size() > 33  ){
+	    if (line.substr(13,2)=="C(" ){
 	      det_weights[k-1].push_back(atof(line.substr(20,10).c_str()));
 	      det_str[k-1].push_back(line.substr(33));
               line_position=is.tellg();
