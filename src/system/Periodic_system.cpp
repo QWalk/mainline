@@ -268,7 +268,7 @@ getCross(latVec,crossProduct);
 
   //------------primitive lattice vectors (for polarization calculation)
   if(readsection(words, pos=0, latvectxt, "PRIMLATTICEVEC")) { 
-    Array2 <doublevar> primlat(ndim,ndim);
+    primlat.Resize(ndim,ndim);
     
     if(latvectxt.size() != ndim*ndim)
       error("LATTICEVEC must have exactly ",ndim*ndim, " values");
@@ -295,7 +295,11 @@ getCross(latVec,crossProduct);
       }
     }
   }
-  else prim_recip_vec=recipLatVec;
+  else {
+    single_write(cout,"did not find PRIMLATTICEVEC\n");
+    prim_recip_vec=recipLatVec;
+    primlat=latVec;
+  }
 
   //-------------------normal vectors
 

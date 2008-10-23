@@ -1480,7 +1480,7 @@ void Jastrow2_wf::restoreUpdate(Sample_point * sample, int e1, int e2, Wavefunct
   Jastrow2_storage * j2store;
   recast(wfstore, j2store);
   
-  assert( spin(e1) != spin(e2) );
+  //  assert( spin(e1) != spin(e2) );
 
   doublevar old_eval=0;
   for(int i=0; i< e2; i++)

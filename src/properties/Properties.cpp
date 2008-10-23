@@ -1196,7 +1196,7 @@ void TBDM::accumulate(Sample_point * sample, doublevar weight,
 
   //The two elecrons to be moved should have opposite spin
   int e0=0, e1=nelectrons-1;
-  assert( spin(e0) != spin(e1) );
+  //assert( spin(e0) != spin(e1) );
 
 
   wf->saveUpdate(sample,e0,e1,wfStore);
