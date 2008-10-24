@@ -294,7 +294,6 @@ void Plot_method::run(Program_options & options, ostream & output) {
 	pltfile = basename+".plt"; 
 	os.open(pltfile.c_str());
 	cout<<"writing to "<<pltfile<<endl;
-	
 	// http://www.csc.fi/gopenmol/developers/plt_format.phtml
 	os<<"3 "; //rank=3 always
 	os<<"2\n"; //dummy variable => "Orbital/density surface"
@@ -307,6 +306,8 @@ void Plot_method::run(Program_options & options, ostream & output) {
 	for(int j=0; j<(D_array1(0)*D_array1(1)*D_array1(2)); j++) {
 	  os<<setw(16)<<setprecision(8)<<grid(part,i,j)<<endl;
 	}
+	os.unsetf(ios::scientific);
+	os<<setprecision(6);
 	os.close();
       }
       if(cubefile) {
@@ -354,10 +355,12 @@ void Plot_method::run(Program_options & options, ostream & output) {
 	}
 	os.setf(ios::scientific);
 	for(int j=0; j< npts; j++) {
-	  os <<setw(20)<<setprecision(10)<< grid(part,i,j);
+	  os <<setw(20)<<setprecision(10)<<grid(part,i,j);
 	  if(j%6 ==5) os << endl;
 	}
 	os << endl;
+	os.unsetf(ios::scientific);
+	os<<setprecision(6);
 	os.close();
 	
       }
@@ -387,6 +390,8 @@ void Plot_method::run(Program_options & options, ostream & output) {
     if(j%6 ==5) os << endl;
   }
   os << endl;
+  os.unsetf(ios::scientific);
+  os<<setprecision(6);
   os.close();    
 
 }
