@@ -34,7 +34,7 @@ void reorder(vector <int> & orbs, double & det_weights){
   int n=orbs.size();
   int tmp;
   for(int i=0; i < n; i++) {
-    if(fabs(orbs[i])>99)
+    if(abs(orbs[i])>99)
       cout <<"Excitation with orbital > 99. GAMESS formated file is not fully usable. Inspect your result! M.B."<<endl;
     for(int j=0; j < n; j++) {
       if (orbs[i]>orbs[j]){
