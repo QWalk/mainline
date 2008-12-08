@@ -55,7 +55,12 @@ run or a previous DMC run.
 <tr> <td> STORECONFIG <td> String <td> none <td> Write the configurations and DMC 
 weights to this file every block.  In parallel, each processor will write its configurations to this file with _n appended, where n is the processor number.
 <tr> <td> DYNAMICS <td> Section <td> SPLIT 
-     <td> choose a dynamics generator.  possible options are { SPLIT }, {UNR } Use UNR when you don't have pseudopotentials
+     <td> Choose a dynamics generator.  Possible options are { SPLIT } and
+     { UNR }. Use UNR when you don't have pseudopotentials.
+
+<tr> <td> AVERAGE,<br>DENSITY,<br>NONLOCAL_DENSITY <td> Section <td> empty 
+     <td> Sections for evaluation of \ref PropertiesDoc . <i>Mixed</i>
+     estimators are provided.
 </table>
 
 The following options are advanced, and can be left as they are with no ill effects.

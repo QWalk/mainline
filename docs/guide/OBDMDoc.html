@@ -1,0 +1,66 @@
+/*! \page OBDMDoc one-body density matrix
+
+Keyword: OBDM
+
+\section description Description
+
+Spherically averaged one-body density matrix for up-spin electrons
+\f$ \rho_{1\uparrow}^{sph}(|{\bf r}|) \f$, 
+\f[
+\rho_{1\uparrow}({\bf r}_1,{\bf r}_1')
+=\int d^3r_2\ldots d^3r_N\,
+\Psi^*({\bf r}_1,{\bf r}_2,\ldots,{\bf r}_N)
+\Psi({\bf r}_1',{\bf r}_2,\ldots,{\bf r}_N)\,,
+\f]
+\f[
+\rho_{1\uparrow}^{sph}(|{\bf r}|) = \frac1{4\pi}\int d\Omega_{\bf r}\,
+\int d^3r_1 \rho_{1\uparrow}({\bf r}_1+{\bf r},{\bf r}_1)\,,
+\f]
+calculated on a one-dimensional grid. The many-body wave function \f$
+\Psi \f$ in the above definition is assumed normalized to
+unity. Normalization of the density matrix is chosen so that
+\f$ \rho_{1\uparrow}^{sph}(0)=1 \f$. In homogeneous and isotropic
+systems, such as homogeneous electron gas, the one-body density matrix is a
+spherically symmetric function of only one distance, and therefore
+\f$ \rho_{1\uparrow}^{sph} \equiv \rho_{1\uparrow} \f$. In polarized cases,
+\f$ N_{\uparrow}\not = N_{\downarrow} \f$, the density matrix for
+down-electrons differs from the matrix for up-electrons. Quantity
+\f$ \rho_{1\downarrow}^{sph} \f$ is not (yet) implemented.
+
+Results are written into a separate file with extension .obdm.log,
+which is to be post-processed with the utility <tt>averr</tt>
+(unfortunately, this .log file is not compatible with
+<tt>gosling</tt>).
+
+\section options Options
+
+\subsection reqopt Required 
+
+None.
+
+\subsection optopt Optional
+
+<table>
+<tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+
+<tr><td>CUTOFF</td><td>Float</td>
+<td>half of the smallest distance in the simulation cell</td>
+<td>Largest distance at which the density matrix is calculated. Values
+much larger than the default value have little physical meaning.</td>
+
+<tr><td>NGRID</td><td>Integer</td><td>5</td>
+<td>Number of points in the interval [0;CUTOFF] where the density
+matrix is calculated. The first point is CUTOFF/NGRID, the last point
+is CUTOFF.
+</td></tr>
+
+<tr><td>AIP</td><td>Integer</td><td>1</td>
+<td>Number of directions for spherical averaging using a Gaussian
+quadrature rule. Available are Gaussian rules with 4, 6, 12, 18, 26 and 32
+points. Value AIP=1 disables spherical averaging and the vector \f$ \bf
+r \f$ then points in the x-direction.
+</td></tr>
+</table>
+
+
+*/

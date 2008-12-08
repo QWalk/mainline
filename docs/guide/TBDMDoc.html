@@ -1,0 +1,84 @@
+/*! \page TBDMDoc two-body density matrix
+
+Keyword: TBDM
+
+\section description Description
+
+Spherical average of the so-called projected two-body density matrix
+\f$ \rho^P_{2,\uparrow\downarrow}(|{\bf r}|) \f$,
+\f[
+\rho_{2,\uparrow\downarrow}({\bf r}_1,{\bf r}_2;{\bf r}_1',{\bf r}_2')
+=\int d^3r_3\ldots d^3r_N\,
+\Psi^*({\bf r}_1,{\bf r}_2,{\bf r}_3,\ldots,{\bf r}_N)
+\Psi({\bf r}_1',{\bf r}_2',{\bf r}_3,\ldots,{\bf r}_N)\,,
+\f]
+\f[
+\rho^P_{2,\uparrow\downarrow}(|{\bf r}|)
+=\frac1{4\pi}\int d\Omega_{\bf r}\int d^3r_1d^3r_2\,
+\rho_{2,\uparrow\downarrow}({\bf r}_1+{\bf r},{\bf r}_2+{\bf r};
+   {\bf r}_1,{\bf r}_2)\,,
+\f]
+calculated on a one-dimensional grid. The many-body wave function \f$
+\Psi \f$ in the above definition is assumed normalized to
+unity. Normalization is chosen so that
+\f$ \rho^P_{2,\uparrow\downarrow}(0)=1 \f$. In homogeneous and isotropic
+systems, such as homogeneous electron gas, the quantity is spherically
+symmetrical even before spherical averaging. The averaging step only
+reduces error bars in such cases.
+
+Results are written into a separate file with extension .tbdm.log,
+which is to be post-processed with the utility <tt>averr</tt>
+(unfortunately, this .log file is not compatible with
+<tt>gosling</tt>).
+
+The projected two-body density matrix \f$
+\rho^P_{2,\uparrow\downarrow}(|{\bf r}|) \f$ is a means to calculate
+BCS-like condensate fraction \f$ \alpha \f$. [see for instance
+Astrakharchik et al.,
+<a href="http://dx.doi.org/10.1103/PhysRevLett.95.230405">Phys.
+Rev. Lett. <b>95</b>, 230405 (2005)</a> and references therein]. In
+unpolarized systems, \f$ N_{\uparrow}=N_{\downarrow}=N/2 \f$, we have
+\f[
+\alpha=\lim_{r\to\infty} \frac{N}{2}\, \rho^P_{2,\uparrow\downarrow}(r)
+\f]
+or
+\f[
+\alpha=\lim_{r\to\infty} \frac{N}{2} \Bigl[
+ \rho^P_{2,\uparrow\downarrow}(r)
+ -\rho_{1\uparrow}^{sph}(r)\,\rho_{1\downarrow}^{sph}(r)
+\Bigr]\, .
+\f]
+The latter expression converges faster to the thermodynamic limit.
+
+
+\section options Options
+
+\subsection reqopt Required 
+
+None.
+
+\subsection optopt Optional
+
+<table>
+<tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+
+<tr><td>CUTOFF</td><td>Float</td>
+<td>half of the smallest distance in the simulation cell</td>
+<td>Largest distance at which the density matrix is calculated. Values
+much larger than the default value have little physical meaning.</td>
+
+<tr><td>NGRID</td><td>Integer</td><td>5</td>
+<td>Number of points in the interval [0;CUTOFF] where the density
+matrix is calculated. The first point is CUTOFF/NGRID, the last point
+is CUTOFF.
+</td></tr>
+
+<tr><td>AIP</td><td>Integer</td><td>1</td>
+<td>Number of directions for spherical averaging using a Gaussian
+quadrature rule. Available are Gaussian rules with 4, 6, 12, 18, 26 and 32
+points. Value AIP=1 disables spherical averaging and the vector \f$ \bf
+r \f$ then points in the x-direction.
+</td></tr>
+</table>
+
+*/

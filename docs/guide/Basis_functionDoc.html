@@ -18,6 +18,8 @@ Further keywords are specific to the type of function.
 
 \section plugins Plugins
 
+\ref Basis_GroupsDoc
+
 \ref Cubic_splineDoc
 
 \ref Cutoff_cuspDoc
@@ -43,6 +45,53 @@ Further keywords are specific to the type of function.
 
 //######################################################################
 
+/*! \page Basis_GroupsDoc Basis groups
+
+Keyword: BASIS_GROUPS
+
+\section description Description
+
+This construct allows to represent groups of given basis functions as
+single basis functions. In the \ref Jastrow2_wfDoc factor, for
+instance, we then can have
+\f[
+f(r)\hskip 1.5em
+    =\hskip 1.5em\alpha_1\underbrace{\sum_i b^{(1)}_i}_{
+          \displaystyle\hbox{basis group}}
+    +\hskip 1.5em\alpha_2\underbrace{\sum_i b^{(2)}_i}_{
+          \displaystyle\hbox{basis group}}
+    +\hskip 1.5em\ldots\ ,
+\f]
+where \f$ \alpha_j \f$ are coefficients of linear combination and
+\f$ b^{(j)}_i \f$ are basis function constituting j-th basis group.
+This functionality is useful for implementation of certain
+symmetry constraints, e.g., all plane waves representing a given shell in
+homogeneous gas can be restricted to have the same weight, see
+the description of \ref BCS_wfDoc wave function for an example.
+
+\section options Options
+
+\subsection reqopt Required
+
+<table>
+<tr> <th> Option <th> Type <th> Description
+
+<tr> <td> BASIS_GROUP <td> Section
+     <td> Define basis functions, simple sum of which will be
+     represented as a single basis function. Syntax of this section is
+     the same as any other \ref Basis_functionDoc input. Section is
+     repeated as many times as many groups we want to build.
+
+</table>
+
+\subsection optopt Optional
+
+None.
+
+*/
+
+
+//######################################################################
 
 /*! \page Cubic_splineDoc Cubic spline
 
@@ -176,6 +225,7 @@ The function \f$ f(r)= e^{-\alpha*r^2} \f$
 
 */
 
+
 //######################################################################
 
 /*! \page Mesh_functionDoc Mesh function
@@ -238,13 +288,14 @@ where \f$ \alpha_n = \alpha_0 / 2^{k}, 0 < n < nmax \f$
 //######################################################################
 
 
-/*! \page Planewave_functionDoc Plane wave function
+/*! \page Planewave_functionDoc Planewave function
 
-Keyword: PLANEWAVE
+Keyword: PLANEWAVE or CPLANEWAVE
 
 \section description Description
 
-Interleaves cos(g*r) and sin(g*r) for a set of g-vectors.
+Real version (PLANEWAVE) interleaves cos(g*r) and sin(g*r) for a set
+of g-vectors. Complex version (CPLANEWAVE) is a set of exp(i*g*r).
 
 \section options Options
 

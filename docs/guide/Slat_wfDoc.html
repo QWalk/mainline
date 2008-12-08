@@ -1,11 +1,12 @@
 /*! \page Slat_wfDoc Slater determinant
 
-Keyword: SLATER
+Keyword: SLATER 
 
 \section description Description
 
-A Slater determinant or several determinants.  Also can use the same
-molecular orbitals to create several separate combinations of determinants.
+A Slater determinant or linear combination of several determinants.
+Also can use the same molecular orbitals to create several separate
+combinations of determinants.
 
 \section options Options
 
@@ -24,7 +25,12 @@ and a UHF might be <br>
 If there are more than one determinant, simply continue listing up and 
 down occupations.<br>  Also, list several STATES functions, and they
 will be added as separate guiding functions. 
-<tr> <td> ORBITALS <td> Section <td> input for a \ref MO_matrixDoc
+<tr> <td> ORBITALS/<br>CORBITALS <td> Section
+<td> Input for a \ref MO_matrixDoc. When ORBITALS section is used,
+real-valued wave function is constructed (in the DMC method,
+fixed-node algorithm will be applied). When CORBITALS section is used, the
+Slater determinant is complex-valued (in the DMC method, fixed-phase
+algorithm will be applied).
 </table>
 
 \subsection optopt Optional
