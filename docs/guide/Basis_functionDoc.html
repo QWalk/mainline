@@ -56,9 +56,9 @@ single basis functions. In the \ref Jastrow2_wfDoc factor, for
 instance, we then can have
 \f[
 f(r)\hskip 1.5em
-    =\hskip 1.5em\alpha_1\underbrace{\sum_i b^{(1)}_i}_{
+    =\hskip 1.5em\alpha_1\underbrace{\sum_i b^{(1)}_i(r)}_{
           \displaystyle\hbox{basis group}}
-    +\hskip 1.5em\alpha_2\underbrace{\sum_i b^{(2)}_i}_{
+    +\hskip 1.5em\alpha_2\underbrace{\sum_i b^{(2)}_i(r)}_{
           \displaystyle\hbox{basis group}}
     +\hskip 1.5em\ldots\ ,
 \f]
@@ -124,7 +124,21 @@ but not like
 <table>
 <tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b> Default </b> 
      <td> <b>Description</b>
- <tr> <td> CUSP <td> Float <td> None <td> For a SPLINE input, enforce a cusp at r=0 with the derivative given.  For example, for H, CUSP should be -1, for Ne -10, etc.
+
+<tr> <td> CUSP <td> Float <td> None <td> For a SPLINE input, enforce a
+     cusp at r=0 with the derivative given.  For example, for H, CUSP
+     should be -1, for Ne -10, etc.
+
+<tr> <td> ZERO_DERIVATIVE <td> Keyword <td> off <td> For a GAMESS
+     input, strictly enforces derivative at r=0 (i.e. cusp) to be
+     zero. To be used when electron-nucleus cusp conditions on
+     all-electron atoms are treated in the Jastrow factor.
+
+<tr> <td> SPACING <td> Float <td> 0.02 <td> Spacing with which the
+     independent variable is discretized. The default value is a safe
+     choice for pseudoatoms, heavier all-electron atoms might require
+     reduced value corresponding to a finer grid.
+
 <tr> <td> NORENORMALIZE  <td> Keyword <td> off <td> prevents normalization of the basis functions to the GAMESS standard.
 <tr> <td> CUTOFF  <td> Float <td> infinity 
      <td> forces a cutoff at a specified distance, with a smooth 
@@ -366,7 +380,7 @@ a_n(r) = \sum c_i r^{n_i} e^{-\alpha_i*r^2}
 <table>
 <tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
 <tr> <td> OLDQMC <td> Section 
-     <td> A section from Lubos's psp format, ie, <br>
+     <td> A section from Lubos's psp format, i.e., <br>
 zeff number_l_vals <br>
 num_s num_p num_local <br>
 c  n+2  alpha      #for s channel <br>
