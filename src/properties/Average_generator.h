@@ -149,5 +149,76 @@ private:
     Array2 <doublevar> gvec;
 };  
 
+
+//----------------------------------------------------------------------------
+
+/*!
+Spherically averaged one-body density matrix.
+*/
+class Average_obdm:public Average_generator { 
+public:
+  virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+                        System * sys, Sample_point * sample, Average_return & );
+  virtual void read(System * sys, Wavefunction_data * wfdata, vector
+                    <string> & words);
+  virtual void write_init(string & indent, ostream & os);
+  virtual void read(vector <string> & words);
+  virtual void write_summary(Average_return &,Average_return &, ostream & os);
+private:
+  int npoints;            //!< number of points in the plotting grid
+  doublevar dR;           //!< grid spacing 
+  int np_aver;            //!< number of points in quadrature for spherical average
+  Array2 <doublevar> ptc; //!< cartesian coordinates of quadrature points
+  Array1 <doublevar> wt;  //!< weights for quadrature points
+};  
+
+//----------------------------------------------------------------------------
+
+/*!
+Projected two-body density matrix, spherically averaged too.
+*/
+class Average_tbdm:public Average_generator { 
+public:
+  virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+                        System * sys, Sample_point * sample, Average_return & );
+  virtual void read(System * sys, Wavefunction_data * wfdata, vector
+                    <string> & words);
+  virtual void write_init(string & indent, ostream & os);
+  virtual void read(vector <string> & words);
+  virtual void write_summary(Average_return &,Average_return &, ostream & os);
+private:
+  int nelectrons;
+  int npoints;            //!< number of points in the plotting grid
+  doublevar dR;           //!< grid spacing 
+  int np_aver;            //!< number of points in quadrature for spherical average
+  Array2 <doublevar> ptc; //!< cartesian coordinates of quadrature points
+  Array1 <doublevar> wt;  //!< weights for quadrature points
+};  
+
+//----------------------------------------------------------------------------
+
+/*!
+Local magnetic (spin) moments and charges obtained by integrating electron
+density in muffin-tin spheres.
+*/
+class Average_local_moments:public Average_generator { 
+public:
+  virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+                        System * sys, Sample_point * sample, Average_return & );
+  virtual void read(System * sys, Wavefunction_data * wfdata, vector
+                    <string> & words);
+  virtual void write_init(string & indent, ostream & os);
+  virtual void read(vector <string> & words);
+  virtual void write_summary(Average_return &,Average_return &, ostream & os);
+private:
+  int nelectrons;            //!< number of electrons
+  int nup;                   //!< number of spin-up electrons
+  int natoms;                //!< number of atoms
+  Array1 <doublevar> rMT;    //!< radii of muffin-tin spheres
+  vector <string> atomnames; //!< atom labels
+};  
+
+//----------------------------------------------------------------------------
+
 #endif //AVERAGE_GENERATOR_H_INCLUDED
 

@@ -1,5 +1,7 @@
 #include "Average_generator.h"
 #include "qmc_io.h"
+#include "gesqua.h"
+#include "ulec.h"
 
 
 //-----------------------------------------------------------------------------
@@ -12,6 +14,12 @@ int decide_averager(string & label, Average_generator *& avg) {
     avg=new Average_twobody_correlation;
   else if(caseless_eq(label, "MANYBODY_POL"))
     avg=new Average_manybody_polarization;
+  else if(caseless_eq(label, "OBDM"))
+    avg=new Average_obdm;
+  else if(caseless_eq(label, "TBDM"))
+    avg=new Average_tbdm;
+  else if(caseless_eq(label, "LM"))
+    avg=new Average_local_moments;
   else 
     error("Didn't understand ", label, " in Average_generator.");
   
@@ -373,3 +381,516 @@ void Average_manybody_polarization::write_summary(Average_return & avg, Average_
 }
 
 
+//############################################################################
+
+/*!
+Auxiliary function returning smallest "height" of the simulation cell
+in a periodic system. Used in one- and two-body density matrices to get
+a sensible upper cut-off of distances for which elements of the density
+matrices are evaluated.
+*/
+doublevar smallest_height(Array2 <doublevar> & latVec) {
+
+  int ndim=3;
+  Array2 <doublevar> crossProduct(ndim,ndim);
+  crossProduct(0,0)=(latVec(1,1)*latVec(2,2)-latVec(1,2)*latVec(2,1));
+  crossProduct(0,1)=(latVec(1,2)*latVec(2,0)-latVec(1,0)*latVec(2,2));
+  crossProduct(0,2)=(latVec(1,0)*latVec(2,1)-latVec(1,1)*latVec(2,0));
+
+  crossProduct(1,0)=(latVec(2,1)*latVec(0,2)-latVec(2,2)*latVec(0,1));
+  crossProduct(1,1)=(latVec(2,2)*latVec(0,0)-latVec(2,0)*latVec(0,2));
+  crossProduct(1,2)=(latVec(2,0)*latVec(0,1)-latVec(2,1)*latVec(0,0));
+
+  crossProduct(2,0)=(latVec(0,1)*latVec(1,2)-latVec(0,2)*latVec(1,1));
+  crossProduct(2,1)=(latVec(0,2)*latVec(1,0)-latVec(0,0)*latVec(1,2));
+  crossProduct(2,2)=(latVec(0,0)*latVec(1,1)-latVec(0,1)*latVec(1,0));
+  
+  doublevar smallestheight=1e99;
+  for(int i=0; i< ndim; i++) {
+    doublevar tempheight=0;
+    doublevar length=0;
+    for(int j=0; j< ndim; j++) {
+      tempheight+=crossProduct(i,j)*latVec(i,j);
+      length+=crossProduct(i,j)*crossProduct(i,j);
+    }
+    tempheight=fabs(tempheight)/sqrt(length);
+    if(tempheight < smallestheight ) smallestheight=tempheight;
+  }
+
+  return smallestheight;
+
+}
+
+//-----------------------------------------------------------------------------
+
+void Average_obdm::read(System * sys, Wavefunction_data * wfdata,
+			vector <string> & words) {
+
+  single_write(cout, "One-body density matrix will be calculated.\n");
+
+  unsigned int pos=0;
+  if(!readvalue(words, pos=0, npoints, "NGRID")) 
+    npoints=5;          
+  
+  // maximum distance for OBDM evaluation
+
+  pos=0;
+  doublevar cutoff;
+  if(!readvalue(words, pos=0, cutoff, "CUTOFF")) {
+    Array2 <doublevar> latVec(3,3);
+    if(!sys->getBounds(latVec))
+      error("In non-periodic systems, CUTOFF has to be given in the OBDM section.");
+    cutoff=smallest_height(latVec)/2;
+  }
+  dR=cutoff/npoints;
+  
+  // angles and weights for Gaussian quadrature (spherical averaging)
+
+  pos=0;
+  if(!readvalue(words, pos=0, np_aver, "AIP")) np_aver=1;
+  wt.Resize(np_aver);
+  ptc.Resize(np_aver,3);             //!< cartesian coordinates of int. points
+  Array1 <doublevar> x(np_aver), y(np_aver), z(np_aver);
+
+  switch (np_aver) {
+  case 1:
+    // no spherical averaging
+    wt=1;
+    ptc(0,0)=1.0;
+    ptc(0,1)=0.0;
+    ptc(0,2)=0.0;
+    break;
+  default:
+    gesqua(np_aver,x,y,z,wt);
+    for (int i=0; i<np_aver; i++) {
+      ptc(i,0)=x(i);
+      ptc(i,1)=y(i);
+      ptc(i,2)=z(i);
+    }
+  }
+}  
+
+//-----------------------------------------------------------------------------
+
+void Average_obdm::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+			    System * sys, Sample_point * sample,
+			    Average_return & avg) {
+  avg.type="obdm";
+  avg.vals.Resize(npoints);
+  avg.vals=0;
+
+  int nwf=wf->nfunc();
+  Wf_return wfval_new(nwf,2);   // this structure I just don't understand
+  Wf_return wfval_old(nwf,2);
+  Storage_container wfStore;
+  Array1 <doublevar> oldpos(3), newpos(3), transl(3);
+
+  Array1 <doublevar> x(3), y(3), z(3);
+  Array2 <doublevar> pt(np_aver,3);
+  generate_random_rotation(x,y,z);
+  for (int i=0; i<np_aver; i++) {
+    pt(i,0)=ptc(i,0)*x(0)+ptc(i,1)*y(0)+ptc(i,2)*z(0);
+    pt(i,1)=ptc(i,0)*x(1)+ptc(i,1)*y(1)+ptc(i,2)*z(1);
+    pt(i,2)=ptc(i,0)*x(2)+ptc(i,1)*y(2)+ptc(i,2)*z(2);
+  }
+
+  wf->updateVal(wfdata, sample);
+  wfStore.initialize(sample, wf);
+  wfStore.saveUpdate(sample,wf,0);
+  wf->getVal(wfdata, 0, wfval_old);
+  sample->getElectronPos(0,oldpos);
+
+  for( int i=0; i<npoints; i++) {
+    for ( int k=0; k<np_aver; k++) {
+      // shift makes sense only up to half the lattice vector, we are hitting
+      // periodicity for larger distances
+      transl(0)=(i+1)*dR*pt(k,0);
+      transl(1)=(i+1)*dR*pt(k,1);
+      transl(2)=(i+1)*dR*pt(k,2);
+      sample->translateElectron(0,transl);
+      // TODO: check k-points /= Gamma
+      wf->updateVal(wfdata, sample);
+      wf->getVal(wfdata, 0, wfval_new);
+      // how to handle the possibility of wf_old=0? Can it happen?
+      avg.vals(i)+=wt(k)*wfval_new.sign(0)*wfval_old.sign(0)
+        *exp(wfval_new.amp(0,0)-wfval_old.amp(0,0));
+      sample->setElectronPos(0,oldpos);
+      wfStore.restoreUpdate(sample,0);
+    }
+  }
+  
+  wfStore.restoreUpdate(sample,wf,0);
+
+}
+
+//-----------------------------------------------------------------------------
+
+void Average_obdm::write_init(string & indent, ostream & os) { 
+  os << indent << "obdm" << endl;
+  os << indent << "ngrid " << npoints << endl;
+  os << indent << "cutoff " << dR*npoints << endl;
+  os << indent << "aip " << np_aver << endl;
+}
+
+//-----------------------------------------------------------------------------
+
+void Average_obdm::read(vector <string> & words) { 
+  unsigned int pos=0;
+  readvalue(words, pos, npoints, "ngrid");
+  doublevar cutoff;
+  readvalue(words, pos=0, cutoff, "cutoff");
+  dR=cutoff/npoints;
+  readvalue(words, pos=0, np_aver, "aip");
+}
+
+//-----------------------------------------------------------------------------
+
+void Average_obdm::write_summary(Average_return & avg, Average_return & err,
+				 ostream & os) { 
+  os << "One-body density matrix, spherically averaged with AIP = "
+     << np_aver << endl;
+  os << "    r  rho(r) rho(r)err" << endl;
+  assert(avg.vals.GetDim(0) >=npoints);
+  assert(err.vals.GetDim(0) >=npoints);
+  
+  for(int i=0; i< npoints; i++) {
+    doublevar rho=avg.vals(i);
+    doublevar rhoerr=err.vals(i);
+    doublevar r=(i+1)*dR;
+    os << "obdm_out " <<  r << "   " << rho << "   " << rhoerr << endl;
+  }
+  os << endl;
+
+}
+
+//############################################################################
+
+
+void Average_tbdm::read(System * sys, Wavefunction_data * wfdata,
+			vector <string> & words) {
+
+  single_write(cout, "Tne-body density matrix will be calculated.\n");
+
+  nelectrons=sys->nelectrons(0)+sys->nelectrons(1);
+
+  unsigned int pos=0;
+  if(!readvalue(words, pos=0, npoints, "NGRID")) 
+    npoints=5;          
+  
+  // maximum distance for TBDM evaluation
+
+  pos=0;
+  doublevar cutoff;
+  if(!readvalue(words, pos=0, cutoff, "CUTOFF")) {
+    Array2 <doublevar> latVec(3,3);
+    if(!sys->getBounds(latVec))
+      error("In non-periodic systems, CUTOFF has to be given in the TBDM section.");
+    cutoff=smallest_height(latVec)/2;
+  }
+  dR=cutoff/npoints;
+  
+  // angles and weights for Gaussian quadrature (spherical averaging)
+
+  pos=0;
+  if(!readvalue(words, pos=0, np_aver, "AIP")) np_aver=1;
+  wt.Resize(np_aver);
+  ptc.Resize(np_aver,3);             //!< cartesian coordinates of int. points
+  Array1 <doublevar> x(np_aver), y(np_aver), z(np_aver);
+
+  switch (np_aver) {
+  case 1:
+    // no spherical averaging
+    wt=1;
+    ptc(0,0)=1.0;
+    ptc(0,1)=0.0;
+    ptc(0,2)=0.0;
+    break;
+  default:
+    gesqua(np_aver,x,y,z,wt);
+    for (int i=0; i<np_aver; i++) {
+      ptc(i,0)=x(i);
+      ptc(i,1)=y(i);
+      ptc(i,2)=z(i);
+    }
+  }
+}  
+
+//-----------------------------------------------------------------------------
+
+void Average_tbdm::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+			    System * sys, Sample_point * sample,
+			    Average_return & avg) {
+  avg.type="tbdm";
+  avg.vals.Resize(npoints);
+  avg.vals=0;
+
+  int nwf=wf->nfunc();
+  Wf_return wfval_new(nwf,2);   // this structure I just don't understand
+  Wf_return wfval_old(nwf,2);
+  
+  Wavefunction_storage * wfStore=NULL;
+  Sample_storage * sampleStorage0=NULL, * sampleStorage1 = NULL;
+ 
+  Array1 <doublevar> oldpos(3), newpos(3), transl(3);
+  Array1 <doublevar> oldpos2(3); 
+
+  Array1 <doublevar> x(3), y(3), z(3);
+  Array2 <doublevar> pt(np_aver,3);
+  generate_random_rotation(x,y,z);
+  for (int i=0; i<np_aver; i++) {
+    pt(i,0)=ptc(i,0)*x(0)+ptc(i,1)*y(0)+ptc(i,2)*z(0);
+    pt(i,1)=ptc(i,0)*x(1)+ptc(i,1)*y(1)+ptc(i,2)*z(1);
+    pt(i,2)=ptc(i,0)*x(2)+ptc(i,1)*y(2)+ptc(i,2)*z(2);
+  }
+
+  wf->updateVal(wfdata, sample);
+	
+  //We need to generate storage capable to store two electron moves
+  wf->generateStorage( wfStore );
+  sample->generateStorage( sampleStorage0 ); 
+  sample->generateStorage( sampleStorage1 ); 
+
+  //The two elecrons to be moved should have opposite spin
+  int e0=0, e1=nelectrons-1;
+  //assert( spin(e0) != spin(e1) );
+
+  wf->saveUpdate(sample,e0,e1,wfStore);
+  sample->saveUpdate( e0, sampleStorage0 );
+  sample->saveUpdate( e1, sampleStorage1 );
+
+  wf->getVal(wfdata, e0, wfval_old);
+  sample->getElectronPos(e0,oldpos);
+  sample->getElectronPos(e1,oldpos2);
+
+  for ( int k=0; k<np_aver; k++) {
+    
+    transl(0)=dR*pt(k,0);
+    transl(1)=dR*pt(k,1);
+    transl(2)=dR*pt(k,2);
+
+    for( int i=0; i<npoints; i++) {
+      
+      sample->translateElectron(e0,transl);
+      sample->translateElectron(e1,transl);
+      wf->updateVal(wfdata, sample);
+      
+      wf->getVal(wfdata, e1, wfval_new);
+      
+      // how to handle the possibility of wf_old=0? Can it happen?
+      avg.vals(i)+=wt(k)*wfval_new.sign(0)*wfval_old.sign(0)
+	*exp(wfval_new.amp(0,0)-wfval_old.amp(0,0));
+    }
+
+    //The samples need to be restore because we're using the 
+    //translateElectron function (important for k-points)
+    sample->setElectronPos(e0,oldpos);
+    sample->setElectronPos(e1,oldpos2);
+
+    sample->restoreUpdate(e1, sampleStorage1 );
+    sample->restoreUpdate(e0, sampleStorage0 );
+    wf->restoreUpdate(sample,e0,e1,wfStore);
+  }
+
+  if(wfStore != NULL) delete wfStore;
+  if(sampleStorage0 != NULL) delete sampleStorage0;
+  if(sampleStorage1 != NULL) delete sampleStorage1;
+
+}
+
+//-----------------------------------------------------------------------------
+
+void Average_tbdm::write_init(string & indent, ostream & os) { 
+  os << indent << "tbdm" << endl;
+  os << indent << "ngrid " << npoints << endl;
+  os << indent << "cutoff " << dR*npoints << endl;
+  os << indent << "aip " << np_aver << endl;
+}
+
+//-----------------------------------------------------------------------------
+
+void Average_tbdm::read(vector <string> & words) { 
+  unsigned int pos=0;
+  readvalue(words, pos, npoints, "ngrid");
+  doublevar cutoff;
+  readvalue(words, pos=0, cutoff, "cutoff");
+  dR=cutoff/npoints;
+  readvalue(words, pos=0, np_aver, "aip");
+}
+
+//-----------------------------------------------------------------------------
+
+void Average_tbdm::write_summary(Average_return & avg, Average_return & err,
+				 ostream & os) { 
+  os << "Projected two-body density matrix, spherically averaged with AIP = "
+     << np_aver << endl;
+  os << "    r  rho(r) rho(r)err" << endl;
+  assert(avg.vals.GetDim(0) >=npoints);
+  assert(err.vals.GetDim(0) >=npoints);
+  
+  for(int i=0; i< npoints; i++) {
+    doublevar rho=avg.vals(i);
+    doublevar rhoerr=err.vals(i);
+    doublevar r=(i+1)*dR;
+    os << "tbdm_out " <<  r << "   " << rho << "   " << rhoerr << endl;
+  }
+  os << endl;
+
+}
+
+
+//############################################################################
+
+
+void Average_local_moments::read(System * sys, Wavefunction_data * wfdata,
+				 vector <string> & words) {
+
+  single_write(cout, "Local moments and charges will be calculated.\n");
+
+  nup=sys->nelectrons(0);
+  nelectrons=nup+sys->nelectrons(1);
+  
+  sys->getAtomicLabels(atomnames);
+  natoms=atomnames.size();
+  rMT.Resize(natoms+1);
+  rMT=-1;
+  for ( int i=0; i < natoms; i++) {
+    doublevar r;
+    unsigned int pos;
+    if(readvalue(words, pos=0, r, atomnames[i].c_str())) rMT(i)=r;
+  }
+  single_write(cout,"Muffin-tin radii:\n");
+  for (int i=0; i < natoms; i++) {
+    if ( rMT(i) > 0 ) {
+      single_write(cout,atomnames[i],"  ",rMT(i),"\n");
+    } else {
+      rMT(i)=2;
+      single_write(cout,atomnames[i],"  ",rMT(i)," (default used)\n");
+    }
+  }
+  atomnames.push_back("interst.");
+
+}  
+
+//-----------------------------------------------------------------------------
+
+void Average_local_moments::evaluate(Wavefunction_data * wfdata,
+				     Wavefunction * wf,
+				     System * sys, Sample_point * sample,
+				     Average_return & avg) {
+
+  // the content of avg.vals is:
+  //    0          ... natoms-1   spin moments on atoms
+  //    natoms                    spin moments in interstitial       
+  //    natoms+1   ... 2*natoms   charges on atoms
+  //    2*natoms+1                charge in interstitial
+
+  avg.type="lm";
+  avg.vals.Resize(2*natoms+2);
+  avg.vals=0;
+
+  Array1 <doublevar> dist(5);
+  sample->updateEIDist();
+  
+  for(int e=0; e<nup; e++) {
+    bool interstitial=true;
+    for(int i=0; i<natoms; i++) {
+      sample->getEIDist(e,i,dist);
+      // zero element of dist is norm, second is norm^2
+      if ( dist(0) < rMT(i) ) {
+	avg.vals(i)+=1;
+	avg.vals(i+natoms+1)+=1;
+	interstitial=false;
+      }
+    }
+    if ( interstitial ) {
+      avg.vals(natoms)+=1;
+      avg.vals(2*natoms+1)+=1;
+    }
+  }
+  
+  for(int e=nup; e<nelectrons; e++) {
+    bool interstitial=true;
+    for(int i=0; i<natoms; i++) {
+      sample->getEIDist(e,i,dist);
+      if ( dist(0) < rMT(i) ) {
+	avg.vals(i)-=1;
+	avg.vals(i+natoms+1)+=1;
+	interstitial=false;
+      }
+    }
+    if ( interstitial ) {
+      avg.vals(natoms)-=1;
+      avg.vals(2*natoms+1)+=1;
+    }
+  }
+
+}
+
+//-----------------------------------------------------------------------------
+
+void Average_local_moments::write_init(string & indent, ostream & os) { 
+  os << indent << "lm" << endl;
+  for (int i=0; i<natoms+1; i++) {
+    os << indent << "atom {"
+       << " name " << atomnames[i]
+       << " rMT " << rMT(i) << " }" << endl;
+  }
+}
+
+//-----------------------------------------------------------------------------
+
+void Average_local_moments::read(vector <string> & words) { 
+  vector <string> atom_entry;
+  vector < vector <string> > atom_entries;
+  unsigned int pos=0;
+  while(readsection(words, pos, atom_entry, "atom"))
+    atom_entries.push_back(atom_entry);
+  if ( atomnames.size() > 0 ) atomnames.clear();
+  natoms=atom_entries.size()-1;
+  rMT.Resize(natoms+1);
+  for (int i=0; i<natoms+1; i++) {
+    string atomname;
+    readvalue(atom_entries[i], pos=0, atomname, "name");
+    atomnames.push_back(atomname);
+    readvalue(atom_entries[i], pos=0, rMT(i), "rMT");
+  }
+}
+
+//-----------------------------------------------------------------------------
+
+void Average_local_moments::write_summary(Average_return & avg,
+					  Average_return & err,
+					  ostream & os) { 
+  os << "Local spin moments and charges integrated over muffin-tin spheres"
+     << endl;
+  os << "       atom name    rMT    moment   moment_err  charge  charge_err"
+     << endl;
+  ios::fmtflags saved_flags=os.flags(ios::fixed);
+  streamsize saved_precision=os.precision(2);
+
+  assert(avg.vals.GetDim(0) >=2*natoms+2);
+  assert(err.vals.GetDim(0) >=2*natoms+2);
+  
+  doublevar totm=0.0;
+  doublevar totc=0.0;
+  for(int i=0; i< natoms+1; i++) {
+    os << "lm_out  " << setw(8) << atomnames[i] << "  " << setw(5);
+    if ( rMT(i) < 0.0 ) {
+      os << "    ";
+    } else {
+      os << rMT(i);
+    }
+    os << setw(10) << avg.vals(i) << setw(10) << err.vals(i) << setw(10)
+       << avg.vals(i+natoms+1) << setw(10) << err.vals(i+natoms+1) << endl;
+    totm+=avg.vals(i);
+    totc+=avg.vals(i+natoms+1);
+  }
+  os << "total moment in the cell" << setw(7) << totm << endl;
+  os << "total charge in the cell" << setw(7) << totc << endl;
+  os << endl;
+
+  // restore output stream formating to default
+  os.flags(saved_flags);
+  os.precision(saved_precision);
+
+}
