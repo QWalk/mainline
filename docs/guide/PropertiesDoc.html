@@ -8,19 +8,19 @@ Three groups of operators are currently implemented.
 <ul>
 <li>AVERAGE: this the preferred framework for evaluation of
 expectation values. Results are written directly into the global
-log-file, can be post-processed with gosling and error bars for the
-quantities are therefore available. However, if the quantity is large
-(e.g. 3D matrix) then this approach may become inconvenient due to
-large amount of data stored in the log-file. In the case the error bars
-are not required, older framework of DENSITY and NONLOCAL_DENSITY is
-still useful.
+log-file that is to be post-processed with gosling to obtain
+statistical error bars. AVERAGE contains both local and non-local
+operators. Note that although no error/warning is generated,
+the "center" estimator of a non-local operator in the \ref
+Reptation_methodDoc does not correspond to the pure estimator and it
+is, in general, rather useless number.
 <li>DENSITY: results are written to separate files for each
-operator. This is largely deprecated except for one-particle density
-evaluated on a 3D grid. Only local operators are accessible via this
-keyword.
+operator. Only local operators are accessible via this
+keyword. Evaluation of error bars is not available.
 <li>NONLOCAL_DENSITY: analogous to DENSITY, but for non-local
 operators. Note that these are not available (and will be ignored)
-within Reptation Monte Carlo.
+within \ref Reptation_methodDoc . As with DENSITY, evaluation of error
+bars is not available.
 </ul>
 
 <p>
@@ -55,6 +55,19 @@ estimation of Coulomb finite-size errors</td></tr>
 
 <tr><td>MANYBODY_POL</td>
 <td>electric polarization</td></tr>
+
+<tr><td>LM</td>
+<td>\ref Local_momentsDoc and local charges evaluated as integrals
+of the electron density inside muffin-tin spheres</td></tr>
+
+<tr><td>OBDM</td>
+<td>\ref OBDMDoc one-body density matrix in homogeneous and isotropic
+systems</td></tr>
+
+<tr><td>TBDM</td>
+<td>projected \ref TBDMDoc two-body density matrix in homogeneous and
+isotropic systems, useful for detection of BCS-like condensates</td></tr> 
+
 </table>
 
 
@@ -65,35 +78,12 @@ Keyword: DENSITY
 <tr><td>DENSITY</td>
 <td>\ref One_particle_densityDoc evaluated on a 3D mesh</td></tr>
 
-<tr><td>LM</td>
-<td>local magnetic moments and local charges evaluated as integrals
-of the electron density inside muffin-tin spheres</td></tr>
-
-<tr><td>SK</td>
-<td>electronic static structure factor in periodic
-systems; deprecated, use implementation under AVERAGE</td></tr>
-
-<tr><td>GR</td>
-<td>electronic pair correlation function; deprecated, use implementation
-under AVERAGE</td></tr>
-
-<tr><td>POL</td>
-<td>polarization; deprecated, use implementation under AVERAGE</td></tr>
 </table>
 
 
 Keyword: NONLOCAL_DENSITY
-<table>
-<tr><th>Operator</th><th>Description</th></tr>
+<p>No operator is currently evaluated using this framework.</p>
 
-<tr><td>OBDM</td>
-<td>\ref OBDMDoc one-body density matrix in homogeneous and isotropic
-systems</td></tr>
-
-<tr><td>TBDM</td>
-<td>projected \ref TBDMDoc two-body density matrix in homogeneous and
-isotropic systems, useful for detection of BCS-like condensates</td></tr> 
-</table>
 
 
 */
