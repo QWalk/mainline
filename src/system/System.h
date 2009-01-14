@@ -72,6 +72,14 @@ public:
   }
   /*!
     \brief 
+   return the primitive lattice (usually given in input)
+    */
+  virtual int getPrimLattice(Array2 <doublevar> & gvec) { 
+    return 0;
+  }
+
+  /*!
+    \brief 
    return the primitive reciprocal lattice (usually given in input)
     */
   virtual int getPrimRecipLattice(Array2 <doublevar> & gvec) { 

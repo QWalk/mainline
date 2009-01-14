@@ -1,0 +1,61 @@
+/*! \page Heg2qmcDoc Homogeneous gas
+
+
+\section description Description
+
+There are two utilities to generate input files for simulations of
+homogeneous gases. <tt>heg2qmc</tt> prepares real-valued wave
+functions, <tt>heg2qmcc</tt> writes complex wave functions for
+proper utilization of the so-called twist averaging.
+
+\subsection heg2qmc heg2qmc (fixed-node input)
+
+Usage: heg2qmc -o &lt;output base&gt; [-bcs]
+
+Takes N_up, N_down and rs from standard input and writes<br>
+&nbsp;&nbsp;   &lt;output base&gt;.i.sys<br>
+&nbsp;&nbsp;   &lt;output base&gt;.i.slater<br>
+&nbsp;&nbsp;   &lt;output base&gt;.i.basis<br>
+&nbsp;&nbsp;   &lt;output base&gt;.i.orb<br>
+&nbsp;&nbsp;   &lt;output base&gt;.centers<br>
+&nbsp;&nbsp;   &lt;output base&gt;.jast2<br>
+where i indexes k-points (twists of boundary conditions) and runs from 0 to 3;
+0 is the Gamma-point (all 3 directions periodic), 1 is anti-periodic in
+one direction, 2 is anti-periodic in two directions and 3 is
+anti-periodic in all three directions. These k-points have differing
+weights in the twist average, namely
+
+<table>
+<tr> <th>k-point index <td>0   <td>1   <td>2   <td>3
+<tr> <th>weight        <td>1/8 <td>3/8 <td>3/8 <td>1/8
+</table>
+
+If -bcs option is given, extra input is taken (number of virtual orbitals), 
+and extra files are written (&lt;output&nbsp;base&gt;.i.bcs). The BCS
+function is constructed as a special case of \ref Pfaff_wfDoc wave
+function. This approach is deprecated as there is a more efficient
+way to perform such calculations in QWalk, particularly with the aid
+of \ref BCS_wfDoc wave function.
+
+\subsection heg2qmcc heg2qmcc (fixed-phase input)
+
+Usage: heg2qmcc -o &lt;output base&gt;
+
+Takes N_up, N_down, rs and a k-mesh discretization parameter D from
+standard input and writes the same files as described above, only the
+index i runs over a wider interval. Tetrahedron method is used to
+generate irreducible k-points, the actual number of k-points
+corresponding to the lowest values of the discretization parameters D
+are
+
+<table>
+<tr><th>parameter D  <td>1 <td>2  <td>3   <td>4  <td>5
+<tr><th>No. k-points <td>4 <td>10 <td>20  <td>35 <td>56
+</table>
+
+Averaging weights of the k-points are written to
+&lt;output&nbsp;base&gt;.i.sys files as comments.
+
+
+
+*/

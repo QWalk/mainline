@@ -60,9 +60,9 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
   }
   else optimize_det=0;
 
-  sort=0;
-  if(haskeyword(words, pos=startpos, "SORT_DETWT")) {
-    sort=1;
+  sort=1;
+  if(haskeyword(words, pos=startpos, "NOSORT")) {
+    sort=0;
   }
 
   pos=startpos;
@@ -482,8 +482,8 @@ int Slat_wf_data::writeinput(string & indent, ostream & os)
   if(optimize_det)
     os << indent << "OPTIMIZE_DET" << endl;
   
-  if(sort)
-    os << indent << "SORT_DETWT" << endl;
+  if(!sort)
+    os << indent << "NOSORT" << endl;
 
   if(use_csf){
     Array1 <Array1 <doublevar> > CSF_print(ncsf);
@@ -496,38 +496,61 @@ int Slat_wf_data::writeinput(string & indent, ostream & os)
       for(int csf=0;csf<ncsf;csf++)
 	csf_tmp(csf)=CSF(csf)(0);
       sort_abs_values_descending(csf_tmp,csf_tmp,list);
+      
+      /*
+      cout <<"CSF list"<<endl;
+      for(int csf=0;csf<ncsf;csf++){
+	cout <<csf<<"  "<<list(csf)<<endl;
+      }
+      */
 
+      Array1 < Array1 <int> > det_pos(ncsf);
+      int counterr=0;
+      for(int csf=0;csf<ncsf;csf++){
+	det_pos(csf).Resize(CSF(csf).GetDim(0)-1);
+	for(int j=1;j<CSF(csf).GetDim(0);j++){
+	  det_pos(csf)(j-1)=counterr++;
+	}
+      }
 
+      
       //preparing CSF_print
-      Array1 < Array1 <int> > csf_order(ncsf); 
       int counter_new=0;
       for(int csf=0;csf<ncsf;csf++){
 	CSF_print(csf).Resize(CSF(list(csf)).GetDim(0));
-	csf_order(list(csf)).Resize(CSF(list(csf)).GetDim(0)-1);
 	for(int j=0;j<CSF(list(csf)).GetDim(0);j++){   
 	  CSF_print(csf)(j)=CSF(list(csf))(j);
 	  if(j>0){
-	    csf_order(list(csf))(j-1)=counter_new;
-	    detwt_print(counter_new)=CSF_print(csf)(0)*CSF_print(csf)(j);
-	    counter_new++;
+	    detwt_print(counter_new++)=CSF_print(csf)(0)*CSF_print(csf)(j);
 	  }
 	}
       }
       
-      Array1 <int> list2(ndet);
+      Array1 <int> detlist(ndet);
+      //cout <<"CSF list"<<endl;
       int counter_old=0;
       for(int csf=0;csf<ncsf;csf++){
-	int dim_old=CSF(csf).GetDim(0)-1;
-	for(int j=0;j<dim_old;j++)
-	  list2(counter_old++)=csf_order(csf)(j);
+	//cout << csf<<"  ";
+	for(int j=0;j<CSF(list(csf)).GetDim(0)-1;j++){
+	  //cout <<det_pos(list(csf))(j) <<"  ";
+	  detlist(counter_old++)=det_pos(list(csf))(j);
+	}
+	//cout <<endl;
       }
+
+      /*
+      cout <<"Determinant list"<<endl;
+      for(int det=0; det < ndet; det++){
+	cout <<det<<"  "<<detlist(det)<<endl;
+      }
+      */
       
       //preparing occupation_orig_print
       for(int f=0; f< nfunc; f++)
 	for(int det=0; det < ndet; det++)
 	  for(int s=0; s<2; s++){
 	    occupation_orig_print(f,det,s).Resize(nelectrons(s));
-	    occupation_orig_print(f,det,s)=occupation_orig(f,list2(det),s);
+	    occupation_orig_print(f,det,s)=occupation_orig(f,detlist(det),s);
 	  }
     }
     else{ //no sorting 

@@ -94,7 +94,9 @@ private:
   bool renormalize; //!< Whether or not to renormalize the basis functions
 
   bool enforce_cusp; //!< whether or not to force the spline to have a cusp (only works for SPLINE inputs for now)
+  bool zero_derivative; //!< whether or not force zero derivative at the nucleus (strictly no cusp), if we want to treat the cusp in Jastrow
   double cusp;
+  doublevar customspacing;
 
   Array1 <Spline_fitter> splines;
 

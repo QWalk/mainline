@@ -127,6 +127,11 @@ public:
     return 1;
   }
     
+  int getPrimLattice(Array2 <doublevar> & gvec) { 
+    gvec=primlat;
+    return 1;
+  }
+
   void kpoint(Array1 <doublevar> & kp) {
     kp=kpt;
   }
@@ -157,7 +162,8 @@ private:
   //!< lattice vectors, first index is a,b,c, second is x,y,z
   Array1 <doublevar> kpt; //!< the k-point we're simulating at.    
   Array2 <doublevar> recipLatVec; //!<reciprocal lattice vectors
-  Array2 <doublevar> prim_recip_vec; //!< lattice vectors of the primitive cell
+  Array2 <doublevar> prim_recip_vec; //!< lattice vectors of the reciprocal primitive cell
+  Array2 <doublevar> primlat; //!< lattice vectors of the primitive cell
   Array2 <doublevar> normVec;  //!< normal vectors to the sides, pointing out
   Array2 <doublevar> corners; //!< the position of the corner by moving one lattice vector
 

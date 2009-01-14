@@ -6,9 +6,11 @@ Keyword: Label of atom this pseudopotential is attached to.
 
 Use an effective nonlocal potential to remove the core electrons from
 the system.  This is handled more or less as described in 
-Mitas, Shirley, Ceperly, J. Chem. Phys.  95, p 3467  (1991).
-The first word in the pseudopotential section must be the label of the
-atom to which is corresponds.  Then the following options may be put in.
+Mitas, Shirley, Ceperly,
+<a href="http://dx.doi.org/10.1063/1.460849">J. Chem. Phys. <b>95</b>,
+3467 (1991)</a>. The first word in the pseudopotential section must be
+the label of the atom to which is corresponds.  Then the following
+options may be put in.
 
 \section options Options
 
@@ -16,7 +18,8 @@ atom to which is corresponds.  Then the following options may be put in.
 
 <table>
 <tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
-<tr> <td> BASIS  <td> Section <td> input for \ref Basis_functionDoc for the radial function of the psuedopotential
+<tr> <td> BASIS  <td> Section <td> Input for \ref Basis_functionDoc
+for the radial function of the pseudopotential.
 </table>
 
 \subsection optopt Optional
@@ -24,7 +27,9 @@ atom to which is corresponds.  Then the following options may be put in.
 <table>
 <tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b> Default </b> 
      <td> <b>Description</b>
-<tr> <td> AIP  <td> Integer <td> 6 <td> Number of atomic integration points
+<tr> <td> AIP  <td> Integer <td> 6 <td> Number of atomic integration
+     points. Available are Gaussian rules with 4, 6, 12, 18, 26 and 32
+     points.
 <tr> <td> ADD_ZEFF  <td> Keyword <td>  off <td> Add the effective charge while in range of the pseudopotential, for soft psp's that have the effective charge
 included.
 </table>

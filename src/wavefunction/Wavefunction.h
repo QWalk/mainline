@@ -379,6 +379,10 @@ public:
     sample->restoreUpdate(e, sampStore);
     wf->restoreUpdate(sample, e, wfStore);
   }
+  void restoreUpdate(Sample_point * sample, int e)
+  {
+    sample->restoreUpdate(e, sampStore);
+  }  
 
 
 

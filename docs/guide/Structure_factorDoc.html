@@ -1,0 +1,55 @@
+/*! \page Structure_factorDoc static structure factor
+
+Keyword: SK
+
+\section description Description
+
+Electronic static structure factor given by
+\f[
+S({\bf k})=\frac1N\,\langle\Psi|\hat\rho_{\bf k}
+\hat\rho_{-\bf k}|\Psi\rangle
+\f]
+where \f$ \hat\rho_{\mathbf{k}} \f$ is a Fourier component of the
+electron density. The quantity is evaluated either on a full 3D grid
+or on a 1D grid along a fixed direction, see keyword DIRECTION.
+
+The structure factor \f$ S({\bf k}) \f$ can be used to
+evaluate finite-size corrections to the Ewald energy, see Chiesa et al. 
+<a href="http://dx.doi.org/10.1103/PhysRevLett.97.076404">Phys.
+Rev. Lett. <b>97</b>, 076404 (2006)</a>. Note that \f$ S({\bf k}) \f$
+as calculated contains besides the continuous electronic
+component also sharp Bragg peaks, since electronic wave function
+follows crystal symmetries. This also means that one cannot extract
+the electronic component from a simulation performed in the primitive
+cell, because all allowed k-values overlap with the Bragg peaks in such a
+case.
+
+\section options Options
+
+\subsection reqopt Required 
+
+None.
+
+\subsection optopt Optional
+
+<table>
+<tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+
+<tr><td>NGRID</td><td>Integer</td><td>5</td>
+<td>Number of grid points in one direction. Structure factor is
+evaluated on NGRID points if DIRECTION is given and on NGRID^3 points
+otherwise.
+</td></tr>
+
+<tr><td>GVEC</td><td>Section</td><td>reciprocal lattice vectors</td>
+<td>Basis vectors \f$ {\bf g}_i \f$ defining the grid. The
+section contains a 3x3 matrix of floats.</td>
+
+<tr><td>DIRECTION</td><td>Integer</td><td>not set</td>
+<td>Selects one of the three basis vectors \f$ {\bf g}_i \f$, along
+which \f$ S({\bf k}) \f$ is evaluated.
+</td></tr>
+</table>
+
+
+*/

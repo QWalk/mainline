@@ -302,11 +302,14 @@ void Nodes_method::run(Program_options & options, ostream & output)
             os<< oldpos(j,0)<<"   "<<oldpos(j,1)<<"   "<< oldpos(j,2)<<endl;
           }
         }
+	os.setf(ios::scientific);
         for(int j=0; j< D_array1(0)*D_array1(1)*D_array1(2); j++) {
-          os << grid(i,j) <<  "    ";
+          os <<setw(16)<<setprecision(8)<<grid(i,j);
           if(j%6 ==5) os << endl;
         }
         os << endl;
+	os.unsetf(ios::scientific);
+	os<<setprecision(6);
         os.close();
 
 	
@@ -451,11 +454,14 @@ void Nodes_method::run(Program_options & options, ostream & output)
             os<< oldpos(j,0)<<"    "<<oldpos(j,1)<<"    "<< oldpos(j,2)<<endl;
           }
         }
+	os.setf(ios::scientific);
         for(int j=0; j< D_array1(0)*D_array1(1)*D_array1(2); j++) {
-          os << grid(i,j) <<  "    ";
+          os << setw(16) << setprecision(8) << grid(i,j);
           if(j%6 ==5) os << endl;
         }
         os << endl;
+	os.unsetf(ios::scientific);
+	os<<setprecision(6);
         os.close();
 
         /*

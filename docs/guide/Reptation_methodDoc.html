@@ -4,7 +4,32 @@ Keyword: REPTATION
 
 \section description Description
 
-This is an implementation of the Reptation Monte Carlo method(PRL 82, 4745 (1999)).  There are quite a few modifications to the algorithm as presented in the above paper.  Some are outlined in a paper by Pierleoni and Ceperley that's floating around on the net, most importantly the bounce algorithm.  RMC is conceptually similar to DMC, in that we sample the distribution \f$\Psi_T e^{-H\tau} \Psi_T \f$, with the projection operator interpreted as a random walk.  At each end of the walk, we have sampled \f$\Psi_T \Phi_0\f$, the mixed distribution.  In the center, we have \f$\Phi_0^2\f$, since on either side there are projection operators.  DMC only moves forward, so the center distribution is unavailable, except by forward walking, which simulates the effect of projection operators.  In RMC, the random variable is the path, which, for finite length, can be a probability density.  Therefore, there's no branching and no population control bias.  The biases (and speed) are controlled by the timestep(just like DMC) and the length of the path.  The larger the timestep and shorter the reptile, the more efficient and inaccurate the simulation.  For chemical systems, I've found a good starting point is a reptile about 3 au long, and a timestep around .01 au, which corresponds to TIMESTEP .01  and LENGTH 300.  Note that you have to scale the length with the timestep to maintain total projection length.
+This is an implementation of the Reptation Monte Carlo method (Baroni
+and Moroni,
+<a href="http://dx.doi.org/10.1103/PhysRevLett.82.4745">Phys.
+Rev. Lett. <b>82</b>, 4745 (1999)</a>).  There are quite a few
+modifications to the algorithm as 
+presented in the above paper.  Some are outlined in
+Pierleoni and Ceperley,
+<a href="http://dx.doi.org/10.1002/cphc.200400587">ChemPhysChem
+<b>6</b> 1872 (2005)</a>, most
+importantly the bounce algorithm.  RMC is conceptually similar to DMC,
+in that we sample the distribution \f$\Psi_T e^{-H\tau} \Psi_T \f$,
+with the projection operator interpreted as a random walk.  At each
+end of the walk, we have sampled \f$\Psi_T \Phi_0\f$, the mixed
+distribution.  In the center, we have \f$\Phi_0^2\f$, since on either
+side there are projection operators.  DMC only moves forward, so the
+center distribution is unavailable, except by forward walking, which
+simulates the effect of projection operators.  In RMC, the random
+variable is the path, which, for finite length, can be a probability
+density.  Therefore, there's no branching and no population control
+bias.  The biases (and speed) are controlled by the timestep(just like
+DMC) and the length of the path.  The larger the timestep and shorter
+the reptile, the more efficient and inaccurate the simulation.  For
+chemical systems, I've found a good starting point is a reptile about
+3 au long, and a timestep around .01 au, which corresponds to TIMESTEP
+.01  and LENGTH 300.  Note that you have to scale the length with the
+timestep to maintain total projection length.
 
 RMC accumulates two estimators: label and label_cen.  label contains the 
 mixed estimators, which are useful for the total energy and correlated
@@ -46,12 +71,13 @@ only need to generate one config/node in VMC.
      <td> <b>Description</b>
 <tr> <td> STORECONFIG <td> String <td> none <td> Write the reptile to the file specified.  In parallel, each processor will write its configurations to this file with _n appended, where n is the processor number.
 <tr> <td> LABEL <td> String <td> rmc <td> Label in the .log file.
-<tr> <td> DYNAMICS <td> Section <td> SPLIT 
-     <td> choose a dynamics generator.  possible options are { SPLIT }, {RUNGE  }.  The split dynamics generator is generally more efficient, so don't touch
-it unless you know what you're doing.
-<tr> <td> DENSITY <td> Section <td> empty 
-     <td> A section for a  \ref Local_density_accumulatorDoc .  This will be 
-measured at the center of the reptile, to obtain a 'pure' estimator.
+<tr> <td> DYNAMICS <td> Section <td> {&nbsp;SPLIT&nbsp;}
+     <td> choose a dynamics generator.  possible options are
+     { SPLIT }, { RUNGE }.  The split dynamics generator is generally
+     more efficient, so don't touch it unless you know what you're doing.
+<tr> <td> AVERAGE,<br>DENSITY <td> Section <td> empty 
+     <td> Sections for evaluation of \ref PropertiesDoc . These will
+     be measured at the center of the reptile, to obtain a 'pure' estimator.
 </table>
 
 

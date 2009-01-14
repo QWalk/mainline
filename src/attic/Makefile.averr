@@ -12,19 +12,16 @@ DVLPATH = .
 MAKEPATH:=$(DVLPATH)/make
 OBJPATH:=$(DVLPATH)/obj/$(PLATFORM)
 SRCPATH:=$(DVLPATH)
-PROJECT:=$(DVLPATH)/gosling-$(PLATFORM)
-DEPENDFILE:=$(OBJPATH)/depend.gosling
+PROJECT:=$(DVLPATH)/averr-$(PLATFORM)
+DEPENDFILE:=$(OBJPATH)/depend.averr
 
 include make.include
 
-SOURCES:=properties/Average_generator.cpp \
-	 properties/Properties_average.cpp \
+SOURCES:=properties/Properties_average.cpp \
          properties/Properties_block.cpp \
          program_utils/Qmc_std.cpp \
          program_utils/qmc_io.cpp \
-	 program_utils/ulec.cpp \
-	 system/gesqua.cpp \
-         properties/gosling.cpp
+         properties/averr.cpp
 
 
 #remove the directory prefix and .cpp extension, and add the .o extension

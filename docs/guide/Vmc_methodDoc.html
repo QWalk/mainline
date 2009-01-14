@@ -39,6 +39,7 @@ this file every block.  In parallel, each processor will write its configuration
 previously written by STORECONFIG.  If there are more or less configurations 
 than NCONFIG, new configurations will be generated or old ones left out to
 make the number exactly NCONFIG.
+<tr> <td> LABEL <td> String <td> dmc <td> Label in the .log file.
 <tr> <td> GUIDETYPE <td> String <td> SUMSQUARES 
      <td> Possible options: SUMSQUARES(\f$ \Psi_T^2 = \Psi_1^2+\Psi_2^2 \f$), 
       SUM(\f$ (\Psi_1 + \Psi_2)^2 \f$), FIRST(\f$ \Psi_T = \Psi_1 \f$). Specify
@@ -46,9 +47,14 @@ the importance-sampling function. This will importance-sample <b> only</b>
 with respect to wave functions defined in the TRIALFUNC section.  Ones
 defined in AUX_WF/AUX_SYS will not be used, since they are auxillary, not
 guiding functions.
-<tr> <td> DYNAMICS <td> Section <td> SPLIT 
-     <td> Control the pseudo-dynamics of the sampling.  Insert a 
-          \ref DynamicsDoc section here.
+<tr> <td> DYNAMICS <td> Section <td> {&nbsp;SPLIT&nbsp;}
+     <td> Choose a dynamics generator (i.e., a strategy of the stochastic
+     sampling). Possible options are { SPLIT } and { UNR }. Use UNR
+     when you don't have pseudopotentials. Further possibilities of
+     fine tuning are described on the \ref DynamicsDoc page.
+
+<tr> <td> AVERAGE,<br>DENSITY,<br>NONLOCAL_DENSITY <td> Section <td> empty 
+     <td> Sections for evaluation of \ref PropertiesDoc .
 </table>
 
 

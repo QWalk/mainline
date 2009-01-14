@@ -152,7 +152,15 @@ int Cubic_spline::read(
 
   enforce_cusp=false;
   if(readvalue(words, pos=0, cusp, "CUSP")) enforce_cusp=true;
-  
+
+  zero_derivative=false;
+  if(haskeyword(words, pos=0, "ZERO_DERIVATIVE")) zero_derivative=true;
+
+  customspacing=basisparms(0);
+  if(readvalue(words, pos=0, customspacing, "SPACING")) {
+    basisparms(0)=customspacing;
+    basisparms(1)=50.0/customspacing;
+  }
 
   vector <string> basisspec;
   string read_file; //read positions from a file
@@ -550,7 +558,11 @@ int Cubic_spline::readbasis(vector <string> & words,unsigned int & pos,
 
 
     //--Estimate the derivatives on the boundaries
-    yp1=(y(1)-y(0))/spacing;
+    if ( zero_derivative ) {
+      yp1=0.0;
+    } else {
+      yp1=(y(1)-y(0))/spacing;
+    }
     ypn=(y(n-1) - y(n-2) ) /spacing;
     splines(funcNum).splinefit(x,y,yp1, ypn);
   }
@@ -678,16 +690,22 @@ void Cubic_spline::assign_indiv_symmetries() {
 int Cubic_spline::showinfo(string & indent, ostream & os)
 {
   os << indent << "Cubic spline for " << atomname << endl;
+  if(zero_derivative)
+    os << indent << "Zero derivative enforced at the orgin\n";
+  if(customspacing!=0.02)
+    os << indent << "Using custom spacing of "<<customspacing<<endl;
   os << indent << nsplines << "  radial functions\n";
-
   os << indent << setw(10) << "function" << setw(10) << "symmetry"
      << setw(10) << "cutoff" << endl;
+  
   int totfunc=0;
   for(int i=0; i< nsplines; i++) {
     os << indent << setw(10) << i << setw(10) << symmetry_lookup(symmetry(i))
        << setw(10) << rcut(totfunc) << endl;
     totfunc+=nfuncspline(i);
   }
+  
+
 
   return 1;
 }
@@ -702,6 +720,11 @@ int Cubic_spline::writeinput(string & indent, ostream & os)
   if(renormalize==false) {
     os << indent << "NORENORMALIZE\n";
   }
+  if(zero_derivative) {
+    os << indent << "ZERO_DERIVATIVE\n";
+  }
+  if(customspacing!=0.02)
+    os << indent << "SPACING "<<customspacing<<endl;
   if(requested_cutoff > 0 ) {
     os << indent << "CUTOFF " << requested_cutoff << endl;
   }
