@@ -1281,7 +1281,9 @@ void EigenSystemSolverRealSymmetricMatrix(const Array2 <doublevar > & Ain, Array
   //eigenvectors, where for i-th eigenvalue, the eigenvector components are evecs(*,i)
 #ifdef USE_LAPACK //if LAPACK
   int N=Ain.dim[0];
-  
+  Array2 <doublevar> Ain2(N,N);
+  //need to copy the array!!
+  Ain2=Ain;
   /* allocate and initialise the matrix */
   Array1 <doublevar> W, Z, WORK;
   Array1 <int> ISUPPZ, IWORK;
@@ -1296,7 +1298,7 @@ void EigenSystemSolverRealSymmetricMatrix(const Array2 <doublevar > & Ain, Array
 
   int info;
   /* get the eigenvalues and eigenvectors */
-  info=dsyevr('V', 'A', 'L', N, Ain.v, N, 0.0, 0.0, 0, 0, dlamch('S'), &M,
+  info=dsyevr('V', 'A', 'L', N, Ain2.v, N, 0.0, 0.0, 0, 0, dlamch('S'), &M,
          W.v, Z.v, N, ISUPPZ.v, WORK.v, 26*N, IWORK.v, 10*N);
   if(info>0)
     error("Internal error in the LAPACK routine dsyevr");
