@@ -19,10 +19,10 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  
 */
 
+#include "Program_options.h"
 #include "Plot_method.h"
 #include "qmc_io.h"
 #include "System.h"
-#include "Program_options.h"
 #include "MatrixAlgebra.h"
 /*!
 Read the "words" from the method section in the input file

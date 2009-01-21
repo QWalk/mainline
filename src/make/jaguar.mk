@@ -1,26 +1,33 @@
 ######################################################################
 # Compiler definitions for jaguar.ccs.ornl.gov (compute nodes) 
 #  all compiler specific information should be declared here
+
+#for gnu with blas and lapack issue this command: 
+# module swap PrgEnv-pgi PrgEnv-gnu; module add atlas ; module remove xt-libsci ; module add xt-libsci
+
 CXX:=CC
+CXXFLAGS:= -std=gnu++98 -O3 -ffast-math -fomit-frame-pointer \
+            -fstrict-aliasing -funroll-loops -march=barcelona 
+CXXFLAGS += -DUSE_MPI -DUSE_BLAS -DUSE_LAPACK -DUSE_EINSPLINE -DUSE_RESTRICT ${INCLUDEPATH}
 
-CXXFLAGS:= -fastsse -tp k8-64 -DMPICH_IGNORE_CXX_SEEK  
-
-CXXFLAGS += -DUSE_MPI -DUSE_STDARG -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 \
-            -DHAVE_UNISTD_H=1 -DHAVE_STDARG_H=1 -DUSE_STDARG=1 \
-            -DMALLOC_RET_VOID=1 -I$(MPIDIRECTORY)/include $(INCLUDEPATH)
-
-#CXXFLAGS+= -DUSE_LAPACK -DUSE_BLAS
-
-#LAPACK_LIBS := -L/usr/lib -llapack -lf77blas -lcblas -latlas 
-
-#BLAS_LIBS := $(LAPACK_LIBS)
-
-#DEBUG := -Wall  -DRANGE_CHECKING -DDEBUG_WRITE
-DEBUG := -DNO_RANGE_CHECKING -DNDEBUG -DDEBUG_WRITE
-#LDFLAGS := -static
-LDFLAGS :=
+BLAS_LIBS := -L/sw/xt/atlas/3.8.2/cnl2.0_gnu4.2.0/lib -lf77blas -lcblas -latlas -lg2c 
+BLAS_INCLUDE := -I/sw/xt/atlas/3.8.2/cnl2.0_gnu4.2.0/include  
 
 
+EINSPLINE_LIBS := -L/ccs/proj/mat001/jaguar/lib -leinspline
+EINSPLINE_INCLUDE :=-I/ccs/proj/mat001/jaguar/include/einspline
+
+#EINSPLINE_LIBS := -L/ccs/home/bajdich/codes/lib/lib -leinspline  
+#EINSPLINE_INCLUDE :=-I/ccs/home/bajdich/codes/lib/include/einspline
+
+BLAS_LIBS += $(LAPACK_LIBS)
+BLAS_INCLUDE += $(LAPACK_LIBS)
+
+BLAS_LIBS += $(EINSPLINE_LIBS)
+BLAS_INCLUDE +=$(EINSPLINE_INCLUDE)
+
+
+DEBUG:= -DNO_RANGE_CHECKING   -DNDEBUG 
 ######################################################################
 # This is the invokation to generate dependencies
 DEPENDMAKER:=CC -MM  $(INCLUDEPATH)
