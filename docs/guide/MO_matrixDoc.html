@@ -1,14 +1,16 @@
 /*! \page MO_matrixDoc Molecular Orbital calculator
 
-Keywords: CUTOFF_MO, STANDARD_MO, BLAS_MO, BASFUNC_MO, CBASFUNC_MO and MO_1D
+Keywords: CUTOFF_MO, CCUTOFF_MO, STANDARD_MO, BLAS_MO, BASFUNC_MO,
+CBASFUNC_MO and MO_1D
 
 \section description Description
 
-There are several plugins that both calculate molecular orbitals.  The main 
-one, which should usually be used, is the cutoff MO, which takes advantage
+There are several plugins that calculate molecular orbitals.  The main 
+one, which should usually be used, is the CUTOFF_MO, which takes advantage
 of short-range basis functions and symmetry in the wave function to 
 drastically reduce the computation time, at least by a factor of N, in 
-some cases a factor of N<sup>2</sup>.  The STANDARD_MO calculates exactly
+some cases a factor of N<sup>2</sup>. Its implementation for
+complex-valued orbitals is CCUTOFF_MO. The STANDARD_MO calculates exactly
 the wave function given in the input, which is useful for sanity checking
 and wave functions like plane waves, where almost no coefficients are zero
 and the basis range is infinite.  BLAS_MO is only usable if you compile
@@ -44,10 +46,12 @@ to perform calculations published in Vagner et al.
 <tr> <td> ORBFILE  <td> String <td> A file containing the
 orbitals. Its format is as follows
 <ul>
-<li> CUTOFF_MO, STANDARD_MO and BLAS_MO: <br>
+<li> CUTOFF_MO, CCUTOFF_MO, STANDARD_MO and BLAS_MO: <br>
 &nbsp;&nbsp;&nbsp;MO#&nbsp;&nbsp;&nbsp;AO#(for center)&nbsp;&nbsp;&nbsp;Center#&nbsp;&nbsp;&nbsp;Coeff# <br>
 for all the MO's, then the keyword COEFFICIENTS, and a sequential
-listing of all the values of the coefficients.<br><br>
+listing of all the values of the coefficients. These coefficients are
+real numbers except for CCUTOFF_MO, in which case they are complex and
+given in the form (float,float) .<br><br>
 <li> BASFUNC_MO, CBASFUNC_MO: <br>
 &nbsp;&nbsp;&nbsp;basis#(for center)&nbsp;&nbsp;&nbsp; Center#<br>
 No coefficients are given as only links between basis functions and
@@ -65,7 +69,7 @@ molecular orbitals are performed in these orbital calculators.
 <table>
 <tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b> Default </b> 
      <td> <b>Description</b>
-<tr> <td> CENTERS  <td> Section <td> CENTERS { USEATOMS } <td> input
+<tr> <td> CENTERS  <td> Section <td> CENTERS {&nbsp;USEATOMS&nbsp;} <td> input
      for a \ref CenterDoc
 <tr> <td> MAGNIFY <td> Float <td> 1.0 <td> An overall factor, by which
      each of the orbitals is multiplied. Values <>1.0 can supress

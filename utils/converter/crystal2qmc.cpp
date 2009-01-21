@@ -40,7 +40,7 @@ void get_crystal_atoms(istream & infile,
 void get_crystal_basis(istream & infile,
                        vector <Gaussian_basis_set> & basis);
 
-
+// for orbitals with real coefficients
 void read_crystal_orbital(istream & is,
                           string & fort10file,
                           vector <Atom> & atoms,
@@ -48,7 +48,18 @@ void read_crystal_orbital(istream & is,
                           vector <Gaussian_basis_set> & basis,
 			  vector <double> & origin,
                           vector < vector <double> >& latvec,
-                          vector < vector < double> > & moCoeff,
+			  vector < vector < double > > & moCoeff,
+			  vector <double> & shift //amount to shift the atoms
+			  );
+
+// for orbitals with complex coefficients
+void read_crystal_orbital(istream & is,
+			  vector <Atom> & atoms,
+                          Slat_wf_writer & slwriter,
+                          vector <Gaussian_basis_set> & basis,
+			  vector <double> & origin,
+                          vector < vector <double> >& latvec,
+			  vector < vector < dcomplex > > & moCoeff,
 			  vector <double> & shift //amount to shift the atoms
 			  );
 
@@ -56,6 +67,7 @@ void read_crystal_orbital(istream & is,
 void usage(const char * name) {
   cout << "usage: " << name <<   " <options> <crystal output> " << endl;
   cout << "Where options can be: \n\n";
+  cout << "-c          Work with complex orbitals. Only real are searched by default.\n\n";
   cout << "-fort10file Formatted fortran unit 10 from read10 utility.\n";
   cout << "            try to match the vectors in fort.10 to the ones in the output.\n";
   cout << "            It may or may not work correctly..\n\n";
@@ -66,6 +78,7 @@ void usage(const char * name) {
 int main(int argc, char ** argv) {
 
   bool had_error=false;
+  bool cmplx=false;
   string infilename;
   string outputname, fort10file;
   vector <double> shift(3);
@@ -100,6 +113,9 @@ int main(int argc, char ** argv) {
        for(vector<double>::iterator i=shift.begin();
            i!= shift.end(); i++) *i=0.0;
     }
+   else if(!strcmp(argv[i], "-c")) { 
+     cmplx=true;
+   }
 
     else {
       cout << "Didn't understand option " << argv[i]
@@ -119,6 +135,12 @@ int main(int argc, char ** argv) {
 
   if(had_error) usage(argv[0]);
 
+  if ( cmplx && ( fort10file != "" ) ) {
+    cout << "-fort10file is not supported for complex orbitals (-c)." << endl;
+    exit(1);
+  }
+      
+
   ///////////////////////////////////////////////////////////////
 
   vector <Atom> atoms;
@@ -128,7 +150,12 @@ int main(int argc, char ** argv) {
   Slat_wf_writer slwriter;
   slwriter.use_global_centers=true;
   slwriter.write_centers=false;
-  slwriter.mo_matrix_type="CUTOFF_MO";
+  if ( cmplx ) {
+    slwriter.mo_matrix_type="CCUTOFF_MO";
+    slwriter.orbtype="CORBITALS";
+  } else {
+    slwriter.mo_matrix_type="CUTOFF_MO";
+  }
 
   vector < vector < double > > latvec;
 
@@ -297,11 +324,16 @@ int main(int argc, char ** argv) {
   for(int i=0; i< 3; i++) origin[i]=0;
 
   vector < vector < double > > moCoeff;
+  vector < vector < dcomplex > > CmoCoeff;
   infile.clear();
   infile.open(infilename.c_str());
-  read_crystal_orbital(infile, fort10file,
-		       atoms, slwriter, basis,origin,latvec, moCoeff,
-		       shift);
+  if ( cmplx ) {
+    read_crystal_orbital(infile, atoms, slwriter, basis,
+			 origin, latvec, CmoCoeff, shift);
+  } else {
+    read_crystal_orbital(infile, fort10file, atoms, slwriter, basis,
+			 origin, latvec, moCoeff, shift);
+  }
 
   infile.close();
   natoms=atoms.size();
@@ -329,7 +361,11 @@ int main(int argc, char ** argv) {
     nbasis_list[at]=basis[atoms[at].basis].nfunc();
   }
   ofstream orbout(orboutname.c_str());
-  print_orbitals(orbout, centers, nbasis_list, moCoeff);
+  if ( cmplx ) {
+    print_orbitals(orbout, centers, nbasis_list, CmoCoeff);
+  } else {
+    print_orbitals(orbout, centers, nbasis_list, moCoeff);
+  }
   orbout.close();
 
 
@@ -423,6 +459,17 @@ int main(int argc, char ** argv) {
   sysout.close();
 
   double eref=0;
+
+  if ( cmplx ) {
+    cout << endl;
+    cout << "NOTE:" << endl;
+    cout << "It is likely that the value of MAGNIFY in " << outputname
+	 << ".slater needs to be" << endl;
+    cout << "enlarged. The TEST method can be used to check what"
+	 << " magnification factor" << endl;
+    cout << "is required in order to make Slater determinant well "
+	 << "defined." << endl;
+  } 
 
   /*
   string hfoutname=outputname+".hf";
@@ -913,204 +960,63 @@ int readMO(istream & is, long int start, vector < vector <double> > & moCoeff) {
   return totmo;
 }
 
-//Reads in all the molecular orbitals that were outputed by Crystal
-void read_crystal_orbital(istream & is,
-                          string & fort10file,
-                          vector <Atom> & atoms,
-                          Slat_wf_writer & slwriter,
-                          vector <Gaussian_basis_set> & basis,
-			  vector <double> & origin,
-                          vector < vector <double> > & latvec,
-                          vector < vector < double> > & moCoeff,
-			  vector <double> & shift) {
-
-  assert(atoms.size() > 0);
-  assert(basis.size() >0 );
-  string dummy;
-  string calctype=slwriter.calctype;
-  //vector <int> nbasis;
-  vector <double > emptyVector; //to push onto moCoeff to add a mo.
-
-  //Find out how many functions should be there.
-  int natoms=atoms.size();
-  int totfunctions=0;
-  for(int at=0; at < natoms; at++ ) {
-    int bas=atoms[at].basis;
-    int nfunc=basis[bas].nfunc();
-    totfunctions+=nfunc;
-  }
-  //cout << "Should be " << totfunctions << " functions " << endl;
-
-  string space=" ";
-  int totmo=0;
-  vector <long int> eigen_start;
-  vector <string> kpoints;
-  while(is >> dummy) {
-    //cout << "dummy " << dummy << endl;
-    if(dummy == "FINAL") {
-      is >> dummy;
-      if(dummy == "EIGENVECTORS" ) {
-        is.ignore(125, '\n'); //clear the line with FINAL EIG..
-        string line;
-        getline(is, line);
-        cout << "line " << line << endl;
-        while(getline( is,line)) {
-          if(line.size() > 15 && line[5]=='(' && line[15]==')') {
-            //cout << line[5] << "  " << line[15] << endl;
-            is.ignore(150, '\n');//two blank lines
-            is.ignore(150, '\n');
-            long int pos=is.tellg();
-            string line2;
-            getline(is, line2);
-            vector <string> words;
-            split(line2, space, words);
-            if(words[0]!=words[1]) {
-              //cout << "real k-point line " << line << endl;
-              kpoints.push_back(line);
-              eigen_start.push_back(pos);
-            }
-          }
-        }
-      }
-    }
-  }
-
-  
-  int nkpts=eigen_start.size();
-  if(calctype=="UHF") {
-    assert(nkpts%2==0);
-    nkpts/=2;
-  }
-  cout << "Found " << nkpts << " k-points with real eigenvectors " << endl;
-  for(int i=0; i< nkpts; i++) {
-    cout << i << " : " << kpoints[i] <<  "   position " << eigen_start[i] 
-         << endl;
-  }
-  int kpt;
-  if(nkpts > 1) {
-    cout << "Please choose a point[0-" << nkpts-1 << "]:";
-    cout.flush();
-    
-    cin >> kpt;
-    while(kpt < 0 || kpt >= nkpts) {
-      cout << "\nout of range..please re-enter:";
-      cout.flush();
-      if(!(cin >> kpt)) { 
-        cout << "\nError reading from STDIN" << endl; 
-        exit(1);
-      }
-    }
-    cout << endl;
-  }
-  else kpt=0;
-
-
-
+// version for complex orbitals
+int readMO(istream & is, long int start,
+	   vector < vector <dcomplex> > & moCoeff) {
   is.clear();
-  totmo=readMO(is, eigen_start[kpt], moCoeff);
-  if(calctype=="UHF") {
-    slwriter.spin_dwn_start=moCoeff.size();
-    totmo=readMO(is, eigen_start[kpt+nkpts], moCoeff);
+  string line;
+  is.seekg(start);
+  cout << "position " << is.tellg() << endl;
+  int totmo=moCoeff.size();
+  string space=" ";
+  vector <dcomplex> emptyVector;
+  while(getline(is, line) ) {
+    if(line.size() > 15 && line[5]=='(' && line[15]==')') break;
+    //check for various words that crystal can end with
+    if(line[1]=='E' || line[3] == 'T' || line[6]=='B') break;
+    vector <string> words;
+    //cout << "start line " << line << endl;
+    split(line, space, words);
+    int nmo_this=words.size()/2;
+    for(int i=0; i< nmo_this; i++)
+      moCoeff.push_back(emptyVector);
+    //cout << "nmo_this " << nmo_this << endl;
+    //is.ignore(150, '\n'); //empty line
+    getline(is, line);  //sometimes crystal outputs a newline, and sometimes not
+    if(line.size() < 15) getline(is, line);
+    while(line.size() > 15 && line[1] !='E') {
+      words.clear();
+      split(line, space, words);
+      //cout << "line " << line << " size " << words.size() << endl;
+      if(words[0]=="BETA") break;
+      assert(words.size() == 2*nmo_this+1);
+      for(int i=0; i< nmo_this; i++) {
+        moCoeff[totmo+i].push_back(
+	 dcomplex( atof(words[2*i+1].c_str()), atof(words[2*i+2].c_str()) )
+	);
+	//cout << "imag. part " << atof(words[2*i+2].c_str()) << endl;
+      }
+      getline(is, line);
+    }
+    totmo+=nmo_this;
   }
-  cout << "nmo's " << moCoeff.size() << endl;
+  return totmo;
+}
 
-  slwriter.kpoint.resize(3);
-  vector<string> kwords;
-  kpoints[kpt].erase(kpoints[kpt].find(')'));
-  split(kpoints[kpt], space, kwords);
-  assert(kwords.size()>=5);
-  int max=0;
-  for(int i=0; i< 3; i++) {
-    slwriter.kpoint[i]=atoi(kwords[i+2].c_str());
-    if(slwriter.kpoint[i] > max) max=slwriter.kpoint[i];
-  }
-  for(int i=0; i< 3; i++) 
-    if(abs(max) > 1e-5) slwriter.kpoint[i]/=max;
-    
-      
-  cout << "chosen k-point " << slwriter.kpoint[0] <<"   " 
-      << slwriter.kpoint[1] << "   " << slwriter.kpoint[2] << endl;
+// ---------------------------------------------------------------------------
+
+void fort10input(istream & is,
+		 string & fort10file,
+		 vector <Atom> & atoms,
+		 Slat_wf_writer & slwriter,
+		 vector <Gaussian_basis_set> & basis,
+		 vector <double> & origin,
+		 vector < vector <double> > & latvec,
+		 vector < vector <double> > & moCoeff,
+		 vector <double> & shift) {
   
-  //----------------temporary--doubling in the x direction
+  string calctype=slwriter.calctype;
 
-  /*
-    
-  int function=totfunctions;
-  moCoeff.clear();
-  vector < vector < double> > gammacoeff;
-  vector < vector < double> > xcoeff;
-  readMO(is, eigen_start[0], moCoeff);
-  readMO(is, eigen_start[1], xcoeff);
-  moCoeff.insert(moCoeff.begin()+slwriter.nup, xcoeff.begin(), xcoeff.end());
-  for(int at=0; at < natoms; at++ ) {
-    int bas=atoms[at].basis;
-    int nfunc=basis[bas].nfunc();
-    double x=latvec[0][0];
-    Atom temp_atom=atoms[at];
-    temp_atom.pos[0]+=x;
-    atoms.push_back(temp_atom);
-  } 
-  natoms*=2;
-  for(int mo=0; mo < slwriter.nup; mo++) {
-    for(int f=0; f < totfunctions; f++) {
-      moCoeff[mo].push_back(moCoeff[mo][f]);
-    }
-  }
-  //x kpoint mo's
-  for(int mo=slwriter.nup; mo< slwriter.nup+totmo; mo++) {
-    for(int f=0; f< totfunctions; f++) {
-      moCoeff[mo].push_back(moCoeff[mo][f]);
-    }
-  }
-  for(int mo=slwriter.nup+totmo; mo < 2*totmo; mo++) {
-    for(int f=0; f < totfunctions; f++) {
-      moCoeff[mo].push_back(moCoeff[mo][f]);
-    }
-  }
-  int xstart=slwriter.nup;
-  totmo=2*totmo;
-  totfunctions*=2;
-  latvec[0][0]*=2;
-  slwriter.nup*=2;
-  slwriter.ndown*=2;
- 
- // attempt at correction
-  
-  int f=0; 
-  double x=latvec[0][0];   
-  for(int at=0; at< natoms; at++) {
-   int bas=atoms[at].basis;
-   int nfunc=basis[bas].nfunc();
-   if( atoms[at].pos[0] > 5.5 && atoms[at].pos[0] < 17.0 ) {
-     cout << "adjusting atom " << at << "  pos " << atoms[at].pos[0] << endl;
-     for(int i=0; i< nfunc; i++) {
-       for(int mo=xstart; mo < slwriter.nup; mo++) {
-         moCoeff[mo][f]*=-1;
-       }
-      f++; 
-     }
-   }
-   else f+=nfunc;
-  }       
-   assert(f==totfunctions);         
-  */
-  //-------------------------------------------
-    
-  //cout << "Found " << moCoeff.size() << " MO's. and "
-  //<< moCoeff[0].size() << " functions " << endl;
-  if(totfunctions != (int) moCoeff[0].size()) {
-    cout << "The number of basis functions doesn't match between what was"
-         << "read(" << moCoeff[0].size() << ") and calculated("
-         << totfunctions << ")" << endl;
-    exit(1);
-  }
-  if(totmo!=moCoeff.size()) {
-    cout << "in make_orb, totmo is " << totmo
-    << " and moCoeff.size() is " << moCoeff.size()
-    << ".  They should be equal." << endl;
-  }
-
-  //--------------------------------------------------
   //reading from the output of the readcrys10.f program to get better CO's.
   if(fort10file != "") {
     cout << "Reading from the fort10 formatted file " << endl;
@@ -1127,7 +1033,6 @@ void read_crystal_orbital(istream & is,
       cout << "fort10file doesn't work for UHF yet.." << endl;
       exit(1);
     }
-
 
     string dummy;
     int monum;
@@ -1204,10 +1109,22 @@ void read_crystal_orbital(istream & is,
     }
     cout << "Matched " << nmatch << " orbitals " << endl;
   }
+}
 
-  
-  //--------------------------------------------------
+//-----------------------------------------------------------------------------
 
+void MO_analysis(istream & is,
+		 string & fort10file,
+		 vector <Atom> & atoms,
+		 Slat_wf_writer & slwriter,
+		 vector <Gaussian_basis_set> & basis,
+		 vector <double> & origin,
+		 vector < vector <double> > & latvec,
+		 vector < vector <double> > & moCoeff,
+		 vector <double> & shift, 
+		 int totmo) {
+
+  int natoms=atoms.size();
   ofstream an_out("mo_analysis");
 
   const double print_thresh=1e-3;
@@ -1282,6 +1199,239 @@ void read_crystal_orbital(istream & is,
   
   an_out.close();
 
+}
+
+void MO_analysis(istream & is,
+		 vector <Atom> & atoms,
+		 Slat_wf_writer & slwriter,
+		 vector <Gaussian_basis_set> & basis,
+		 vector <double> & origin,
+		 vector < vector <double> > & latvec,
+		 vector < vector <dcomplex> > & moCoeff,
+		 vector <double> & shift, 
+		 int totmo) {
+
+  int natoms=atoms.size();
+  ofstream an_out("mo_analysis");
+
+  const double print_thresh=1e-3;
+  //const double pi=3.1415926535897932385;
+  const double pi=3.1415926535;
+  double snorm=1./sqrt(4.*pi);
+  double pnorm=sqrt(3.)*snorm;
+  vector <double> dnorm;
+  dnorm.push_back(.5*sqrt(5./(4*pi)));
+  dnorm.push_back(sqrt(15./(4*pi)));
+  dnorm.push_back(sqrt(15./(4*pi)));
+  dnorm.push_back(.5*sqrt(15./(4.*pi)));
+  dnorm.push_back(sqrt(15./(4*pi)));
+
+  vector <string> dnames(5);
+  dnames[0]="z2r2";
+  dnames[1]="xz  ";
+  dnames[2]="yz  ";
+  dnames[3]="x2y2";
+  dnames[4]="xy  ";
+  vector <string> pnames(3);
+  pnames[0]="x   ";
+  pnames[1]="y   ";
+  pnames[2]="z   ";
+
+  for(int mo=0; mo < totmo; mo++) {
+    int func=0;
+    an_out << "\n----------------\n";
+    an_out << "MO " << mo << endl;
+    for(int at=0; at < natoms; at++) {
+      int bas=atoms[at].basis;
+      int nbasis=basis[bas].types.size();
+      for(int i=0; i< nbasis; i++) {
+        if(basis[bas].types[i] == "S") {
+          moCoeff[mo][func]*=snorm;
+          if(abs(moCoeff[mo][func]) > print_thresh) {
+            an_out << atoms[at].name<< at  << "  S     " << moCoeff[mo][func]
+            << endl;
+          }
+          func++;
+        }
+        else if(basis[bas].types[i] == "P") {
+          for(int j=0; j< 3; j++) {
+            moCoeff[mo][func]*=pnorm;
+            if(abs(moCoeff[mo][func]) > print_thresh) {
+              an_out << atoms[at].name << at << "  "  << "P" 
+		     << pnames[j] << " " << moCoeff[mo][func]
+		     << endl;
+            }
+            func++;
+          }
+        }
+        else if(basis[bas].types[i] == "5D") {
+          for(int j=0; j< 5; j++) {
+            moCoeff[mo][func]*=dnorm[j];
+            if(abs(moCoeff[mo][func]) > print_thresh) {
+              an_out << atoms[at].name << at << "  "   << "D" 
+		     << dnames[j] << " " <<  moCoeff[mo][func]
+		     << endl;
+            }
+            func++;
+          }
+        }
+        else {
+          cout << "Error: unknown basis type in read_crystal_orbital"
+               << endl;
+          exit(1);
+        }
+      }
+    }
+  }
+  
+  an_out.close();
+
+}
+
+
+// ----------------------------------------------------------------------------
+
+//Reads in all the molecular orbitals that were outputed by Crystal
+void read_crystal_orbital(istream & is,
+                          string & fort10file,
+                          vector <Atom> & atoms,
+                          Slat_wf_writer & slwriter,
+                          vector <Gaussian_basis_set> & basis,
+			  vector <double> & origin,
+                          vector < vector <double> > & latvec,
+                          vector < vector <double> > & moCoeff,
+			  vector <double> & shift) {
+
+  assert(atoms.size() > 0);
+  assert(basis.size() > 0);
+  string dummy;
+  string calctype=slwriter.calctype;
+  //vector <int> nbasis;
+  //vector <double > emptyVector; //to push onto moCoeff to add a mo.
+
+  //Find out how many functions should be there.
+  int natoms=atoms.size();
+  int totfunctions=0;
+  for(int at=0; at < natoms; at++ ) {
+    int bas=atoms[at].basis;
+    int nfunc=basis[bas].nfunc();
+    totfunctions+=nfunc;
+  }
+  //cout << "Should be " << totfunctions << " functions " << endl;
+
+  string space=" ";
+  int totmo=0;
+  vector <long int> eigen_start;
+  vector <string> kpoints;
+  while(is >> dummy) {
+    //cout << "dummy " << dummy << endl;
+    if(dummy == "FINAL") {
+      is >> dummy;
+      if(dummy == "EIGENVECTORS" ) {
+        is.ignore(125, '\n'); //clear the line with FINAL EIG..
+        string line;
+        getline(is, line);
+        cout << "line " << line << endl;
+        while(getline( is,line)) {
+          if(line.size() > 15 && line[5]=='(' && line[15]==')') {
+            //cout << line[5] << "  " << line[15] << endl;
+            is.ignore(150, '\n');//two blank lines
+            is.ignore(150, '\n');
+            long int pos=is.tellg();
+            string line2;
+            getline(is, line2);
+            vector <string> words;
+            split(line2, space, words);
+            if(words[0]!=words[1]) {
+              //cout << "real k-point line " << line << endl;
+              kpoints.push_back(line);
+              eigen_start.push_back(pos);
+            }
+          }
+        }
+      }
+    }
+   }
+
+  
+  int nkpts=eigen_start.size();
+  if(calctype=="UHF") {
+    assert(nkpts%2==0);
+    nkpts/=2;
+  }
+  cout << "Found " << nkpts << " k-points with real eigenvectors " << endl;
+  for(int i=0; i< nkpts; i++) {
+    cout << i << " : " << kpoints[i] <<  "   position " << eigen_start[i] 
+         << endl;
+  }
+  int kpt;
+  if(nkpts > 1) {
+    cout << "Please choose a point[0-" << nkpts-1 << "]:";
+    cout.flush();
+    
+    cin >> kpt;
+    while(kpt < 0 || kpt >= nkpts) {
+      cout << "\nout of range..please re-enter:";
+      cout.flush();
+      if(!(cin >> kpt)) { 
+        cout << "\nError reading from STDIN" << endl; 
+        exit(1);
+      }
+    }
+    cout << endl;
+  }
+  else kpt=0;
+
+
+
+  is.clear();
+  totmo=readMO(is, eigen_start[kpt], moCoeff);
+  if(calctype=="UHF") {
+    slwriter.spin_dwn_start=moCoeff.size();
+    totmo=readMO(is, eigen_start[kpt+nkpts], moCoeff);
+  }
+  cout << "nmo's " << moCoeff.size() << endl;
+
+  slwriter.kpoint.resize(3);
+  vector<string> kwords;
+  kpoints[kpt].erase(kpoints[kpt].find(')'));
+  split(kpoints[kpt], space, kwords);
+  assert(kwords.size()>=5);
+  double max=0;
+  for(int i=0; i< 3; i++) {
+    slwriter.kpoint[i]=atoi(kwords[i+2].c_str());
+    if(slwriter.kpoint[i] > max) max=slwriter.kpoint[i];
+  }
+  for(int i=0; i< 3; i++) 
+    if(abs(max) > 1e-5) slwriter.kpoint[i]/=max;
+    
+      
+  cout << "chosen k-point " << slwriter.kpoint[0] <<"   " 
+      << slwriter.kpoint[1] << "   " << slwriter.kpoint[2] << endl;
+
+    
+  //cout << "Found " << moCoeff.size() << " MO's. and "
+  //<< moCoeff[0].size() << " functions " << endl;
+  if(totfunctions != (int) moCoeff[0].size()) {
+    cout << "The number of basis functions doesn't match between what was"
+         << "read(" << moCoeff[0].size() << ") and calculated("
+         << totfunctions << ")" << endl;
+    exit(1);
+  }
+  if(totmo!=moCoeff.size()) {
+    cout << "in make_orb, totmo is " << totmo
+    << " and moCoeff.size() is " << moCoeff.size()
+    << ".  They should be equal." << endl;
+  }
+
+
+  fort10input(is, fort10file, atoms, slwriter, basis, origin,
+	      latvec, moCoeff, shift);
+  
+  // analysis of band character and NORMALIZATION(!) of coefficients
+  MO_analysis(is, fort10file, atoms, slwriter, basis, origin,
+	      latvec, moCoeff, shift, totmo);
+
   
   //if our k-point isn't zero, we need to fix any shifts
   int f=0;
@@ -1336,5 +1486,273 @@ void read_crystal_orbital(istream & is,
  
 }
 
-//----------------------------------------------------------------------
 
+//Reads in all the molecular orbitals that were outputed by Crystal
+//version for complex coefficients
+void read_crystal_orbital(istream & is,
+                          vector <Atom> & atoms,
+                          Slat_wf_writer & slwriter,
+                          vector <Gaussian_basis_set> & basis,
+			  vector <double> & origin,
+                          vector < vector <double> > & latvec,
+                          vector < vector <dcomplex> > & moCoeff,
+			  vector <double> & shift) {
+
+  assert(atoms.size() > 0);
+  assert(basis.size() > 0);
+  string dummy;
+  string calctype=slwriter.calctype;
+  //vector <int> nbasis;
+
+  //Find out how many functions should be there.
+  int natoms=atoms.size();
+  int totfunctions=0;
+  for(int at=0; at < natoms; at++ ) {
+    int bas=atoms[at].basis;
+    int nfunc=basis[bas].nfunc();
+    totfunctions+=nfunc;
+  }
+  //cout << "Should be " << totfunctions << " functions " << endl;
+
+  string space=" ";
+  int totmo=0;
+  vector <long int> eigen_start;
+  vector <string> kpoints;
+  while(is >> dummy) {
+    //cout << "dummy " << dummy << endl;
+    if(dummy == "FINAL") {
+      is >> dummy;
+      if(dummy == "EIGENVECTORS" ) {
+        is.ignore(125, '\n'); //clear the line with FINAL EIG..
+        string line;
+        getline(is, line);
+        cout << "line " << line << endl;
+        while(getline( is,line)) {
+          if(line.size() > 15 && line[5]=='(' && line[15]==')') {
+            //cout << line[5] << "  " << line[15] << endl;
+            is.ignore(150, '\n');//two blank lines
+            is.ignore(150, '\n');
+            long int pos=is.tellg();
+            string line2;
+            getline(is, line2);
+            vector <string> words;
+            split(line2, space, words);
+            if(words[0]==words[1]) {
+              //cout << "complex  k-point line " << line << endl;
+              kpoints.push_back(line);
+              eigen_start.push_back(pos);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  
+  int nkpts=eigen_start.size();
+  if(calctype=="UHF") {
+    assert(nkpts%2==0);
+    nkpts/=2;
+  }
+  cout << "Found " << nkpts << " k-points with complex eigenvectors " << endl;
+  for(int i=0; i< nkpts; i++) {
+    cout << i << " : " << kpoints[i] <<  "   position " << eigen_start[i] 
+         << endl;
+  }
+  int kpt;
+  if(nkpts > 1) {
+    cout << "Please choose a point[0-" << nkpts-1 << "]:";
+    cout.flush();
+    
+    cin >> kpt;
+    while(kpt < 0 || kpt >= nkpts) {
+      cout << "\nout of range..please re-enter:";
+      cout.flush();
+      if(!(cin >> kpt)) { 
+        cout << "\nError reading from STDIN" << endl; 
+        exit(1);
+      }
+    }
+    cout << endl;
+  }
+  else kpt=0;
+
+  is.clear();
+  is.seekg(1);
+  string line;
+  int shrink_fact;
+  while ( getline(is,line) ) {
+    vector<string> words;
+    split(line, space, words);
+    if ( ( words.size()>3 )
+	 && ( words[0]=="SHRINK." )
+	 && ( words[1]=="FACT.(MONKH.)" ) ) {
+      shrink_fact=atoi(words[3].c_str());
+      break;
+    }
+  }
+  //cout << "shrinking factor " << shrink_fact << endl; 
+
+  is.clear();
+  totmo=readMO(is, eigen_start[kpt], moCoeff);
+  if(calctype=="UHF") {
+    slwriter.spin_dwn_start=moCoeff.size();
+    totmo=readMO(is, eigen_start[kpt+nkpts], moCoeff);
+  }
+  cout << "nmo's " << moCoeff.size() << endl;
+
+  slwriter.kpoint.resize(3);
+  vector<string> kwords;
+  kpoints[kpt].erase(kpoints[kpt].find(')'));
+  split(kpoints[kpt], space, kwords);
+  assert(kwords.size()>=5);
+  for(int i=0; i< 3; i++) {
+    slwriter.kpoint[i]=atoi(kwords[i+2].c_str());
+  }
+  for(int i=0; i< 3; i++) 
+    slwriter.kpoint[i]/=shrink_fact/2.0;
+    
+      
+  cout << "chosen k-point " << slwriter.kpoint[0] <<"   " 
+      << slwriter.kpoint[1] << "   " << slwriter.kpoint[2] << endl;
+
+    
+  //cout << "Found " << moCoeff.size() << " MO's. and "
+  //<< moCoeff[0].size() << " functions " << endl;
+  if(totfunctions != (int) moCoeff[0].size()) {
+    cout << "The number of basis functions doesn't match between what was"
+         << "read(" << moCoeff[0].size() << ") and calculated("
+         << totfunctions << ")" << endl;
+    exit(1);
+  }
+  if(totmo!=moCoeff.size()) {
+    cout << "in make_orb, totmo is " << totmo
+    << " and moCoeff.size() is " << moCoeff.size()
+    << ".  They should be equal." << endl;
+  }
+
+  // analysis of band character and NORMALIZATION(!) of coefficients
+  MO_analysis(is, atoms, slwriter, basis, origin,
+	      latvec, moCoeff, shift, totmo);
+
+  //if our k-point isn't zero, we need to fix any shifts
+  int f=0;
+  Shifter shiftobj;
+  shiftobj.origin=origin;
+  
+  //------------------------------------
+  //Shift the atoms away from the edges.  Should
+  //reduce the number of centers outside the cell most of the time.
+  
+  //vector <double> shift;
+  //double shift_amount=0;
+  //shift.push_back(shift_amount); shift.push_back(shift_amount); 
+  //shift.push_back(shift_amount);
+  if(latvec.size() > 0) { 
+    vector <double> atomshift;
+    for(int i=0; i< 3; i++) atomshift.push_back(0);
+    for(int i=0; i< 3; i++) {
+      for(int j=0; j< 3; j++) {
+	atomshift[j]+=shift[i]*latvec[i][j];
+      }
+    }
+    
+    for(int i=0; i < natoms; i++) {
+      atoms[i].pos=atoms[i].pos+atomshift;
+    }
+    //Now enforce the pbc's.. 
+    
+    for(unsigned int at=0; at< atoms.size(); at++) {
+      vector <int> nshift;
+      int bas=atoms[at].basis;
+      int nfunc=basis[bas].nfunc();
+      if(shiftobj.enforcepbc(atoms[at].pos, latvec, nshift)) {
+	//cout << "at " << at << "  shifted " << nshift[0] << "  " << nshift[1] 
+	//    << "   " << nshift[2] << endl;
+	dcomplex kdots=0;
+	for(int d=0; d< 3; d++) 
+	  kdots+=slwriter.kpoint[d]*nshift[d];
+	//kdots=cos(pi*kdots);
+	kdots=exp(pi*kdots*dcomplex(0.0,1.0));
+	//cout << "kdots " << kdots << endl;
+	for(int i=0; i< nfunc; i++) {
+	  for(int mo=0; mo < totmo; mo++) {
+	    moCoeff[mo][f]*=kdots;
+	  }
+	  f++;
+	}
+      }
+      else f+=nfunc;
+    }
+  }
+  
+ 
+}
+
+
+// ===========================================================================
+
+  //----------------temporary--doubling in the x direction
+
+  /*
+    
+  int function=totfunctions;
+  moCoeff.clear();
+  vector < vector < double> > gammacoeff;
+  vector < vector < double> > xcoeff;
+  readMO(is, eigen_start[0], moCoeff);
+  readMO(is, eigen_start[1], xcoeff);
+  moCoeff.insert(moCoeff.begin()+slwriter.nup, xcoeff.begin(), xcoeff.end());
+  for(int at=0; at < natoms; at++ ) {
+    int bas=atoms[at].basis;
+    int nfunc=basis[bas].nfunc();
+    double x=latvec[0][0];
+    Atom temp_atom=atoms[at];
+    temp_atom.pos[0]+=x;
+    atoms.push_back(temp_atom);
+  } 
+  natoms*=2;
+  for(int mo=0; mo < slwriter.nup; mo++) {
+    for(int f=0; f < totfunctions; f++) {
+      moCoeff[mo].push_back(moCoeff[mo][f]);
+    }
+  }
+  //x kpoint mo's
+  for(int mo=slwriter.nup; mo< slwriter.nup+totmo; mo++) {
+    for(int f=0; f< totfunctions; f++) {
+      moCoeff[mo].push_back(moCoeff[mo][f]);
+    }
+  }
+  for(int mo=slwriter.nup+totmo; mo < 2*totmo; mo++) {
+    for(int f=0; f < totfunctions; f++) {
+      moCoeff[mo].push_back(moCoeff[mo][f]);
+    }
+  }
+  int xstart=slwriter.nup;
+  totmo=2*totmo;
+  totfunctions*=2;
+  latvec[0][0]*=2;
+  slwriter.nup*=2;
+  slwriter.ndown*=2;
+ 
+ // attempt at correction
+  
+  int f=0; 
+  double x=latvec[0][0];   
+  for(int at=0; at< natoms; at++) {
+   int bas=atoms[at].basis;
+   int nfunc=basis[bas].nfunc();
+   if( atoms[at].pos[0] > 5.5 && atoms[at].pos[0] < 17.0 ) {
+     cout << "adjusting atom " << at << "  pos " << atoms[at].pos[0] << endl;
+     for(int i=0; i< nfunc; i++) {
+       for(int mo=xstart; mo < slwriter.nup; mo++) {
+         moCoeff[mo][f]*=-1;
+       }
+      f++; 
+     }
+   }
+   else f+=nfunc;
+  }       
+   assert(f==totfunctions);         
+  */
+  //-------------------------------------------

@@ -202,6 +202,7 @@ void Pseudopotential::calcNonlocWithFile(Wavefunction_data * wfdata,
             
             sample->setElectronPos(e, oldpos);
             doublevar base_sign=sample->overallSign();
+	    doublevar base_phase=sample->overallPhase();
             //Make sure to move the electron relative to the nearest neighbor
             //in a periodic calculation(so subtract the distance rather than
             //adding to the ionic position).  This actually only matters 
@@ -223,7 +224,8 @@ void Pseudopotential::calcNonlocWithFile(Wavefunction_data * wfdata,
               rDotR(i)+=newdist(d+2)*olddist(d+2);
             }
             rDotR(i)/=(newdist(0)*olddist(0));  
-            double new_sign=sample->overallSign();
+            doublevar new_sign=sample->overallSign();
+	    doublevar new_phase=sample->overallPhase();
             for(int j=0; j< staticval.GetDim(0); j++) {
               //fread(&staticval(j), sizeof(doublevar), 1, input);
               staticval(j)=input.next_value();
@@ -231,9 +233,15 @@ void Pseudopotential::calcNonlocWithFile(Wavefunction_data * wfdata,
             
             wf->getParmDepVal(wfdata, sample, e, staticval, val);
             for(int w=0; w< nwf; w++) {
-              integralpts(w,i)=val.sign(w)*oldWfVal.sign(w)*new_sign*base_sign
-                               *exp(val.amp(w,0)-oldWfVal.amp(w,0))
-                               *integralweight(at, i);
+              integralpts(w,i)=exp(val.amp(w,0)-oldWfVal.amp(w,0))
+		*integralweight(at, i);
+	      if ( val.is_complex==1 ) {
+		integralpts(w,i)*=cos(val.phase(w,0)+new_phase
+				      -oldWfVal.phase(w,0)-base_phase);
+	      } else {
+		integralpts(w,i)*=val.sign(w)*oldWfVal.sign(w)
+		  *base_sign*new_sign;
+	      }
             }
             //sample->setElectronPos(e, oldpos);
           }
@@ -492,6 +500,7 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
           for(int i=0; i< aip(at); i++) {
             sample->setElectronPos(e, oldpos);
             doublevar base_sign=sample->overallSign();
+	    doublevar base_phase=sample->overallPhase();
             //Make sure to move the electron relative to the nearest neighbor
             //in a periodic calculation(so subtract the distance rather than
             //adding to the ionic position).  This actually only matters 
@@ -505,20 +514,27 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
             sample->translateElectron(e, newpos);
             sample->updateEIDist();
             sample->getEIDist(e,at,newdist);
-
+	    
             rDotR(i)=0;
             for(int d=0; d < 3; d++)
               rDotR(i)+=newdist(d+2)*olddist(d+2);
-            double new_sign=sample->overallSign();
+            doublevar new_sign=sample->overallSign();
+	    doublevar new_phase=sample->overallPhase();
             
             rDotR(i)/=(newdist(0)*olddist(0));  //divide by the magnitudes
             wf->updateVal(wfdata, sample);
             wf->getVal(wfdata, e, val); 
             //cout << "signs " << base_sign << "  " << new_sign << endl;;
             for(int w=0; w< nwf; w++) {
-              integralpts(w,i)=val.sign(w)*oldWfVal.sign(w) *base_sign*new_sign
-                               *exp(val.amp(w,0)-oldWfVal.amp(w,0))
-                  *integralweight(at, i);
+              integralpts(w,i)=exp(val.amp(w,0)-oldWfVal.amp(w,0))
+		*integralweight(at, i);
+	      if ( val.is_complex==1 ) {
+		integralpts(w,i)*=cos(val.phase(w,0)+new_phase
+				      -oldWfVal.phase(w,0)-base_phase);
+	      } else {
+		integralpts(w,i)*=val.sign(w)*oldWfVal.sign(w)
+		  *base_sign*new_sign;
+	      }
             }
             
             for(int w=0; w< nwf; w++)  {
@@ -553,7 +569,8 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
               //------
             }
             sample->setElectronPos(e, oldpos);
-          }
+	    //wfStore.restoreUpdate(sample, wf, e);
+          } // for(int i=0; i< aip(at); i++) {
 
           //--------------------
 

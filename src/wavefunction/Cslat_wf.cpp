@@ -431,6 +431,9 @@ void Cslat_wf::getVal(Wavefunction_data * wfdata, int e,
       vals(f,0)=dcomplex(log(amp),0.0);
       if(fabs(funcval(0).imag()) > 1e-8) {
         phase(f)=atan(funcval(0).imag()/funcval(0).real());
+	// JK: atan alone has a period of only pi but phase has 2pi period,
+	// following should fix this
+	if ( funcval(0).real() < 0.0 ) phase(f)+=pi;
       }
       else {
         phase(f)=-.5*pi*(1-sign(funcval(0).real()));
@@ -588,6 +591,9 @@ void Cslat_wf::getLap(Wavefunction_data * wfdata,
         vals(f,0)=dcomplex(log(amp),0.0);
         if(fabs(funcval(0).imag()) > 1e-8) {
           phase(f)=atan(funcval(0).imag()/funcval(0).real());
+	  // JK: atan alone has a period of only pi but phase has 2pi period,
+	  // following should fix this
+	  if ( funcval(0).real() < 0.0 ) phase(f)+=pi;
         }
         else {
           phase(f)=-.5*pi*(1-sign(funcval(0).real()));

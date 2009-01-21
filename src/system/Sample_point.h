@@ -112,8 +112,14 @@ public:
    */
   virtual doublevar overallSign() {
     return 1.0;
-  }        
+  }
   
+  /*!
+    for general k-points (complex wave function) we need more than a sign
+  */
+  virtual doublevar overallPhase() {
+    return 0.0;
+  }
   
   /*!
     \brief

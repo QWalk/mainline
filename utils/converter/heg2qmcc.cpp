@@ -483,12 +483,7 @@ void write_sys(string oname, string twist, int* Ne, double L,
   sysout << " origin { 0.0 0.0 0.0 }" << endl;
   // all kpoint related information should be in the basis itself
   //  <-- this is probably NOT TRUE - phase change across boundary
-  sysout << "# with complex wf we do either VMC or fixed phase DMC, both of ";
-  sysout << endl;
-  sysout << "# of which are only about amplitude => don't mess with the phase";
-  sysout << endl;
-  sysout << "# kpoint { " << jKx << " " << jKy << " " << jKz << " }" << endl;
-  sysout << " kpoint { 0.0 0.0 0.0 }" << endl;
+  sysout << " kpoint { " << jKx << " " << jKy << " " << jKz << " }" << endl;
   sysout << " interaction { truncCoul }" << endl;
   sysout << "# interaction { coulomb } " << endl;
   sysout << "}" << endl;

@@ -55,6 +55,21 @@ class General_MO_matrix {
 //----------------------------------------------------------------------
 
 class Complex_MO_matrix : public General_MO_matrix {
+
+ protected:
+  // transferred from MO_matrix
+  Center_set centers;
+  Array1 <CBasis_function *> basis;
+  int nmo;
+  doublevar magnification_factor;
+  string orbfile;
+  int totbasis;
+  int maxbasis;
+  string oldsofile;
+  Array1 <doublevar> kpoint;
+  //!< the k-point of the orbitals in fractional units(1 0 0) is X, etc..
+  // -----
+
  public:
   /*!
     Build several sets of MO's to be evaluated in updateVal and updateLap.
@@ -66,33 +81,30 @@ class Complex_MO_matrix : public General_MO_matrix {
 
   /*!
     get the number of molecular orbitals
-   */
-  virtual int getNmo()=0;
+  */
+  int getNmo() { return nmo; }
   virtual int showinfo(ostream & os)=0;
   virtual int writeinput(string &, ostream &)=0;
   virtual void read(vector <string> & words, unsigned int & startpos, 
                     System * sys)=0;
-  virtual void updateVal(
-    Sample_point * sample,
-    int e,
-    //!< electron number
-    int listnum,
-    Array2 <dcomplex> & newvals
-    //!< The return: in form (MO)
-  )=0;
+  virtual void updateVal(Sample_point * sample,
+			 int e,
+			 //!< electron number
+			 int listnum,
+			 Array2 <dcomplex> & newvals
+			 //!< The return: in form (MO)
+			 )=0;
+  
+  virtual void updateLap(Sample_point * sample,
+			 int e,
+			 //!< electron number
+			 int listnum,
+			 //!< Choose the list that was built in buildLists
+			 Array2 <dcomplex> & newvals
+			 //!< The return: in form ([value gradient lap], MO)
+			 )=0;
 
-  virtual void updateLap(
-    Sample_point * sample,
-    int e,
-    //!< electron number
-    int listnum,
-    //!< Choose the list that was built in buildLists
-    Array2 <dcomplex> & newvals
-    //!< The return: in form ([value gradient lap], MO)
-  )=0;
-
-
-  virtual ~Complex_MO_matrix()  {  }
+  virtual ~Complex_MO_matrix() {  }
 
 };
 
@@ -226,13 +238,21 @@ public:
 int allocate(vector <string> & words, System * sys, MO_matrix *& moptr);
 int allocate(vector <string> & words, System * sys, 
              Complex_MO_matrix *& moptr);
+
 void rotate_orb(istream & orbin, ostream & orbout,
                 Array2 <doublevar> & rotation,
                 Array1 <int>  & moList, int nfunctions);
+void rotate_Corb(istream & orbin, ostream & orbout,
+		 Array2 <doublevar> & rotation,
+		 Array1 <int>  & moList, int nfunctions);
+
 
 int readorb(istream & input, Center_set & centers, 
             int nmo, int maxbasis, Array1 <doublevar> & kpoint, 
 	    Array3 <int > & coeffmat, Array1 <doublevar> & coeff);
+int readorb(istream & input, Center_set & centers, 
+            int nmo, int maxbasis, Array1 <doublevar> & kpoint, 
+	    Array3 <int > & coeffmat, Array1 <dcomplex> & coeff);
 
 #endif // MO_MATRIX_H_INCLUDED
 

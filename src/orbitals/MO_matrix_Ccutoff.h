@@ -1,6 +1,6 @@
 /*
  
-Copyright (C) 2007 Jindrich Kolorenc, Michal Bajdich
+Copyright (C) 2007 Lucas K. Wagner
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -18,12 +18,12 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  
 */
 
-#ifndef MO_MATRIX_CBASFUNC_H_INCLUDED
-#define MO_MATRIX_CBASFUNC_H_INCLUDED
+#ifndef MO_MATRIX_CCUTOFF_H_INCLUDED
+#define MO_MATRIX_CCUTOFF_H_INCLUDED
 
 #include "Array.h"
 #include "Qmc_std.h"
-#include "CBasis_function.h"
+#include "Basis_function.h"
 #include "Center_set.h"
 #include "MO_matrix.h"
 
@@ -31,49 +31,28 @@ class System;
 class Sample_point;
 //----------------------------------------------------------------------------
 
-/*!
-The reason for this exercise is to efficiently evaluate molecular orbitals,
-when a molecular orbital is directly a basis function. Good for homogeneous
-electron gas and related stuff (HEG_system). This MO evaluator is constructed
-as a retype of MO_matrix_basfunc, which in turn is a simplification of
-MO_matrix_standard.
-
-There are some extra declarations in MO_matrix_Cbasfunc compared to its real
-valued version MO_matrix_basfunc, since Complex_MO_matrix lacks some
-functionality of MO_matrix. Maybe it would have been better to enhance
-Complex_MO_matrix than to put it here. After all, we want to have more complex
-functionality in the future.
-*/
-
-//--------------------------------------------------------------------------
-
-class MO_matrix_Cbasfunc: public Complex_MO_matrix
+class MO_matrix_Ccutoff: public Complex_MO_matrix
 {
 protected:
   void init();
 private:
-  
+
   // transferred from MO_matrix
-   Array1 <CBasis_function *> basis;
+  Array1 <Basis_function *> basis;
   // -----
 
-  Array2 <int> basisMO;
-  //!< basisMO replaces moCoeff, links given MO to its basis function
-  Array1 <int> eq_centers;
-  Array1 < Array1 <int> > moLists;
-  /*!< \brief moLists(spin,.) lists MO's corresponding to the given spin,
-    the same thing as totoccupation in Slat_wf_data
-  */
-  Array1 <dcomplex>  kptfac;
-  /*!< \brief
-    phase factor multiplying basis functions associated with
-    a given center, N.B. equivalent centers differ by integer
-    multiple of a lattice vector
-  */
-  
+  Array2 <int> mofill;
+  Array2 <dcomplex> moCoeff2;
+  Array1 <int> nbasis;
+
   Array1 <doublevar> obj_cutoff; //!< cutoff for each basis object
-  Array1 <doublevar> cutoff;     //!< cutoff for individual basis functions
-    
+  Array1 <doublevar> cutoff;  //!< Cutoff for individual basis functions
+  Array1 <int> nfunctions; //!< number of functions in each basis
+
+  Array1 < Array2 <int> > basisfill_list;
+  Array1 < Array2 <dcomplex> > moCoeff_list;
+  Array1 < Array1 <int> > basismo_list;
+
 public:
 
   /*!
@@ -92,43 +71,65 @@ public:
   virtual void read(vector <string> & words, unsigned int & startpos, 
                     System * sys);
 
-  // finally, the two key functions of the class that actually evaluate the
-  // molecular orbitals (and their derivatives)
+  virtual void writeorb(ostream &, Array2 <doublevar> & rotation, Array1 <int> &);
+
+  /*!
+    get the number of molecular orbitals
+   */
+  int getNmo() {
+    return nmo;
+  }
+
+
+  virtual void getMoCoeff(Array2 <doublevar> & coeff) {
+    error("Complex cutoff_Mo doesn't support optimization yet");
+  }
+  
+  virtual void setMoCoeff(Array2 <doublevar> & coeff) {
+    error("Complex cutoff MO doesn't support optimization yet");
+  }
+
+  virtual int nMoCoeff() {
+    error("Need to implement MO_matrix_Ccutoff::nMoCoeff()");
+    return 0;
+  }
+
+
   virtual void updateVal(Sample_point * sample,
 			 int e,
 			 //!< electron number
 			 int listnum,
-			 //!< Choose the list that was built in buildLists
 			 Array2 <dcomplex> & newvals
 			 //!< The return: in form (MO)
 			 );
   
+  virtual void getBasisVal(Sample_point * sample,
+			   int e,
+			   Array1 <doublevar> & newvals
+			   ) {
+    error("Need to implement MO_matrix_Ccutoff::getBasisVal()");
+  }
+
   virtual void updateLap(Sample_point * sample,
 			 int e,
-			 //!< electron number
 			 int listnum,
-			 //!< Choose the list that was built in buildLists
 			 Array2 <dcomplex> & newvals
-			 //!< The return: in form ([value gradient lap], MO)
 			 );
 
   virtual void updateHessian(Sample_point * sample,
 			     int e,
-			     //!< electron number
 			     int listnum,
-			     //!< Choose the list that was built in buildLists
 			     Array2 <dcomplex>& newvals
 			     //!< in form ([value gradient, dxx,dyy,dzz,dxy,dxz,dyz], MO)
-			     ) {
-    error("CBASFUNC_MO: updateHessian not implemented/adopted.");
-  }
-
-  MO_matrix_Cbasfunc()
+			     );
+  
+  MO_matrix_Ccutoff()
   {}
 
 };
 
 
-#endif // MO_MATRIX_CBASFUNC_H_INCLUDED
+
+#endif // MO_MATRIX_CCUTOFF_H_INCLUDED
 
 //--------------------------------------------------------------------------

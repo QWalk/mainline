@@ -51,7 +51,7 @@ void Slat_wf_writer::print_wavefunction(ostream & inputfile ) {
     magnification=max(nelectrons/20.0, 1.0);
 
   inputfile << "  SLATER \n"
-            << "  ORBITALS {\n"
+            << "  " << orbtype << " {\n"
             << "  " << mo_matrix_type << endl
             << "    MAGNIFY " << magnification << endl
             << "    INCLUDE " << basisname << endl

@@ -24,6 +24,10 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <vector>
 #include <iostream>
 #include <cassert>
+#include <complex>
+
+typedef double doublevar;
+typedef std::complex <doublevar> dcomplex;
 
 //http://www.mindcracker.com/mindcracker/c_cafe/stl/PartingSTLStrings.asp
 void split
@@ -71,10 +75,16 @@ public:
   }
 };
 
+
 void print_orbitals(std::ostream & os,
                     std::vector <Center> & centers,
                     std::vector <int> & nbasis,
                     std::vector < std::vector < double > > & mo_coeff);
+
+void print_orbitals(std::ostream & os,
+                    std::vector <Center> & centers,
+                    std::vector <int> & nbasis,
+                    std::vector < std::vector < dcomplex > > & mo_coeff);
 
 
 
@@ -107,3 +117,6 @@ const double pi=3.1415926535897932385;
 #ifndef uint
 #define uint unsigned int
 #endif
+
+
+

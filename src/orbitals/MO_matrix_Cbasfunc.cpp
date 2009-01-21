@@ -315,7 +315,6 @@ void MO_matrix_Cbasfunc::updateVal(Sample_point * sample, int e,
 ) {
 
   Array1 <dcomplex> basisvals(totbasis);
-  int centermax=centers.size();
   centers.updateDistance(e, sample);
   CBasis_function * tempbasis;
   Array1 <doublevar> R(5);
@@ -380,7 +379,6 @@ void MO_matrix_Cbasfunc::updateLap(Sample_point * sample, int e,
   // 5 values (function, 3 gradient components, laplacian) instead
   // of just one
   Array2 <dcomplex> basisvals(totbasis,5);
-  int centermax=centers.size();
   centers.updateDistance(e, sample);
   CBasis_function * tempbasis;
   Array1 <doublevar> R(5);

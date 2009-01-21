@@ -36,7 +36,7 @@ class Periodic_sample : public Sample_point
 {
 public:
 
-  Periodic_sample() { overall_sign=1.0; } 
+  Periodic_sample() { overall_sign=1.0; overall_phase=0.0; } 
   ~Periodic_sample()
   {}
 
@@ -159,6 +159,7 @@ public:
   etc.  It's enough for the sampling method, and that's about it.
    */
   doublevar overallSign() { return overall_sign; }
+  doublevar overallPhase() { return overall_phase; }
 private:
 
   int nelectrons;
@@ -175,6 +176,9 @@ private:
   //the lower is currently wasted
   
   doublevar overall_sign;
+  doublevar overall_phase;
+  // false for complex-valued wavefunctions, i.e., for non-integer k-points
+  bool update_overall_sign;
 
   Periodic_system * parent;     //The System that created this object
 };

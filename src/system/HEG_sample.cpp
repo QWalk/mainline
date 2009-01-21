@@ -249,6 +249,14 @@ void HEG_sample::init(System * sys) {
     }
   }
   
+  // update_overall_sign is false for complex-valued wavefunctions,
+  // i.e., for non-integer k-points
+  update_overall_sign=true;
+  for (int d=0; d<3; d++) {
+    doublevar intpart;
+    modf(parent->kpt(d),&intpart);
+    if ( parent->kpt(d) != intpart ) update_overall_sign=false;
+  }
 
 }
 
@@ -320,7 +328,13 @@ void HEG_sample::translateElectron(const int e, const Array1 <doublevar> & trans
   doublevar kdotr=0;
   for(int d=0; d< 3; d++) 
     kdotr+=parent->kpt(d)*nshift(d);
-  overall_sign*=cos(pi*kdotr);
+  if ( update_overall_sign ) overall_sign*=cos(pi*kdotr);
+  // the sign of the phase here is critical for correct evaluation of
+  // density matrices
+  overall_phase-=pi*kdotr;
+  // I suppose the value of overall_phase averages around zero, no
+  // "modulo" operation should be needed
+  //overall_phase=overall_phase - 2*pi * (int) (overall_phase/pi/2);
   
   //if(fabs(kdotr) > 1e-8) 
   //  cout << "shift " << nshift(0) << "   " 

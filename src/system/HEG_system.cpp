@@ -445,7 +445,11 @@ int HEG_system::enforcePbc(Array1 <doublevar> & pos, Array1 <int> & nshifted) {
 	//cout << "toofar " << toofar << endl;
         for(int j=0; j< 3; j++) pos(j)-=latVec(i,j);
         shifted=1;
-        nshifted(i)+=1;
+	// JK: here was +1, which works fine for real k-points that
+	// correspond to standing waves. For general (complex) k-points the
+	// wavefunction is "directional", however.
+        nshifted(i)-=1;
+
         nshift++;
       }
       else {
