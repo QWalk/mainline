@@ -425,21 +425,18 @@ int main(int argc, char ** argv) {
 
   
   if(latvec.size() > 0) { 
-    double min_latsize=1e8;
     sysout << "LATTICEVEC { \n";
     for(int i=0; i< 3; i++) {
-      double length=0;
       for(int j=0; j< 3; j++) {
         sysout << latvec[i][j] << "   ";
-        length+=latvec[i][j]*latvec[i][j];
       }
       sysout << endl;
-      if(min_latsize > length) min_latsize=length;
     }
     sysout << " } " << endl;
     sysout << " origin { " << origin[0] << "   " 
 	   << origin[1] << "   " << origin[2] << "  } " << endl;
-    sysout << "  cutoff_divider " << sqrt(min_latsize)/cutoff_length << endl;
+    sysout << "  cutoff_divider " 
+	   << basis_cutoff*2.0/cutoff_length << endl;
     sysout << "  kpoint { " << slwriter.kpoint[0] 
 	   << "   " << slwriter.kpoint[1] 
 	   << "   " << slwriter.kpoint[2] << " } " << endl;

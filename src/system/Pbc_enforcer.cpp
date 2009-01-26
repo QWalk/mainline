@@ -201,6 +201,7 @@ double distance_edge(const Array1 <doublevar> & pos,
 
 
 #include "qmc_io.h"
+
 double find_centers(const Array1 <doublevar> & origin_,
                     const Array2 <doublevar> & latvec_,
                     const Array2 <doublevar> & atompos,
@@ -227,7 +228,7 @@ double find_centers(const Array1 <doublevar> & origin_,
   for(int i=0; i< 3; i++)
     origin(i)=origin_(i);
 
-  
+  // original (real) origin
   Array1 <doublevar> rorigin(3);
   rorigin=origin;
 
@@ -237,24 +238,26 @@ double find_centers(const Array1 <doublevar> & origin_,
   cross(latvec[1], latvec[2], cross12);
   cross(latvec[0], latvec[2], cross02);
 
-  
-  double height0=fabs(projection(latvec[0], cross12));
-  double height1=fabs(projection(latvec[1], cross02));
-  double height2=fabs(projection(latvec[2], cross01));
-  double cutoff=min(min(height0, height1), height2)/cutoff_divider;
+  Array1 <doublevar> height(3);
+  height(0)=fabs(projection(latvec[0], cross12));
+  height(1)=fabs(projection(latvec[1], cross02));
+  height(2)=fabs(projection(latvec[2], cross01));
+  double cutoff=min(min(height(0), height(1)), height(2))/cutoff_divider;
 
   double basis_cutoff=cutoff;
 
-  //cout << "heights " << height0 << "  " << height1 << "  " << height2 << endl;
+  //cout << "heights " << height(0) << "  " << height(1)
+  //     << "  " << height(2) << endl;
   single_write(cout, "cutoff ", cutoff, "\n");
 
+  // origin and "lattice vectors" cutoff_piped define a large cell whose
+  // sides are cutoff apart from the sides of the simulation cell
   Array1 <Array1 <double > > cutoff_piped(3);
   for(int i=0; i< 3; i++) {
     cutoff_piped(i).Resize(3);
-    double norm=sqrt(dot(latvec[i], latvec[i]));
     for(int j=0; j< 3; j++) {
-      origin[j]-=cutoff*latvec[i][j]/norm;
-      cutoff_piped(i)(j)=latvec[i][j]*(1+2*cutoff/norm);
+      origin[j]-=cutoff*latvec[i][j]/height(j);
+      cutoff_piped(i)(j)=latvec[i][j]*(1+2*cutoff/height(j));
     }
   }
 
@@ -263,14 +266,45 @@ double find_centers(const Array1 <doublevar> & origin_,
     for(int j=0; j< 3; j++)
       cutoff_piped2d(i,j)=cutoff_piped(i)(j);
 
-  const int nsearch=1;//number of adjacent cells to search
+  // center of mass of the simulation cell
+  Array1 < doublevar > cm(3);
+  cm=rorigin;
+  for (int i=0; i<3; i++) {
+    for (int j=0; j<3; j++) {
+      cm(i)+=0.5*latvec[j][i];
+    }
+  }
+  // radius of the sphere that contains ghost atoms is half of the longest
+  // body diagonal plus the cutoff
+  Array1 <doublevar> diag1(3), diag2(3);
+  diag1=0.0;
+  for (int i=0; i<3; i++) {
+    for (int j=0; j<3; j++) {
+      diag1[i]+=latvec[j][i];
+    }
+  }
+  doublevar radius=sqrt(dot(diag1,diag1));
+  for (int j=0; j<3; j++) {
+    diag2=diag1;
+    for (int i=0; i<3; i++) {
+      diag2[i]-=2*latvec[j][i];
+    }
+    doublevar rad2=sqrt(dot(diag2,diag2));
+    if ( rad2>radius ) radius=rad2;
+  }
+  radius=0.5*radius+cutoff;
+
+  // number of adjacent cells to search
+  // JK: was 1 but that is insufficient for long and thin simulation cells
+  // (observed for MnO's antiferromagnetic primitive cell)
+  const int nsearch=4;
   int natoms=atompos.GetDim(0);
 
   Array1 <doublevar> pos(3), temp(3);
   int total=0;
-  int ncorner=0;
-  int nedge=0;
-  int nside=0;
+  //int ncorner=0;
+  //int nedge=0;
+  //int nside=0;
 
   Pbc_enforcer pbc;
   pbc.init(cutoff_piped2d);
@@ -291,9 +325,16 @@ double find_centers(const Array1 <doublevar> & origin_,
                    +(latvec[2][i])*kk;
           }
        
-
-          int use=0;
-          if(pbc.isInside(pos) ) {
+	  // JK: this branching of distance evaluation according to corners,
+	  // edges and sides works only for nsearch=1 and strictly speaking
+	  // only for orthogonal simulation cells. I will comment it out.
+	  // The possible extra centers that will be selected by testing only
+	  // for the cutoff_piped and the sphere around center of mass should
+	  // not matter that much (speed-wise) in production runs utililizing
+	  // MO_Cutoff orbitals.
+	  /*
+	  int use=0;
+	  if(pbc.isInside(pos) ) {
             //if all three are non-zero, we're in a corner
             if(ii*jj*kk !=0) {
               Array1 <double> corner(3);
@@ -350,16 +391,16 @@ double find_centers(const Array1 <doublevar> & origin_,
               use=1;
             }
           }
-
-          if(use ) {
+	  */
+	  if ( pbc.isInside(pos) 
+	       && ( distance_vec(pos,cm) < radius ) ) {
             vector <doublevar> tpos;
             for(int i=0; i< 3; i++) tpos.push_back(pos(i));
             tmpcenterpos.push_back(tpos);
             tmpequiv_atom.push_back(at);
             vector <int> displ(3);
             displ[0]=ii; displ[1]=jj; displ[2]=kk;
-            cell_displacement.push_back(displ);
-            
+            cell_displacement.push_back(displ);         
             total++;
           }
         }
@@ -376,13 +417,14 @@ double find_centers(const Array1 <doublevar> & origin_,
     for(int j=0; j< 3; j++) {
       centerpos(i,j)=tmpcenterpos[i][j];
       center_displacements(i,j)=cell_displacement[i][j];
-      //cout << "pos " << centerpos(i,j) << " displacement " << cell_displacement[i][j] << endl;
+      //cout << "pos " << centerpos(i,j) << " displacement "
+      //   << cell_displacement[i][j] << endl;
     }
     equiv_atom(i)=tmpequiv_atom[i];
   }
-  debug_write(cout, "nedge ", nedge, " nside ", nside);
-  debug_write(cout, "  ncorner ", ncorner, "\n");
-  debug_write(cout, " total centers ", total, "\n");
+  //debug_write(cout, "nedge ", nedge, " nside ", nside);
+  //debug_write(cout, "  ncorner ", ncorner, "\n");
+  single_write(cout, " total centers ", total, "\n");
 
   return basis_cutoff;
 }
