@@ -267,10 +267,12 @@ private:
   MultiEinsplineOrb* MultiEinspline;
   MultiEinsplineOrbComplex* MultiEinsplineComplex;
 
-  vector <string> valfiles;
+  vector <string> bandfiles;
   Array1  <doublevar> kpoint;
   doublevar kpoint_square;
-  Array1 < Array1 < doublevar> > kpoint_for_each_spline;
+  Array1 < Array1 < doublevar> > kvectors_linear;
+  Array1 < Array1 < doublevar> > kvectors;
+  vector < vector < vector <string> > > bands_per_kvectors;
   Array1  <doublevar> origin;
   Array2  <doublevar> RecipLatVec;
   Array2  <doublevar> LatVec;

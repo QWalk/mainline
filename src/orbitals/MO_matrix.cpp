@@ -28,8 +28,10 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "MO_matrix_blas.h"
 #include "MO_matrix_basfunc.h"
 #include "MO_matrix_bspline.h"
+#include "MO_matrix_Cbspline.h"
 #include "MO_matrix_Cbasfunc.h"
 #include "MO_matrix_Ccutoff.h"
+
 
 int allocate(vector <string> & words, System * sys, MO_matrix *& moptr) {
   assert(moptr==NULL);
@@ -63,6 +65,8 @@ int allocate(vector <string> & words, System * sys,
     moptr=new MO_matrix_Cbasfunc;
   else if(words[0]=="CCUTOFF_MO")
     moptr=new MO_matrix_Ccutoff;
+  else if(words[0]=="CBSPLINE_MO")
+    moptr=new MO_matrix_Cbspline;
   else 
     error("Unknown complex MO: ", words[0]);
 

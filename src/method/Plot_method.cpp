@@ -94,16 +94,40 @@ void Plot_method::read(vector <string> words,
   }
 
   Array1 <Array1 <int> > orblist(1);
+  orblist_pernode.Resize(1);
+  int norbs_pernode;
+  norbs_pernode=int(orbs.GetDim(0)/mpi_info.nprocs);
+  if(norbs_pernode==0)
+    norbs_pernode=1;
+  
+
   orblist(0).Resize(orbs.GetDim(0));
+  int counter=0;
   for(int i=0; i< orbs.GetDim(0); i++) {
     //cout << "i " << i << endl;
     //cout << "orbs " << orbs(i) << endl;
     orblist(0)(i)=orbs(i)-1;
+    if((i>=norbs_pernode*mpi_info.node && i<norbs_pernode*(mpi_info.node+1)) || 
+       (i==norbs_pernode*mpi_info.nprocs+mpi_info.node)  )
+      counter++;
   }
+  orblist_pernode(0).Resize(counter);
+  counter=0;
+  for(int i=0; i< orbs.GetDim(0); i++) {
+    if((i>=norbs_pernode*mpi_info.node && i<norbs_pernode*(mpi_info.node+1)) ||
+       (i==norbs_pernode*mpi_info.nprocs+mpi_info.node)  )
+      orblist_pernode(0)(counter++)=orblist(0)(i);
+  }
+  cout <<" on node: "<<mpi_info.node<<" plotting these: ";
+  for(int i=0;i<orblist_pernode(0).GetSize();i++)
+    cout <<orblist_pernode(0)(i)+1<<" ";
+  cout<<endl;
+
+
   if(!use_complex)
-    mymomat->buildLists(orblist);
+    mymomat->buildLists(orblist_pernode);
   else
-    cmymomat->buildLists(orblist);
+    cmymomat->buildLists(orblist_pernode);
 
   mywalker=NULL;
   sysprop->generateSample(mywalker);
@@ -160,12 +184,15 @@ void Plot_method::run(Program_options & options, ostream & output) {
     for(int i=0;i<3;i++){
       doublevar lenght=0;
       for(int j=0;j<3;j++){
-	cout <<LatticeVec(i,j)<<" ";
+	if(mpi_info.node==0)
+	  cout <<LatticeVec(i,j)<<" ";
 	lenght+=LatticeVec(i,j)*LatticeVec(i,j);
       }
-      cout <<endl;
+      if(mpi_info.node==0)
+	cout <<endl;
       lenght=sqrt(lenght);
-      cout <<"lenght "<<lenght<<endl;
+      if(mpi_info.node==0)
+	cout <<"lenght "<<lenght<<endl;
       D_array1(i)= roundoff(lenght/resolution); 
       for(int j=0;j<3;j++){
 	resolution_array(i,j)=LatticeVec(i,j)/D_array1(i);
@@ -184,31 +211,52 @@ void Plot_method::run(Program_options & options, ostream & output) {
   
   Array3 <doublevar> grid;
   if(!use_complex)
-    grid.Resize(1,orbs.GetSize(),npts);
+    grid.Resize(1,orblist_pernode(0).GetSize(),npts);
   else
-    grid.Resize(2,orbs.GetSize(),npts);
+    grid.Resize(2,orblist_pernode(0).GetSize(),npts);
 
   Array1 <doublevar> density(npts);
+  
   //generate .xyz file for gOpenMol to view coordinates
-  pltfile=options.runid + ".xyz";
-  os.open(pltfile.c_str());
-  write_xyz(sysprop,os);
-  os.close();
+  if(mpi_info.node==0){
+    pltfile=options.runid + ".xyz";
+    os.open(pltfile.c_str());
+    write_xyz(sysprop,os);
+    os.close();
+  }
 
 
   //calculate value of each molecular orbital at each grid point and store in an Array1
   // grid values with x=fastest running variable, and z=slowest
-  cout<<"calculating "<<D_array1(0)*D_array1(1)*D_array1(2) <<" grid points"<<endl;
-  cout<<"for "<< orbs.GetDim(0) <<" molecular orbitals"<<endl;
+  double MBs;
+  if(!use_complex)
+    MBs=npts*8/(1024*1024);
+  else
+    MBs=2.0*npts*8/(1024*1024); 
+  if(mpi_info.node==0){
+    cout<<"calculating "<<D_array1(0)<<"x"<<D_array1(1)<<"x"<<D_array1(2)<<" = "<<npts<<" grid points\n";
+    if(!use_complex)
+      cout<<"for "<<orbs.GetDim(0)<<" real orbitals\n";
+    else
+      cout<<"for "<<orbs.GetDim(0)<<" complex orbitals\n";
+    cout<<"using "<<MBs<<" Mb per orbital in memory or "<<MBs*orbs.GetDim(0)<<" Mb in total memory\n";
+  }
+
   int count=0;
   xyz=0;
   for(int xx=0;xx<D_array1(0);xx++){
      doublevar maxatborder=0;
      if(!periodic){
        xyz(0)=minmax(0)+xx*resolution_array(0,0); //move forward on z axis one resolution unit
-       cout << "x " << xyz(0) << endl;
+       if(mpi_info.node==0){
+	 cout << "x " << xyz(0) << endl;
+	 flush(cout);
+       }
      }
-     cout << 100*xx/(D_array1(0)-1) <<" % of plot"<<endl;
+     if(mpi_info.node==0){
+       cout << 100*xx/(D_array1(0)-1) <<" % of plot"<<endl;
+       flush(cout);
+     }
      for(int yy=0; yy<D_array1(1);yy++){
        if(!periodic)
 	 xyz(1)=minmax(2)+yy*resolution_array(1,1);  
@@ -226,7 +274,7 @@ void Plot_method::run(Program_options & options, ostream & output) {
 	 else
 	   cmymomat->updateVal(mywalker,electron,0,cmymovals); //recalculate MO value for elec#1
          density(count)=0;
-         for(int i=0; i<orbs.GetSize(); i++) {
+         for(int i=0; i<orblist_pernode(0).GetSize(); i++) {
 	   if(!use_complex){
 	     grid(0,i,count)=mymovals(i,0);
 	     density(count)+=mymovals(i,0)*mymovals(i,0);
@@ -240,7 +288,7 @@ void Plot_method::run(Program_options & options, ostream & output) {
          }
 	 if(!periodic){
 	   if(zz==D_array1(2)-1 || yy==D_array1(1)-1 ||  xx==D_array1(1)-1){
-	     for(int i=0; i<orbs.GetSize(); i++) {
+	     for(int i=0; i<orblist_pernode(0).GetSize(); i++) {
 	       if(!use_complex){
 		 if(fabs(mymovals(i,0))>maxatborder )
 		   maxatborder=fabs(mymovals(i,0));
@@ -262,16 +310,16 @@ void Plot_method::run(Program_options & options, ostream & output) {
    }//xx
 
   //Loop through and generate plot files for each orbital requested
-  if(orbs.GetSize()<=0)
+  if(orblist_pernode(0).GetSize()<=0)
     error("number of orbitals requested is not a positive number");
   cout<<"saving data for "<<orbs.GetSize()<<" molecular orbitals"<<endl;
   
   
-  for(int i=0; i<orbs.GetSize(); i++) {
+  for(int i=0; i<orblist_pernode(0).GetSize(); i++) {
     //output to file with orbital number in it
     string basename,basename2;
     char strbuff[40];
-    sprintf(strbuff, "%d", orbs(i));
+    sprintf(strbuff, "%d", orblist_pernode(0)(i)+1);
     basename2 = options.runid;
     basename2 += ".orb";
     basename2 += strbuff;
@@ -286,6 +334,7 @@ void Plot_method::run(Program_options & options, ostream & output) {
       else{
 	basename=basename2;
       }
+      
       int dopltfile=0;
       int cubefile=1;
       //Note that the pltfile will be rotated, since it requires z,y,x, 
@@ -312,11 +361,12 @@ void Plot_method::run(Program_options & options, ostream & output) {
       }
       if(cubefile) {
 	string cubename=basename+".cube";
+	cout <<" node: "<<mpi_info.node<<" is storing orbital: "<<orblist_pernode(0)(i)+1<<" to file: "<<cubename<<endl;
 	os.open(cubename.c_str());
 	int natoms=sysprop->nIons();
 	if(!jeep_like_cube_file){
 	  os << "GOS plot output\n";
-	  os << "Molecular orbital " << orbs(i) << endl;	
+	  os << "Molecular orbital " << orblist_pernode(0)(i)+1 << endl;	
 	  os << "  " << natoms << "   " << minmax(0) << "   "
 	     << minmax(2) << "   " << minmax(4) << endl;
 	  for(int i=0;i<3;i++)
@@ -331,7 +381,7 @@ void Plot_method::run(Program_options & options, ostream & output) {
 	//optional output for mesh orbital
 	if(jeep_like_cube_file){
 	  os << "GOS plot output\n";
-	  os << "Molecular orbital " << orbs(i) << endl;
+	  os << "Molecular orbital " << orblist_pernode(0)(i)+1 << endl;
 	  for(int i=0;i<3;i++)
 	    os << D_array1(i) << "   " << resolution_array(i,0) <<"  "<<resolution_array(i,1)<<"  "<<resolution_array(i,2)<< endl;
 	  for(int k=0;k<3;k++) //need 3 empty lines to mimic jeep like file
@@ -367,32 +417,41 @@ void Plot_method::run(Program_options & options, ostream & output) {
     }//part
   }//orbital
 
-  
-  string cubename=options.runid+".dens.cube";
-  os.open(cubename.c_str());
-  os << "GOS plot output\n";
-  os << "Electron density" << endl;
-  int natoms=sysprop->nIons();
-  os << "  " << natoms << "   " << minmax(0) << "   "
-      << minmax(2) << "   " << minmax(4) << endl;
-  for(int i=0;i<3;i++)
-    os << D_array1(i) << "   " << resolution_array(i,0) <<"  "<<resolution_array(i,1)<<"  "<<resolution_array(i,2)<< endl;
-  Array1 <doublevar> pos(3);
-  for(int at=0; at< natoms; at++) {
-    mywalker->getIonPos(at,pos);
-    os << "   " << mywalker->getIonCharge(at) << "   0.0000    " << pos(0) 
-        <<"    " << pos(1) << "   " << pos(2) << endl;
+
+  //add density from each node
+  parallel_sum(density);
+  if(mpi_info.node==0){
+    string cubename=options.runid+".dens.cube";
+    os.open(cubename.c_str());
+    os << "GOS plot output\n";
+    os << "Electron density" << endl;
+    int natoms=sysprop->nIons();
+    os << "  " << natoms << "   " << minmax(0) << "   "
+       << minmax(2) << "   " << minmax(4) << endl;
+    for(int i=0;i<3;i++)
+      os << D_array1(i) << "   " << resolution_array(i,0) <<"  "<<resolution_array(i,1)<<"  "<<resolution_array(i,2)<< endl;
+    Array1 <doublevar> pos(3);
+    for(int at=0; at< natoms; at++) {
+      mywalker->getIonPos(at,pos);
+      os << "   " << mywalker->getIonCharge(at) << "   0.0000    " << pos(0) 
+	 <<"    " << pos(1) << "   " << pos(2) << endl;
+    }
+    
+    os.setf(ios::scientific);
+    for(int j=0; j< npts; j++) {
+      os <<setw(20)<<setprecision(10)<<density(j);
+      if(j%6 ==5) os << endl;
+    }
+    os << endl;
+    os.unsetf(ios::scientific);
+    os<<setprecision(6);
+    os.close();    
   }
- 
-  os.setf(ios::scientific);
-  for(int j=0; j< npts; j++) {
-    os <<setw(20)<<setprecision(10)<<density(j);
-    if(j%6 ==5) os << endl;
-  }
-  os << endl;
-  os.unsetf(ios::scientific);
-  os<<setprecision(6);
-  os.close();    
+
+#ifdef USE_MPI
+  MPI_Barrier(MPI_Comm_grp);
+#endif
+
 
 }
 

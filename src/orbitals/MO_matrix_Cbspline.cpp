@@ -21,15 +21,15 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 
 #include "Qmc_std.h"
-#include "MO_matrix_bspline.h"
+#include "MO_matrix_Cbspline.h"
 #include "Sample_point.h"
 #include "qmc_io.h"
 
 //--------------------------------------------------------------------------
 
-void MO_matrix_bspline::init() {
+void MO_matrix_Cbspline::init() {
 
-  single_write(cout, "Bspline MO\n");
+  single_write(cout, "CBspline MO\n");
   MultiEinsplineComplex=new MultiEinsplineOrbComplex;
   MultiEinspline=MultiEinsplineComplex;
   MultiEinspline->kpoint(kvectors_linear);
@@ -40,7 +40,7 @@ void MO_matrix_bspline::init() {
 //----------------------------------------------------------------------
 
 
-void MO_matrix_bspline::buildLists(Array1 < Array1 <int> > & occupations) {
+void MO_matrix_Cbspline::buildLists(Array1 < Array1 <int> > & occupations) {
   int numlists=occupations.GetDim(0);
   moLists.Resize(numlists);
   for(int lis=0; lis < numlists; lis++) {
@@ -59,7 +59,7 @@ void MO_matrix_bspline::buildLists(Array1 < Array1 <int> > & occupations) {
 
 //----------------------------------------------------------------------
 
-int MO_matrix_bspline::showinfo(ostream & os)
+int MO_matrix_Cbspline::showinfo(ostream & os)
 {
   os << "Bspline Molecular Orbital\n";
   string indent="  ";
@@ -80,7 +80,7 @@ int MO_matrix_bspline::showinfo(ostream & os)
   return 1;
 }
 
-int MO_matrix_bspline::writeinput(string & indent, ostream & os)
+int MO_matrix_Cbspline::writeinput(string & indent, ostream & os)
 {
   os << indent << "BSPLINE_MO" << endl;
   os << indent << "NMO " << nmo << endl;
@@ -95,13 +95,11 @@ int MO_matrix_bspline::writeinput(string & indent, ostream & os)
     //for(int d2=0;d2<3;d2++)
     //tmpkpoint(d1)+=PrimRecipLatVec(d1,d2)*kvectors(k)(d2);
     //os << indent2 << tmpkpoint(0) << "  "
-    //  << tmpkpoint(1) << "  "
-    //  << tmpkpoint(2)<<endl; 
-
+    // << tmpkpoint(1) << "  "
+    // << tmpkpoint(2)<<endl; 
     os << indent2 << kvectors(k)(0)/pi << "  "
        << kvectors(k)(1)/pi << "  "
        << kvectors(k)(2)/pi<<endl; 
-
     for(int b=0;b<bands_per_kvectors[k].size();b++){
       os << indent3 << "BAND {" <<endl;
       os << indent3 <<bands_per_kvectors[k][b][0]<<endl;
@@ -113,18 +111,15 @@ int MO_matrix_bspline::writeinput(string & indent, ostream & os)
   return 1;
 }
 
-void MO_matrix_bspline::read(vector <string> & words, unsigned int & startpos, System * sys){
+void MO_matrix_Cbspline::read(vector <string> & words, unsigned int & startpos, System * sys){
    unsigned int pos=startpos;
 
    if(!readvalue(words, pos, nmo, "NMO"))
      {
        error("Need NMO in molecular orbital section");
      }
-   if(nmo%2){
-     single_write(cout," need even number of molecular orbitals, adding one!  \n");
-     nmo++;
-   }
-   nsplines=int(nmo/2);
+
+   nsplines=nmo;
    
 
    if(nmo > 40000) 
@@ -220,7 +215,7 @@ void MO_matrix_bspline::read(vector <string> & words, unsigned int & startpos, S
 
        kvectors(k).Resize(3);
        
-       /* this when using 1/a.u. units for K vector (e.g. like Abinit)
+       /* this when using 1/a.u. units for K vector 
        Array1 <doublevar> tmp2_kpoints(3);
        tmp2_kpoints=0.0;
        for(int d1=0;d1<3;d1++)
@@ -233,6 +228,7 @@ void MO_matrix_bspline::read(vector <string> & words, unsigned int & startpos, S
 	 tmp_kpoints(d1)*=pi;
        }
        kvectors(k)=tmp_kpoints;
+       
               
        unsigned int newpos=2;
        vector <string> strband;
@@ -264,10 +260,10 @@ void MO_matrix_bspline::read(vector <string> & words, unsigned int & startpos, S
 
 //------------------------------------------------------------------------
 
-void MO_matrix_bspline::updateVal(Sample_point * sample, int e,
+void MO_matrix_Cbspline::updateVal(Sample_point * sample, int e,
                                    int listnum,
                                    //!< which list to use
-                                   Array2 <doublevar> & newvals
+                                   Array2 <dcomplex> & newvals
                                    //!< The return: in form (MO, val)
 ) {
   //cout <<"MO_matrix_bspline::updateVal"<<endl;
@@ -288,8 +284,7 @@ void MO_matrix_bspline::updateVal(Sample_point * sample, int e,
     //cout << Unit_pos_in_prim_latice(i)<<"  ";
   }
   //cout <<endl;
-  Array1 <doublevar> multi_val(nmo);
-  
+   
   Array1 <dcomplex> cval(nsplines);
   //evaluate spline
   MultiEinspline->evaluate_spline (Unit_pos_in_prim_latice, cval);
@@ -300,23 +295,21 @@ void MO_matrix_bspline::updateVal(Sample_point * sample, int e,
     //multiply by e(ipikr) to get original values 
     dcomplex eikr=exp(I*dot(pos_in_prim_latice,  kvectors_linear(m)));
     cval(m) *= eikr;
-    multi_val(2*m)=cval(m).real();
-    multi_val(2*m+1)=cval(m).imag();
   }
 
   for(int m=0; m < nmo_list; m++) {
     int mo=moLists(listnum)(m);
-    newvals(m,0)= magnification_factor*multi_val(mo);
+    newvals(m,0)= magnification_factor*cval(mo);
   }//m
 }
 
 //------------------------------------------------------------------------
 
 
-void MO_matrix_bspline::updateLap(Sample_point * sample, int e,
+void MO_matrix_Cbspline::updateLap(Sample_point * sample, int e,
 				  int listnum,
 				  //!< which list to use
-				  Array2 <doublevar> & newvals
+				  Array2 <dcomplex> & newvals
 				  //!< The return: in form (MO, [val, grad, lap])
 ) {
   //cout <<"MO_matrix_bspline::updateLap"<<endl;
@@ -341,14 +334,14 @@ void MO_matrix_bspline::updateLap(Sample_point * sample, int e,
     //cout << Unit_pos_in_prim_latice(i)<<"  ";
   }
   //cout <<endl;
-  Array1 <doublevar> multi_val(nmo),multi_lap(nmo);
-  Array1 < Array1 <doublevar> > multi_grad(nmo);
+  Array1 <dcomplex> multi_val(nmo),multi_lap(nmo);
+  Array1 < Array1 <dcomplex> > multi_grad(nmo);
   for(int m=0; m < nmo; m++){
     multi_grad(m).Resize(3);
-    multi_grad(m)=0;
+    multi_grad(m)=dcomplex(0.0,0.0);
   }
-  multi_val=0;
-  multi_lap=0;
+  multi_val=dcomplex(0.0,0.0);
+  multi_lap=dcomplex(0.0,0.0);
 
   Array1 <dcomplex> cval_spline(nsplines);
   Array1 < Array1 <dcomplex> > cgrad_spline(nsplines);
@@ -390,14 +383,11 @@ void MO_matrix_bspline::updateLap(Sample_point * sample, int e,
 	  clap+=PrimRecipLatVec(k,i)*PrimRecipLatVec(l,i)*chess(k,l);
 	}
       
-    multi_val(2*m)=cval.real();
-    multi_val(2*m+1)=cval.imag();
+    multi_val(m)=cval;
     for(int d=0;d<3;d++){
-      multi_grad(2*m)(d)=xgrad(d).real();
-      multi_grad(2*m+1)(d)=xgrad(d).imag();
+      multi_grad(m)(d)=xgrad(d);
     }
-    multi_lap(2*m)=clap.real();
-    multi_lap(2*m+1)=clap.imag();
+    multi_lap(m)=clap;
   }//m
  
   for(int m=0; m < nmo_list; m++) {
@@ -412,13 +402,13 @@ void MO_matrix_bspline::updateLap(Sample_point * sample, int e,
 //--------------------------------------------------------------------------
 
 
-void MO_matrix_bspline::updateHessian(
+void MO_matrix_Cbspline::updateHessian(
   Sample_point * sample,
   int e,
   int listnum,
   //const Array1 <int> & occupation,
   //!<A list of the MO's to evaluate
-  Array2 <doublevar> & newvals
+  Array2 <dcomplex> & newvals
   //!< The return: in form (MO, [val, grad, dxx,dyy,...])
 )
 {
@@ -444,16 +434,16 @@ void MO_matrix_bspline::updateHessian(
     //cout << Unit_pos_in_prim_latice(i)<<"  ";
   }
   //cout <<endl;
-  Array1 <doublevar> multi_val(nmo),multi_lap(nmo);
-  Array1 < Array1 <doublevar> > multi_grad(nmo);
-  Array1 < Array2 <doublevar> > multi_hess(nmo);
+  Array1 <dcomplex> multi_val(nmo),multi_lap(nmo);
+  Array1 < Array1 <dcomplex> > multi_grad(nmo);
+  Array1 < Array2 <dcomplex> > multi_hess(nmo);
   for(int m=0; m < nmo; m++){
     multi_grad(m).Resize(3);
     multi_hess(m).Resize(3,3);
-    multi_grad(m)=0;
-    multi_hess(m)=0;
+    multi_grad(m)=dcomplex(0.0,0.0);
+    multi_hess(m)=dcomplex(0.0,0.0);
   }
-  multi_val=0;
+  multi_val=dcomplex(0.0,0.0);
 
   Array1 <dcomplex> cval_spline(nsplines);
   Array1 < Array1 <dcomplex> > cgrad_spline(nsplines);
@@ -497,17 +487,14 @@ void MO_matrix_bspline::updateHessian(
 	    cchess(i,j)+=PrimRecipLatVec(k,i)*PrimRecipLatVec(l,j)*chess(k,l);
 	}
       
-    multi_val(2*m)=cval.real();
-    multi_val(2*m+1)=cval.imag();
+    multi_val(m)=cval;
     for(int d=0;d<3;d++){
-      multi_grad(2*m)(d)=xgrad(d).real();
-      multi_grad(2*m+1)(d)=xgrad(d).imag();
+      multi_grad(m)(d)=xgrad(d);
     }
 
     for(int d1=0;d1<3;d1++){
       for(int d2=0;d2<3;d2++){
-	multi_hess(2*m)(d1,d2)=cchess(d1,d2).real();
-	multi_hess(2*m+1)(d1,d2)=cchess(d1,d2).imag();
+	multi_hess(m)(d1,d2)=cchess(d1,d2);
       }
     }
     
