@@ -60,7 +60,7 @@ abinit2qmc$(SUFFIX) : $(ABINIT2QMCOBJS)
 	@echo Linking $@
 	$(CXX) $(DEBUG) $(CXXFLAGS) -o abinit2qmc$(SUFFIX) $(LDFLAGS) $(BLAS_LIBS) $(ABINIT2QMCOBJS)
 
-g032qmc:$(SUFFIX) $(G032QMCOBJS)
+g032qmc$(SUFFIX) : $(G032QMCOBJS)
 	@echo ________________________________________________________________
 	@echo Linking $@
 	$(CXX) $(DEBUG) $(CXXFLAGS) -o g032qmc$(SUFFIX) $(LDFLAGS) $(BLAS_LIBS) $(G032QMCOBJS)
