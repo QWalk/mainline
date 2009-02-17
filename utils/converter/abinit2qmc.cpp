@@ -760,7 +760,11 @@ void read_abinit_sys(std::istream & is, vector < Atom > & atoms, vector < Atom >
 	    newatom.name=primatoms[at].name;
 	    newatom.charge=primatoms[at].charge;
 	    for(int d=0;d<3;d++)
-	      newatom.pos[d]=primatoms[at].pos[d]+i*primlatvec[i][d]+j*primlatvec[j][d]+k*primlatvec[k][d];
+	      newatom.pos[d]=primatoms[at].pos[d]+i*primlatvec[0][d]+j*primlatvec[1][d]+k*primlatvec[2][d];
+	    //if(at==0){
+	      //cout <<primlatvec[][0]<<" "<<primlatvec[k][1]<<" "<<primlatvec[k][2]<<endl;
+	    // cout <<newatom.name<<": "<<newatom.pos[0]<<" "<<newatom.pos[1]<<" "<<newatom.pos[2]<<endl;
+	    //}
 	    atoms.push_back(newatom);
 	  }//at
 	  //}

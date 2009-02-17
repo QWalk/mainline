@@ -418,6 +418,8 @@ int Blochwave_function::read(string & filename, int & debug, int & norbs, int & 
   else
     eigenmax= eigenmax=eigenvalueslinear[eigenvalueslinear.size()-1];
 
+  if(debug && node==0)
+    cout <<"eigenmax= "<<eigenmax<<endl;
   bn_total_final=0;
 
   int k_kount=0;
@@ -428,6 +430,8 @@ int Blochwave_function::read(string & filename, int & debug, int & norbs, int & 
       int b_kount=0;
       for(int bn=0; bn< bmax[ireducible_kvec[kn]]; bn++) {
 	if( eigenvalues[ireducible_kvec[kn]][bn]< eigenmax+1e-5 ){
+	  if(debug && node==0)
+	    cout <<"kn: "<<ireducible_kvec[kn]<<" bn (both real and imag): "<<bn<<endl;
 	  vector < complex < double > > ckg_tmp2;
 	  for(int i=0; i< nmax; i++)
 	    ckg_tmp2.push_back(ckg[ireducible_kvec[kn]][bn][i]);
@@ -449,6 +453,8 @@ int Blochwave_function::read(string & filename, int & debug, int & norbs, int & 
 	while(bn2< bmax[ireducible_kvec[kn]]){
 	  //cout <<"bn1: "<<bn1<<" bn2: "<<bn2<<endl;
 	  if( (eigenvalues[ireducible_kvec[kn]][bn1]< eigenmax+1e-5) && (eigenvalues[ireducible_kvec[kn]][bn2]< eigenmax+1e-5) ){
+	    if(debug && node==0)
+	      cout <<"bn1: "<<bn1<<" bn2: "<<bn2<<endl;
 	    //cout <<"yes"<<endl;
 	    vector < complex < double > > ckg_tmp2;
 	    for(int i=0; i< nmax; i++){
