@@ -103,6 +103,61 @@ void print_orbitals(ostream & os,
 
 }
 
+
+void print_orbitals(ostream & os,
+                    std::vector <Center> & centers,
+                    std::vector <int> & nbasis,
+                    std::vector < std::vector < dcomplex > > & moCoeff) {
+
+  cout << "writing orb file.  This could take a few seconds." << endl;
+  os.precision(12);
+  const double threshold=1e-7;
+  int ncenters=centers.size();
+  int totcoeff=0;
+  int totmo=moCoeff.size();
+
+  vector <int> totfunc_start;
+  int natoms=nbasis.size();
+  int totbasis=0;
+
+  for(int at=0; at< natoms; at++) {
+    totfunc_start.push_back(totbasis);
+    totbasis+=nbasis[at];
+  }
+
+  for(int mo=0; mo < totmo; mo++) {
+    for(int cent=0; cent < ncenters; cent++) {
+      int at=centers[cent].equiv_atom;
+      for(int ao=0; ao < nbasis[at]; ao++) {
+      //if(fabs(moCoeff[mo][totfunc_start[at]+ao]) > threshold) {
+        os << setw(10) << mo+1
+           << setw(10) << ao+1
+           << setw(10) << cent+1
+           << setw(10) << totcoeff+1 << endl;
+        totcoeff++;
+  //  }
+      }
+    }
+  }
+
+  totcoeff=0;
+  os << "COEFFICIENTS\n";
+  for(int mo=0; mo < totmo; mo++) {
+    for(int cent=0; cent < ncenters; cent++) {
+      int at=centers[cent].equiv_atom;
+      for(int ao=0; ao < nbasis[at]; ao++) {
+     //if(fabs(moCoeff[mo][totfunc_start[at]+ao]) > threshold) {
+        os << moCoeff[mo][totfunc_start[at]+ao] << "  ";
+        totcoeff++;
+        if(totcoeff%5==0) os << endl;
+  //  }
+      }
+    }
+  }
+
+}
+
+
 //###########################################################################
 void find_unique_atoms(const vector<Atom> & atoms, vector<string> & unique_atoms) { 
   unique_atoms.clear();

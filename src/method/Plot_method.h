@@ -103,6 +103,7 @@ public:
 
 private:
   Array1 <int> orbs;	//orbital #'s to be plotted
+  Array1 < Array1 <int> > orblist_pernode; //orbital list to be plotted on each node 
   Array1 <doublevar> minmax;	//xmin xmax ymin ymax zmin zmax
   doublevar resolution;	//grid coarsness: 10=coarser 0.1=finer
   MO_matrix * mymomat; //will hold MO information

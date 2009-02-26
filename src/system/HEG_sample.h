@@ -36,7 +36,7 @@ class HEG_sample : public Sample_point
 {
 public:
 
-  HEG_sample() { overall_sign=1.0; } 
+  HEG_sample() { overall_sign=1.0; overall_phase=0.0; } 
   ~HEG_sample()
   {}
 
@@ -149,6 +149,7 @@ public:
   etc.  It's enough for the sampling method, and that's about it.
    */
   doublevar overallSign() { return overall_sign; }
+  doublevar overallPhase() { return overall_phase; }
 private:
 
   int nelectrons;
@@ -162,6 +163,10 @@ private:
   Array2 <doublevar> elecpos_lc;   // elecpos in lattice coordinates
 
   doublevar overall_sign;
+  doublevar overall_phase;
+  // false for complex-valued wavefunctions, i.e., for non-integer k-points
+  bool update_overall_sign;
+
 
   HEG_system * parent;     //The System that created this object
 };

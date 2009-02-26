@@ -19,13 +19,13 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 //------------------------------------------------------------------------
 //src/Localize_method.cpp
+#include "Program_options.h"
 #include "Localize_method.h"
 #include "MatrixAlgebra.h"
 #include "Array45.h"
 #include "qmc_io.h"
 #include "ulec.h"
 #include "System.h"
-#include "Program_options.h"
 #include "Qmc_std.h"
 using namespace std;
 

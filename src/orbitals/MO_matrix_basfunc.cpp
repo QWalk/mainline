@@ -212,7 +212,6 @@ void MO_matrix_basfunc::updateVal(Sample_point * sample, int e,
 ) {
 
   Array1 <doublevar> basisvals(totbasis);
-  int centermax=centers.size();
   centers.updateDistance(e, sample);
   Basis_function * tempbasis;
   Array1 <doublevar> R(5);
@@ -274,7 +273,6 @@ void MO_matrix_basfunc::updateLap(Sample_point * sample, int e,
   // 5 values (function, 3 gradient components, laplacian) instead
   // of just one
   Array2 <doublevar> basisvals(totbasis,5);
-  int centermax=centers.size();
   centers.updateDistance(e, sample);
   Basis_function * tempbasis;
   Array1 <doublevar> R(5);
@@ -336,7 +334,6 @@ void MO_matrix_basfunc::updateHessian(
   // 5 values (function, 3 gradient components, laplacian) instead
   // of just one
   Array2 <doublevar> basisvals(totbasis,10);
-  int centermax=centers.size();
   centers.updateDistance(e, sample);
   Basis_function * tempbasis;
   Array1 <doublevar> R(5);

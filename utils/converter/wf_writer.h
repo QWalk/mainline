@@ -33,13 +33,14 @@ class Wf_writer {
 
 class Slat_wf_writer:public Wf_writer {
 public:
-  Slat_wf_writer() { magnification=-1; } 
+  Slat_wf_writer() { magnification=-1; orbtype="ORBITALS"; } 
   int nup, ndown; //number of up and down electrons
   int spin_dwn_start;  //the MO at which the down orbitals start(for a UHF calctype only)
   double magnification;
   std::string calctype; //RHF, ROHF, UHF, or GVB
   std::string mo_matrix_type; //CUTOFF_MO, BLAS_MO, STANDARD_MO, etc
   std::string orbname;  //name of the orbitals file
+  std::string orbtype;  //ORBITALS or CORBITALS
   std::string centername; //name of the centers file(if used, probably not)
   std::string basisname; //name of the basis file
   bool write_centers; //whether or not to use the centers file
@@ -47,7 +48,7 @@ public:
                           //(for a molecular system, it doesn't matter, but for a periodic 
                           // system, this should be set to true, assuming we're using an atom-centered basis)
   
-  std::vector < int > kpoint; //the k-point at which we're doing the calculation
+  std::vector < double > kpoint; //the k-point at which we're doing the calculation
                               //This really should be kept in the system, so don't use it.
                               //It's just kept around because it pervades crystal2qmc..
 

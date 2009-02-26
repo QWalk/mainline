@@ -109,8 +109,12 @@ void Slat_Jastrow::getVal(Wavefunction_data * wfdata,
   assert(dataptr != NULL);
   
   slater_wf->getVal(dataptr->slater, e, slat_val);
-  
   jastrow_wf->getVal(dataptr->jastrow, e, jast_val);
+
+  if ( slat_val.is_complex==1 || jast_val.is_complex==1 )
+    val.is_complex=1;
+
+
   for(int i=0; i< nfunc_; i++) {
     val.phase(i,0)=slat_val.phase(i,0)+jast_val.phase(i,0); 
     val.amp(i,0)=slat_val.amp(i,0)+jast_val.amp(i,0);  //add the logarithm

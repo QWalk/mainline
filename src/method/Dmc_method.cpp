@@ -422,11 +422,16 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
             mygather.gatherData(pt, pseudo, sys, wfdata, wf, 
                                 sample, guidingwf, aux_converge,0);
 	    
+	    // ***
+	    // This extra gradient term is already contained in the
+	    // kinetic energy!
+	    // ***
 	    // gradient of phase added to potential in the case of fixed
 	    // phase method. Cannot be inside gatherData, since that one
 	    // is called also in VMC. However, this way we calculate the
 	    // wf value & derivative twice, which is quite silly (getLap
 	    // recalculates things on every call)
+	    /*
 	    Wf_return wf_val(nwf,5);
 	    wf->getVal(wfdata, 0, wf_val);
 	    if ( wf_val.is_complex == 1 ) {
@@ -440,6 +445,9 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
 		}
 	      }
 	    }
+	    */
+	    // ***
+
 	  }
           
           Dmc_history new_hist;

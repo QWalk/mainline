@@ -19,6 +19,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 
 
+#include "qmc_io.h"
 #include <iomanip>
 #include "Particle_set.h"
 
@@ -48,7 +49,6 @@ int Particle_set::showinfo(ostream & os)
   return 1;
 }
 
-#include "qmc_io.h"
 
 int Particle_set::read(vector <string> & words, unsigned int pos) {
   unsigned int startpos=0;

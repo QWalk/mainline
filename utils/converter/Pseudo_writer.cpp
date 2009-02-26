@@ -58,13 +58,18 @@ void Gaussian_pseudo_writer::print_pseudo(ostream & os) {
 void Spline_pseudo_writer::print_pseudo(ostream & os) {
 
     string indent = "    ";
+    int numL=psp_pos.size();
+    int naip=6;
+    if(numL > 2) naip=12;
+
     os << indent << "PSEUDO { \n";
     os << indent << "  " << label << endl;
-    os << indent << "  AIP 6\n";
+    os << indent << "  AIP "<< naip << " \n";
     os << indent << "  ADD_ZEFF  #add zeff over r to the local function\n";
     os << indent << "  BASIS { \n";
     os << indent << "  " << label << endl;
     os << indent << "  AOSPLINE \n";
+    os << indent << "  NORENORMALIZE \n";
     string pseudofilename=label + ".qmcpseudo";
     os << indent << "  INCLUDE " << pseudofilename << "\n";
     os << indent << "  }\n";
@@ -73,7 +78,7 @@ void Spline_pseudo_writer::print_pseudo(ostream & os) {
 
     ofstream pseudofile(pseudofilename.c_str());
     pseudofile.precision(15);
-    int numL=psp_pos.size();
+    
     for(int i=0; i< numL; i++) {
       pseudofile << "SPLINE { \n";
       int npoints=psp_pos[i].size();
