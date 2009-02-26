@@ -693,7 +693,7 @@ void read_gamess_punch(int & vorb,
           if(words[0]=="$END") break;
           //cout << "Label " << words[0] << endl;
           int unique=1;
-          for(uint i=0; i< basis.size(); i++) {
+          for(unsigned int i=0; i< basis.size(); i++) {
             if(basis[i].label == words[0]) {
               unique=0;
               break;
@@ -762,8 +762,8 @@ void read_gamess_punch(int & vorb,
   is.close();
   is.clear();
   int totbasis=0;
-  for(uint at=0; at < atoms.size(); at++) {
-    for(uint bas=0; bas< basis.size() ; bas++) {
+  for(unsigned int at=0; at < atoms.size(); at++) {
+    for(unsigned int bas=0; bas< basis.size() ; bas++) {
       if(basis[bas].label==atoms[at].name) {
         atoms[at].basis=bas;
         totbasis+=basis[bas].nfunc();
