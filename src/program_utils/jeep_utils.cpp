@@ -67,8 +67,8 @@ void get_grid_from_plot(istream & plotfile,
     }
 
     for(int x=start(0); x < end(0); x++) {
-    for(int y=start(0); y < end(0); y++) {
-    for(int z=start(0); z < end(0); z++) {
+    for(int y=start(1); y < end(1); y++) {
+    for(int z=start(2); z < end(2); z++) {
       doublevar mo_val;
 
       if(!(plotfile >> mo_val)) {
