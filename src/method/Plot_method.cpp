@@ -145,26 +145,26 @@ void Plot_method::read(vector <string> words,
 
   minmax.Resize(6);
 
-  if(sysprop->getBounds(LatticeVec)){
-     periodic=1;
-     single_write(cout,"Using periodic boundaries\n");
-     sysprop->kpoint(kpoint);
-     sysprop->getorigin(origin);
-     //these is periodic MINMAX
-     for(int d=0;d<3;d++){
-       minmax(2*d)=origin(d);
-       minmax(2*d+1)=LatticeVec(0,d)+LatticeVec(1,d)+LatticeVec(2,d)+origin(d);
-     }
-     single_write(cout,"ignoring supplied MINMAX!\n");
-  }
 
-  if(!readsection(words,pos=0,Tminmax,"MINMAX") && periodic==0)
-    error("Need MINMAX in METHOD section");
-  if(Tminmax.size() != 6)
-    error("MINMAX needs 6 values");
-  for(unsigned int i=0; i<Tminmax.size(); i++) {
-    minmax(i)=atof(Tminmax[i].c_str());
+  if(readsection(words,pos=0,Tminmax,"MINMAX")) { 
+    if(Tminmax.size() != 6)
+      error("MINMAX needs 6 values");
+    for(unsigned int i=0; i<Tminmax.size(); i++) {
+      minmax(i)=atof(Tminmax[i].c_str());
+    }
   }
+  else if(sysprop->getBounds(LatticeVec)){
+    periodic=1;
+    single_write(cout,"Using periodic boundaries\n");
+    sysprop->kpoint(kpoint);
+    sysprop->getorigin(origin);
+    //these is periodic MINMAX
+    for(int d=0;d<3;d++){
+      minmax(2*d)=origin(d);
+      minmax(2*d+1)=LatticeVec(0,d)+LatticeVec(1,d)+LatticeVec(2,d)+origin(d);
+    }
+  }
+  else  { error("Need MINMAX in METHOD section");} 
 
 }
 
@@ -176,30 +176,30 @@ void Plot_method::run(Program_options & options, ostream & output) {
   unsigned int electron=0; //# of the electron that will move through grid
   string pltfile; //name of plotfile being written
   Array1 <doublevar> xyz(3);//position of electron "in" MO
-  Array2 <doublevar> resolution_array(3,3); 
-  Array1 <int> D_array1(3); //dummy array1
-  D_array1=0; //sets all 3 components to 0. use as counter for gridpoints
-  resolution_array=0;
-  if(periodic){
-    for(int i=0;i<3;i++){
-      doublevar lenght=0;
-      for(int j=0;j<3;j++){
-	if(mpi_info.node==0)
-	  cout <<LatticeVec(i,j)<<" ";
-	lenght+=LatticeVec(i,j)*LatticeVec(i,j);
+    Array2 <doublevar> resolution_array(3,3); 
+    Array1 <int> D_array1(3); //dummy array1
+    D_array1=0; //sets all 3 components to 0. use as counter for gridpoints
+    resolution_array=0;
+    if(periodic){
+      for(int i=0;i<3;i++){
+        doublevar lenght=0;
+        for(int j=0;j<3;j++){
+          if(mpi_info.node==0)
+            cout <<LatticeVec(i,j)<<" ";
+          lenght+=LatticeVec(i,j)*LatticeVec(i,j);
+        }
+        if(mpi_info.node==0)
+          cout <<endl;
+        lenght=sqrt(lenght);
+        if(mpi_info.node==0)
+          cout <<"lenght "<<lenght<<endl;
+        D_array1(i)= roundoff(lenght/resolution); 
+        for(int j=0;j<3;j++){
+          resolution_array(i,j)=LatticeVec(i,j)/D_array1(i);
+        }
       }
-      if(mpi_info.node==0)
-	cout <<endl;
-      lenght=sqrt(lenght);
-      if(mpi_info.node==0)
-	cout <<"lenght "<<lenght<<endl;
-      D_array1(i)= roundoff(lenght/resolution); 
-      for(int j=0;j<3;j++){
-	resolution_array(i,j)=LatticeVec(i,j)/D_array1(i);
-      }
-    }
-    
-  }  
+      
+    }  
   else{
     for(int d=0;d<3;d++)
       D_array1(d)=roundoff((minmax(2*d+1)-minmax(2*d))/resolution);
@@ -241,74 +241,74 @@ void Plot_method::run(Program_options & options, ostream & output) {
       cout<<"for "<<orbs.GetDim(0)<<" complex orbitals\n";
     cout<<"using "<<MBs<<" Mb per orbital in memory or "<<MBs*orbs.GetDim(0)<<" Mb in total memory\n";
   }
-
+  
   int count=0;
   xyz=0;
   for(int xx=0;xx<D_array1(0);xx++){
-     doublevar maxatborder=0;
-     if(!periodic){
-       xyz(0)=minmax(0)+xx*resolution_array(0,0); //move forward on z axis one resolution unit
-       if(mpi_info.node==0){
-	 cout << "x " << xyz(0) << endl;
-	 flush(cout);
-       }
-     }
-     if(mpi_info.node==0){
-       cout << 100*xx/(D_array1(0)-1) <<" % of plot"<<endl;
-       flush(cout);
-     }
-     for(int yy=0; yy<D_array1(1);yy++){
-       if(!periodic)
-	 xyz(1)=minmax(2)+yy*resolution_array(1,1);  
-       for(int zz=0; zz<D_array1(2);zz++){
-	 if(periodic){
-	   for(int i=0;i<3;i++)
-	     xyz(i)=origin(i)+xx*resolution_array(0,i)+yy*resolution_array(1,i)+zz*resolution_array(2,i);
-	   //cout <<xyz(0)<<" "<<xyz(1)<<" "<<xyz(2)<<endl;
-	 }
-	 else
-	   xyz(2)=minmax(4)+zz*resolution_array(2,2);
-         mywalker->setElectronPos(electron,xyz); //move elec#1 to point specified by xyz
-	 if(!use_complex)
-	   mymomat->updateVal(mywalker,electron,0,mymovals); //recalculate MO value for elec#1
-	 else
-	   cmymomat->updateVal(mywalker,electron,0,cmymovals); //recalculate MO value for elec#1
-         density(count)=0;
-         for(int i=0; i<orblist_pernode(0).GetSize(); i++) {
-	   if(!use_complex){
-	     grid(0,i,count)=mymovals(i,0);
-	     density(count)+=mymovals(i,0)*mymovals(i,0);
-	   }
-	   else{
-	     grid(0,i,count)=cmymovals(i,0).real();
-	     grid(1,i,count)=cmymovals(i,0).imag();
-	     density(count)+=cmymovals(i,0).real()*cmymovals(i,0).real()+
-	                     cmymovals(i,0).imag()*cmymovals(i,0).imag();
-	   }
-         }
-	 if(!periodic){
-	   if(zz==D_array1(2)-1 || yy==D_array1(1)-1 ||  xx==D_array1(1)-1){
-	     for(int i=0; i<orblist_pernode(0).GetSize(); i++) {
-	       if(!use_complex){
-		 if(fabs(mymovals(i,0))>maxatborder )
-		   maxatborder=fabs(mymovals(i,0));
-	       }
-	       else{
-		 if(cabs(cmymovals(i,0))>maxatborder )
-		   maxatborder=cabs(cmymovals(i,0));
-	       }
-		   
-	     }
-	   }
-	 }
-         count++; //index for cycling through grid points
-       }
-     }
-     if(!periodic){
-       cout <<"Max value at the boundary "<<maxatborder<<endl;
-     }
-   }//xx
-
+    doublevar maxatborder=0;
+    if(!periodic){
+      xyz(0)=minmax(0)+xx*resolution_array(0,0); //move forward on z axis one resolution unit
+      if(mpi_info.node==0){
+        cout << "x " << xyz(0) << endl;
+        flush(cout);
+      }
+    }
+    if(mpi_info.node==0){
+      cout << 100*xx/(D_array1(0)-1) <<" % of plot"<<endl;
+      flush(cout);
+    }
+    for(int yy=0; yy<D_array1(1);yy++){
+      if(!periodic)
+        xyz(1)=minmax(2)+yy*resolution_array(1,1);  
+      for(int zz=0; zz<D_array1(2);zz++){
+        if(periodic){
+          for(int i=0;i<3;i++)
+            xyz(i)=origin(i)+xx*resolution_array(0,i)+yy*resolution_array(1,i)+zz*resolution_array(2,i);
+          //cout <<xyz(0)<<" "<<xyz(1)<<" "<<xyz(2)<<endl;
+        }
+        else
+          xyz(2)=minmax(4)+zz*resolution_array(2,2);
+        mywalker->setElectronPos(electron,xyz); //move elec#1 to point specified by xyz
+        if(!use_complex)
+          mymomat->updateVal(mywalker,electron,0,mymovals); //recalculate MO value for elec#1
+        else
+          cmymomat->updateVal(mywalker,electron,0,cmymovals); //recalculate MO value for elec#1
+        density(count)=0;
+        for(int i=0; i<orblist_pernode(0).GetSize(); i++) {
+          if(!use_complex){
+            grid(0,i,count)=mymovals(i,0);
+            density(count)+=mymovals(i,0)*mymovals(i,0);
+          }
+          else{
+            grid(0,i,count)=cmymovals(i,0).real();
+            grid(1,i,count)=cmymovals(i,0).imag();
+            density(count)+=cmymovals(i,0).real()*cmymovals(i,0).real()+
+              cmymovals(i,0).imag()*cmymovals(i,0).imag();
+          }
+        }
+        if(!periodic){
+          if(zz==D_array1(2)-1 || yy==D_array1(1)-1 ||  xx==D_array1(1)-1){
+            for(int i=0; i<orblist_pernode(0).GetSize(); i++) {
+              if(!use_complex){
+                if(fabs(mymovals(i,0))>maxatborder )
+                  maxatborder=fabs(mymovals(i,0));
+              }
+              else{
+                if(cabs(cmymovals(i,0))>maxatborder )
+                  maxatborder=cabs(cmymovals(i,0));
+              }
+              
+            }
+          }
+        }
+        count++; //index for cycling through grid points
+      }
+    }
+    if(!periodic){
+      cout <<"Max value at the boundary "<<maxatborder<<endl;
+    }
+  }//xx
+  
   //Loop through and generate plot files for each orbital requested
   if(orblist_pernode(0).GetSize()<=0)
     error("number of orbitals requested is not a positive number");
@@ -323,16 +323,16 @@ void Plot_method::run(Program_options & options, ostream & output) {
     basename2 = options.runid;
     basename2 += ".orb";
     basename2 += strbuff;
-
+    
     for(int part=0;part<grid.GetDim(0);part++){
       if(use_complex){
-	if(part==0)
-	  basename=basename2+".real";
-	else
-	  basename=basename2+".imag";
+        if(part==0)
+          basename=basename2+".real";
+        else
+          basename=basename2+".imag";
       }
       else{
-	basename=basename2;
+        basename=basename2;
       }
       
       int dopltfile=0;
@@ -340,101 +340,101 @@ void Plot_method::run(Program_options & options, ostream & output) {
       //Note that the pltfile will be rotated, since it requires z,y,x, 
       //but cube requires x,y,z.
       if(dopltfile) {
-	pltfile = basename+".plt"; 
-	os.open(pltfile.c_str());
-	cout<<"writing to "<<pltfile<<endl;
-	// http://www.csc.fi/gopenmol/developers/plt_format.phtml
-	os<<"3 "; //rank=3 always
-	os<<"2\n"; //dummy variable => "Orbital/density surface"
-	//number of grid points for x, y, & z direction
-	os <<D_array1(2)<<" "<<D_array1(1)<<" "<<D_array1(0)<<endl;
-	os <<minmax(4)<<" "<<minmax(5)<<" "<<minmax(2)<<" "<<minmax(3)
-	   <<" "<<minmax(0)<<" "<<minmax(1)<<endl;
-	
-	os.setf(ios::scientific);
-	for(int j=0; j<(D_array1(0)*D_array1(1)*D_array1(2)); j++) {
-	  os<<setw(16)<<setprecision(8)<<grid(part,i,j)<<endl;
-	}
-	os.unsetf(ios::scientific);
-	os<<setprecision(6);
-	os.close();
+        pltfile = basename+".plt"; 
+        os.open(pltfile.c_str());
+        cout<<"writing to "<<pltfile<<endl;
+        // http://www.csc.fi/gopenmol/developers/plt_format.phtml
+        os<<"3 "; //rank=3 always
+        os<<"2\n"; //dummy variable => "Orbital/density surface"
+                   //number of grid points for x, y, & z direction
+        os <<D_array1(2)<<" "<<D_array1(1)<<" "<<D_array1(0)<<endl;
+        os <<minmax(4)<<" "<<minmax(5)<<" "<<minmax(2)<<" "<<minmax(3)
+          <<" "<<minmax(0)<<" "<<minmax(1)<<endl;
+        
+        os.setf(ios::scientific);
+        for(int j=0; j<(D_array1(0)*D_array1(1)*D_array1(2)); j++) {
+          os<<setw(16)<<setprecision(8)<<grid(part,i,j)<<endl;
+        }
+        os.unsetf(ios::scientific);
+        os<<setprecision(6);
+        os.close();
       }
       if(cubefile) {
-	string cubename=basename+".cube";
-	cout <<" node: "<<mpi_info.node<<" is storing orbital: "<<orblist_pernode(0)(i)+1<<" to file: "<<cubename<<endl;
-	os.open(cubename.c_str());
-	int natoms=sysprop->nIons();
-	if(!jeep_like_cube_file){
-	  os << "GOS plot output\n";
-	  os << "Molecular orbital " << orblist_pernode(0)(i)+1 << endl;	
-	  os << "  " << natoms << "   " << minmax(0) << "   "
-	     << minmax(2) << "   " << minmax(4) << endl;
-	  for(int i=0;i<3;i++)
-	    os << D_array1(i) << "   " << resolution_array(i,0) <<"  "<<resolution_array(i,1)<<"  "<<resolution_array(i,2)<< endl;
-	  Array1 <doublevar> pos(3);
-	  for(int at=0; at< natoms; at++) {
-	    mywalker->getIonPos(at,pos);
-	    os << "   " << mywalker->getIonCharge(at) << "   0.0000    " << pos(0) 
-	       <<"    " << pos(1) << "   " << pos(2) << endl;
-	  }
-	}
-	//optional output for mesh orbital
-	if(jeep_like_cube_file){
-	  os << "GOS plot output\n";
-	  os << "Molecular orbital " << orblist_pernode(0)(i)+1 << endl;
-	  for(int i=0;i<3;i++)
-	    os << D_array1(i) << "   " << resolution_array(i,0) <<"  "<<resolution_array(i,1)<<"  "<<resolution_array(i,2)<< endl;
-	  for(int k=0;k<3;k++) //need 3 empty lines to mimic jeep like file
-	    os << endl;
-	  if(natoms){
-	    os << "  " << natoms<<endl;
-	    Array1 <doublevar> pos(3);
-	    for(int at=0; at< natoms; at++) {
-	      mywalker->getIonPos(at,pos);
-	      os << "   " << mywalker->getIonCharge(at) << "   0.0000    " << pos(0) 
-		 <<"    " << pos(1) << "   " << pos(2) << endl;
-	    }
-	  }
-	  else //if natoms=0 like in HEG
-	    os << "  1" << endl<<endl;
-	  os << "  1" << endl;
-	  os << "  "<< minmax(0)<<"  "<< minmax(2)<<"  "<< minmax(4)<<endl;
-	  os << "  "<< minmax(1)-minmax(0)<<"  "<< minmax(3)-minmax(2)<<"  "<< minmax(5)-minmax(4)<<endl;
-	  os <<endl<<endl;
-	  os << "  "<<D_array1(0)<<"  "<<D_array1(1)<<"  "<<D_array1(2)<<endl;
-	}
-	os.setf(ios::scientific);
-	for(int j=0; j< npts; j++) {
-	  os <<setw(20)<<setprecision(10)<<grid(part,i,j);
-	  if(j%6 ==5) os << endl;
-	}
-	os << endl;
-	os.unsetf(ios::scientific);
-	os<<setprecision(6);
-	os.close();
-	
+        string cubename=basename+".cube";
+        cout <<" node: "<<mpi_info.node<<" is storing orbital: "<<orblist_pernode(0)(i)+1<<" to file: "<<cubename<<endl;
+        os.open(cubename.c_str());
+        int natoms=sysprop->nIons();
+        if(!jeep_like_cube_file){
+          os << "QWalk plot output\n";
+          os << "Molecular orbital " << orblist_pernode(0)(i)+1 << endl;	
+          os << "  " << natoms << "   " << minmax(0) << "   "
+            << minmax(2) << "   " << minmax(4) << endl;
+          for(int i=0;i<3;i++)
+            os << D_array1(i) << "   " << resolution_array(i,0) <<"  "<<resolution_array(i,1)<<"  "<<resolution_array(i,2)<< endl;
+          Array1 <doublevar> pos(3);
+          for(int at=0; at< natoms; at++) {
+            mywalker->getIonPos(at,pos);
+            os << "   " << mywalker->getIonCharge(at) << "   0.0000    " << pos(0) 
+              <<"    " << pos(1) << "   " << pos(2) << endl;
+          }
+        }
+        //optional output for mesh orbital
+        if(jeep_like_cube_file){
+          os << "QWalk plot output\n";
+          os << "Molecular orbital " << orblist_pernode(0)(i)+1 << endl;
+          for(int i=0;i<3;i++)
+            os << D_array1(i) << "   " << resolution_array(i,0) <<"  "<<resolution_array(i,1)<<"  "<<resolution_array(i,2)<< endl;
+          for(int k=0;k<3;k++) //need 3 empty lines to mimic jeep like file
+            os << endl;
+          if(natoms){
+            os << "  " << natoms<<endl;
+            Array1 <doublevar> pos(3);
+            for(int at=0; at< natoms; at++) {
+              mywalker->getIonPos(at,pos);
+              os << "   " << mywalker->getIonCharge(at) << "   0.0000    " << pos(0) 
+                <<"    " << pos(1) << "   " << pos(2) << endl;
+            }
+          }
+          else //if natoms=0 like in HEG
+            os << "  1" << endl<<endl;
+          os << "  1" << endl;
+          os << "  "<< minmax(0)<<"  "<< minmax(2)<<"  "<< minmax(4)<<endl;
+          os << "  "<< minmax(1)-minmax(0)<<"  "<< minmax(3)-minmax(2)<<"  "<< minmax(5)-minmax(4)<<endl;
+          os <<endl<<endl;
+          os << "  "<<D_array1(0)<<"  "<<D_array1(1)<<"  "<<D_array1(2)<<endl;
+        }
+        os.setf(ios::scientific);
+        for(int j=0; j< npts; j++) {
+          os <<setw(20)<<setprecision(10)<<grid(part,i,j);
+          if(j%6 ==5) os << endl;
+        }
+        os << endl;
+        os.unsetf(ios::scientific);
+        os<<setprecision(6);
+        os.close();
+        
       }
     }//part
   }//orbital
-
-
+  
+  
   //add density from each node
   parallel_sum(density);
   if(mpi_info.node==0){
     string cubename=options.runid+".dens.cube";
     os.open(cubename.c_str());
-    os << "GOS plot output\n";
+    os << "QWalk plot output\n";
     os << "Electron density" << endl;
     int natoms=sysprop->nIons();
     os << "  " << natoms << "   " << minmax(0) << "   "
-       << minmax(2) << "   " << minmax(4) << endl;
+      << minmax(2) << "   " << minmax(4) << endl;
     for(int i=0;i<3;i++)
       os << D_array1(i) << "   " << resolution_array(i,0) <<"  "<<resolution_array(i,1)<<"  "<<resolution_array(i,2)<< endl;
     Array1 <doublevar> pos(3);
     for(int at=0; at< natoms; at++) {
       mywalker->getIonPos(at,pos);
       os << "   " << mywalker->getIonCharge(at) << "   0.0000    " << pos(0) 
-	 <<"    " << pos(1) << "   " << pos(2) << endl;
+        <<"    " << pos(1) << "   " << pos(2) << endl;
     }
     
     os.setf(ios::scientific);
