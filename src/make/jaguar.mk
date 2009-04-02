@@ -10,9 +10,8 @@ CXXFLAGS:= -std=gnu++98 -O3 -ffast-math -fomit-frame-pointer \
             -fstrict-aliasing -funroll-loops -march=barcelona 
 CXXFLAGS += -DUSE_MPI -DUSE_BLAS -DUSE_LAPACK -DUSE_EINSPLINE -DUSE_RESTRICT ${INCLUDEPATH}
 
-BLAS_LIBS := -L/sw/xt/atlas/3.8.2/cnl2.0_gnu4.2.0/lib -lf77blas -lcblas -latlas -lg2c 
-BLAS_INCLUDE := -I/sw/xt/atlas/3.8.2/cnl2.0_gnu4.2.0/include  
-
+BLAS_LIBS := -L$(ATLASDIR) -lf77blas -lcblas -latlas 
+BLAS_INCLUDE := -I$(ATLASINCLUDE)
 
 EINSPLINE_LIBS := -L/ccs/proj/mat001/jaguar/lib -leinspline
 EINSPLINE_INCLUDE :=-I/ccs/proj/mat001/jaguar/include/einspline
