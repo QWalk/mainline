@@ -114,9 +114,9 @@ const double pi=3.1415926535897932385;
 
 #endif
 
-#ifndef uint
-#define uint unsigned int
-#endif
+//#ifndef uint
+//#define uint unsigned int
+//#endif
 
 
 

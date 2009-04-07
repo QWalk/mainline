@@ -27,6 +27,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "elements.h"  
 #include <fstream>
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include "vecmath.h"
 #include "elements.h"
 #include "CBasis_function.h"
@@ -604,7 +606,7 @@ void read_abinit_sys(std::istream & is, vector < Atom > & atoms, vector < Atom >
 
   if(mpi_info.node==0)
     cout <<"Atoms in the primitive cell"<<endl; 
-  for(uint at=0; at < primatoms.size(); at++) {
+  for(unsigned int at=0; at < primatoms.size(); at++) {
     if(mpi_info.node==0)
       cout << primatoms[at].name << "  " << primatoms[at].pos[0] << "  " << primatoms[at].pos[1]
 	   << "   " << primatoms[at].pos[2] << endl;
@@ -616,7 +618,7 @@ void read_abinit_sys(std::istream & is, vector < Atom > & atoms, vector < Atom >
   
   //There should be pseudopotential files for each of the atom names..
   const string comment="#";
-  for(uint file=0; file < uniquenames.size(); file++) {
+  for(unsigned int file=0; file < uniquenames.size(); file++) {
     string pspfilename=uniquenames[file];
     ifstream pspfile(pspfilename.c_str());
     if(!pspfile) {
@@ -643,7 +645,7 @@ void read_abinit_sys(std::istream & is, vector < Atom > & atoms, vector < Atom >
       }
       double effcharge=atof(words[1].c_str()); //effective charge
       //Go ahead and assign the effective charge to the atoms.
-      for(uint at=0; at< primatoms.size(); at++) {
+      for(unsigned int at=0; at< primatoms.size(); at++) {
 	if(primatoms[at].name==temppsp.label)
 	  primatoms[at].charge=effcharge;
       }
@@ -755,7 +757,7 @@ void read_abinit_sys(std::istream & is, vector < Atom > & atoms, vector < Atom >
     for(int j=0;j<factor[1];j++){
       for(int k=0;k<factor[2];k++){
 	//if(!(i==0 && j==0 && k==0)){
-       	  for(uint at=0; at < primatoms.size(); at++){
+       	  for(unsigned int at=0; at < primatoms.size(); at++){
 	    Atom newatom;
 	    newatom.name=primatoms[at].name;
 	    newatom.charge=primatoms[at].charge;
@@ -774,7 +776,7 @@ void read_abinit_sys(std::istream & is, vector < Atom > & atoms, vector < Atom >
 
   if(mpi_info.node==0 && debug){
     cout <<"Atoms in the simulation cell"<<endl; 
-    for(uint at=0; at < atoms.size(); at++) {
+    for(unsigned int at=0; at < atoms.size(); at++) {
       if(mpi_info.node==0)
 	cout << atoms[at].name << "  " << atoms[at].pos[0] << "  " << atoms[at].pos[1]
 	     << "   " << atoms[at].pos[2] << endl;

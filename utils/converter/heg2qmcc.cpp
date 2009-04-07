@@ -25,6 +25,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <iomanip>  // formating output stream
 #include <cmath>    // pow, abs
 #include <limits>   // to figure out precision of double
+#include <cstdlib>
+#include <cstring>
 
 #include "indexx.h" // Quicksort from Numerical Recipes
 

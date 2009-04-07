@@ -20,6 +20,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "CBasis_function.h"
 #include "converter.h"
+#include <cstdlib>
 
 
 void sort_lowest_first(vector <double> & vals, vector <int> & list){

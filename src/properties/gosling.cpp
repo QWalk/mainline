@@ -23,6 +23,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Properties_average.h"
 #include <algorithm>
 #include <deque>
+#include <cstring>
 
 using namespace Properties_types;
 //----------------------------------------------------------------------

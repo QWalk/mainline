@@ -135,7 +135,7 @@ int main(int argc, char ** argv) {
 
   //We should have the atoms and pseudopotentials..
   int nelectrons=0;
-  for(uint at=0; at < atoms.size(); at++) {
+  for(unsigned int at=0; at < atoms.size(); at++) {
     nelectrons+=int(atoms[at].charge);
   }
 
@@ -452,7 +452,7 @@ void read_jeep_sys(std::istream & is, vector < Atom > & atoms,
 
   for(int i=0; i< 3; i++) ref_latvec[i][i]=ref_cell[i];
 
-  //for(uint at=0; at < atoms.size(); at++) {
+  //for(unsigned int at=0; at < atoms.size(); at++) {
   //  cout << atoms[at].name << "  " << atoms[at].pos[0] << "  " << atoms[at].pos[1]
   //  << "   " << atoms[at].pos[2] << endl;
   //}
@@ -461,7 +461,7 @@ void read_jeep_sys(std::istream & is, vector < Atom > & atoms,
   //There should be pseudopotential files for each of the atom names..
   string space=" ";
   const string comment="#";
-  for(uint file=0; file < uniquenames.size(); file++) {
+  for(unsigned int file=0; file < uniquenames.size(); file++) {
     string pspfilename=uniquenames[file];
     ifstream pspfile(pspfilename.c_str());
     if(!pspfile) {
@@ -474,7 +474,7 @@ void read_jeep_sys(std::istream & is, vector < Atom > & atoms,
     while(getline(pspfile, line)) {
 
       //Ignore comments until we find the first non-comment line
-      uint pos=line.find(comment);
+      unsigned int pos=line.find(comment);
       if( pos < line.size() )
       {
         line.erase(pos,line.size()-pos);
@@ -488,7 +488,7 @@ void read_jeep_sys(std::istream & is, vector < Atom > & atoms,
         int numL=atoi(words[4].c_str());
 
         //Go ahead and assign the effective charge to the atoms.
-        for(uint at=0; at< atoms.size(); at++) {
+        for(unsigned int at=0; at< atoms.size(); at++) {
           if(atoms[at].name==temppsp.label)
             atoms[at].charge=effcharge;
         }
