@@ -237,7 +237,7 @@ int main(int argc, char ** argv) {
   read_abinit_sys(sysfile, atoms, primatoms, pseudo, origin, latvec, primlatvec, factor, nelectrons, nspins, eref, debug);
   sysfile.close();
 
-  slwriter.magnification=1/sqrt(factor[0]*factor[1]*factor[2]);
+  slwriter.magnification=1.0/sqrt((double)factor[0]*factor[1]*factor[2]);
 
 
   //------------reciprocal cell
