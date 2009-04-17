@@ -17,8 +17,9 @@ Takes N_up, N_down and rs from standard input and writes<br>
 &nbsp;&nbsp;   &lt;output base&gt;.i.slater<br>
 &nbsp;&nbsp;   &lt;output base&gt;.i.basis<br>
 &nbsp;&nbsp;   &lt;output base&gt;.i.orb<br>
-&nbsp;&nbsp;   &lt;output base&gt;.centers<br>
+&nbsp;&nbsp;   &lt;output base&gt;.i.jast2<br>
 &nbsp;&nbsp;   &lt;output base&gt;.jast2<br>
+&nbsp;&nbsp;   &lt;output base&gt;.centers<br>
 where i indexes k-points (twists of boundary conditions) and runs from 0 to 3;
 0 is the Gamma-point (all 3 directions periodic), 1 is anti-periodic in
 one direction, 2 is anti-periodic in two directions and 3 is
@@ -29,6 +30,14 @@ weights in the twist average, namely
 <tr> <th>k-point index <td>0   <td>1   <td>2   <td>3
 <tr> <th>weight        <td>1/8 <td>3/8 <td>3/8 <td>1/8
 </table>
+
+The Jastrow factor &lt;output base&gt;.jast2 contains only a short-range
+part and is k-point independent. Jastrow factors &lt;output
+base&gt;.i.jast2 are k-point dependent as they contain an extra
+long-range part expanded in plane waves (cosine functions)
+commensurate with given boundary conditions [N. D. Drummond et al.,
+<a href="http://dx.doi.org/10.1103/PhysRevB.70.235119">Phys. Rev. B
+70, 235119 (2004)</a>].
 
 If -bcs option is given, extra input is taken (number of virtual orbitals), 
 and extra files are written (&lt;output&nbsp;base&gt;.i.bcs). The BCS
