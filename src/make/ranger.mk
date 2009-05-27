@@ -3,33 +3,44 @@
 #  all compiler specific information should be declared here
 
 # NOTES:
-# 1/ default compiler is PGI, perhaps they have a reason so I will use it;
+# 1/ Intel compiler (short testing indicates that it provides faster code than
+#    PGI; besides, no luck so far with compiling einspline with PGI on ranger)
 # 2/ TACC documentation is not quite clear on what is the best BLAS/LAPACK
 #    implementation (MKL or ACML or ...), will try MKL first
-# 3/ einspline library is not enabled (yet), someone has to compile it first
+# 3/ einspline library is enabled, user is expected to have it instaled under
+#    $(HOME)/einspline ; remember to include $HOME/einspline/lib into
+#    LD_LIBRARY_PATH in the job script or elsewhere
 
-# STEPS BEFORE COMPILATION: module load mkl
+# STEPS BEFORE COMPILATION:
+#  module unload pgi mvapich; module load intel mvapich mkl 
+
+# COMILATION OF EINSPLINE
+#  ./configure --prefix=$HOME/einspline CC=icc CXX=icpc F77=ifort CFLAGS="-O2 -xW" CXXFLAGS="-O2 -xW" FFLAGS="-O2 -xW"
 
 CXX:=mpicxx
-CXXFLAGS := -tp barcelona-64 -fast 
-CXXFLAGS += -DUSE_MPI -DUSE_BLAS -DUSE_LAPACK
-#CXXFLAGS += -DUSE_EINSPLINE -DUSE_RESTRICT
+CXXFLAGS := -O2 -xW 
+CXXFLAGS += -DUSE_MPI
+CXXFLAGS += -DUSE_BLAS -DUSE_LAPACK
+CXXFLAGS += -DUSE_EINSPLINE -DUSE_RESTRICT
 CXXFLAGS += $(INCLUDEPATH)
 
-BLAS_LIBS := -Wl,-rpath,$(TACC_MKL_LIB) -L$(TACC_MKL_LIB) -lmkl -lguide
+#BLAS_LIBS :=
+#BLAS_INCLUDE :=
+
+BLAS_LIBS := -Wl,-rpath,$(TACC_MKL_LIB) -L$(TACC_MKL_LIB) -lmkl_em64t -lguide
 BLAS_INCLUDE := -I$(TACC_MKL_INC)
 
 BLAS_LIBS += $(LAPACK_LIBS)
 BLAS_INCLUDE += $(LAPACK_LIBS)
 
-#EINSPLINE_LIBS := -L/ccs/proj/mat001/jaguar/lib -leinspline
-#EINSPLINE_INCLUDE :=-I/ccs/proj/mat001/jaguar/include/einspline
+EINSPLINE_LIBS := -L$(HOME)/einspline/lib -leinspline
+EINSPLINE_INCLUDE :=-I$(HOME)/einspline/include/einspline
 
-#BLAS_LIBS += $(EINSPLINE_LIBS)
-#BLAS_INCLUDE +=$(EINSPLINE_INCLUDE)
+BLAS_LIBS += $(EINSPLINE_LIBS)
+BLAS_INCLUDE +=$(EINSPLINE_INCLUDE)
 
 DEBUG:= -DNO_RANGE_CHECKING   -DNDEBUG 
 ######################################################################
 # This is the invokation to generate dependencies
-DEPENDMAKER:=pgCC -MM  $(INCLUDEPATH)
+DEPENDMAKER:=icc -MM  $(INCLUDEPATH)
 
