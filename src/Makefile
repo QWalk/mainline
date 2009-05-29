@@ -45,7 +45,7 @@ include $(DEPENDFILE)
 $(PROJECT):$(OBJS)
 	@echo ________________________________________________________________
 	@echo Linking $@
-	$(CXX) $(DEBUG) $(CXXFLAGS) -o $(PROJECT) $(OBJS) $(LDFLAGS) $(BLAS_LIBS)
+	$(CXX) $(DEBUG) $(CXXFLAGS) -o $(PROJECT) $(OBJS) $(LDFLAGS) $(BLAS_LIBS) $(EINSPLINE_LIBS)
 
 gosling:
 	$(MAKE) -f Makefile.gosling

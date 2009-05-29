@@ -8,8 +8,8 @@
 # 2/ TACC documentation is not quite clear on what is the best BLAS/LAPACK
 #    implementation (MKL or ACML or ...), will try MKL first
 # 3/ einspline library is enabled, user is expected to have it instaled under
-#    $(HOME)/einspline ; remember to include $HOME/einspline/lib into
-#    LD_LIBRARY_PATH in the job script or elsewhere
+#    $(HOME)/einspline ; since RPATH (runtime search path) is used, it is NOT
+#    neccessary to include $HOME/einspline/lib into LD_LIBRARY_PATH
 
 # STEPS BEFORE COMPILATION:
 #  module unload pgi mvapich; module load intel mvapich mkl 
@@ -30,14 +30,8 @@ CXXFLAGS += $(INCLUDEPATH)
 BLAS_LIBS := -Wl,-rpath,$(TACC_MKL_LIB) -L$(TACC_MKL_LIB) -lmkl_em64t -lguide
 BLAS_INCLUDE := -I$(TACC_MKL_INC)
 
-BLAS_LIBS += $(LAPACK_LIBS)
-BLAS_INCLUDE += $(LAPACK_LIBS)
-
-EINSPLINE_LIBS := -L$(HOME)/einspline/lib -leinspline
+EINSPLINE_LIBS := -Wl,-rpath,$(HOME)/einspline/lib -L$(HOME)/einspline/lib -leinspline
 EINSPLINE_INCLUDE :=-I$(HOME)/einspline/include/einspline
-
-BLAS_LIBS += $(EINSPLINE_LIBS)
-BLAS_INCLUDE +=$(EINSPLINE_INCLUDE)
 
 DEBUG:= -DNO_RANGE_CHECKING   -DNDEBUG 
 ######################################################################

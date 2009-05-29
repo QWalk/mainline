@@ -20,14 +20,8 @@ CXXFLAGS += $(INCLUDEPATH)
 BLAS_LIBS := -Wl,-rpath,$(TACC_MKL_LIB) -L$(TACC_MKL_LIB) -lmkl_em64t -lguide
 BLAS_INCLUDE := -I$(TACC_MKL_INC)
 
-BLAS_LIBS += $(LAPACK_LIBS)
-BLAS_INCLUDE += $(LAPACK_LIBS)
-
 #EINSPLINE_LIBS := -L/ccs/proj/mat001/jaguar/lib -leinspline
 #EINSPLINE_INCLUDE :=-I/ccs/proj/mat001/jaguar/include/einspline
-
-#BLAS_LIBS += $(EINSPLINE_LIBS)
-#BLAS_INCLUDE +=$(EINSPLINE_INCLUDE)
 
 DEBUG:= -DNO_RANGE_CHECKING   -DNDEBUG 
 ######################################################################

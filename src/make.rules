@@ -4,63 +4,63 @@ $(OBJPATH)/%.o:basis_function/%.cpp
 	@echo Compiling $<
 	[ -e $(DVLPATH)/obj ] || mkdir $(DVLPATH)/obj
 	[ -e $(OBJPATH) ] || mkdir $(OBJPATH)
-	$(CXX) -c $(DEBUG) $(CXXFLAGS) $(BLAS_INCLUDE) $(CPPFLAGS) -o $@ $<
+	$(CXX) -c $(DEBUG) $(CXXFLAGS) $(BLAS_INCLUDE) $(EINSPLINE_INCLUDE) $(CPPFLAGS) -o $@ $<
 
 $(OBJPATH)/%.o:macopt/%.cpp
 	@echo ________________________________________________________________
 	@echo Compiling $<
 	[ -e $(DVLPATH)/obj ] || mkdir $(DVLPATH)/obj
 	[ -e $(OBJPATH) ] || mkdir $(OBJPATH)
-	$(CXX) -c $(DEBUG) $(CXXFLAGS) $(BLAS_INCLUDE) $(CPPFLAGS) -o $@ $<
+	$(CXX) -c $(DEBUG) $(CXXFLAGS) $(BLAS_INCLUDE) $(EINSPLINE_INCLUDE) $(CPPFLAGS) -o $@ $<
 
 $(OBJPATH)/%.o:method/%.cpp
 	@echo ________________________________________________________________
 	@echo Compiling $<
 	[ -e $(DVLPATH)/obj ] || mkdir $(DVLPATH)/obj
 	[ -e $(OBJPATH) ] || mkdir $(OBJPATH)
-	$(CXX) -c $(DEBUG) $(CXXFLAGS) $(BLAS_INCLUDE) $(CPPFLAGS) -o $@ $<
+	$(CXX) -c $(DEBUG) $(CXXFLAGS) $(BLAS_INCLUDE) $(EINSPLINE_INCLUDE) $(CPPFLAGS) -o $@ $<
 
 $(OBJPATH)/%.o:orbitals/%.cpp
 	@echo ________________________________________________________________
 	@echo Compiling $<
 	[ -e $(DVLPATH)/obj ] || mkdir $(DVLPATH)/obj
 	[ -e $(OBJPATH) ] || mkdir $(OBJPATH)
-	$(CXX) -c $(DEBUG) $(CXXFLAGS) $(BLAS_INCLUDE) $(CPPFLAGS) -o $@ $<
+	$(CXX) -c $(DEBUG) $(CXXFLAGS) $(BLAS_INCLUDE) $(EINSPLINE_INCLUDE) $(CPPFLAGS) -o $@ $<
 
 $(OBJPATH)/%.o:program_utils/%.cpp
 	@echo ________________________________________________________________
 	@echo Compiling $<
 	[ -e $(DVLPATH)/obj ] || mkdir $(DVLPATH)/obj
 	[ -e $(OBJPATH) ] || mkdir $(OBJPATH)
-	$(CXX) -c $(DEBUG) $(CXXFLAGS) $(BLAS_INCLUDE) $(CPPFLAGS) -o $@ $<
+	$(CXX) -c $(DEBUG) $(CXXFLAGS) $(BLAS_INCLUDE) $(EINSPLINE_INCLUDE) $(CPPFLAGS) -o $@ $<
 
 $(OBJPATH)/%.o:properties/%.cpp
 	@echo ________________________________________________________________
 	@echo Compiling $<
 	[ -e $(DVLPATH)/obj ] || mkdir $(DVLPATH)/obj
 	[ -e $(OBJPATH) ] || mkdir $(OBJPATH)
-	$(CXX) -c $(DEBUG) $(CXXFLAGS) $(BLAS_INCLUDE) $(CPPFLAGS) -o $@ $<
+	$(CXX) -c $(DEBUG) $(CXXFLAGS) $(BLAS_INCLUDE) $(EINSPLINE_INCLUDE) $(CPPFLAGS) -o $@ $<
 
 $(OBJPATH)/%.o:system/%.cpp
 	@echo ________________________________________________________________
 	@echo Compiling $<
 	[ -e $(DVLPATH)/obj ] || mkdir $(DVLPATH)/obj
 	[ -e $(OBJPATH) ] || mkdir $(OBJPATH)
-	$(CXX) -c $(DEBUG) $(CXXFLAGS) $(BLAS_INCLUDE) $(CPPFLAGS) -o $@ $<
+	$(CXX) -c $(DEBUG) $(CXXFLAGS) $(BLAS_INCLUDE) $(EINSPLINE_INCLUDE) $(CPPFLAGS) -o $@ $<
 
 $(OBJPATH)/%.o:wavefunction/%.cpp
 	@echo ________________________________________________________________
 	@echo Compiling $<
 	[ -e $(DVLPATH)/obj ] || mkdir $(DVLPATH)/obj
 	[ -e $(OBJPATH) ] || mkdir $(OBJPATH)
-	$(CXX) -c $(DEBUG) $(CXXFLAGS) $(BLAS_INCLUDE) $(CPPFLAGS) -o $@ $<
+	$(CXX) -c $(DEBUG) $(CXXFLAGS) $(BLAS_INCLUDE) $(EINSPLINE_INCLUDE) $(CPPFLAGS) -o $@ $<
 
 $(OBJPATH)/%.o:pw2lcao/%.cpp
 	@echo ________________________________________________________________
 	@echo Compiling $<
 	[ -e $(DVLPATH)/obj ] || mkdir $(DVLPATH)/obj
 	[ -e $(OBJPATH) ] || mkdir $(OBJPATH)
-	$(CXX) -c $(DEBUG) $(CXXFLAGS) $(BLAS_INCLUDE) $(CPPFLAGS) -o $@ $<
+	$(CXX) -c $(DEBUG) $(CXXFLAGS) $(BLAS_INCLUDE) $(EINSPLINE_INCLUDE) $(CPPFLAGS) -o $@ $<
 
 astyle:
 	@echo ________________________________________________________________
