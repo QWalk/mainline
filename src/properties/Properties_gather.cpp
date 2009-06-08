@@ -314,6 +314,7 @@ void Properties_gather::gatherData(Properties_point & myprop,
   for(int w=0; w< nwf; w++) {
     myprop.weight(w)=guide->getWeight(myprop.wf_val, 
                                       myprop.wf_val, w);
+    myprop.sign(w)=myprop.wf_val.sign(w);
     if(square_weight) 
       myprop.weight(w)*=myprop.weight(w);
       

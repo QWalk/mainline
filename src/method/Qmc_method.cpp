@@ -23,6 +23,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Optimize_method2.h"
 #include "Newton_opt_method.h"
 #include "Dmc_method.h"
+#include "Rndmc_method.h"
 #include "Test_method.h"
 #include "Plot_method.h"
 #include "Localize_method.h"
@@ -51,6 +52,9 @@ int allocate(vector <string> & words,
   
   else if(caseless_eq(words[0],"DMC"))
     methptr=new Dmc_method;
+
+  else if(caseless_eq(words[0],"RNDMC"))
+    methptr=new Rndmc_method;
   
   else if(caseless_eq(words[0],"TEST"))
     methptr=new Test_method;
@@ -94,6 +98,9 @@ int allocate(vector <string> & words,
   }
   else if(words[0] == "DMC") {
      methptr=new Dmc_method;
+  }
+  else if(words[0] == "RNDMC") {
+     methptr=new Rndmc_method;
   }
   else error(" ",words[0], " is not a valid averaging method");
 

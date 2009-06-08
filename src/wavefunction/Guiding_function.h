@@ -59,6 +59,7 @@ class Guiding_function {
 
 class Dmc_guiding_function:public Guiding_function {
  public:
+  virtual void set_alpha_for_noderelease(doublevar & a){ }
 
   virtual doublevar getWeight(Wf_return & val, 
                               Wf_return & guide, 
@@ -290,5 +291,74 @@ public:
 };
 
 
-#endif
 //---------------------------------------------------------------------------
+/*!
+\brief
+Represents the function \f$ \Psi_{guide} = \sqrt(\Psi_1^2+\alpha) \f$
+*/
+class Primary_noderelease:public Dmc_guiding_function {
+ private:
+  doublevar alpha;
+ public:
+  void set_alpha_for_noderelease(doublevar & a){
+    alpha=a;
+  }
+  
+
+  virtual doublevar getWeight(Wf_return & vals,
+                              Wf_return & guide, int w) {
+    
+    //cout <<"alpha "<<alpha<<" guide.amp(0,0) "<<guide.amp(0,0)<<endl; 
+
+    doublevar factor;
+    if(alpha>0)
+      factor= sqrt(1.0/(1.0+exp(log(alpha)-2.0*guide.amp(0,0))));
+    else
+      factor=1;
+
+    //cout <<" getWeight:  "<<exp((vals.amp(w,0)-guide.amp(0,0)))*factor<<endl;
+
+    return exp((vals.amp(w,0)-guide.amp(0,0)))*factor;
+  }
+
+
+  virtual void getLap(Wf_return & laps, 
+                      Array1 <doublevar> & ret) {
+    assert(ret.GetDim(0) >= 3);
+    assert(laps.amp.GetDim(0) >=1);
+    int max=min(ret.GetDim(0)+1, laps.amp.GetDim(1));
+
+    doublevar factor;
+    if(alpha>0)
+      factor= 1.0/(1.0+exp(log(alpha)-2.0*laps.amp(0,0)));
+    else
+      factor=1;
+
+    //cout <<" getLap: factor "<<factor<<endl;
+
+    for(int d=1; d< max; d++)
+      ret(d-1)=laps.amp(0,d)*factor;
+  }
+
+  virtual doublevar getOperatorWeight(Wf_return & lap, int w) {
+    if(w==0) return 1;
+    else return 0;
+  }
+
+
+  virtual doublevar getTrialRatio(Wf_return & newfunc,
+                                  Wf_return & oldfunc) {
+    doublevar factor;
+      if(alpha>0)
+	factor = sqrt((1.0+exp(log(alpha)-2.0*newfunc.amp(0,0)))/(1.0+exp(log(alpha)-2.0*oldfunc.amp(0,0))));
+      else
+	factor=1;
+
+      //cout <<" getTrialRatio: factor "<<factor<<endl; 
+    return factor*newfunc.sign(0)*oldfunc.sign(0)*exp((newfunc.amp(0,0)-oldfunc.amp(0,0)));
+  }
+};
+
+
+#endif //GUIDING_FUNCTION_H_INCLUDED
+//------------------------------------------------------------------------
