@@ -28,10 +28,12 @@ void Properties_point::setSize(int nwf,
   nonlocal.Resize(nwf);
   weight.Resize(nwf);
   wf_val.Resize(nwf, 1);
+  sign.Resize(nwf);
   
   moved=0;
   weight=1;
   count=0;
+  sign=1;
   
   aux_energy.Resize(n_aux, n_aux_cvg);
   aux_weight.Resize(n_aux, n_aux_cvg);

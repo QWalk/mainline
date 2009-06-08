@@ -858,12 +858,12 @@ void Rndmc_method::runWithVariables(Properties_manager & prop,
     //MB: lastblock: average value for last block
 
     //MB: original DMC had eref as this:
-    //eref=finavg2.avg(Properties_types::total_energy,0);
+    eref=finavg2.avg(Properties_types::total_energy,0);
     //MB: not sure this makes sence for the release node
     //MB: maybe it should be only over the last block
-     eref=lastblock2.avg(Properties_types::total_energy,0);
+    //eref=lastblock2.avg(Properties_types::total_energy,0);
 
-     updateEtrial(feedback);
+    updateEtrial(feedback);
    
     //MB: this is lubos's effectivity, which is ratio of averaged signed
     //MB: weights to averaged absolute weights 
