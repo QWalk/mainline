@@ -126,11 +126,11 @@ void Rndmc_method::read(vector <string> words,
 
   //MB: reading in the alpha relative value
   if(!readvalue(words, pos=0, alpha, "ALPHA"))
-    alpha=0.0;
+    error("supply value of ALPHA for node release ");
 
   //MB: needs to be possitive
-  if(alpha<0)
-    alpha=0.0;
+  if(alpha<0 && alpha >1 )
+    error("need positive value of ALPHA for node release");
 
   allocate(dynamics_words, dyngen);
 
@@ -139,7 +139,6 @@ void Rndmc_method::read(vector <string> words,
   if(alpha==0.0){
     dyngen->enforceNodes(1);
   }
- 
 }
 
 //----------------------------------------------------------------------
@@ -174,6 +173,7 @@ int Rndmc_method::generateVariables(Program_options & options) {
 
 int Rndmc_method::allocateIntermediateVariables(System * sys,
                                               Wavefunction_data * wfdata) {
+  
   if(wf) delete wf;
   wf=NULL;
   if(sample) delete sample;
@@ -187,9 +187,10 @@ int Rndmc_method::allocateIntermediateVariables(System * sys,
   if(wf->nfunc() >1) 
     error("DMC doesn't support more than one guiding wave function");
 
-  //guidingwf=new Primary;
   //MB: new node release guiding function defined in Guiding_wavefunction.h
   guidingwf= new Primary_noderelease;
+  doublevar tmp_alpha=0.0;
+  guidingwf->set_alpha_for_noderelease(tmp_alpha);
   //MB: allocating the rndm points
   pts.Resize(nconfig);
   pts_unbiased.Resize(nconfig, nstep);
@@ -208,7 +209,6 @@ int Rndmc_method::allocateIntermediateVariables(System * sys,
     allocate(avg_words[i], sys, wfdata, average_var(i));
   }
   
-
   return 1;
 }
 
@@ -319,7 +319,6 @@ void Rndmc_method::run(Program_options & options, ostream & output) {
   myprop.setLog(logfile, log_label);
   myprop_unbiased.setLog(logfile2, log_label);
   myprop_absolute.setLog(logfile3, log_label);
-  
   runWithVariables(myprop, mysys, mywfdata, mypseudo, output);
 }
 
@@ -372,13 +371,13 @@ void produce_positive_weights( Array2 <Dmc_point> & pts){
       error("All weight are negative, not able to the unbiased reweighting");
     }
     if(ave_pos_weight*all_pos_walker.size() < sum_neg_weights){
-      cout << mpi_info.node <<" sum of possitive weights= "<<ave_pos_weight*all_pos_walker.size()<<" |sum of negative weights|= "<< sum_neg_weights<<endl;
+      cout << "node: "<< mpi_info.node <<" sum of possitive weights= "<<ave_pos_weight*all_pos_walker.size()<<" |sum of negative weights|= "<< sum_neg_weights<<endl;
       error("not able to the unbiased reweighting !");
     }
     //cout <<"sum of possitive weights= "<<ave_pos_weight*all_pos_walker.size()<<" |sum of negative weights|= "<< sum_neg_weights<<endl;
     if(sum_neg_weights>0){
-      cout << mpi_info.node <<" ave_pos_weight "<<ave_pos_weight<<endl;
-      cout << mpi_info.node <<" sum_neg_weights "<<sum_neg_weights<<endl;
+      cout << "node: "<<mpi_info.node <<" ave_pos_weight "<<ave_pos_weight<<endl;
+      cout << "node: "<<mpi_info.node <<" sum_neg_weights "<<sum_neg_weights<<endl;
     }
 
     vector <int>  chosen_pos_walker;
@@ -389,7 +388,7 @@ void produce_positive_weights( Array2 <Dmc_point> & pts){
       
       doublevar sum_chosen_pos_weights=0;
       int tries=0;
-      while(sum_chosen_pos_weights< sum_neg_weights+ave_pos_weight || tries > 2*nconfig){
+      while(sum_chosen_pos_weights< sum_neg_weights+ave_pos_weight){
 	int walker=int(nconfig*rng.ulec());
 	//cout <<"randomly chosen walker: "<<walker<<" with weight "<<pts(walker,p).prop.weight(0)<<" notselected? "<<notselected(walker)<<endl;
 	if(pts(walker,p).prop.weight(0)>0 && notselected(walker)){
@@ -398,13 +397,14 @@ void produce_positive_weights( Array2 <Dmc_point> & pts){
 	  chosen_pos_walker.push_back(walker);
 	  notselected(walker)=0;
 	}
-	//cout <<" try "<<tries<<endl; 
+	//cout <<" tried "<<tries<<endl; 
+	if(tries > 2*nconfig){
+	  error("too many tries to match the negative weights");
+	}
 	tries++;
       }//while
-      cout << mpi_info.node << "tries "<<tries<<endl;
-      if(tries > 2*nconfig){
-	error("too many tries to match the negative weights");
-      }
+      cout << "node: "<<mpi_info.node << " tries "<<tries<<endl;
+     
       residual_weight=sum_chosen_pos_weights-sum_neg_weights;
       //cout <<" residual_weight "<<residual_weight<<endl;
 
@@ -493,6 +493,7 @@ void Rndmc_method::runWithVariables(Properties_manager & prop,
 {
 
   allocateIntermediateVariables(sys, wfdata);
+
   if(!wfdata->supports(laplacian_update))
     error("RNDMC doesn't support all-electron moves..please"
           " change your wave function to use the new Jastrow");
@@ -504,19 +505,20 @@ void Rndmc_method::runWithVariables(Properties_manager & prop,
   
   prop.setSize(wf->nfunc(), nblock, nstep, nconfig, sys, 
 	       wfdata, mygather.nAux(), aux_converge);
-  
+
   //MB: setting things for the myprop_unbiased and myprop_absolute
   myprop_unbiased.setSize(wf->nfunc(), nblock, nstep, nconfig, sys, 
 	       wfdata, mygather.nAux(), aux_converge);
   
   myprop_absolute.setSize(wf->nfunc(), nblock, nstep, nconfig, sys, 
 	       wfdata, mygather.nAux(), aux_converge);
-
   restorecheckpoint(readconfig, sys, wfdata, pseudo);
-  prop.initializeLog(average_var);
-  myprop_unbiased.initializeLog(average_var);
-  myprop_absolute.initializeLog(average_var);
 
+  prop.initializeLog(average_var);
+
+  myprop_unbiased.initializeLog(average_var);
+
+  myprop_absolute.initializeLog(average_var);
 
   //MB: setting initial sign for each walker and getting the average value;
   doublevar tmp_value=0.0;
@@ -704,7 +706,7 @@ void Rndmc_method::runWithVariables(Properties_manager & prop,
           //MB: pts(walker).sign is before the step and the pts(walker).prop.sign(0) is after
           //MB: if they change weight will change the sign as well
 	  if(pts(walker).sign!=pts(walker).prop.sign(0)){
-	    cout << mpi_info.node <<" walker changed the sign "<<endl;
+	    cout <<"node: "<<mpi_info.node <<" walker "<<walker<<" changed the sign "<<endl;
 	    //cout <<" pts(walker).weight "<<pts(walker).weight<<" pts(walker).prop.weight(0) "<<pts(walker).prop.weight(0)<<
 	    // " pts(walker).sign "<<pts(walker).sign<<" pts(walker).prop.sign "<<pts(walker).prop.sign<<endl;
 	    pts(walker).sign*=-1;
@@ -714,6 +716,7 @@ void Rndmc_method::runWithVariables(Properties_manager & prop,
 	  //MB: this is part of normal DMC run
           //MB: because we do not branch adjusting the weights according 
           //MB: to etrial makes no sence, but disscuss this with lubos, I am leaving this out
+
 	  //pts(walker).weight*=getWeight(pts(walker),teff,etrial);
 
           if(pts(walker).ignore_walker) {
@@ -840,23 +843,38 @@ void Rndmc_method::runWithVariables(Properties_manager & prop,
     prop.getFinal(finavg);
     myprop_unbiased.getFinal(finavg2);
     myprop_absolute.getFinal(finavg3);
+
+
+    Properties_block lastblock;
+    Properties_block lastblock2;
+    Properties_block lastblock3;
+
+    prop.getLastBlock(lastblock);
+    myprop_unbiased.getLastBlock(lastblock2);
+    myprop_absolute.getLastBlock(lastblock3);
     
 
-    //MB: total average value over all blocks up to this time
+    //MB: finalavg: total average value over all blocks up to this time
+    //MB: lastblock: average value for last block
+
+    //MB: original DMC had eref as this:
+    //eref=finavg2.avg(Properties_types::total_energy,0);
     //MB: not sure this makes sence for the release node
-    eref=finavg2.avg(Properties_types::total_energy,0);
-    updateEtrial(feedback);
+    //MB: maybe it should be only over the last block
+     eref=lastblock2.avg(Properties_types::total_energy,0);
+
+     updateEtrial(feedback);
    
-    //MB: this is lubos effectivity, which is ratio of averaged 
-    //MB: weights to absolute weights
-    //MB: problem is that finavg gives that summed over all blocks up to this time
-    //MB: while we want it only for given short block, correct? 
+    //MB: this is lubos's effectivity, which is ratio of averaged signed
+    //MB: weights to averaged absolute weights 
+    //MB: bellow is the value for each block
 
     doublevar effectivity;
-    doublevar weight_biased=finavg.avg(Properties_types::weight,0);
-    doublevar weight_abs=finavg3.avg(Properties_types::weight,0);
-    effectivity=weight_biased/weight_abs;
+    doublevar weight_biased=lastblock.avg(Properties_types::weight,0);
+    doublevar weight_abs=lastblock3.avg(Properties_types::weight,0);
 
+    effectivity=weight_biased/weight_abs;
+        
     doublevar maxage=0;
     doublevar avgage=0;
     for(int w=0;w < nconfig; w++) {
@@ -890,9 +908,7 @@ void Rndmc_method::runWithVariables(Properties_manager & prop,
       prop.printBlockSummary(output);
       output<<"\n ---- unbiased weights ---- \n";
       myprop_unbiased.printBlockSummary(output);
-      //      doublevar total_energy_unbiased=finavg2.avg(Properties_types::total_energy,0);
-      //      doublevar total_energy_unbiased_error=finavg2.err(Properties_types::total_energy,0);
-      //output<<"  $$0         "<<total_energy_unbiased<<"   +/-   "<<sqrt(total_energy_unbiased_error)<<endl;
+     
       output<<"\n ---- absolute weights ---- \n";
       myprop_absolute.printBlockSummary(output);
       output<<"\n effectivity  "<<effectivity<<" signed weight "<<weight_biased<<" absolute weight "<<weight_abs<<endl;
@@ -1028,12 +1044,14 @@ void Rndmc_method::restorecheckpoint(string & filename, System * sys,
     error("nconfig doesn't match the number of walkers in the config file");
   }
 
+ 
   for(int walker=0; walker < nconfig; walker++) {
     pts(walker).config_pos.restorePos(sample);
     mygather.gatherData(pts(walker).prop, pseudo, sys,
                         wfdata, wf, sample,
                         guidingwf);
   }
+  
   find_cutoffs();
 
   updateEtrial(start_feedback);
