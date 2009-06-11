@@ -45,7 +45,10 @@ void write_orb(string oname, int twist, int basissize, int nmo,
 	       int first_k2);
 void write_sys(string oname, int twist, int tw[4][3], int* Ne, double L,
 	       int outprec);
-void write_jast2(string oname, double L);
+void write_jast2_simple(string oname, double L);
+void write_jast2(string oname, int twist, double L, double k0,
+		 int* kx, int* ky, int* kz, int* idx, int* k2,
+		 int* shells, int nshells, int basissize, int outprec);
 
 
 int main(int argc, char ** argv) {
@@ -95,15 +98,20 @@ int main(int argc, char ** argv) {
     cout << "   <output base>.i.slater" << endl;
     cout << "   <output base>.i.basis" << endl;
     cout << "   <output base>.i.orb" << endl;
+    cout << "   <output base>.i.jast2   (Jastrow with long-range part)"
+	 << endl;  
+    cout << "   <output base>.jast2     (short-range only Jastrow)" 
+	 << endl;
     cout << "   <output base>.centers" << endl;
-    cout << "   <output base>.jast2" << endl;
     cout << "where i indexes k-points (twists of boundary conditions) and ";
     cout << "runs from 0 to 3;" << endl;
     cout << "0 is the Gamma-point." << endl;
     cout << endl;
     cout << "If -bcs option is given, extra input is taken (number ";
     cout << "of virtual orbitals), " << endl;
-    cout << "and extra files are written (<output base>.i.bcs)."<< endl;
+    cout << "and extra files are written: <output base>.i.bcs). These "
+	 << "are in Pfaffian format, which is now obsolete for this "
+	 << "application." << endl;
     cout << endl;
     return 1;
   }   
@@ -330,6 +338,10 @@ int main(int argc, char ** argv) {
   // write sys file
   write_sys(oname, twist, tw, Ne, L, outprec);
 
+  // write simple two-body Jastrow
+  write_jast2(oname, twist, L, k0, kx, ky, kz, idx, k2,
+	      shells, nshells, basissize, outprec);  
+
   // calculate the (kinetic) energy of non-interacting particles
   // to have an idea of this part of finite-size errors
   for (int i=0; i<2; i++) {
@@ -363,8 +375,8 @@ int main(int argc, char ** argv) {
   centerout << "origin 0.0 0.0 0.0" << endl;
   centerout.close();
 
-  // write simple two-body Jastrow
-  write_jast2(oname, L);
+  // write simple two-body Jastrow, this one is k-point independent
+  write_jast2_simple(oname, L);
 
   // compare our approximate kinetic energy with exact one
 #ifndef PBC_ONLY
@@ -685,13 +697,9 @@ void write_sys(string oname, int twist, int tw[4][3], int* Ne, double L,
   // }}}
 }
 
-void write_jast2(string oname, double L) {
-  // {{{ we could certainly use RPA to obtain better initial guess,
-  // but right now I just need something
-  string jastname=oname+".jast2";
-  ofstream jastout(jastname.c_str());
-  double cutoff=L/2.001;  // will work as long as we use the simple cubic cell
-  jastout << "JASTROW2" << endl;
+void write_jast2_short_range_part(ofstream& jastout, double cutoff) {
+  // {{{ .
+  jastout << "  # e-e cusp conditions" << endl;
   jastout << "  GROUP {" << endl;
   jastout << "    OPTIMIZEBASIS" << endl;
   jastout << "    TWOBODY_SPIN {" << endl;
@@ -713,7 +721,8 @@ void write_jast2(string oname, double L) {
   jastout << "      CUSP 1" << endl;
   jastout << "      CUTOFF " << cutoff << endl;
   jastout << "    }" << endl;
-  jastout << "  }" << endl;
+  jastout << "  }" << endl << endl;
+  jastout << "  # isotropic (short-range) e-e term" << endl; 
   jastout << "  GROUP {" << endl;
   jastout << "    OPTIMIZEBASIS" << endl;
   jastout << "    TWOBODY {" << endl;
@@ -726,7 +735,88 @@ void write_jast2(string oname, double L) {
   jastout << "      BETA0 -0.5" << endl;
   jastout << "      NFUNC 1" << endl;
   jastout << "    }" << endl;
-  jastout << "  }" << endl;
+  jastout << "  }" << endl << endl;
+  // }}}
+}
+
+void write_jast2_simple(string oname, double L) {
+  // {{{ .
+  string jastname=oname+".jast2";
+  ofstream jastout(jastname.c_str());
+  double cutoff=L/2.001;  // will work as long as we use the simple cubic cell
+  jastout << "JASTROW2" << endl << endl;
+  write_jast2_short_range_part(jastout, cutoff);
+  // }}}
+}
+
+void write_jast2(string oname, int twist, double L, double k0,
+		 int* kx, int* ky, int* kz, int* idx, int* k2,
+		 int* shells, int nshells, int basissize, int outprec) {
+  // {{{ .
+#ifdef PBC_ONLY  
+  string jastname=oname+".jast2";
+#else
+  stringstream str_twist;
+  str_twist << twist;
+  string jastname=oname+"."+str_twist.str()+".jast2";
+#endif
+  ofstream jastout(jastname.c_str());
+
+  double cutoff=L/2.001;  // will work as long as we use the simple cubic cell
+  jastout << "JASTROW2" << endl << endl;
+  write_jast2_short_range_part(jastout, cutoff);
+
+  // long-range part uses one parameter per shell/star
+  // N.B.: this is probably the right thing to do only in the case of
+  // closed-shell occupation (of course, closed-shell with respect to given
+  // boundary condition)
+  int first_shell=0;
+  int first_k_vec=0;
+  int extra_vec=0;
+  // cos(0) would be just normalization so it is not included
+  if ( k2[idx[0]]==0 ) {
+    first_shell=1;
+    first_k_vec=shells[0];
+    extra_vec=1;
+  }
+  // a decision is needed how many shells/stars will be included in the Jastrow
+  // factor; using occupied shells seems reasonable
+  int last_shell;
+  for ( int i=0; i < nshells; i++ ) {
+    last_shell=i;
+    if ( shells[i]/2+extra_vec >= basissize ) break;
+  }  
+
+  jastout << "  # long-range e-e term (plane-wave expansion, k-point dependent)"
+	  << endl;
+  jastout << "  GROUP {" << endl;
+  jastout << "    TWOBODY {" << endl;
+  jastout << "      COEFFICIENTS { ";
+  for ( int i=first_shell; i < last_shell+1; i++ ) jastout << "0.0 ";
+  jastout << "}" << endl;
+  jastout << "    }" << endl;
+  jastout << "    EEBASIS {" << endl;
+  jastout << "      EE" << endl;
+  jastout << "      BASIS_GROUPS" << endl;
+  for ( int i=first_shell; i < last_shell+1; i++) {
+    jastout << "      BASIS_GROUP {" << endl;
+    jastout << "        EE" << endl;
+    jastout << "        COSINE" << endl;
+    jastout << "        GVECTOR {" << endl;
+    for ( int j=first_k_vec; j < shells[i]/2+extra_vec; j++ ) {
+      jastout << "     ";
+      jastout << setprecision(outprec) << setw(outprec+6) << k0*kx[idx[j]]
+	      << setprecision(outprec) << setw(outprec+6) << k0*ky[idx[j]]
+	      << setprecision(outprec) << setw(outprec+6) << k0*kz[idx[j]]
+	      << endl;
+      first_k_vec=j+1;
+    }
+    //first_k_vec=shells[i]/2+extra_vec;
+    jastout << "        }" << endl;
+    jastout << "      }" << endl;
+  }
+  jastout << "    }" << endl;
+  jastout << "  }" << endl; 
   jastout.close();
   // }}}
 }

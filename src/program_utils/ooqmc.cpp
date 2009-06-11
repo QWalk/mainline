@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
 #endif
 
   int inputfilestart=1;
-  for(int i=1; i< argc-1; i++) {
+  for(int i=1; i< argc; i++) {
     string arg(argv[i]);
     if(caseless_eq(arg,"-rappture")) {
       global_options::rappture=1;
@@ -62,10 +62,14 @@ int main(int argc, char* argv[])
     }
   }
 
+  if ( argc <= inputfilestart )
+    error("usage: ", argv[0], " [-rappture] filename(s)");
+
   // No. of indeendent processes in the pack = No. of inputfiles
   int processcount=argc-inputfilestart;
   int group;   // indexes groups of independent processes (needed to assign
                // correct inputfile)
+
 #ifdef USE_MPI
   int nprocs, node, group_size, ingroup;
   MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
@@ -85,11 +89,7 @@ int main(int argc, char* argv[])
 #endif
 
   vector<string> inputfiles(processcount);
-  if(argc >= inputfilestart) {
-    for(int i=0; i<processcount; i++) inputfiles[i]=argv[i+inputfilestart];
-  } else {
-    error("usage: ", argv[0],  " [-rappture] filename(s)");
-  }
+  for(int i=0; i<processcount; i++) inputfiles[i]=argv[i+inputfilestart];
 
   // allocate per-process variables
   Program_options options;

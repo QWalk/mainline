@@ -15,7 +15,8 @@ MY_SOURCES:= Basis_function.cpp \
 		  CBasis_function.cpp \
 		  CPlanewave_function.cpp\
 		  Blochwave_function.cpp \
-                  Group_function.cpp
+                  Group_function.cpp \
+                  Cosine_function.cpp
 
 
 SOURCES:= $(SOURCES) $(addprefix basis_function/,$(MY_SOURCES))

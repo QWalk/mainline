@@ -44,6 +44,7 @@ struct Properties_point {
   void reset() {
     nchildren=0;
     parent=-1;
+    sign=1;
     moved=0;
     weight=0;
     count=0;
@@ -70,6 +71,8 @@ struct Properties_point {
   int moved; //whether we moved or not from this point
 
   int count; //whether to count this point or not
+
+  Array1 <int> sign; //track the sign of walker's wavefunction
   
   //Properties to track
   Array1 <doublevar> kinetic;

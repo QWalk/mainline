@@ -19,8 +19,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 
 
-#ifndef DMC_METHOD_H_INCLUDED
-#define DMC_METHOD_H_INCLUDED
+#ifndef RNDMC_METHOD_H_INCLUDED
+#define RNDMC_METHOD_H_INCLUDED
 
 #include "Qmc_std.h"
 #include "Qmc_method.h"
@@ -33,39 +33,11 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Split_sample.h"
 #include "Properties.h"
 #include <deque>
+#include "Dmc_method.h"
 
 class Program_options;
 
-struct Dmc_history { 
-  doublevar main_en;
-  Array2 <doublevar> aux_en;
-  void mpiSend(int node);
-  
-  void mpiReceive(int node);
-
-};
-
-struct Dmc_point { 
-  Properties_point prop;
-  deque <Dmc_history> past_energies;
-  doublevar weight;
-  int ignore_walker;
-  int sign;
-  Config_save_point config_pos;  
-  Array1 <doublevar> age;  //!< age of each electron
-  Dmc_point() { 
-    weight=1;
-    ignore_walker=0;
-    //MB: keeping track of the sign 
-    sign=1;
-  }
-  void mpiSend(int node);
-  void mpiReceive(int node);
-  
-};
-
-
-class Dmc_method : public Qmc_avg_method
+class Rndmc_method : public Qmc_avg_method
 {
 public:
 
@@ -83,7 +55,7 @@ public:
                                 ostream & output);
 
 
-  Dmc_method() {
+  Rndmc_method() {
     have_read_options=0;
     have_allocated_variables=0;
 
@@ -96,7 +68,7 @@ public:
     sample=NULL;
     
   }
-  ~Dmc_method()
+  ~Rndmc_method()
   {
     if(have_allocated_variables) {
       if(mypseudo) delete mypseudo;
@@ -116,6 +88,9 @@ public:
  private:
 
   Properties_manager myprop;
+  //MB: 2 new property managers for averaging over unbiased weights and absolute weights
+  Properties_manager myprop_unbiased;
+  Properties_manager myprop_absolute;
   Properties_gather mygather;
 
 
@@ -200,7 +175,10 @@ public:
   Wavefunction * wf;
   Wavefunction_data * mywfdata;
 
+  //MB: original rndmc_point 
   Array1 <Dmc_point> pts;
+  //MB: added new rndmc point for the unbiased weights according to lubos
+  Array2 <Dmc_point> pts_unbiased;
 
   Array1 < Local_density_accumulator *> densplt;
   vector <vector <string> > dens_words;
@@ -209,10 +187,12 @@ public:
   Array1 < Average_generator * > average_var;
   vector <vector <string> > avg_words;
 
+  doublevar alpha;
+
 };
 
 
 
 
-#endif //DMC_METHOD_H_INCLUDED
+#endif //RNDMC_METHOD_H_INCLUDED
 //------------------------------------------------------------------------

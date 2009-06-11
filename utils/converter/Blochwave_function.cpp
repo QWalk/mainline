@@ -20,6 +20,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "CBasis_function.h"
 #include "converter.h"
+#include <cstdlib>
 
 
 void sort_lowest_first(vector <double> & vals, vector <int> & list){
@@ -147,8 +148,10 @@ int Blochwave_function::read(string & filename, int & debug, int & norbs, int & 
 	    }
 	    //cout <<line<<endl;
 	    //cout <<line.substr(2,23)<<"  "<<line.substr(26,23)<<endl;
-	    eigenvec.real()=atof(line.substr(2,23).c_str());
-	    eigenvec.imag()=atof(line.substr(26,23).c_str());
+	    //eigenvec.real()=atof(line.substr(2,23).c_str());
+	    //eigenvec.imag()=atof(line.substr(26,23).c_str());
+            eigenvec=dcomplex(atof(line.substr(2,23).c_str()),
+			      atof(line.substr(26,23).c_str()));
 	    eigenvecband.push_back(eigenvec);
 	    kounter++;
 	  }
@@ -185,8 +188,10 @@ int Blochwave_function::read(string & filename, int & debug, int & norbs, int & 
 	      break;
 	    }
 	    //cout <<line<<endl;
-	    eigenvec.real()=atof(line.substr(2,23).c_str());
-	    eigenvec.imag()=atof(line.substr(26,23).c_str());
+	    //eigenvec.real()=atof(line.substr(2,23).c_str());
+	    //eigenvec.imag()=atof(line.substr(26,23).c_str());
+            eigenvec=dcomplex(atof(line.substr(2,23).c_str()),
+			      atof(line.substr(26,23).c_str()));
 	    eigenvecband.push_back(eigenvec);
 	    kounter++;
 	  }
@@ -463,14 +468,29 @@ int Blochwave_function::read(string & filename, int & debug, int & norbs, int & 
 	      double a2=ckg[ireducible_kvec[kn]][bn2][i].real();
 	      double b1=ckg[ireducible_kvec[kn]][bn1][i].imag();
 	      double b2=ckg[ireducible_kvec[kn]][bn2][i].imag();
-	      if((nonzero_part_of_ireducible_kvec[kn][bn1]==0) && (nonzero_part_of_ireducible_kvec[kn][bn2]==0) ){
-		ckg_tmp3.real()=a1-b2; ckg_tmp3.imag()=b1+a2;}
-	      else if ((nonzero_part_of_ireducible_kvec[kn][bn1]==0) && (nonzero_part_of_ireducible_kvec[kn][bn2]==1) ){
-		ckg_tmp3.real()=a1+a2; ckg_tmp3.imag()=b1+b2;}
-	      else if ((nonzero_part_of_ireducible_kvec[kn][bn1]==1) && (nonzero_part_of_ireducible_kvec[kn][bn2]==0) ){
-		ckg_tmp3.real()=b1+b2; ckg_tmp3.imag()=a1+a2;}
-	      else {
-		ckg_tmp3.real()=a1+b2; ckg_tmp3.imag()=b1-a2;}
+	      if((nonzero_part_of_ireducible_kvec[kn][bn1]==0)
+		 && (nonzero_part_of_ireducible_kvec[kn][bn2]==0) )
+		{
+		  //ckg_tmp3.real()=a1-b2; ckg_tmp3.imag()=b1+a2;
+		  ckg_tmp3=dcomplex(a1-b2,b1+a2);
+		}
+	      else if ((nonzero_part_of_ireducible_kvec[kn][bn1]==0)
+		       && (nonzero_part_of_ireducible_kvec[kn][bn2]==1) )
+		{
+		  //ckg_tmp3.real()=a1+a2; ckg_tmp3.imag()=b1+b2;
+		  ckg_tmp3=dcomplex(a1+a2,b1+b2);
+		}
+	      else if ((nonzero_part_of_ireducible_kvec[kn][bn1]==1)
+		       && (nonzero_part_of_ireducible_kvec[kn][bn2]==0) )
+		{
+		  //ckg_tmp3.real()=b1+b2; ckg_tmp3.imag()=a1+a2;
+		  ckg_tmp3=dcomplex(b1+b2,a1+a2);
+		}
+	      else
+		{
+		  //ckg_tmp3.real()=a1+b2; ckg_tmp3.imag()=b1-a2;
+		  ckg_tmp3=dcomplex(a1+b2,b1-a2);
+		}
 	      ckg_tmp2.push_back(ckg_tmp3);
 	    }//i
 	    ckg_tmp.push_back(ckg_tmp2);

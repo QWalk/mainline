@@ -32,6 +32,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Gen_pade_function.h"
 #include "Step_function.h"
 #include "Group_function.h"
+#include "Cosine_function.h"
 
 int allocate(vector <string> & basistext, Basis_function * & bptr)
 {
@@ -61,6 +62,8 @@ int allocate(vector <string> & basistext, Basis_function * & bptr)
     bptr=new Step_function;
   else if(caseless_eq(type,"BASIS_GROUPS"))
     bptr=new Group_function;
+  else if(caseless_eq(type,"COSINE"))
+    bptr=new Cosine_function;
   else
     error("Didn't understand the basis section type ", type,
           " in basis section ", basistext[0]);

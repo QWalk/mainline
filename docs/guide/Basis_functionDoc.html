@@ -20,6 +20,8 @@ Further keywords are specific to the type of function.
 
 \ref Basis_GroupsDoc
 
+\ref Cosine_functionDoc
+
 \ref Cubic_splineDoc
 
 \ref Cutoff_cuspDoc
@@ -90,6 +92,31 @@ None.
 
 */
 
+//######################################################################
+
+
+/*! \page Cosine_functionDoc Cosine function
+
+Keyword: COSINE
+
+\section description Description
+
+Set of cos(g*r) corresponding to given g-vectors. Subset of
+\ref Planewave_functionDoc that has zero derivative at the origin
+and therefore does not interfere with cusp conditions if used in
+Jastrow factor.
+
+\section options Options
+
+\subsection reqopt Required 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
+<tr> <td> GVECTOR  <td> Section 
+     <td> List of triples of g-vectors to be used.
+</table>
+
+*/
 
 //######################################################################
 
@@ -309,7 +336,8 @@ Keyword: PLANEWAVE or CPLANEWAVE
 \section description Description
 
 Real version (PLANEWAVE) interleaves cos(g*r) and sin(g*r) for a set
-of g-vectors. Complex version (CPLANEWAVE) is a set of exp(i*g*r).
+of g-vectors. Complex version (CPLANEWAVE) is a set of exp(i*g*r). See
+also \ref Cosine_functionDoc .
 
 \section options Options
 
