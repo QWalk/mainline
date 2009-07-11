@@ -24,6 +24,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <vector>
 #include <iostream>
 #include <cassert>
+#include "converter.h"
+#include "basis_writer.h"
 
 class Wf_writer {
   public:
@@ -135,11 +137,63 @@ void print_3b_jastrow2(std::ostream & os,std::vector<std::string> & unique_atoms
 /*
  Doubles a periodic cell in the specified direction.  latvec, moCoeff, and the atoms are all changed
  to reflect the new cell.  Assumes atom-centered basis functions..
- */
+*/ 
+
+using namespace std;
+
+template <typename T>
 void fold_kpoint(Slat_wf_writer & slwriter, 
                  std::vector <std::vector <double> > & latvec,
                  int dir,
-                 std::vector <std::vector < double> > & moCoeff,
-                 std::vector <Atom> & atoms);
+                 std::vector <std::vector <T> > & moCoeff,
+                 std::vector <Atom> & atoms) { 
+  //Note: this won't work for UHF wavefunctions..
 
+  vector <Atom> natoms;
+  for(vector<Atom>::iterator i=atoms.begin(); i!=atoms.end(); i++) { 
+    Atom tmp=*i;
+    for(int d=0;d < 3; d++) { 
+      tmp.pos[d]+=latvec[dir][d];
+    }
+    natoms.push_back(tmp);
+  }
+  atoms.insert(atoms.end(), natoms.begin(), natoms.end());
+
+  vector <vector <T> > nmocoeff;
+  vector<T> motmp;
+  int count=1;
+  for(typename vector<vector<T> >::iterator i=moCoeff.begin(); i!=moCoeff.end();
+      i++) 
+    { 
+      motmp.clear();
+      //gamma point
+      for(typename vector<T>::iterator j=i->begin(); j!= i->end(); j++) { 
+	motmp.push_back(*j);
+      }
+      for(typename vector<T>::iterator j=i->begin(); j!= i->end(); j++) { 
+	motmp.push_back(*j);
+      }
+      nmocoeff.push_back(motmp);
+      motmp.clear();
+      cout << "count " << count << " "  << nmocoeff.size() << " ";
+      //X point
+      for(typename vector<T>::iterator j=i->begin(); j!= i->end(); j++) { 
+	motmp.push_back(*j);
+      }
+      for(typename vector<T>::iterator j=i->begin(); j!= i->end(); j++) { 
+	motmp.push_back(-*j);
+      }
+      nmocoeff.push_back(motmp);
+      cout << " " << nmocoeff.size() << endl;
+      count++;
+    }
+  moCoeff=nmocoeff;
+  
+  for(int d=0; d< 3; d++) {
+    latvec[dir][d]*=2;
+  }
+  
+}
+
+//----------------------------------------------------------------------
 #endif

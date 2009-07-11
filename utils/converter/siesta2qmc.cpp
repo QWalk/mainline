@@ -21,6 +21,7 @@
 #include "converter.h"
 #include <iostream>
 #include <string>
+#include <sstream>
 #include <fstream>
 #include <cmath>
 #include <cstdlib>
@@ -28,6 +29,7 @@
 #include "basis_writer.h"
 #include "Pseudo_writer.h"
 #include "wf_writer.h"
+
 using namespace std;
 enum coord_t { bohr, ang, scaled, fractional };
 
@@ -35,27 +37,57 @@ void read_lattice_vector(istream & is, vector <string> & currline,
                          vector <vector <double> > & latvec);
 void read_atoms(istream & is, vector <string> & currline, 
                          vector <Atom> & atoms,coord_t & coord_type);
+
+template <typename T>
 void read_mo_coefficients(istream & is, vector <string> & currline,
-                          Slat_wf_writer & slwriter, vector <vector <double> > & moCoeff);
+                          Slat_wf_writer & slwriter, vector <vector <T> > & moCoeff);
+
 //reads in the basis for each type of atom
 void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis );
 void read_psp(vector <Atom> & atoms, vector <Spline_pseudo_writer> & pseudo);
-void fix_basis_norm(vector <Atom> & atoms, vector <Spline_basis_writer> & basis,
-                    vector < vector < double> > & moCoeff);
 
+template <typename T>
+void fix_basis_norm(vector <Atom> & atoms, vector <Spline_basis_writer> & basis,
+                    vector < vector <T> > & moCoeff);
+
+template <typename T> 
+T safe_read(string& real, string& imaginary);
+
+void orbital_split(string line, vector <string> & currline);
+
+template <typename T>
+int run_main(int argc, char **argv, int is_complex);
 //###########################################################################
 
 
 int main(int argc, char ** argv) { 
   if(argc < 2) {
-    cout << "usage: siesta2qmc < -o basename > < -fold fold_dir nfold > [siesta stdout]\n";
+    cout << "usage: siesta2qmc < -o basename > < -fold fold_dir nfold > < -use_complex > [siesta stdout]\n";
     cout << "  -o          use basename as the prefix for QWalk.  Defaults to qwalk\n";
     exit(1);
   }
+  
+  int is_complex = 0;
+  int result = 0;
+
+  for(int i=1; i< argc-1; ++i)  
+    if(!strcmp(argv[i],"-use_complex"))
+      is_complex = 1;
+  
+  if (is_complex)
+    result = run_main<dcomplex>(argc, argv, 1);
+  else
+    result = run_main<doublevar>(argc, argv, 0);
+
+  return result;
+}
+
+template <typename T>
+int run_main(int argc, char **argv, int is_complex)
+{
   string outputname="qwalk";
   int fold_dir=-1;
   int nfold=0;
-  
   
   for(int i=1; i< argc-1; i++) { 
     if(!strcmp(argv[i],"-o") && i+1 < argc) { 
@@ -65,7 +97,6 @@ int main(int argc, char ** argv) {
       fold_dir=atoi(argv[++i]);
       nfold=atoi(argv[++i]);
     }
-    
   }
   string infilename=argv[argc-1];
   
@@ -73,7 +104,24 @@ int main(int argc, char ** argv) {
   vector <Atom> atoms;
   vector <vector < double> > latvec;
   Slat_wf_writer slwriter;
-  vector <vector <double> >  moCoeff;
+  
+  //Default Magnification
+  slwriter.magnification=10.0;
+ 
+  vector <vector <T> > moCoeff;
+  if (is_complex) 
+    {
+      slwriter.orbtype = "CORBITALS";
+      slwriter.mo_matrix_type = "CCUTOFF_MO";
+
+      //Default magnification proved to be very problematic for
+      //cmplx wavefuction as is also noted in crystal2qmc
+      //this is a quick fix for now, there is probably a better way
+      slwriter.magnification *= 5.0;
+    }
+  else
+    slwriter.mo_matrix_type="CUTOFF_MO";
+
   int spin_pol=0;
   vector <Spline_pseudo_writer> pseudo;
   
@@ -94,6 +142,7 @@ int main(int argc, char ** argv) {
     read_atoms(is,currline,atoms, coord_type);
     read_lattice_vector(is,currline,latvec);
     read_mo_coefficients(is, currline, slwriter, moCoeff);
+
     if(currline.size()> 6 && currline[2]=="spin" && currline[3]=="polarization") { 
       spin_pol=atoi(currline[6].c_str());
       double tmp=atof(currline[6].c_str());
@@ -113,7 +162,6 @@ int main(int argc, char ** argv) {
   is.close();
   slwriter.orbname=outputname+".orb";
   slwriter.basisname=outputname+".basis";
-  slwriter.mo_matrix_type="CUTOFF_MO";
  
   cout << " coord_type " << coord_type << endl;
   if(coord_type==scaled || coord_type==fractional) { 
@@ -129,19 +177,17 @@ int main(int argc, char ** argv) {
       }
     }
   }
-  
-  //this seems to work well no matter the system size, at least so 
-  //far
-  slwriter.magnification=10.0;
-  
+ 
   vector <Spline_basis_writer> basis;
   read_basis(atoms, basis);
   read_psp(atoms, pseudo);
   fix_basis_norm(atoms,basis, moCoeff);
 
-  for(int i=0; i< nfold; i++) { 
-    fold_kpoint(slwriter, latvec,fold_dir,moCoeff,atoms);
-  }
+
+  for(int i=0; i< nfold; i++) 
+    { 
+      fold_kpoint(slwriter, latvec,fold_dir,moCoeff,atoms);
+    }
   
   int nelectrons=0;
   for(vector<Atom>::iterator at=atoms.begin(); 
@@ -185,7 +231,9 @@ int main(int argc, char ** argv) {
     centers[at].name=atoms[at].name;
     nbasis[at]=basis[atoms[at].basis].nfunc();
   }
+
   print_orbitals(os,centers,nbasis, moCoeff);
+
   os.close(); os.clear();
   
   //--------------------Slater determinant file
@@ -324,8 +372,41 @@ void read_lattice_vector(istream & is, vector <string> & currline,
 }
 
 //###########################################################################
+//This function reads the two strings from the siesta input file which give
+//the real and complex coefficients, and safely places it into the desired orbital
+//coefficient type, which will be either doublevar or dcomplex
+template <typename T>
+T safe_read(string& real, string& imaginary)
+{
+  T result;
+  stringstream sstream(real + " " + imaginary);
+  if (!(sstream >> result)) throw exception();
+  return result;
+}
+//###########################################################################
+//It turns out, that when there are imaginary coeff's that are both double,
+//digit and negative, that the real and imaginary coeff's are not bridged by
+//a space, but rather by the - sign.  Thus the more general split() function
+//needs a modification
+void orbital_split(string line, vector <string> & currline)
+{
+  string space = " ";
+  split(line, space, currline);
+  if (currline.size() < 7) //If last two were joined by a -...
+    {
+      int loc = currline[5].rfind("-", currline[5].size());
+      string temp_1 = currline[5].substr(0, loc - 1);
+      string temp_2 = currline[5].substr(loc, currline[5].size());
+      currline[5] = temp_1;
+      currline.push_back(temp_2);
+    }
+}
+
+
+//###########################################################################
+template <typename T>
 void read_mo_coefficients(istream & is, vector <string> & currline,
-                          Slat_wf_writer & slwriter, vector <vector <double> > & moCoeff) { 
+                          Slat_wf_writer & slwriter, vector <vector <T> > & moCoeff) { 
   slwriter.use_global_centers=true;
   slwriter.write_centers=false;
   string space=" ";
@@ -361,13 +442,14 @@ void read_mo_coefficients(istream & is, vector <string> & currline,
       int norb=atoi(currline[3].c_str());
       //cout << "norb " << norb << endl;
       //Now start with reading the ****orbitals*** (KS wave functions)
-      for(int orb=0; orb < norb; orb++) { 
+      for(int orb_num=0; orb_num < norb; orb_num++) { 
         for(int i=0; i< 5; i++) getline(is,line); //blank, wf#, energy, ---'s, header
-        vector <double> orb(nbasis);
+        vector <T> orb(nbasis);
         for(int b=0; b< nbasis; b++) { 
           getline(is, line);
-          currline.clear(); split(line, space,currline);
-          orb[b]=atof(currline[5].c_str());
+          currline.clear(); 
+	  orbital_split(line, currline);
+	  orb[b] = safe_read<T>(currline[5],currline[6]);
         }
         moCoeff.push_back(orb);
         getline(is, line); //a line of --'s
@@ -689,9 +771,10 @@ void read_psp(vector <Atom> & atoms, vector <Spline_pseudo_writer> & pseudo) {
 
 //###########################################################################
 
+template <typename T>
 void fix_basis_norm(vector <Atom> & atoms, 
                     vector <Spline_basis_writer> & basis,
-                    vector < vector < double> > & moCoeff) {
+                    vector < vector <T> > & moCoeff) {
   
   int nmo=moCoeff.size();
   int funcnum=0;
@@ -711,7 +794,7 @@ void fix_basis_norm(vector <Atom> & atoms,
       else if(*type=="P_siesta") L=1;
       else if(*type=="5D_siesta") L=2;
       else if(*type=="7F_siesta") L=3;
-      else { cout << "unkown type! " << *type << endl; exit(3); }
+      else { cout << "unknown type! " << *type << endl; exit(3); }
       double norm=(2.0*L+1)/(4*pi);
       for(int m=-L; m< L+1; m++) { 
         int absm=abs(m);
