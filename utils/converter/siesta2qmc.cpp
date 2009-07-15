@@ -38,53 +38,32 @@ void read_lattice_vector(istream & is, vector <string> & currline,
 void read_atoms(istream & is, vector <string> & currline, 
                          vector <Atom> & atoms,coord_t & coord_type);
 
-template <typename T>
 void read_mo_coefficients(istream & is, vector <string> & currline,
-                          Slat_wf_writer & slwriter, vector <vector <T> > & moCoeff);
+                          Slat_wf_writer & slwriter, vector < vector <vector <dcomplex> > > & moCoeff,
+			  vector < vector <double > > &kpoints);
 
 //reads in the basis for each type of atom
 void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis );
 void read_psp(vector <Atom> & atoms, vector <Spline_pseudo_writer> & pseudo);
 
-template <typename T>
 void fix_basis_norm(vector <Atom> & atoms, vector <Spline_basis_writer> & basis,
-                    vector < vector <T> > & moCoeff);
-
-template <typename T> 
-T safe_read(string& real, string& imaginary);
+                    vector < vector <dcomplex> > & moCoeff);
 
 void orbital_split(string line, vector <string> & currline);
 
-template <typename T>
-int run_main(int argc, char **argv, int is_complex);
+
 //###########################################################################
 
 
 int main(int argc, char ** argv) { 
   if(argc < 2) {
-    cout << "usage: siesta2qmc < -o basename > < -fold fold_dir nfold > < -use_complex > [siesta stdout]\n";
+    cout << "usage: siesta2qmc < -o basename > < -fold fold_dir nfold > [siesta stdout]\n";
     cout << "  -o          use basename as the prefix for QWalk.  Defaults to qwalk\n";
     exit(1);
   }
   
-  int is_complex = 0;
   int result = 0;
 
-  for(int i=1; i< argc-1; ++i)  
-    if(!strcmp(argv[i],"-use_complex"))
-      is_complex = 1;
-  
-  if (is_complex)
-    result = run_main<dcomplex>(argc, argv, 1);
-  else
-    result = run_main<doublevar>(argc, argv, 0);
-
-  return result;
-}
-
-template <typename T>
-int run_main(int argc, char **argv, int is_complex)
-{
   string outputname="qwalk";
   int fold_dir=-1;
   int nfold=0;
@@ -106,21 +85,12 @@ int run_main(int argc, char **argv, int is_complex)
   Slat_wf_writer slwriter;
   
   //Default Magnification
-  slwriter.magnification=10.0;
+  slwriter.magnification=50.0;
  
-  vector <vector <T> > moCoeff;
-  if (is_complex) 
-    {
-      slwriter.orbtype = "CORBITALS";
-      slwriter.mo_matrix_type = "CCUTOFF_MO";
 
-      //Default magnification proved to be very problematic for
-      //cmplx wavefuction as is also noted in crystal2qmc
-      //this is a quick fix for now, there is probably a better way
-      slwriter.magnification *= 5.0;
-    }
-  else
-    slwriter.mo_matrix_type="CUTOFF_MO";
+  //Assume complex, if imaginary part happens to be 0 later, copy to a real
+  //set of orbitals and proceed
+  vector < vector <vector <dcomplex> > > moCoeff;
 
   int spin_pol=0;
   vector <Spline_pseudo_writer> pseudo;
@@ -135,13 +105,14 @@ int run_main(int argc, char **argv, int is_complex)
   string space=" ";
   vector <string> currline;
   int netCharge=0;
+  vector < vector < double > > kpoints;
   coord_t coord_type;
   while(getline(is,line)) { 
     currline.clear();
     split(line, space, currline);
     read_atoms(is,currline,atoms, coord_type);
     read_lattice_vector(is,currline,latvec);
-    read_mo_coefficients(is, currline, slwriter, moCoeff);
+    read_mo_coefficients(is, currline, slwriter, moCoeff, kpoints);
 
     if(currline.size()> 6 && currline[2]=="spin" && currline[3]=="polarization") { 
       spin_pol=atoi(currline[6].c_str());
@@ -160,9 +131,9 @@ int run_main(int argc, char **argv, int is_complex)
     }
   }
   is.close();
-  slwriter.orbname=outputname+".orb";
-  slwriter.basisname=outputname+".basis";
- 
+
+  int num_kpoints = kpoints.size();
+
   cout << " coord_type " << coord_type << endl;
   if(coord_type==scaled || coord_type==fractional) { 
     cout << "rescaling " << endl;
@@ -181,12 +152,12 @@ int run_main(int argc, char **argv, int is_complex)
   vector <Spline_basis_writer> basis;
   read_basis(atoms, basis);
   read_psp(atoms, pseudo);
-  fix_basis_norm(atoms,basis, moCoeff);
-
-
-  for(int i=0; i< nfold; i++) 
-    { 
-      fold_kpoint(slwriter, latvec,fold_dir,moCoeff,atoms);
+  
+  for (int i = 0; i < num_kpoints; ++i)
+    {
+      fix_basis_norm(atoms,basis, moCoeff[i]);
+      for(int j=0; j< nfold; j++) 
+	fold_kpoint(slwriter, latvec,fold_dir,moCoeff[i],atoms);
     }
   
   int nelectrons=0;
@@ -204,8 +175,9 @@ int run_main(int argc, char **argv, int is_complex)
   //--Write out all the collected data
   //---------------------------------------------
   
-  
+
   //---------------------Basis file
+  slwriter.basisname=outputname+".basis";
   ofstream os (slwriter.basisname.c_str());
   os.precision(15);
   for(vector<Spline_basis_writer>::iterator i=basis.begin();
@@ -215,72 +187,11 @@ int run_main(int argc, char **argv, int is_complex)
     os << "}\n\n";
   }
   os.close(); os.clear();
-  
-  //-----------------ORB file
-  
-  os.open(slwriter.orbname.c_str());
-  //this is really redundant with gamess2qmc.cpp..should probably be refactored 
-  vector < Center> centers;
-  vector <int> nbasis;
-  centers.resize(atoms.size());
-  int natoms=atoms.size();
-  nbasis.resize(natoms);
-  for(int at=0; at < natoms; at++) {
-    for(int i=0; i< 3; i++) centers[at].pos[i]=atoms[at].pos[i];
-    centers[at].equiv_atom=at;
-    centers[at].name=atoms[at].name;
-    nbasis[at]=basis[atoms[at].basis].nfunc();
-  }
 
-  print_orbitals(os,centers,nbasis, moCoeff);
 
-  os.close(); os.clear();
-  
-  //--------------------Slater determinant file
-  
-  string slateroutname=outputname+".slater";
-  os.open(slateroutname.c_str());
-  slwriter.print_wavefunction(os);
-  os.close(); os.clear();
-  
-  
-  //---------------------sys file
-  //May want to add a command-line switch to print out a molecule
-  string sysoutname=outputname+".sys";
-  ofstream sysout(sysoutname.c_str());
-  sysout << "SYSTEM { PERIODIC \n";
-  sysout << "  NSPIN { " << slwriter.nup << "  "
-    << slwriter.ndown << " } \n";
-  for(int at=0; at <natoms; at++) {
-    atoms[at].print_atom(sysout);
-  }
-  
-  sysout << "LATTICEVEC { \n";
-  double min_latsize=1e8;
-  for(int i=0; i< 3; i++) { 
-    double length=0;
-    for(int j=0; j< 3; j++) {
-      sysout << latvec[i][j] << " ";
-      length+=latvec[i][j]*latvec[i][j];
-    }
-    sysout << endl;
-    if(min_latsize > length) min_latsize=length;
-  }
-  sysout << "  }\n";
-  //Here we assume that nothing has a larger cutoff than 10.0 bohr..is that a good guess?
-  sysout << "  cutoff_divider " << sqrt(min_latsize)/10.0 << endl;
-  sysout << "}\n\n\n";
-  
-  int npsp=pseudo.size();
-  for(int psp=0; psp < npsp; psp++) {
-    pseudo[psp].print_pseudo(sysout);
-  }
-  sysout.close();
-  
   //--------------------------Jastrow 2 output
-
-  double basis_cutoff=find_basis_cutoff(latvec);
   string jast2outname=outputname+".jast2";
+  double basis_cutoff=find_basis_cutoff(latvec);
   Jastrow2_wf_writer jast2writer;
   jast2writer.set_atoms(atoms);
   
@@ -288,9 +199,133 @@ int run_main(int argc, char **argv, int is_complex)
   ofstream jast2out(jast2outname.c_str());
   print_std_jastrow2(jast2writer, jast2out, basis_cutoff);
   jast2out.close();
-  
-}
 
+
+
+
+  //Loop over all kpoints and create appropriate input files for each
+  for (int n = 0; n < num_kpoints; ++n)
+    {
+      stringstream buffer;
+      vector < vector < double > > realMo;
+      buffer << n;
+      string tag("_" + buffer.str());
+      if (num_kpoints == 1) tag = "";
+
+      slwriter.orbname=outputname + tag + ".orb";
+      string slateroutname=outputname + tag +".slater";
+      string sysoutname=outputname + tag +".sys";
+
+      //Check if the kpoint is complex
+      int is_complex = 0;
+      for (int i = 0; i < moCoeff[n].size(); ++i)
+	{
+	  for (int j = 0; j < moCoeff[n][i].size(); ++j)
+	    {
+	      if (fabs(moCoeff[n][i][j].imag()) > 0)
+		{
+		  is_complex = 1;
+		  break;
+		}
+	    }
+	}
+
+      //Set the labels, and if it is real, copy to a real equivalent
+      if (is_complex)
+	{
+	    slwriter.orbtype = "CORBITALS";
+	    slwriter.mo_matrix_type = "CCUTOFF_MO";
+	}
+      else
+	{
+	  slwriter.orbtype = "ORBITALS";
+	  slwriter.mo_matrix_type = "CUTOFF_MO";
+
+	  //Copy real part of orbital, to real orbitals
+	  realMo.resize(moCoeff[n].size());
+	  for (int i = 0; i < moCoeff[n].size(); ++i)
+	    {
+	      realMo[i].resize(moCoeff[n][i].size());
+	      for (int j = 0; j < moCoeff[n][i].size(); ++j)
+		realMo[i][j] = moCoeff[n][i][j].real();
+	    }
+			       
+	}
+
+
+  
+      //-----------------ORB file
+      
+      os.open(slwriter.orbname.c_str());
+      //this is really redundant with gamess2qmc.cpp..should probably be refactored 
+      vector < Center> centers;
+      vector <int> nbasis;
+      centers.resize(atoms.size());
+      int natoms=atoms.size();
+      nbasis.resize(natoms);
+      for(int at=0; at < natoms; at++) {
+	for(int i=0; i< 3; i++) centers[at].pos[i]=atoms[at].pos[i];
+	centers[at].equiv_atom=at;
+	centers[at].name=atoms[at].name;
+	nbasis[at]=basis[atoms[at].basis].nfunc();
+      }
+      
+      if (is_complex)
+	print_orbitals(os, centers, nbasis, moCoeff[n]);
+      else
+	print_orbitals(os, centers, nbasis, realMo);
+      
+      os.close(); os.clear();
+      
+      //--------------------Slater determinant file
+      
+      
+      os.open(slateroutname.c_str());
+      slwriter.print_wavefunction(os);
+      os.close(); os.clear();
+      
+      
+      //---------------------sys file
+      //May want to add a command-line switch to print out a molecule
+      
+      ofstream sysout(sysoutname.c_str());
+      sysout << "SYSTEM { PERIODIC \n";
+      sysout << "  NSPIN { " << slwriter.nup << "  "
+	     << slwriter.ndown << " } \n";
+      for(int at=0; at <natoms; at++) {
+	atoms[at].print_atom(sysout);
+      }
+      
+      sysout << "LATTICEVEC { \n";
+      double min_latsize=1e8;
+      for(int i=0; i< 3; i++) { 
+	double length=0;
+	for(int j=0; j< 3; j++) {
+	  sysout << latvec[i][j] << " ";
+	  length+=latvec[i][j]*latvec[i][j];
+	}
+	sysout << endl;
+	if(min_latsize > length) min_latsize=length;
+      }
+      sysout << "  }\n";
+      //Here we assume that nothing has a larger cutoff than 10.0 bohr..is that a good guess?
+      sysout << "  cutoff_divider " << sqrt(min_latsize)/10.0 << endl;
+      
+      //Print out the k-point to the sys file
+      sysout << "  kpoint { " << kpoints[n][0] 
+	     << "   " << kpoints[n][1] 
+	     << "   " << kpoints[n][2] << " } " << endl;
+      
+      sysout << "}\n\n\n";
+      
+      int npsp=pseudo.size();
+      for(int psp=0; psp < npsp; psp++) {
+	pseudo[psp].print_pseudo(sysout);
+      }
+      sysout.close();
+      
+    }
+}
 //###########################################################################
 
 void read_atoms(istream & is, vector <string> & currline, 
@@ -372,18 +407,6 @@ void read_lattice_vector(istream & is, vector <string> & currline,
 }
 
 //###########################################################################
-//This function reads the two strings from the siesta input file which give
-//the real and complex coefficients, and safely places it into the desired orbital
-//coefficient type, which will be either doublevar or dcomplex
-template <typename T>
-T safe_read(string& real, string& imaginary)
-{
-  T result;
-  stringstream sstream(real + " " + imaginary);
-  if (!(sstream >> result)) throw exception();
-  return result;
-}
-//###########################################################################
 //It turns out, that when there are imaginary coeff's that are both double,
 //digit and negative, that the real and imaginary coeff's are not bridged by
 //a space, but rather by the - sign.  Thus the more general split() function
@@ -404,16 +427,30 @@ void orbital_split(string line, vector <string> & currline)
 
 
 //###########################################################################
-template <typename T>
 void read_mo_coefficients(istream & is, vector <string> & currline,
-                          Slat_wf_writer & slwriter, vector <vector <T> > & moCoeff) { 
+                          Slat_wf_writer & slwriter, vector <vector <vector <dcomplex> > > & moCoeff,
+			  vector < vector <double> > &kpoints) { 
   slwriter.use_global_centers=true;
   slwriter.write_centers=false;
   string space=" ";
+  int num_kpoints = 0;
+
+  //Temp value for storing kpoints
+  vector <double> temp_kpoint;
+  temp_kpoint.resize(3);
+
   if(currline.size() > 3 && currline[0]=="writewave:" && currline[2]=="Functions") { 
     string line;
     getline(is, line); //empty line;
-    getline(is, line); //k-points
+
+    //Read number of kpoints
+    getline(is, line); //number of k-points
+    currline.clear(); split(line, space, currline);
+    num_kpoints = atof(currline[4].c_str());
+    moCoeff.resize(num_kpoints);
+    kpoints.resize(num_kpoints);
+    cout << "Detected " << num_kpoints << " k-points in Siesta output file." << endl;
+
     getline(is, line); //nspin
     currline.clear(); split(line, space, currline);
     //cout << line << endl;
@@ -433,33 +470,42 @@ void read_mo_coefficients(istream & is, vector <string> & currline,
 
     getline(is,line); 
     
-    for(int spin=0; spin < nspin; spin++) { 
-      getline(is, line); getline(is,line); //one blank line and *'s
-      getline(is,line); //k-point line, ignore for now
-      getline(is,line); //spin component
-      getline(is,line); //Num. wavefunctions
-      currline.clear(); split(line, space, currline);
-      int norb=atoi(currline[3].c_str());
-      //cout << "norb " << norb << endl;
-      //Now start with reading the ****orbitals*** (KS wave functions)
-      for(int orb_num=0; orb_num < norb; orb_num++) { 
-        for(int i=0; i< 5; i++) getline(is,line); //blank, wf#, energy, ---'s, header
-        vector <T> orb(nbasis);
-        for(int b=0; b< nbasis; b++) { 
-          getline(is, line);
-          currline.clear(); 
-	  orbital_split(line, currline);
-	  orb[b] = safe_read<T>(currline[5],currline[6]);
-        }
-        moCoeff.push_back(orb);
-        getline(is, line); //a line of --'s
+    for (int i=0; i < num_kpoints; ++i)
+      {
+	for(int spin=0; spin < nspin; spin++) { 
+	  getline(is, line); getline(is,line); //one blank line and *'s
+	  
+	  //Load k-point value into vector for printing in sys file
+	  getline(is,line); //k-point line
+	  currline.clear(); split(line, space, currline);
+	  for (int j = 0; j < 3; ++j)
+	    temp_kpoint[j] = atof(currline[j+3].c_str());
+	  kpoints[i] = temp_kpoint;
+	  
+	  getline(is,line); //spin component
+	  getline(is,line); //Num. wavefunctions
+	  currline.clear(); split(line, space, currline);
+	  int norb=atoi(currline[3].c_str());
+	  //cout << "norb " << norb << endl;
+	  //Now start with reading the ****orbitals*** (KS wave functions)
+	  for(int orb_num=0; orb_num < norb; orb_num++) { 
+	    for(int j=0; j< 5; j++) getline(is,line); //blank, wf#, energy, ---'s, header
+	    vector <dcomplex> orb(nbasis);
+	    for(int b=0; b< nbasis; b++) { 
+	      getline(is, line);
+	      currline.clear(); 
+	      orbital_split(line, currline);
+	      orb[b] = complex<double>(atof(currline[5].c_str()), atof(currline[6].c_str()));
+	    }
+	    moCoeff[i].push_back(orb);
+	    getline(is, line); //a line of --'s
+	  }
+	  if(spin==0 && nspin==2) { 
+	    slwriter.spin_dwn_start=moCoeff[i].size();
+	  }
+	} //spin loop
+	//cout << "total norbs " << moCoeff.size() << endl;
       }
-      if(spin==0 && nspin==2) { 
-        slwriter.spin_dwn_start=moCoeff.size();
-      }
-    } //spin loop
-    //cout << "total norbs " << moCoeff.size() << endl;
-
   }
   
   
@@ -770,11 +816,9 @@ void read_psp(vector <Atom> & atoms, vector <Spline_pseudo_writer> & pseudo) {
 
 
 //###########################################################################
-
-template <typename T>
 void fix_basis_norm(vector <Atom> & atoms, 
                     vector <Spline_basis_writer> & basis,
-                    vector < vector <T> > & moCoeff) {
+                    vector < vector <dcomplex> > & moCoeff) {
   
   int nmo=moCoeff.size();
   int funcnum=0;
