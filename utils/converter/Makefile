@@ -27,7 +27,7 @@ endif
 
 
 
-all: gamess2qmc$(SUFFIX) gamessci2qmc$(SUFFIX) crystal2qmc$(SUFFIX) siesta2qmc$(SUFFIX) g032qmc$(SUFFIX) heg2qmc$(SUFFIX) heg2qmcc$(SUFFIX) abinit2qmc$(SUFFIX)
+all: gamess2qmc$(SUFFIX) gamessci2qmc$(SUFFIX) crystal2qmc$(SUFFIX) siesta2qmc$(SUFFIX) g032qmc$(SUFFIX) heg2qmc$(SUFFIX) abinit2qmc$(SUFFIX)
 .PHONY: clean 
 
 gamess2qmc$(SUFFIX): $(GAMESS2QMCOBJS)

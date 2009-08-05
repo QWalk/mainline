@@ -156,13 +156,14 @@ int main(int argc, char ** argv) {
       //cout <<"GUGA CITYP using CSF's"<<endl;
       using_guga=1;
       while(getline(is,line)) {
-	words.clear();
-	split(line, space, words);
-	//find COMPUTING THE HAMILTONIAN FOR THE    ????? CSF-S
-	if(words[0]=="COMPUTING" && words[2]=="HAMILTONIAN" && words[6]=="CSF-S..."){
-	  csfmax=atoi(words[5].c_str());
-	  cout <<"GUGA CITYP using "<<csfmax<<" CSF's"<<endl;
-	}
+        words.clear();
+        split(line, space, words);
+        //find COMPUTING THE HAMILTONIAN FOR THE    ????? CSF-S
+        if(words.size() > 6 && words[0]=="COMPUTING" && words[2]=="HAMILTONIAN" && words[6]=="CSF-S..."){
+          csfmax=atoi(words[5].c_str());
+          cout <<"GUGA CITYP using "<<csfmax<<" CSF's"<<endl;
+          cout << "line " << line << endl;
+        }
 
         // find  NUMBER OF REQUESTED STATES
         if(words[0]=="DAVIDSON" && words[1]=="METHOD" && words[3]=="DIAGONALIZATION" ){
