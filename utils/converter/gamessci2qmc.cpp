@@ -166,7 +166,7 @@ int main(int argc, char ** argv) {
         }
 
         // find  NUMBER OF REQUESTED STATES
-        if(words[0]=="DAVIDSON" && words[1]=="METHOD" && words[3]=="DIAGONALIZATION" ){
+        if(words.size() > 5 && words[0]=="DAVIDSON" && words[1]=="METHOD" && words[3]=="DIAGONALIZATION" ){
           while(getline(is,line)) {
             words.clear();
             split(line, space, words);
@@ -179,7 +179,7 @@ int main(int argc, char ** argv) {
         }
 
        // find IROOT value
-        if(words[0]=="PROPERTIES" && words[3]=="COMPUTED" && words[5]=="STATE" && words[6]=="-IROOT-" ){
+        if(words.size() > 7 && words[0]=="PROPERTIES" && words[3]=="COMPUTED" && words[5]=="STATE" && words[6]=="-IROOT-" ){
           iroot=atoi(words[7].c_str()); 
           cout <<"IROOT value in CI calculation : "<< iroot <<endl;
           break;
@@ -189,17 +189,20 @@ int main(int argc, char ** argv) {
     }
 
     //find AMES LABORATORY DETERMINANTAL FULL CI
-    if(words[0]=="AMES" && words[1]=="LABORATORY" && words[2]=="DETERMINANTAL" && words[3]=="FULL" && words[4]=="CI" ){
+    if(words.size() > 4 &&  words[0]=="AMES" && words[1]=="LABORATORY" 
+       && words[2]=="DETERMINANTAL" && words[3]=="FULL" && words[4]=="CI" ){
       cout <<"Found ALDET CITYP using determinantal CI"<<endl;
       using_determinants=1;
       while(getline(is,line)) {
         words.clear();
         split(line, space, words);
-        if(words[0]=="NUMBER" && words[3]=="STATES" && words[4]=="REQUESTED" && words[5]=="="){
+        if(words.size() > 6 && words[0]=="NUMBER" && words[3]=="STATES" 
+           && words[4]=="REQUESTED" && words[5]=="="){
           computed_states=atoi(words[6].c_str());
           cout <<computed_states<<" states computed in CI calculation"<<endl;
         }
-        if(words[0]=="CI" && words[1]=="PROPERTIES" && words[6]=="ROOT" && words[7]=="NUMBER"){
+        if(words.size() > 8 && words[0]=="CI" && words[1]=="PROPERTIES" && words[6]=="ROOT" 
+           && words[7]=="NUMBER"){
           iroot=atoi(words[8].c_str());
           cout <<"Properties of state "<<iroot<<" were requested in CI"<<endl;
           break;
