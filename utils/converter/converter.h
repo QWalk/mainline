@@ -25,6 +25,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <iostream>
 #include <cassert>
 #include <complex>
+#include <cstdio>
 
 typedef double doublevar;
 typedef std::complex <doublevar> dcomplex;
