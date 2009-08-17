@@ -29,6 +29,7 @@
 #include "basis_writer.h"
 #include "Pseudo_writer.h"
 #include "wf_writer.h"
+#include "vecmath.h"
 
 using namespace std;
 enum coord_t { bohr, ang, scaled, fractional };
@@ -50,8 +51,10 @@ void fix_basis_norm(vector <Atom> & atoms, vector <Spline_basis_writer> & basis,
                     vector < vector <dcomplex> > & moCoeff);
 
 void orbital_split(string line, vector <string> & currline);
-
-
+void reciprocal_lattice_vectors(vector < vector <double > > &latvec,
+				vector < vector <double > > &recip_latvec);
+void kpoint_to_frac_coords(vector < vector <double> > &recip_latvec,
+			     vector < vector <double> > &kpoints);
 //###########################################################################
 
 
@@ -82,6 +85,10 @@ int main(int argc, char ** argv) {
   //------------------------------read in the variables from the output file
   vector <Atom> atoms;
   vector <vector < double> > latvec;
+  vector <vector < double > > recip_latvec;
+  coord_t lattice_const_type;
+  double lattice_constant;
+
   Slat_wf_writer slwriter;
   
   //Default Magnification
@@ -133,6 +140,8 @@ int main(int argc, char ** argv) {
   is.close();
 
   int num_kpoints = kpoints.size();
+  reciprocal_lattice_vectors(latvec, recip_latvec);
+  kpoint_to_frac_coords(recip_latvec, kpoints);
 
   cout << " coord_type " << coord_type << endl;
   if(coord_type==scaled || coord_type==fractional) { 
@@ -379,7 +388,7 @@ void read_atoms(istream & is, vector <string> & currline,
   }
 }
 
-//###########################################################################
+//##########################################################################
 void read_lattice_vector(istream & is, vector <string> & currline, 
                          vector <vector <double> > & latvec) {
   string space=" ";
@@ -400,10 +409,74 @@ void read_lattice_vector(istream & is, vector <string> & currline,
       currline.clear();
       getline(is,line); split(line, space,currline);
       for(int j=0; j< 3; j++) { 
-        latvec[i][j]=atof(currline[j].c_str())*fac;
+	latvec[i][j]=atof(currline[j].c_str())*fac;
       }
     }
   }
+}
+//##########################################################################
+//Need reciprocal lattice vectors to properly normalize k-points under certain
+//input conditions
+void reciprocal_lattice_vectors(vector < vector <double > > &latvec,
+				vector < vector <double > > &recip_latvec)
+{
+  //Allocate vectors
+  vector <double> temp_vec;
+  temp_vec.resize(3);
+
+  recip_latvec.resize(3);
+  for (int i = 0; i < 3; ++i)
+    recip_latvec[i].resize(3);
+  
+  //Compute vectors
+  recip_latvec[0] = cross(latvec[1], latvec[2]);
+  temp_vec = cross(latvec[1], latvec[2]);
+  recip_latvec[0] /= dot(latvec[0], temp_vec);
+
+  recip_latvec[1] = cross(latvec[2], latvec[0]);
+  temp_vec = cross(latvec[2], latvec[0]);
+  recip_latvec[1] /= dot(latvec[1],temp_vec);
+
+  recip_latvec[2] = cross(latvec[0], latvec[1]);
+  temp_vec = cross(latvec[0], latvec[1]);
+  recip_latvec[2] /= dot(latvec[2],temp_vec);
+
+  for (int i = 0; i < 3; ++i)
+    recip_latvec[i] *= 2.0 * pi;
+}
+//#################################################################
+//Compute to qwalk-friendly fractional coordinates in the reciprocal
+//lattice basis
+void kpoint_to_frac_coords(vector < vector <double> > &recip_latvec,
+			     vector < vector <double> > &kpoints)
+{
+  //K-points are stored in the standard basis in reciprocal lattice space
+  //so to convert, simply need to invert the matrix of reciprocal lattice
+  //vectors and apply the resulting matrix to the k-point vectors...
+
+  vector <double> temp_vec;
+  temp_vec.resize(3);
+
+  vector < vector <double> > change_matrix;
+  matrix_inverse(recip_latvec, change_matrix);
+  
+
+  for (int n = 0; n < kpoints.size(); ++n)
+    {
+      temp_vec[0] = change_matrix[0][0] * kpoints[n][0] +
+	change_matrix[0][1] * kpoints[n][1] +
+	change_matrix[0][2] * kpoints[n][2];
+      temp_vec[1] = change_matrix[1][0] * kpoints[n][0] +
+	change_matrix[1][1] * kpoints[n][1] +
+	change_matrix[1][2] * kpoints[n][2];
+      temp_vec[2] = change_matrix[2][0] * kpoints[n][0] +
+	change_matrix[2][1] * kpoints[n][1] +
+	change_matrix[2][2] * kpoints[n][2];
+
+      for (int i = 0; i < 3; ++i)
+	kpoints[n][i] = temp_vec[i];
+    }
+     
 }
 
 //###########################################################################

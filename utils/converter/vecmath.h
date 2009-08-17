@@ -62,6 +62,29 @@ inline std::vector <double> operator+(std::vector <double> & a, std::vector <dou
   return c;
 }
 
+inline std::vector<double> operator/=(std::vector<double> & lhs, const double &rhs) 
+{
+  assert(lhs.size()==3);
+  assert(rhs != 0);
+  
+  for (int i=0; i<3; ++i)
+    lhs[i] /= rhs;
+
+  return lhs;
+}
+
+inline std::vector<double> operator*=(std::vector<double> & lhs, const double &rhs) 
+{
+  assert(lhs.size()==3);
+  assert(rhs != 0);
+  
+  for (int i=0; i<3; ++i)
+    lhs[i] *= rhs;
+
+  return lhs;
+}
+
+
 inline double distance_vec(std::vector <double> & a, std::vector <double> & b) {
   assert(a.size()==3);
   assert(b.size()==3);
@@ -99,7 +122,34 @@ inline double projection(std::vector <double> & a, std::vector <double> & b) {
   return c/sqrt(bsize);
 }
 
+//Compute the inverse of a 3x3 matrix (useful for coordinate transformations)
+inline void matrix_inverse(std::vector < std::vector < double > > &input, 
+		    std::vector < std::vector < double > > &output)
+{
+  assert(input.size() == 3);
+  for (int i = 0; i < 3; ++i)
+    assert(input[i].size() == 3);
 
+  output.resize(3);
+  for (int i = 0; i < 3; ++i)
+    output[i].resize(3);
+
+  double det = input[0][0]*(input[1][1]*input[2][2]-input[2][1]*input[1][2])-
+    input[0][1]*(input[1][0]*input[2][2]-input[1][2]*input[2][0])+
+    input[0][2]*(input[1][0]*input[2][1]-input[1][1]*input[2][0]);
+
+  assert(det != 0); //Ensure the matrix is non-singular
+
+  output[0][0] = (input[1][1]*input[2][2]-input[2][1]*input[1][2])/det;
+  output[0][1] = -(input[1][0]*input[2][2]-input[1][2]*input[2][0])/det;
+  output[0][2] = (input[1][0]*input[2][1]-input[2][0]*input[1][1])/det;
+  output[1][0] = -(input[0][1]*input[2][2]-input[0][2]*input[2][1])/det;
+  output[1][1] = (input[0][0]*input[2][2]-input[0][2]*input[2][0])/det;
+  output[1][2] = -(input[0][0]*input[2][1]-input[2][0]*input[0][1])/det;
+  output[2][0] = (input[0][1]*input[1][2]-input[0][2]*input[1][1])/det;
+  output[2][1] = -(input[0][0]*input[1][2]-input[1][0]*input[0][2])/det;
+  output[2][2] = (input[0][0]*input[1][1]-input[1][0]*input[0][1])/det;
+}
 
 class Shifter {
 
