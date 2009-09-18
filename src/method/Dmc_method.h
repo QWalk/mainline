@@ -45,9 +45,18 @@ struct Dmc_history {
 
 };
 
+
+struct Dmc_history_avgrets { 
+  Array1 <Average_return> avgrets;
+  doublevar weight;
+  void mpiSend(int node);
+  void mpiReceive(int node);
+};
+
 struct Dmc_point { 
   Properties_point prop;
   deque <Dmc_history> past_energies;
+  deque <Dmc_history_avgrets> past_properties;
   doublevar weight;
   int ignore_walker;
   int sign;
@@ -209,6 +218,9 @@ public:
   Array1 < Average_generator * > average_var;
   vector <vector <string> > avg_words;
 
+  Array1 <int> fw_lenght; //!<array of lenghts for forward walking times 
+  int max_fw_lenght; //!maximum lenght for forward walking time
+  
 };
 
 

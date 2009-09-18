@@ -180,6 +180,8 @@ int MO_matrix_basfunc::writeinput(string & indent, ostream & os)
 {
   os << indent << "BASFUNC_MO" << endl;
   os << indent << "NMO " << nmo << endl;
+  if(oldsofile!="") 
+    os << indent << "OLDSOFILE " << oldsofile << endl;
   os << indent << "ORBFILE " << orbfile << endl;
   // MAGNIFY might help in the case of large number of particles,
   // when numerics starts to fail (at least numerics is what I blame
