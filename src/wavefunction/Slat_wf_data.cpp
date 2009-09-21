@@ -792,7 +792,6 @@ void Slat_wf_data::setVarParms(Array1 <doublevar> & parms)
       else
 	for(int i=1; i< detwt.GetDim(0); i++) 
 	  detwt(i)=parms(i-1);
-      
     }
   }
   else {
