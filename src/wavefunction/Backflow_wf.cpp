@@ -401,6 +401,16 @@ void Backflow_wf::getVal(Wavefunction_data * wfdata, int e,
 
 }
 
+//-----------------------------------------------------------------------
+void Backflow_wf::getSymmetricVal(Wavefunction_data * wfdata,
+		     int e, Wf_return & val){
+
+  Array1 <doublevar> si(1, 0.0);
+  Array2 <doublevar> vals(1,1,0.0);
+  val.setVals(vals, si);
+} 
+
+
 //----------------------------------------------------------------------
 
 void Backflow_wf::getDensity(Wavefunction_data * wfdata, int e,

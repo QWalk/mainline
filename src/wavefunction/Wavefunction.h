@@ -217,6 +217,12 @@ public:
     return 0;
   }
 
+  /*!
+    \brief
+    return symetric part of WF value (needed to get only Jastrow part in SH-DMC)
+   */
+  virtual void getSymmetricVal(Wavefunction_data *, int, Wf_return &)=0;
+
 
   /*!
     \brief

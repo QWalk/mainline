@@ -87,6 +87,10 @@ public:
                              Array1 <doublevar> &,
                              Wf_return &);
 
+  virtual void getSymmetricVal(Wavefunction_data *, 
+			       int, 
+			       Wf_return &);
+
 
   void generateStorage(Wavefunction_storage * & wfstore);
 

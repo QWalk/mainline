@@ -65,6 +65,11 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
     sort=0;
   }
 
+  all_weights=0;
+  if(haskeyword(words, pos=startpos, "ALL_WEIGHTS")) {
+    all_weights=1;
+  }
+
   pos=startpos;
   vector <vector <string> > csfstr;
   vector <string> csfsubstr;
@@ -485,6 +490,9 @@ int Slat_wf_data::writeinput(string & indent, ostream & os)
   if(!sort)
     os << indent << "NOSORT" << endl;
 
+  if(all_weights)
+    os << indent << "ALL_WEIGHTS" << endl;
+
   if(use_csf){
     Array1 <Array1 <doublevar> > CSF_print(ncsf);
     Array1 <doublevar> detwt_print(ndet);
@@ -698,15 +706,31 @@ void Slat_wf_data::getVarParms(Array1 <doublevar> & parms)
   }
   else if(optimize_det) {
     if(use_csf){
-      parms.Resize(ncsf-1);
-      for(int i=1; i< ncsf; i++) {
-        parms(i-1)=CSF(i)(0);
+      if(all_weights){
+	parms.Resize(ncsf);
+	for(int i=0; i< ncsf; i++) {
+	  parms(i)=CSF(i)(0);
+	}
+      }
+      else{
+	parms.Resize(ncsf-1);
+	for(int i=1; i< ncsf; i++) {
+	  parms(i-1)=CSF(i)(0);
+	}
       }
     }
     else{//just independent weights
-      parms.Resize(detwt.GetDim(0)-1);
-      for(int i=1; i< detwt.GetDim(0); i++) {
-        parms(i-1)=detwt(i);
+      if(all_weights){
+	parms.Resize(detwt.GetDim(0));
+	for(int i=0; i< detwt.GetDim(0); i++) {
+	  parms(i)=detwt(i);
+	}
+      }
+      else{
+	parms.Resize(detwt.GetDim(0)-1);
+	for(int i=1; i< detwt.GetDim(0); i++) {
+	  parms(i-1)=detwt(i);
+	}
       }
     }
   }
@@ -743,15 +767,18 @@ void Slat_wf_data::setVarParms(Array1 <doublevar> & parms)
   }
   else if(optimize_det) {
     if(use_csf){
-      for(int csf=1; csf< ncsf; csf++) {
-        CSF(csf)(0)=parms(csf-1);
-        //cout << CSF(csf)(0)<<endl;
-      }
+      if(all_weights)
+	for(int csf=0; csf< ncsf; csf++) 
+	  CSF(csf)(0)=parms(csf);
+      else
+	for(int csf=1; csf< ncsf; csf++) 
+	  CSF(csf)(0)=parms(csf-1);
+      //cout << CSF(csf)(0)<<endl;
       int counter=0;
       for(int csf=0; csf< ncsf; csf++) {
-        for(int j=1;j<CSF(csf).GetDim(0);j++){
-          detwt(counter++)=CSF(csf)(0)*CSF(csf)(j);
-        }
+	for(int j=1;j<CSF(csf).GetDim(0);j++){
+	  detwt(counter++)=CSF(csf)(0)*CSF(csf)(j);
+	}
       }
       assert(counter==ndet);
       // for(int i=0;i<ndet;i++)
@@ -759,9 +786,13 @@ void Slat_wf_data::setVarParms(Array1 <doublevar> & parms)
       //cout <<endl;
     }
     else{
-      for(int i=1; i< detwt.GetDim(0); i++) {
-        detwt(i)=parms(i-1);
-      }
+      if(all_weights)
+	for(int i=0; i< detwt.GetDim(0); i++) 
+	  detwt(0)=parms(i);
+      else
+	for(int i=1; i< detwt.GetDim(0); i++) 
+	  detwt(i)=parms(i-1);
+	  
     }
   }
   else {

@@ -646,20 +646,35 @@ int Slat_wf::getParmDeriv(Wavefunction_data *  wfdata,
       sum+=parent->detwt(det)*detVal(0,det,0)*detVal(0,det,1);
     }
     if(parent->use_csf){
-      assert(nparms<parent->ncsf);
+      if(parent->all_weights)
+	assert(nparms<parent->ncsf+1);
+      else
+	assert(nparms<parent->ncsf);
       int counter=0;
       derivatives.gradient=0.0;
       for(int csf=0; csf< parent->ncsf; csf++) {
-        if(csf > nparms_start && csf <= nparms_end ){
-          for(int j=1;j<parent->CSF(csf).GetDim(0);j++){
-            //cout <<" csf "<<csf<<" j "<<j<<" counter "<<counter<<endl;
-            derivatives.gradient(csf-1-nparms_start)+=parent->CSF(csf)(j)*detVal(0,counter,0)*detVal(0,counter,1);
-            counter++;
-          }
-        }
-        else{
-          counter+=parent->CSF(csf).GetDim(0)-1;
-        }
+	if(parent->all_weights){
+	  if(csf >= nparms_start && csf <= nparms_end ){
+	    for(int j=1;j<parent->CSF(csf).GetDim(0);j++){
+	      derivatives.gradient(csf-nparms_start)+=parent->CSF(csf)(j)*detVal(0,counter,0)*detVal(0,counter,1);
+	      counter++;
+	    }
+	  }
+	  else{
+	    counter+=parent->CSF(csf).GetDim(0)-1;
+	  }
+	}
+	else{
+	  if(csf > nparms_start && csf <= nparms_end ){
+	    for(int j=1;j<parent->CSF(csf).GetDim(0);j++){
+	      derivatives.gradient(csf-1-nparms_start)+=parent->CSF(csf)(j)*detVal(0,counter,0)*detVal(0,counter,1);
+	      counter++;
+	    }
+	  }
+	  else{
+	    counter+=parent->CSF(csf).GetDim(0)-1;
+	  }
+	}
       }
       for(int csf=0; csf< nparms; csf++) {
         derivatives.gradient(csf)/=sum; 
@@ -669,9 +684,16 @@ int Slat_wf::getParmDeriv(Wavefunction_data *  wfdata,
     }
     else{
       for(int det=0; det < ndet; det++) {
-        if(det > nparms_start && det <= nparms_end )
-          derivatives.gradient(det-1-nparms_start)=detVal(0,det,0)*detVal(0,det,1);
+	if(parent->all_weights){
+	  if(det >= nparms_start && det <= nparms_end )
+	    derivatives.gradient(det-nparms_start)=detVal(0,det,0)*detVal(0,det,1);
+	}
+	else{
+	  if(det > nparms_start && det <= nparms_end )
+	    derivatives.gradient(det-1-nparms_start)=detVal(0,det,0)*detVal(0,det,1);
+	}
       }
+      
       for(int det=0; det < nparms; det++) {
         derivatives.gradient(det)/=sum; 
       }
@@ -858,6 +880,14 @@ void Slat_wf::getVal(Wavefunction_data * wfdata, int e,
   val.setVals(vals, si);
 
 }
+
+//----------------------------------------------------------
+void Slat_wf::getSymmetricVal(Wavefunction_data * wfdata,
+		     int e, Wf_return & val){
+  val.phase(0, 0)=0;
+  val.amp(0, 0)=0;
+  val.cvals(0,0)=0;
+} 
 
 //----------------------------------------------------------------------
 
