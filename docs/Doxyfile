@@ -123,7 +123,7 @@ PAPER_TYPE             = letter
 EXTRA_PACKAGES         = bm
 LATEX_HEADER           = 
 PDF_HYPERLINKS         = NO
-USE_PDFLATEX           = NO
+USE_PDFLATEX           = YES
 LATEX_BATCHMODE        = YES
 LATEX_HIDE_INDICES     = NO
 #---------------------------------------------------------------------------

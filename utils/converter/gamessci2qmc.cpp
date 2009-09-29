@@ -162,7 +162,6 @@ int main(int argc, char ** argv) {
         if(words.size() > 6 && words[0]=="COMPUTING" && words[2]=="HAMILTONIAN" && words[6]=="CSF-S..."){
           csfmax=atoi(words[5].c_str());
           cout <<"GUGA CITYP using "<<csfmax<<" CSF's"<<endl;
-          cout << "line " << line << endl;
         }
 
         // find  NUMBER OF REQUESTED STATES
