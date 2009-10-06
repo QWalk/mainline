@@ -54,7 +54,8 @@ void orbital_split(string line, vector <string> & currline);
 void reciprocal_lattice_vectors(vector < vector <double > > &latvec,
 				vector < vector <double > > &recip_latvec);
 void kpoint_to_frac_coords(vector < vector <double> > &recip_latvec,
-			     vector < vector <double> > &kpoints);
+			   vector < vector <double> > &kpoints,
+			   vector < vector <double> > &kpoints_frac);
 //###########################################################################
 
 
@@ -113,6 +114,7 @@ int main(int argc, char ** argv) {
   vector <string> currline;
   int netCharge=0;
   vector < vector < double > > kpoints;
+  vector < vector < double > > kpoints_frac;
   coord_t coord_type;
   while(getline(is,line)) { 
     currline.clear();
@@ -141,10 +143,10 @@ int main(int argc, char ** argv) {
 
   int num_kpoints = kpoints.size();
   reciprocal_lattice_vectors(latvec, recip_latvec);
-  kpoint_to_frac_coords(recip_latvec, kpoints);
+  kpoint_to_frac_coords(recip_latvec, kpoints, kpoints_frac);
 
   cout << " coord_type " << coord_type << endl;
-  if(coord_type==scaled || coord_type==fractional) { 
+  if(coord_type==fractional) { 
     cout << "rescaling " << endl;
     vector <Atom> tmpatoms=atoms;
     int natoms=atoms.size();
@@ -156,7 +158,13 @@ int main(int argc, char ** argv) {
         }
       }
     }
+  } else if (coord_type==scaled) {
+    cout << "BROKEN" << endl;
+    for (int n=0; n<atoms.size(); ++n)
+      for (int i=0; i<3; ++i)
+	atoms[n].pos[i] *= lattice_constant;
   }
+
  
   vector <Spline_basis_writer> basis;
   read_basis(atoms, basis);
@@ -164,7 +172,7 @@ int main(int argc, char ** argv) {
   
   for (int i = 0; i < num_kpoints; ++i)
     {
-      fix_basis_norm(atoms,basis, moCoeff[i]);
+      fix_basis_norm(atoms, basis, moCoeff[i]);
       for(int j=0; j< nfold; j++) 
 	fold_kpoint(slwriter, latvec,fold_dir,moCoeff[i],atoms);
     }
@@ -179,6 +187,74 @@ int main(int argc, char ** argv) {
   assert((nelectrons-spin_pol)%2==0);
   slwriter.nup=int(nelectrons-spin_pol)/2+spin_pol;
   slwriter.ndown=int(nelectrons-spin_pol)/2;
+
+
+
+
+  Shifter shiftobj;
+  vector <double> origin(3);
+  for(int i=0; i< 3; i++) origin[i]=0;
+  shiftobj.origin=origin;
+
+  //Correct phase shift for atoms not at the origin in complex wfns
+  //Easiest to use k-points in siesta format which are reciprocal of
+  //normal bohr coordinates
+  int f = 0; //index for the correct basis functions to shift
+  
+  for(unsigned int at=0; at< atoms.size(); at++) {
+    int bas=atoms[at].basis;
+    int nfunc=basis[bas].nfunc();
+    int temp_f = f;
+    for (int n = 0; n < num_kpoints; ++n) {
+      f = temp_f;
+      dcomplex kdotr=0;
+      for(int d=0; d< 3; d++) 
+	kdotr += kpoints[n][d] * (atoms[at].pos[d] - origin[d]);
+      kdotr = exp(kdotr*dcomplex(0.0,1.0));
+      for(int i=0; i< nfunc; i++) {
+	for(int mo=0; mo < moCoeff[n].size(); mo++) {
+	  moCoeff[n][mo][f] *= kdotr;
+	}
+	f++;
+      }
+    }
+  }
+  
+  //Make sure all the atoms are inside the simulation cell
+  //Taking care of phase factors for general k-points
+  //This is problem if left to qwalk for complex k-points
+  
+  f = 0;
+  
+  for(unsigned int at=0; at< atoms.size(); at++) {
+    vector <int> nshift;
+    int bas=atoms[at].basis;
+    int nfunc=basis[bas].nfunc();
+    if(shiftobj.enforcepbc(atoms[at].pos, latvec, nshift)) {
+      cout << "at " << at << "  shifted " << nshift[0] << "  " << nshift[1] 
+	   << "   " << nshift[2] << endl;
+      int temp_f = f;
+      for (int n = 0; n < num_kpoints; ++n) {
+	f = temp_f;
+	dcomplex kdots=0;
+	for(int d=0; d< 3; d++) 
+	  kdots+=kpoints_frac[n][d]*nshift[d];
+	//kdots=cos(pi*kdots);
+	kdots=exp(pi*kdots*dcomplex(0.0,1.0));
+	//cout << "kdots " << kdots << endl;
+	for(int i=0; i< nfunc; i++) {
+	  for(int mo=0; mo < moCoeff[n].size(); mo++) {
+	    moCoeff[n][mo][f]*=kdots;
+	  }
+	  f++;
+	}
+      }
+    }
+    else f+=nfunc;
+  }
+  
+  
+  
   
   //---------------------------------------------
   //--Write out all the collected data
@@ -317,13 +393,13 @@ int main(int argc, char ** argv) {
 	if(min_latsize > length) min_latsize=length;
       }
       sysout << "  }\n";
-      //Here we assume that nothing has a larger cutoff than 10.0 bohr..is that a good guess?
-      sysout << "  cutoff_divider " << sqrt(min_latsize)/10.0 << endl;
+      //Here we assume that nothing has a larger cutoff than 12.0 bohr..is that a good guess?
+      sysout << "  cutoff_divider " << sqrt(min_latsize)/12.0 << endl;
       
       //Print out the k-point to the sys file
-      sysout << "  kpoint { " << kpoints[n][0] 
-	     << "   " << kpoints[n][1] 
-	     << "   " << kpoints[n][2] << " } " << endl;
+      sysout << "  kpoint { " << kpoints_frac[n][0] 
+	     << "   " << kpoints_frac[n][1] 
+	     << "   " << kpoints_frac[n][2] << " } " << endl;
       
       sysout << "}\n\n\n";
       
@@ -353,12 +429,12 @@ void read_atoms(istream & is, vector <string> & currline,
       coord_type=ang;
     }
     else if(currline[3]=="(scaled):") { 
-      cout << "scaled coordinates: WARNING: if you have non-orthogonal unit cells, the conversion may be incorrect.  Check atomic coordinates!!" << endl;
+      cout << "scaled coordinates" << endl;
       fac=1.0;
       coord_type=scaled;
     }
     else if(currline[3]=="(fractional):") { 
-      cout << "fractional coordinates" << endl;
+      cout << "fractional coordinates: WARNING: if you have non-orthogonal unit cells, the conversion may be incorrect.  Check atomic coordinates!!" << endl;
       fac=1.0;
       coord_type=fractional;
     }
@@ -448,7 +524,8 @@ void reciprocal_lattice_vectors(vector < vector <double > > &latvec,
 //Compute to qwalk-friendly fractional coordinates in the reciprocal
 //lattice basis
 void kpoint_to_frac_coords(vector < vector <double> > &recip_latvec,
-			     vector < vector <double> > &kpoints)
+			   vector < vector <double> > &kpoints,
+			   vector < vector <double> > &kpoints_frac)
 {
   //K-points are stored in the standard basis in reciprocal lattice space
   //so to convert, simply need to invert the matrix of reciprocal lattice
@@ -456,6 +533,10 @@ void kpoint_to_frac_coords(vector < vector <double> > &recip_latvec,
 
   vector <double> temp_vec;
   temp_vec.resize(3);
+
+  kpoints_frac.resize(kpoints.size());
+  for (int n = 0; n < kpoints.size(); ++n)
+    kpoints_frac[n].resize(3);
 
   vector < vector <double> > change_matrix;
   matrix_inverse(recip_latvec, change_matrix);
@@ -473,8 +554,11 @@ void kpoint_to_frac_coords(vector < vector <double> > &recip_latvec,
 	change_matrix[2][1] * kpoints[n][1] +
 	change_matrix[2][2] * kpoints[n][2];
 
+
+      //This factor of two is a little bit mysterious to me,
+      //but it matches the qwalk convention and everything works out...
       for (int i = 0; i < 3; ++i)
-	kpoints[n][i] = temp_vec[i];
+	kpoints_frac[n][i] = 2.0 * temp_vec[i];
     }
      
 }
@@ -792,7 +876,7 @@ void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis ) {
     int nbasis=basis.size();
     for(int i=0; i< nbasis; i++) { 
       if(basis[i].label==at->name) { 
-        at->basis=i;
+	at->basis=i;
       }
     }
   }

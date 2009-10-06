@@ -212,7 +212,7 @@ public:
         else if(sp >0 ) {
           x=x-latvec[i];
           shifted=1;
-          nshift[i]++;
+          nshift[i]--;
         }
         else {
           shouldcontinue=0;
