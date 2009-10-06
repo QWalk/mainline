@@ -1473,7 +1473,8 @@ int g03_basisset_delete_dup(
      }
      basisset.clear();
      basisset=basissetnew; 
-
+  
+  
      // fix atoms.basis
      for (int iatom=0;iatom<atoms.size(); iatom++) {
 	     string name=atoms[iatom].name;
@@ -1490,6 +1491,8 @@ int g03_basisset_delete_dup(
 	     exit(ERR_CODE);
 	 }
      }
+  
+
      return 0;
 }
 
@@ -1713,6 +1716,7 @@ int g03log_analyze_basisset(/*input*/
   Gaussian_basis_set a_basisset; 
   int iline=0;
   int nline=basissetstring.size(); 
+  //cout << "nline: " << nline << endl;
   string sep=" ";
   vector<string> words;
   while (iline < nline) {
@@ -1774,6 +1778,7 @@ int g03log_analyze_basisset(/*input*/
      exit(ERR_CODE);
   }
   for (int iatom=0;iatom<basisset.size(); iatom++) {
+    //cout << "basis " << iatom << " name " << atoms[iatom].name << endl ;
      basisset[iatom].label= atoms[iatom].name; 
      string_upper(basisset[iatom].label);
   }
