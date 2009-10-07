@@ -1,7 +1,7 @@
 PLATFORM = $(shell uname -s)
-DVLPATH = .
+DVLPATH = $(shell pwd)
 ##########################using the make files of qwalk########################
-MAKEPATH:=$(DVLPATH)/../../src/make
+MAKEPATH:=$(DVLPATH)/../make
 OBJPATH:=$(DVLPATH)/obj/$(PLATFORM)
 
 ALLOBJS:=$(OBJPATH)/converter.o $(OBJPATH)/Pseudo_writer.o $(OBJPATH)/wf_writer.o $(OBJPATH)/basis_writer.o
@@ -17,11 +17,11 @@ G032QMCOBJS := $(OBJPATH)/g032qmcmain.o $(OBJPATH)/g03tools.o $(ALLOBJS)
 HEG2QMCOBJS := $(OBJPATH)/heg2qmc.o $(OBJPATH)/indexx.o
 HEG2QMCCOBJS := $(OBJPATH)/heg2qmcc.o $(OBJPATH)/indexx.o $(OBJPATH)/setk01.o
 
-ifeq ($(PLATFORM), Linux)
-	SUFFIX :=  
-else
+#ifeq ($(PLATFORM), Linux)
+#	SUFFIX :=  
+#else
 	SUFFIX := -$(PLATFORM) 
-endif
+#endif
 
 
 
