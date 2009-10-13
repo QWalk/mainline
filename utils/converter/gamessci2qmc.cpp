@@ -29,7 +29,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <cstdlib>
 using namespace std;
 
-void reorder(vector <int> & orbs, double & det_weights){
+void reorder_orbs(vector <int> & orbs, double & det_weights){
   // sort by ascending value
   int n=orbs.size();
   int tmp;
@@ -45,7 +45,57 @@ void reorder(vector <int> & orbs, double & det_weights){
       }
     }
   }
+  /*
+  cout <<"reorder_orbs"<<endl;
+  for(int i=0; i < n; i++) {
+    cout <<orbs[i]<<"  ";
+  }
+  cout <<endl;
+  */
+     
 }
+
+
+void normal_reorder_orbs(int & nup, int & ndown, vector <int> & orbs, double & det_weights){
+  // put to normal order 
+  int n=orbs.size();
+  int tmp;
+  for(int i=0; i < n; i++) {
+    if (orbs[i]>0) {
+      if(orbs[i]!=nup-i){
+	for(int j=0; j < nup; j++){
+	  if(orbs[i]==j+1 && nup-j-1!=i ){
+	    tmp=orbs[nup-j-1];
+	    orbs[nup-j-1]=orbs[i];
+	    orbs[i]=tmp;
+	    det_weights=-det_weights;  
+	  }
+	}
+      }
+    }
+    else{
+      if(-orbs[i]!=i-nup+1){
+	for(int j=0; j < ndown; j++){	
+	  if(-orbs[i]==j+1 && nup+j!=i ){
+	    tmp=orbs[nup+j];
+	    orbs[nup+j]=orbs[i];
+	    orbs[i]=tmp;
+	    det_weights=-det_weights;  
+	  }
+	}
+      }
+    }
+  } 
+  /*
+  cout <<"normal_reorder_orbs"<<endl;
+  for(int i=0; i < n; i++) {
+    cout <<orbs[i]<<"  ";
+  }
+  cout <<endl;
+  */
+  
+}
+
 
 void spin_separate(vector <int> & vals, vector <int> & spinup, vector <int> & spindown, int & tmp_up, int & tmp_down){
   int n=vals.size();
@@ -94,6 +144,7 @@ void usage(const char * name) {
   cout << "-o        desired output file\n";
   cout << "-wthresh  threshold weight value (Default 0.01)\n";
   cout << "-state    write determinants for selected state \n";
+  cout << "-norder  orbitals in determinants follow natural order\n";
   exit(1);
 }
 
@@ -105,6 +156,7 @@ int main(int argc, char ** argv) {
   int nstate=1;
   double wtresh=0.01;
   int symmetry=0;
+  int reorder=0;
   
   for(int i=1; i< argc-1; i++) {
     if(!strcmp(argv[i], "-wthresh") && argc > i+1) {
@@ -118,6 +170,9 @@ int main(int argc, char ** argv) {
     }
     else if (!strcmp(argv[i], "-state")) {
       nstate=atoi(argv[++i]);
+    }
+    else if (!strcmp(argv[i], "-norder")) {
+      reorder=1;
     }
     else {
     cout << "Didn't understand option " << argv[i] << endl;
@@ -234,6 +289,7 @@ int main(int argc, char ** argv) {
     vector <vector <double> > det_weights(csfmax);
     vector <vector <string> > det_str(csfmax);
     int number_of_core_orbitals=0;
+    vector <int> nelectrons(2);
     int line_position;
     int i,k;
     int counter, counter_csf;
@@ -296,6 +352,14 @@ int main(int argc, char ** argv) {
 	number_of_core_orbitals=atoi(words[6].c_str());
 	cout <<number_of_core_orbitals<<" core orbitals"<<endl<<endl;
       }
+      if(words[0]=="NUMBER" && words[2]=="ALPHA" && words[3]=="ELECTRONS"){
+	nelectrons[0]=atoi(words[5].c_str());
+	cout <<nelectrons[0]<<" alpha electrons"<<endl;
+      }
+      if(words[0]=="NUMBER" && words[2]=="BETA" && words[3]=="ELECTRONS"){
+	nelectrons[1]=atoi(words[5].c_str());
+	cout <<nelectrons[1]<<" beta electrons"<<endl;
+      }
       
       
       if(words[0]=="ITER." && words[2]=="IMPROVED") {
@@ -349,7 +413,11 @@ int main(int argc, char ** argv) {
 	for(int k=0; k < det_str[i][j].size(); k=k+3){
 	  det[i][j].push_back(atoi(det_str[i][j].substr(k,3).c_str()));
 	}
-	reorder(det[i][j],det_weights[i][j]);
+	
+	reorder_orbs(det[i][j],det_weights[i][j]);
+	if(reorder)
+	  normal_reorder_orbs(nelectrons[0],nelectrons[1],det[i][j],det_weights[i][j]);
+
 	//if(i>0)
 	//  reorder3(det[i][j],det_weights[i][j],det[0][0]);
 	// det_spinup[i].resize(det_weights[i].size());
