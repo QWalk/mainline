@@ -349,9 +349,10 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
 
   int naux=mygather.nAux();
 
-  nhist=1;
+  if(nhist==-1)
+    nhist=1;
   //setting the projection time for auxillary walkers to 1 a.u.
-  if(naux >0 && nhist <0) nhist=int(1.0/timestep)+1;
+  if(naux >0) nhist=max(nhist,int(1.0/timestep)+1);
   if(naux > 0 && tmoves) error("Can't do t-moves and auxillary walks yet");
   //if(tmoves) pseudo->setDeterministic(1); //this may not be necessary..not sure yet.
   
