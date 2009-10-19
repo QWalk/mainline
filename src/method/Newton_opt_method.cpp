@@ -68,10 +68,23 @@ void Newton_opt_method::read(vector <string> words,
   }
   else { use_extended_output=0; }
   
+  if(haskeyword(words, pos=0, "PROJECTORS") )
+    {
+      calculate_projectors=1;
+    }
+  else {  calculate_projectors=0; }
+  
   if(!readvalue(words, pos=0, vmc_nblocks, "VMC_NBLOCK") )
   {
     vmc_nblocks=1;
   }
+
+  if(!readvalue(words, pos=0, nblocks_max, "MAX_NBLOCK") )
+  {
+    nblocks_max=100;
+  }
+
+
   if(!readvalue(words,pos=0, mixing, "MIXING"))
   {
     mixing=0.95;
@@ -147,6 +160,15 @@ void Newton_opt_method::read(vector <string> words,
   }
   else { use_correlated_sampling=0; } 
 
+  pos=0;
+  vector <string> mc_words_tmp;
+  while(readsection(words, pos, mc_words_tmp, "MC"))
+    mc_words.push_back(mc_words_tmp);
+  
+  if(!mc_words.size())
+    error("Need MC section inside NEWTON_OPT method");
+  /*
+    old way of doing things
   if (!readsection(words, pos=0, mc_words, "MC")){
       mc_words.push_back("VMC");
       mc_words.push_back("NBLOCK");
@@ -158,6 +180,7 @@ void Newton_opt_method::read(vector <string> words,
       single_write(cout,"Using default version of MC"); 
       //error("Need MC section inside NEWTON_OPT method");
   }
+  */
 
   //--Set up variables
   sysprop=NULL;
@@ -758,14 +781,14 @@ void Newton_opt_method::Get_correlated_energies_and_variances(Array1 < Array1 <d
   vector <string> total_mc_words;
   char strbuff2[40];
   sprintf(strbuff2, "%d", nconfig);
-  total_mc_words=mc_words; 
+  total_mc_words=mc_words[0]; 
   total_mc_words.insert(total_mc_words.begin(),storeconfig_non_cannonical);
   total_mc_words.insert(total_mc_words.begin(),"STORECONFIG");
   total_mc_words.insert(total_mc_words.begin(),storeconfig_non_cannonical);
   total_mc_words.insert(total_mc_words.begin(),"READCONFIG");
   total_mc_words.insert(total_mc_words.begin(),strbuff2);
   total_mc_words.insert(total_mc_words.begin(),"NCONFIG");
-  total_mc_words.insert(total_mc_words.begin(),mc_words[0]);
+  total_mc_words.insert(total_mc_words.begin(),mc_words[0][0]);
   total_mc_words.push_back("PROPERTIES") ;
   total_mc_words.push_back("{");
   for(unsigned int i=0;i<aux_wftext.size();i++){
@@ -797,7 +820,7 @@ void Newton_opt_method::Get_correlated_energies_and_variances(Array1 < Array1 <d
   if(mpi_info.node==0 ) {
     logout.open(logfile.c_str(), ios::app);
     logout << "#-------------------------------------------------\n";
-    logout << "#"<<mc_words[0]<<"run: iteration " <<iter<<endl;;
+    logout << "#"<<mc_words[0][0]<<"run: iteration " <<iter<<endl;;
   }
   
   avg_method->runWithVariables(myprop, 
@@ -880,56 +903,99 @@ void Newton_opt_method::adjust_distribution(Array1 <doublevar> & parms,
 					    doublevar & energy_err,
 					    doublevar & variance
 					    ){
-  wfdata->setVarParms(parms);
-  wfdata->renormalize();
-  char strbuff[40], strbuff_vmc[40];
+  char strbuff[40];
   sprintf(strbuff,  "%d", nconfig);
-  sprintf(strbuff_vmc,  "%d", vmc_nblocks);
-  vector <string>  vmc_words;
-  vmc_words.push_back("VMC");
-  vmc_words.push_back("NBLOCK");
-  vmc_words.push_back(strbuff_vmc);
-  vmc_words.push_back("NCONFIG");
-  vmc_words.push_back(strbuff);
-  if(mc_words[0]=="DMC"){
-    vmc_words.push_back("NSTEP");
-    vmc_words.push_back("10");
-    vmc_words.push_back("TIMESTEP");
-    vmc_words.push_back("1");
-  }
-  vmc_words.push_back("READCONFIG");
-  if(iter<1)
-    vmc_words.push_back(readconfig_non_cannonical);
-  else
-    vmc_words.push_back(storeconfig_non_cannonical);
-  vmc_words.push_back("STORECONFIG");
-  vmc_words.push_back(storeconfig_non_cannonical);
-  for(unsigned int i=1;i<mc_words.size();i++)
-    vmc_words.push_back(mc_words[i]); 
+  for (int mc_size=0; mc_size<mc_words.size(); mc_size++){
+    wfdata->setVarParms(parms);
+    wfdata->renormalize();
+    log_label=mc_words[mc_size][0];
+    char strbuff2[40];
+    sprintf(strbuff2,  "%d", iter);
+    log_label+=strbuff2;
+    vector <string>  run_words;
+    run_words.push_back(mc_words[mc_size][0]);
+    run_words.push_back("NCONFIG");
+    run_words.push_back(strbuff);
+    run_words.push_back("READCONFIG");
+    if(iter<1)
+      run_words.push_back(readconfig_non_cannonical);
+    else
+      run_words.push_back(storeconfig_non_cannonical);
+    run_words.push_back("STORECONFIG");
+    run_words.push_back(storeconfig_non_cannonical);
+
+
+    /*
+      to double the size of the block
+    int nblock_pos=1;
+    while(mc_words[mc_size][nblock_pos++]!="NBLOCK"){
+    }
+    //cout <<"NBLOCK "<<mc_words[mc_size][nblock_pos]<<endl;
+    int nblocks=atoi(mc_words[mc_size][nblock_pos].c_str());
+    if(mc_size==mc_words.size()-1 && nblocks < 101 ){
+    nblocks*=2;
+    char strbuff3[40];
+    sprintf(strbuff3,  "%d", nblocks);
+    mc_words[mc_size][nblock_pos]=strbuff3;
+    }
+
+
+    */
+    
+    for(int s=1;s<mc_words[mc_size].size();s++)
+      run_words.push_back(mc_words[mc_size][s]);
+    if(mpi_info.node==0 ){
+      for(int s=0;s<run_words.size();s++)
+	cout << run_words[s]<<" ";
+      cout <<endl;
+    }
   
-  avg_method=NULL;
-  allocate(vmc_words, options, avg_method);
-  string logfile=options.runid+".log";
-  myprop.setLog(logfile, log_label);
-  ofstream logout;
-  if(mpi_info.node==0 ) {
-    logout.open(logfile.c_str(), ios::app);
-    logout << "#-------------------------------------------------\n";
-    logout << "#VMC run:" <<endl;;
-  }
-  avg_method->runWithVariables(myprop, 
-                               sysprop,
-                               wfdata,
-                               pseudo,
-			       output);
-  if(mpi_info.node==0 ) {
-    logout.close();
-  }
-  Properties_final_average  finavg;
-  myprop.getFinal(finavg);
-  energy=finavg.avg(Properties_types::total_energy,0);
-  variance=finavg.avgvar(Properties_types::total_energy,0);
-  energy_err=sqrt(finavg.err(Properties_types::total_energy,0));
+    avg_method=NULL;
+    allocate(run_words, options, avg_method);
+    string logfile=options.runid+".log";
+    myprop.setLog(logfile, log_label);
+    ofstream logout;
+    if(mpi_info.node==0 ) {
+      logout.open(logfile.c_str(), ios::app);
+      logout << "#-------------------------------------------------\n";
+       logout << "#"<<mc_words[mc_size][0]<<" run:" <<endl;
+    }
+    avg_method->runWithVariables(myprop, 
+				 sysprop,
+				 wfdata,
+				 pseudo,
+				 output);
+    if(mpi_info.node==0 ) {
+      logout.close();
+    }
+    Properties_final_average  finavg;
+    myprop.getFinal(finavg);
+    energy=finavg.avg(Properties_types::total_energy,0);
+    variance=finavg.avgvar(Properties_types::total_energy,0);
+    energy_err=sqrt(finavg.err(Properties_types::total_energy,0));
+    
+    if(calculate_projectors){
+      int navg_vals=finavg.avgavg.GetDim(0);
+      for(int i=0; i< navg_vals; i++) { 
+	//output << "      "<<  "average_generator { " << finavg2.avgavg(i).type << " ";
+	if(finavg.avgavg(i).type=="linear_der"){
+	  int ndim=finavg.avgavg(i).vals.GetDim(0)-1;
+	  for(int j=0; j< ndim; j++) { 
+	    doublevar value=finavg.avgavg(i).vals(j)/finavg.avgavg(i).vals(ndim);
+	    doublevar error=finavg.avgerr(i).vals(j)/finavg.avgavg(i).vals(ndim);
+	    //output << value << " +/- "<<error<<endl;
+	    if(abs(value)>2*error)
+	      parms(j)=value;
+	    else
+	      parms(j)=0;
+	  }
+	  //output << " } " << endl;
+	}
+      }//i
+    }
+    wfdata->attachObserver(wf);
+  }//mc_size
+
   switch(min_function)
     {
     case min_energy:
@@ -942,59 +1008,7 @@ void Newton_opt_method::adjust_distribution(Array1 <doublevar> & parms,
       function=mixing*energy+(1-mixing)*variance;
       break;
     }
-  wfdata->attachObserver(wf);
-
-  if(mc_words[0]=="DMC"){
-    vector <string>  dmc_words;
-    dmc_words.push_back("DMC");
-    dmc_words.push_back("NBLOCK");
-    dmc_words.push_back(strbuff_vmc);
-    dmc_words.push_back("NCONFIG");
-    dmc_words.push_back(strbuff);
-    dmc_words.push_back("READCONFIG");
-    dmc_words.push_back(storeconfig_non_cannonical);
-    dmc_words.push_back("STORECONFIG");
-    dmc_words.push_back(storeconfig_non_cannonical);
-    for(unsigned int i=1;i<mc_words.size();i++)
-      dmc_words.push_back(mc_words[i]); 
-    avg_method=NULL;
-    allocate(dmc_words, options, avg_method);
-    string logfile=options.runid+".log";
-    log_label+="_dmc";
-    myprop.setLog(logfile, log_label);
-    ofstream logout;
-    if(mpi_info.node==0 ) {
-      logout.open(logfile.c_str(), ios::app);
-      logout << "#-------------------------------------------------\n";
-      logout << "#DMC run:" <<endl;;
-    }
-    avg_method->runWithVariables(myprop, 
-				 sysprop,
-				 wfdata,
-				 pseudo,
-				 output);
-    if(mpi_info.node==0 ) {
-      logout.close();
-    }
-    Properties_final_average  finavg2;
-    myprop.getFinal(finavg2);
-    energy=finavg2.avg(Properties_types::total_energy,0);
-    variance=finavg2.avgvar(Properties_types::total_energy,0);
-    energy_err=sqrt(finavg2.err(Properties_types::total_energy,0));
-    switch(min_function)
-      {
-      case min_energy:
-	function=energy;
-	break;
-      case min_variance:
-	function=variance;
-	break;
-      case min_mixed:
-	function=mixing*energy+(1-mixing)*variance;
-	break;
-      }
-    wfdata->attachObserver(wf);
-  }
+  
 }
 
 doublevar parabola(doublevar x, Array1 <doublevar> & c){
@@ -1350,6 +1364,8 @@ int Newton_opt_method::showinfo(ostream & os)
   os << endl << endl;
   os << "-----------------------------" << endl;
   os << "Wave function optimization " << endl;
+  if(calculate_projectors)
+    os << "using the SH-DMC projectors for parameters"<<endl;
   os << "Configurations per processor: " <<  nconfig   << endl;
   os << "Number of processors: "        <<  mpi_info.nprocs << endl;
   os << "Total configurations: " <<          nconfig*mpi_info.nprocs << endl;
@@ -1370,9 +1386,13 @@ int Newton_opt_method::showinfo(ostream & os)
   default:
     os << "Unknown--add to showinfo()\n";
   }
- 
   if(use_weights) 
     os << "Reweighting using correlated sampling " << endl;
+  if(use_correlated_sampling)
+    os << "correlated sampling used for damping" << endl; 
+  else
+    os << "self-adapting method for damping" << endl; 
+    
   os << "----------------------------" << endl;
   
   
@@ -1383,6 +1403,7 @@ void Newton_opt_method::run(Program_options & options, ostream & output)
 {
   output.precision(10);
   nparms=wfdata->nparms(); //Number of variables
+  cout <<"nparms "<<nparms<<endl;
   if(nparms<= 0 ) error("There appear to be no parameters to optimize!");
   Array1 <double> delta(nparms);
   delta=0.0001; //decent value fo finite differences
@@ -1465,96 +1486,129 @@ void Newton_opt_method::run(Program_options & options, ostream & output)
       iter++;
     }
     
-    if( mpi_info.node==0 )
-      cout << "generate_all_quanities" <<endl;
-    generate_all_quanities(parms,
+    if(!calculate_projectors){
+      if( mpi_info.node==0 )
+	cout << "generate_all_quanities" <<endl;
+      generate_all_quanities(parms,
                              delta, 
                              local_energy,
                              local_energy_gradient,
                              wf_gradient,
                              wf_hessian
                              );
-
-    if(use_weights || !eref_exists)
-      eref=energy_mean;
-    
-    if( mpi_info.node==0 )
-      cout << "calculate_first_averages" <<endl;
-    calculate_first_averages(parms,
-			     local_energy, 
-			     local_energy_gradient,
-			     wf_gradient,
-			     energy_mean,
-			     function_mean_est,
-			     energy_mean_est,
-			     variance_mean_est,
-			     wf_gradient_mean,
-			     local_energy_gradient_mean,
-			     energy_gradient_mean
-			     );
-    if( mpi_info.node==0 )
-      cout << "calculate_second_averages" <<endl;
-    calculate_second_averages(parms, 
-			      local_energy, 
-			      local_energy_gradient,
-			      wf_gradient,
-			      wf_hessian,
-			      energy_mean,
-			      wf_gradient_mean,
-			      local_energy_gradient_mean,
-			      energy_gradient_mean,
-			      variance_gradient_mean,
-			      hess1_eng_mean,
-			      hess2_eng_mean,
-			      hess3_1eng_mean,
-			      hess3_2eng_mean,
-			      hess1_var_mean
-			      );
-
-    if( mpi_info.node==0 )
-      cout << "build gradient" <<endl;
-    build_gradient(energy_gradient_mean,
-		   variance_gradient_mean,
-		   function_gradient);
-
-    if(mpi_info.node==0 ){
-      cout << "Gradients of: minimized quantity, vmc energy, wavefunction and local energy"<<endl;
-      for (int i=0;i<nparms;i++){
-	cout <<i+1<<":  "<<  function_gradient(i)<<"   "<<energy_gradient_mean(i)<<"  "<<wf_gradient_mean(i)<<"  "<<local_energy_gradient_mean(i)<<endl;
+      
+      if(use_weights || !eref_exists)
+	eref=energy_mean;
+      
+      if( mpi_info.node==0 )
+	cout << "calculate_first_averages" <<endl;
+      calculate_first_averages(parms,
+			       local_energy, 
+			       local_energy_gradient,
+			       wf_gradient,
+			       energy_mean,
+			       function_mean_est,
+			       energy_mean_est,
+			       variance_mean_est,
+			       wf_gradient_mean,
+			       local_energy_gradient_mean,
+			       energy_gradient_mean
+			       );
+      if( mpi_info.node==0 )
+	cout << "calculate_second_averages" <<endl;
+      calculate_second_averages(parms, 
+				local_energy, 
+				local_energy_gradient,
+				wf_gradient,
+				wf_hessian,
+				energy_mean,
+				wf_gradient_mean,
+				local_energy_gradient_mean,
+				energy_gradient_mean,
+				variance_gradient_mean,
+				hess1_eng_mean,
+				hess2_eng_mean,
+				hess3_1eng_mean,
+				hess3_2eng_mean,
+				hess1_var_mean
+				);
+      
+      if( mpi_info.node==0 )
+	cout << "build gradient" <<endl;
+      build_gradient(energy_gradient_mean,
+		     variance_gradient_mean,
+		     function_gradient);
+      
+      if(mpi_info.node==0 ){
+	cout << "Gradients of: minimized quantity, vmc energy, wavefunction and local energy"<<endl;
+	for (int i=0;i<nparms;i++){
+	  cout <<i+1<<":  "<<  function_gradient(i)<<"   "<<energy_gradient_mean(i)<<"  "<<wf_gradient_mean(i)<<"  "<<local_energy_gradient_mean(i)<<endl;
+	}
+      }
+      if( mpi_info.node==0 )
+	cout << "build hessian" <<endl;
+      build_hessian(wf_gradient_mean,
+		    local_energy_gradient_mean,
+		    hess1_eng_mean,
+		    hess2_eng_mean,
+		    hess3_1eng_mean,
+		    hess3_2eng_mean,
+		    hess1_var_mean,
+		    function_hessian);
+      
+      make_posite_definite(function_hessian);
+      
+      if( mpi_info.node==0 )
+	cout << "determine reference damping by adaptive method" <<endl;
+      
+      if(Levenberg_marquad(function_gradient, 
+			   function_hessian, 
+			   iter, 
+			   parms, 
+			   function_mean,
+			   energy_mean,
+			   energy_mean_err,
+			   variance_mean,
+			   nu, 
+			   damping,
+			   vmcoutput,
+			   output,
+			   options)){
+	break;
+      }
+      
+    }//calculate only if projectors in not set
+    else{ //calculate only if projectors is set
+      char strbuff[40];
+      sprintf(strbuff, "%d", iter);
+      string log_label="vmc_";
+      log_label+=strbuff;
+      adjust_distribution(parms, iter, log_label, vmcoutput, options, function_mean, energy_mean, energy_mean_err, variance_mean);
+      wf_printout(parms, iter, function_mean, energy_mean, energy_mean_err, variance_mean, nconfig, damping, output);
+      
+      if( mpi_info.node==0 ){
+	cout << "iteration  function_mean      energy_mean     variance_mean "<<endl;
+	cout <<"%%  "<<iter<<"  "<<function_mean << "  "<<energy_mean<<" +/- "<<energy_mean_err<<"   "<<variance_mean<<"  "<<endl;
+      }
+      //if this then 2x of number of blocks
+      if(function_mean > best_function){
+	for(int mc_size=0;mc_size<mc_words.size();mc_size++){
+	  int nblock_pos=1;
+	  while(mc_words[mc_size][nblock_pos++]!="NBLOCK"){
+	  }
+	  //cout <<"NBLOCK "<<mc_words[mc_size][nblock_pos]<<endl;
+	  int nblocks=atoi(mc_words[mc_size][nblock_pos].c_str());
+	  if(mc_size==mc_words.size()-1 && nblocks < nblocks_max ){
+	    nblocks*=2;
+	    char strbuff3[40];
+	    sprintf(strbuff3,  "%d", nblocks);
+	    mc_words[mc_size][nblock_pos]=strbuff3;
+	  }
+	}
       }
     }
-    if( mpi_info.node==0 )
-      cout << "build hessian" <<endl;
-    build_hessian(wf_gradient_mean,
-		  local_energy_gradient_mean,
-		  hess1_eng_mean,
-		  hess2_eng_mean,
-		  hess3_1eng_mean,
-		  hess3_2eng_mean,
-		  hess1_var_mean,
-		  function_hessian);
-  
-    make_posite_definite(function_hessian);
 
-    if( mpi_info.node==0 )
-      cout << "determine reference damping by adaptive method" <<endl;
-    
-    if(Levenberg_marquad(function_gradient, 
-			 function_hessian, 
-			 iter, 
-			 parms, 
-			 function_mean,
-			 energy_mean,
-			 energy_mean_err,
-			 variance_mean,
-			 nu, 
-			 damping,
-			 vmcoutput,
-			 output,
-			 options)){
-      break;
-    }
-    
+
     if(function_mean < best_function){
       if( mpi_info.node==0 )
 	cout << "Found better parameters"<<endl;

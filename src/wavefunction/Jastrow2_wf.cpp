@@ -1270,6 +1270,14 @@ void Jastrow2_wf::getVal(Wavefunction_data * wfdata,
 
 }
 
+
+//----------------------------------------------------------
+void Jastrow2_wf::getSymmetricVal(Wavefunction_data * wfdata,
+		     int e, Wf_return & val){
+  getVal(wfdata,e,val);
+} 
+
+
 //----------------------------------------------------------
 
 void Jastrow2_wf::getLap(Wavefunction_data * wfdata, int e, 

@@ -169,7 +169,7 @@ private:
   string readconfig_non_cannonical;
   string storeconfig;
   string storeconfig_non_cannonical;
-  vector <string> mc_words;
+  vector < vector <string> > mc_words;
 
   int nparms;
   Array1 <doublevar> calcpot;
@@ -187,6 +187,9 @@ private:
   Pseudopotential * pseudo;
   Qmc_avg_method * avg_method;
   Properties_manager myprop;
+  int  calculate_projectors;
+  int nblocks_max;
+
 
 
 };

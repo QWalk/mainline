@@ -121,6 +121,29 @@ void Slat_Jastrow::getVal(Wavefunction_data * wfdata,
   }
 }
 
+
+void Slat_Jastrow::getSymmetricVal(Wavefunction_data * wfdata,
+			     int e, Wf_return & val){
+
+  Wf_return slat_val(nfunc_, 2);
+  Wf_return jast_val(nfunc_, 2);
+ 
+  Slat_Jastrow_data * dataptr;
+  recast(wfdata, dataptr);
+  assert(dataptr != NULL);
+  
+  slater_wf->getSymmetricVal(dataptr->slater, e, slat_val);
+  jastrow_wf->getSymmetricVal(dataptr->jastrow, e, jast_val);
+
+  //cout <<"slat_val.amp(0,0) "<<slat_val.amp(0,0)<<"  jast_val.amp(0,0) "<<jast_val.amp(0,0)<<endl;
+
+  for(int i=0; i< nfunc_; i++) {
+    val.amp(i,0)=slat_val.amp(i,0)+jast_val.amp(i,0);  //add the logarithm
+  }
+}
+
+
+
 void Slat_Jastrow::getDensity(Wavefunction_data * wfdata,
                               int e,
                               Array2 <doublevar> & val)

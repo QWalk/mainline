@@ -803,8 +803,335 @@ void Properties_manager::endBlock() {
   //cout << "done" << endl;
 }
 
+
 //--------------------------------------------------
 
+/*!
+\todo
+Use the recurrence relations from 
+http://mathworld.wolfram.com/SampleVarianceComputation.html
+to remove the extraneous trace in Properties_manager..
+ */
+
+void Properties_manager::endBlock_per_step() {
+  using namespace Properties_types;
+
+  
+  int nwalkers=trace.GetDim(1);
+  int n_cvg=num_aux_converge;
+  
+  int nsteps=trace.GetDim(0);
+  int totpts=0;
+  //For the generalized averaging, this can be broken if 
+  //the calling program isn't consistent with the ordering and 
+  //number of Average_returns.  I can't think of any reason why someone
+  //would want to do that other than spite, though.
+  int navg_gen=trace(0,0).avgrets.GetDim(0);
+  block_avg(current_block).avgrets.Resize(navg_gen);
+  
+  for(int w=0; w< nwf; w++) {
+    doublevar totweight=0;
+    doublevar avgkin=0;
+    doublevar avgpot=0;
+    doublevar avgnonloc=0;
+    doublevar avgen=0;
+    if(w==0) { 
+      for(int i=0; i< navg_gen; i++) { 
+        block_avg(current_block).avgrets(i).vals.Resize(trace(0,0).avgrets(i).vals.GetDim(0));      
+        block_avg(current_block).avgrets(i).vals=0;
+        block_avg(current_block).avgrets(i).type=trace(0,0).avgrets(i).type;
+      }
+    }
+    Array2 <doublevar> auxen(naux, n_cvg,0.0);
+    Array2 <doublevar> auxwt(naux,n_cvg,0.0);
+    Array2 <doublevar> auxdiff(naux,n_cvg, 0.0);
+    Array1 <doublevar> weight_per_step(nsteps-start_avg_step,0.0);
+    Array1 <int> npts_per_step(nsteps-start_avg_step,0);
+    int npts=0;
+    for(int step=start_avg_step; step < nsteps; step++) {
+      for(int walker=0; walker < nwalkers; walker++) {
+        if(trace(step, walker).count) {
+          npts++;
+          doublevar wt=trace(step,walker).weight(w);
+
+	  weight_per_step(step-start_avg_step)+=wt;
+	  npts_per_step(step-start_avg_step)++;
+	  //cout <<wt<<weight_per_step(step-start_avg_step)<<npts_per_step(step-start_avg_step)<<endl;
+
+	  totweight+=wt;
+          for(int i=0; i< naux; i++) {
+            for(int c=0; c< n_cvg; c++) 
+              auxwt(i,c)+=trace(step, walker).aux_weight(i,c);
+          }
+        }
+      }
+    }
+    //cout << " totpts " << endl;
+    totpts=parallel_sum(npts);
+    //cout << "donepsum" << endl;
+
+    Array1 <int> totnpts_per_step(nsteps-start_avg_step,0);
+    Array1 <doublevar> totweight_per_step(nsteps-start_avg_step,0.0);
+    for(int step=start_avg_step; step < nsteps; step++) {
+      totnpts_per_step(step-start_avg_step)=parallel_sum(npts_per_step(step-start_avg_step));
+      totweight_per_step(step-start_avg_step)=parallel_sum(weight_per_step(step-start_avg_step));
+      //cout <<"step"<<step<<" totnpts_per_step "<<totnpts_per_step(step-start_avg_step)<<" totweight_per_step " <<totweight_per_step(step-start_avg_step)<<endl;
+    }
+    Array2 <doublevar> aux_wt_sum(naux, n_cvg);
+    for(int i=0; i < naux; i++) 
+      for(int c=0; c< n_cvg; c++) 
+        aux_wt_sum(i,c)=parallel_sum(auxwt(i,c))/totpts;
+    doublevar weight_sum=parallel_sum(totweight)/totpts;
+    doublevar sum_inv=1.0/weight_sum;
+    Array1 <dcomplex> z_pol(3, dcomplex(0.0, 0.0));
+    Array2 <dcomplex> aux_z_pol(naux, 3, dcomplex(0.0, 0.0));
+    
+    
+
+    Array1 < Array1 < Array1 <doublevar> > > avgrets_per_step(nsteps-start_avg_step);
+    for(int step=start_avg_step; step < nsteps; step++) {
+      if(w==0) { 
+	avgrets_per_step(step-start_avg_step).Resize(navg_gen);
+	for(int i=0; i< navg_gen; i++){
+	  avgrets_per_step(step-start_avg_step)(i).Resize( block_avg(current_block).avgrets(i).vals.GetDim(0));
+	  avgrets_per_step(step-start_avg_step)(i)=0.0;
+	}
+      }
+
+      for(int walker=0; walker < nwalkers; walker++) {
+        if(trace(step, walker).count) {
+          doublevar wt=trace(step,walker).weight(w);
+          avgkin+=trace(step,walker).kinetic(w)*wt;
+          avgpot+=trace(step, walker).potential(w)*wt;
+          avgnonloc+=trace(step, walker).nonlocal(w)*wt;
+          avgen+=(trace(step, walker).kinetic(w)
+                  +trace(step, walker).potential(w)
+                  +trace(step, walker).nonlocal(w))*wt;
+          if(w==0) { 
+            for(int i=0; i< navg_gen; i++) { 
+              for(int j=0; j< block_avg(current_block).avgrets(i).vals.GetDim(0); j++) { 
+                //block_avg(current_block).avgrets(i).vals(j)+=wt*trace(step,walker).avgrets(i).vals(j);
+		avgrets_per_step(step-start_avg_step)(i)(j)+=wt*trace(step,walker).avgrets(i).vals(j);
+              }
+            }
+          }
+          for(int d=0; d< 3; d++)
+            z_pol(d)+=trace(step, walker).z_pol(d)*wt;
+          for(int i=0; i< naux; i++) {
+            //the convention(in RMC and VMC) is that the last
+            //converge point is the 'pure' estimator
+            int last=n_cvg-1;
+            doublevar aux_wt=trace(step,walker).aux_weight(i,last)
+              /(aux_wt_sum(i,last)*totpts);
+            for(int d=0; d< 3; d++) 
+              aux_z_pol(i,d)+=trace(step,walker).aux_z_pol(i,d)*aux_wt;
+            
+            for(int c=0; c< n_cvg; c++) {
+              auxen(i,c)+=trace(step, walker).aux_energy(i,c)
+              *trace(step, walker).aux_weight(i,c)/(aux_wt_sum(i,c)*totpts);
+              auxdiff(i,c)+=trace(step,walker).aux_energy(i,c)
+                *trace(step,walker).aux_weight(i,c)/aux_wt_sum(i,c)
+                -trace(step,walker).energy(w)*wt*sum_inv;
+            }
+            
+          }
+        }
+      }
+    }
+    
+    weight_sum*=totpts;
+    
+    //block_avg(current_block).totweight=weight_sum;
+    block_avg(current_block).totweight=0.0;
+    for(int step=start_avg_step; step < nsteps; step++) {
+      if(totnpts_per_step(step-start_avg_step))
+	block_avg(current_block).totweight+=totweight_per_step(step-start_avg_step);
+    }
+    
+    block_avg(current_block).avg(kinetic,w)=parallel_sum(avgkin)/weight_sum;
+    block_avg(current_block).avg(potential,w)=parallel_sum(avgpot)/weight_sum;
+    block_avg(current_block).avg(nonlocal,w)=parallel_sum(avgnonloc)/weight_sum;
+    block_avg(current_block).avg(total_energy,w)=parallel_sum(avgen)/weight_sum;
+    //block_avg(current_block).avg(weight,w)=weight_sum/totpts;
+    block_avg(current_block).avg(weight,w)=0.0;
+    for(int step=start_avg_step; step < nsteps; step++) {
+      if(totnpts_per_step(step-start_avg_step))
+	block_avg(current_block).avg(weight,w)+=totweight_per_step(step-start_avg_step)/totnpts_per_step(step-start_avg_step);
+    }
+    block_avg(current_block).avg(weight,w)/=(nsteps-start_avg_step);
+
+    
+    for(int d=0;d < 3; d++) {
+      block_avg(current_block).z_pol(d)=parallel_sum(z_pol(d))/weight_sum;
+    }
+    for(int i=0; i< naux; i++) {
+      for(int d=0;d < 3; d++) 
+        block_avg(current_block).aux_z_pol(i,d)=parallel_sum(aux_z_pol(i,d));
+      for(int c=0; c< n_cvg; c++) {
+        aux_wt_sum(i,c)*=totpts;
+        block_avg(current_block).aux_energy(i,c)=parallel_sum(auxen(i,c));
+        block_avg(current_block).aux_weight(i,c)=aux_wt_sum(i,c)/totpts;
+        block_avg(current_block).aux_diff(i,c)=parallel_sum(auxdiff(i,c))/totpts;
+      }
+    }
+    
+    if(w==0) { 
+      for(int i=0; i< navg_gen; i++) { 
+        for(int j=0; j< block_avg(current_block).avgrets(i).vals.GetDim(0); j++) { 
+          //block_avg(current_block).avgrets(i).vals(j)=
+          //parallel_sum(block_avg(current_block).avgrets(i).vals(j))/weight_sum;
+	  block_avg(current_block).avgrets(i).vals(j)=0.0;
+	  for(int step=start_avg_step; step < nsteps; step++) {
+	    if(totnpts_per_step(step-start_avg_step))
+	      block_avg(current_block).avgrets(i).vals(j)+=parallel_sum(avgrets_per_step(step-start_avg_step)(i)(j))/totnpts_per_step(step-start_avg_step);
+	  }
+	  block_avg(current_block).avgrets(i).vals(j)/=(nsteps-start_avg_step);
+        }
+      }
+    }
+    //cout << mpi_info.node << ":npoints" << npts << endl;
+    
+
+    //Variance
+    doublevar varkin=0, varpot=0, varnonloc=0, varen=0;
+    doublevar varweight=0;
+
+    Array2 <doublevar> auxvaren(naux,n_cvg, 0.0);
+    Array2 <doublevar> auxvarwt(naux,n_cvg, 0.0);
+
+    for(int step=start_avg_step; step < nsteps; step++) {
+      for(int walker=0; walker < nwalkers; walker++) {
+        if(trace(step, walker).count) {
+          doublevar kin=trace(step, walker).kinetic(w);
+          doublevar pot=trace(step, walker).potential(w);
+          doublevar nonloc=trace(step, walker).nonlocal(w);
+          doublevar en=kin+pot+nonloc;
+
+          doublevar wt=trace(step, walker).weight(w);
+
+          varkin+=(kin-block_avg(current_block).avg(kinetic,w))
+            *(kin-block_avg(current_block).avg(kinetic,w))*wt;
+          varpot+=(pot-block_avg(current_block).avg(potential,w))
+            *(pot-block_avg(current_block).avg(potential,w))*wt;
+          varnonloc+=(nonloc-block_avg(current_block).avg(nonlocal,w))
+           *(nonloc-block_avg(current_block).avg(nonlocal,w))*wt;
+          varen+=(en-block_avg(current_block).avg(total_energy,w))
+            *(en-block_avg(current_block).avg(total_energy,w))*wt;
+
+          varweight+=(wt-block_avg(current_block).avg(weight,w))
+            *(wt-block_avg(current_block).avg(weight,w));
+
+
+          for(int i=0; i< naux; i++) {
+            for(int c=0; c< n_cvg; c++) {
+            auxvarwt(i,c)+=(trace(step, walker).aux_weight(i,c)
+                          -block_avg(current_block).aux_weight(i,c))
+                         *(trace(step, walker).aux_weight(i,c)
+                           -block_avg(current_block).aux_weight(i,c));
+            auxvaren(i,c)+=(trace(step, walker).aux_energy(i,c)
+                          -block_avg(current_block).aux_energy(i,c))
+                        *(trace(step, walker).aux_energy(i,c)
+                          -block_avg(current_block).aux_energy(i,c))
+                         *trace(step, walker).aux_weight(i,c);
+            }
+          }
+
+        }
+      }
+    }
+    block_avg(current_block).var(kinetic,w)= parallel_sum(varkin)/weight_sum;
+    block_avg(current_block).var(potential,w)=parallel_sum(varpot)/weight_sum;
+    block_avg(current_block).var(nonlocal, w)=parallel_sum(varnonloc)/weight_sum;
+    block_avg(current_block).var(total_energy, w)=parallel_sum(varen)/weight_sum;
+    block_avg(current_block).var(weight,w)=parallel_sum(varweight)/totpts;
+    
+    for(int i=0; i< naux; i++) {
+      for(int c=0; c< n_cvg; c++) {
+        block_avg(current_block).aux_energyvar(i,c)
+        =parallel_sum(auxvaren(i,c))/aux_wt_sum(i,c);
+        block_avg(current_block).aux_weightvar(i,c)
+          =parallel_sum(auxvarwt(i,c))/totpts;
+      }
+    }
+    
+    Array2 <doublevar> auxvardiff(naux,n_cvg, 0.0);
+    for(int step=start_avg_step; step < nsteps; step++) {
+      for(int walker=0; walker < nwalkers; walker++) {
+        if(trace(step, walker).count) {
+          for(int i=0; i< naux; i++) {
+            for(int c=0; c< n_cvg; c++) {
+              doublevar avdiff=block_avg(current_block).aux_energy(i,c)
+              -block_avg(current_block).avg(total_energy,0);
+              doublevar diff=trace(step, walker).aux_energy(i,c)
+                -trace(step, walker).energy(0);
+              auxvardiff(i,c)+=(diff-avdiff)*(diff-avdiff);
+            }
+          }
+        }
+      }
+    }
+    
+    for(int i=0; i< naux; i++) {
+      for(int c=0; c< n_cvg; c++) {
+        block_avg(current_block).aux_diffvar(i,c)
+        =parallel_sum(auxvardiff(i,c))/totpts;
+      }
+    }
+    
+    
+  }
+  
+
+  
+  //cout << "autocorrelation " << endl;
+  if(naux==1 && n_cvg==2) { 
+    
+    doublevar weight_corr=0;
+    for(int step=start_avg_step; step < nsteps; step++) {
+      for(int walker=0; walker < nwalkers; walker++) {
+        if(trace(step, walker).count) {
+          
+          weight_corr+=(trace(step,walker).aux_weight(0,0)-
+                        block_avg(current_block).aux_weight(0,0))
+          *(trace(step,walker).aux_weight(0,0)-
+            block_avg(current_block).aux_weight(0,0));
+        }
+      }
+    }
+    
+    block_avg(current_block).aux_weight_correlation=
+      parallel_sum(weight_corr)/
+      (totpts*sqrt(block_avg(current_block).aux_weightvar(0,0)
+                   *block_avg(current_block).aux_weightvar(0,1)));
+  }
+  
+  autocorrelation(block_avg(current_block).autocorr,
+                  block_avg(current_block).aux_autocorr,
+                  autocorr_depth);
+  
+  //cout << "writing block " << endl;
+  if(mpi_info.node==0 && log_file != "") {
+    ofstream logout(log_file.c_str(), ios::app);
+    logout.precision(16);
+    logout << "block { " << endl;
+    string indent="   ";
+    block_avg(current_block).storeToLog(indent, logout, log_label);
+    logout << "} " << endl << endl;
+    logout.close();
+  }
+  current_block++;
+  for(int step=0; step < nsteps; step++)
+    for(int walker=0; walker < nwalkers; walker++) 
+      trace(step, walker).reset();
+  
+  //cout << "average " << endl;
+  final_avg.blockReduce(block_avg, 0, current_block,1);
+  //cout << "done" << endl;
+}
+
+//--------------------------------------------------
+
+//--------------------------------------------------
 
 void Properties_manager::initializeLog(Array1 <Average_generator*> & avg_gen) {
   if(mpi_info.node==0 && log_file != ""){ 

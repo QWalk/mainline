@@ -126,6 +126,21 @@ void Dmc_method::read(vector <string> words,
   allocate(dynamics_words, dyngen);
   dyngen->enforceNodes(1);
 
+  //MB: forwark walking lenghts 
+  fw_lenght.Resize(0);
+  fw_lenght=0;
+  vector <string> fw_words;
+  max_fw_lenght=0;
+  if(readsection(words, pos=0, fw_words, "FW_LENGHTS")){
+    fw_lenght.Resize(fw_words.size());
+    for(int i=0;i<fw_words.size();i++){
+      fw_lenght(i)=atoi(fw_words[i].c_str());
+      if(fw_lenght(i) > max_fw_lenght)
+	max_fw_lenght=fw_lenght(i);
+    }
+  }
+  //cout <<" Maximum forward walking history is "<<max_fw_lenght<<" steps"<<endl;
+
 }
 
 //----------------------------------------------------------------------
@@ -211,6 +226,12 @@ int Dmc_method::showinfo(ostream & os)
     os << "T-moves turned on" << endl;
   string indent="  ";
 
+  if(max_fw_lenght){
+    os << "Forward walking averaging over lenghts "; 
+    for(int s=0;s<fw_lenght.GetSize();s++)
+      os<<fw_lenght(s)<<"  ";
+    os<< endl;
+  }
   dyngen->showinfo(indent, os);
 
   os << "###########################################################" << endl;
@@ -307,6 +328,24 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
   restorecheckpoint(readconfig, sys, wfdata, pseudo);
   prop.initializeLog(average_var);
 
+
+  //MB: new properties manager for forward walking (one per each lenght)
+  Array1 <Properties_manager> prop_fw;
+  prop_fw.Resize(fw_lenght.GetSize());
+  if(max_fw_lenght){
+    for(int s=0;s<fw_lenght.GetSize();s++){
+      string logfile, label_temp;
+      prop.getLog(logfile, label_temp);
+      char strbuff[40];
+      sprintf(strbuff, "%d", fw_lenght(s));
+      label_temp+="_fw";
+      label_temp+=strbuff;
+      prop_fw(s).setLog(logfile, label_temp);
+      prop_fw(s).setSize(wf->nfunc(), nblock, nstep, nconfig, sys, 
+		    wfdata, mygather.nAux(), aux_converge);
+      prop_fw(s).initializeLog(average_var);
+    }
+  }
 
   int naux=mygather.nAux();
 
@@ -487,6 +526,52 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
 	  for(int i=0; i< nldensplt.GetDim(0); i++)
 	    nldensplt(i)->accumulate(sample,pts(walker).prop.weight(0),
 				     wfdata,wf);
+
+
+	  //MB: making the history of prop.avgrets for forward walking
+	  if(max_fw_lenght){
+	    //store the obeservables
+	    Dmc_history_avgrets new_avgrets;
+	    new_avgrets.avgrets=pts(walker).prop.avgrets;
+	    new_avgrets.weight=pts(walker).prop.weight(0);
+	    
+	    //for(int i=0; i< new_avgrets.avgrets.GetDim(0); i++)
+	    // for(int j=0; j< new_avgrets.avgrets(i).vals.GetDim(0); j++)
+	    //	new_avgrets.avgrets(i).vals(j)/=pts(walker).prop.weight(0);
+	    
+	    pts(walker).past_properties.push_front(new_avgrets);
+
+	    //tailor the array if larger than max_fw_lenght
+	    deque<Dmc_history_avgrets> & past_avgrets(pts(walker).past_properties);
+	    if(past_avgrets.size() > max_fw_lenght) 
+	      past_avgrets.erase(past_avgrets.begin()+max_fw_lenght, past_avgrets.end());
+
+	    int size=pts(walker).past_properties.size();
+	    //	    cout <<"size of the queqe "<<size<<endl;
+
+	    //find the element from the past
+	    doublevar oldweight;
+	    for(int s=0;s<fw_lenght.GetSize();s++){
+	      if(fw_lenght(s)>size){
+		pts(walker).prop.avgrets=pts(walker).past_properties[size-1].avgrets;
+		oldweight=pts(walker).past_properties[size-1].weight;
+	      }
+	      else{
+		//call the prop.avgrets from fw_lenght(s) steps a go
+		pts(walker).prop.avgrets=pts(walker).past_properties[fw_lenght(s)-1].avgrets;
+		oldweight=pts(walker).past_properties[fw_lenght(s)-1].weight;
+	      }
+
+	      //for(int i=0; i< pts(walker).prop.avgrets.GetDim(0); i++)
+	      //for(int j=0; j< pts(walker).prop.avgrets(i).vals.GetDim(0); j++)
+	      //  pts(walker).prop.avgrets(i).vals(j)*=pts(walker).prop.weight(0)/oldweight;
+	      //pts(walker).prop.weight(0)/=oldweight;
+	      
+	      //insert it into observables
+	      prop_fw(s).insertPoint(step+p, walker, pts(walker).prop);
+	    }
+	  }//if FW
+	 
         }
         
         pts(walker).config_pos.savePos(sample);
@@ -519,6 +604,13 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
         nldensplt(i)->write(log_label);
     }
     prop.endBlock();
+    
+    if(max_fw_lenght){
+      for(int s=0;s<fw_lenght.GetSize();s++){
+	//prop_fw(s).endBlock();
+	prop_fw(s).endBlock_per_step();
+      }
+    }
 
     totbranch=parallel_sum(totbranch);
     totkilled=parallel_sum(totkilled);
@@ -573,6 +665,13 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
   if(output) {
     output << "\n ----------Finished DMC------------\n\n";
     prop.printSummary(output,average_var);  
+    
+    //MB: final printout for FW
+    if(max_fw_lenght){
+      for(int s=0;s<fw_lenght.GetSize();s++)
+	prop_fw(s).printSummary(output,average_var);
+    }
+
   }
   wfdata->clearObserver();
   deallocateIntermediateVariables();
@@ -1207,6 +1306,14 @@ void Dmc_point::mpiSend(int node) {
     i->mpiSend(node);
   }
   
+  //MB: sending the past_properties for the forward walking
+  int m=past_properties.size();
+  MPI_Send(&m,1, MPI_INT,node,0,MPI_Comm_grp);
+  for(deque<Dmc_history_avgrets>::iterator i=past_properties.begin();
+      i!= past_properties.end(); i++) { 
+    i->mpiSend(node);
+  }
+
   MPI_Send(&weight,1,MPI_DOUBLE,node,0,MPI_Comm_grp);
   MPI_Send(&ignore_walker,1, MPI_INT,node,0,MPI_Comm_grp);
 
@@ -1229,6 +1336,18 @@ void Dmc_point::mpiReceive(int node) {
     tmp_hist.mpiReceive(node);
     past_energies.push_back(tmp_hist);
   }
+
+  //MB: receiving the past_properties for the forward walking
+  int m;
+  MPI_Recv(&m,1,MPI_INT,node,0,MPI_Comm_grp, &status);
+  Dmc_history_avgrets tmp_prop;
+  past_properties.clear();
+  for(int i=0; i< m; i++) {
+    tmp_prop.mpiReceive(node);
+    past_properties.push_back(tmp_prop);
+  }
+
+
   MPI_Recv(&weight,1,MPI_DOUBLE,node,0,MPI_Comm_grp, &status);
   MPI_Recv(&ignore_walker,1,MPI_INT,node,0,MPI_Comm_grp, &status);
       
@@ -1259,5 +1378,34 @@ void Dmc_history::mpiReceive(int node) {
   MPI_Recv(&n2,1,MPI_INT,node,0,MPI_Comm_grp,&status);
   aux_en.Resize(n1,n2);
   MPI_Recv(aux_en.v,n1*n2,MPI_DOUBLE,node,0,MPI_Comm_grp,&status);  
+#endif
+}
+
+
+void Dmc_history_avgrets::mpiSend(int node) { 
+#ifdef USE_MPI
+  MPI_Send(&weight,1,MPI_DOUBLE,node,0,MPI_Comm_grp);
+  int n1=avgrets.GetDim(0);
+  MPI_Send(&n1,1,MPI_INT,node,0,MPI_Comm_grp);
+  for(int j=0;j<n1;j++){
+    int n2=avgrets(j).vals.GetDim(0);
+    MPI_Send(&n2,1,MPI_INT,node,0,MPI_Comm_grp);
+    MPI_Send(avgrets(j).vals.v,n2,MPI_DOUBLE,node,0,MPI_Comm_grp);
+  }
+#endif
+}
+
+void Dmc_history_avgrets::mpiReceive(int node) { 
+#ifdef USE_MPI
+  MPI_Status status;
+  int n1,n2;
+  MPI_Recv(&weight,1,MPI_DOUBLE,node,0,MPI_Comm_grp,&status);
+  MPI_Recv(&n1,1,MPI_INT,node,0,MPI_Comm_grp,&status);
+  avgrets.Resize(n1);
+  for(int j=0;j<n1;j++){
+    MPI_Recv(&n2,1,MPI_INT,node,0,MPI_Comm_grp,&status);
+    avgrets(j).vals.Resize(n2);
+    MPI_Recv(avgrets(j).vals.v,n2,MPI_DOUBLE,node,0,MPI_Comm_grp,&status);  
+  }
 #endif
 }

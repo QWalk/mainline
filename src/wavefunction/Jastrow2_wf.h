@@ -215,6 +215,10 @@ public:
   virtual int getParmDeriv(Wavefunction_data *, Sample_point *,
                            Parm_deriv_return & );
 
+  virtual void getSymmetricVal(Wavefunction_data *, 
+			       int, 
+			       Wf_return &);
+
   virtual void plot1DInternals(Array1 <doublevar> &,
 			       vector <Array1 <doublevar> > &,
 			       vector <string> &,

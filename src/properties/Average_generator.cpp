@@ -20,6 +20,10 @@ int decide_averager(string & label, Average_generator *& avg) {
     avg=new Average_tbdm;
   else if(caseless_eq(label, "LM"))
     avg=new Average_local_moments;
+  else if(caseless_eq(label,"DENSITY_MOMENTS")) 
+    avg=new Average_density_moments;
+  else if(caseless_eq(label, "LINEAR_DER"))
+    avg=new Average_linear_derivative;
   else 
     error("Didn't understand ", label, " in Average_generator.");
   
@@ -894,3 +898,120 @@ void Average_local_moments::write_summary(Average_return & avg,
   os.precision(saved_precision);
 
 }
+
+
+//############################################################################
+//Average_density_moments
+
+void Average_density_moments::read(System * sys, Wavefunction_data * wfdata, vector <string> & words) { 
+}
+
+void Average_density_moments::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+                              System * sys, Sample_point * sample, Average_return & avg ) { 
+  avg.type="density_moments";
+  int ndim=3;
+  avg.vals.Resize(ndim);
+  avg.vals=0.0;
+  int nelectrons=sample->electronSize();
+  Array1 <doublevar> pos(ndim);
+  for(int e=0; e< nelectrons; e++) {
+    sample->getElectronPos(e,pos);
+    doublevar r=sqrt( pos(0)*pos(0) + pos(1)*pos(1) + pos(2)*pos(2) );
+    doublevar r2=r*r;
+    doublevar r3=r2*r;
+    avg.vals(0)+=r;
+    avg.vals(1)+=r2;
+    avg.vals(2)+=r3;
+  }  
+}
+
+void Average_density_moments::write_init(string & indent, ostream & os) { 
+  os << indent << "density_moments \n";
+}
+
+void Average_density_moments::read(vector <string> & words) { 
+  
+}
+
+void Average_density_moments::write_summary(Average_return & avg, Average_return & err, ostream & os) {
+  int ndim=avg.vals.GetDim(0);
+  assert(ndim <= err.vals.GetDim(0));
+  //Could put this in Debye if we want to be nice.
+  os << "Density moments (a.u.) \n";
+  for(int d=0; d< ndim; d++) { 
+    if(d==0) os << "|r| ";
+    else if(d==1) os << "|r**2| ";
+    else if(d==2) os << "|r**3| ";
+    os << avg.vals(d) << " +/- " << err.vals(d) << endl;
+  }
+}
+
+//############################################################################
+//derivatives of multideterminant/pfaffian wf without jastrow(stored in symvals)
+//needed un SH_DMC
+void Average_linear_derivative::read(System * sys, Wavefunction_data * wfdata, vector <string> & words) { 
+}
+
+void Average_linear_derivative::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+                              System * sys, Sample_point * sample, Average_return & avg ) { 
+  Parm_deriv_return derivatives;
+  int nfunctions=wf->nfunc();
+  Wf_return vals;
+  Wf_return symvals;
+
+  vals.Resize(nfunctions,5);
+  symvals.Resize(nfunctions,2);
+  
+  avg.type="linear_der";
+  if(!wfdata->supports(parameter_derivatives))
+    error("Wavefunction needs to supports analytic parameter derivatives");
+  
+  derivatives.nparms_start=0;
+  derivatives.nparms_end=wfdata->nparms();
+  derivatives.need_hessian=0;
+
+  int ndim=wfdata->nparms();
+  avg.vals.Resize(ndim+1);
+  avg.vals=0.0;
+
+  wf->updateVal(wfdata, sample);
+  wf->getVal(wfdata, 0, vals);
+  wf->getSymmetricVal(wfdata, 0, symvals);
+  wf->getParmDeriv(wfdata, sample, derivatives);
+  //cout <<symvals.amp(0,0)<<"  "<<vals.amp(0,0)<< endl;
+
+  doublevar Jastrow_w2_inverse=exp(-2*symvals.amp(0,0));
+
+  //possibly drift in like UNR sampling
+  //doublevar drift=vals.amp(0,1)*vals.amp(0,1)+vals.amp(0,2)*vals.amp(0,2)+vals.amp(0,3)*vals.amp(0,3);
+  //doublevar teff=0.001;
+  //teff*=drift;
+  
+  doublevar gamma=1.0;//(-1+sqrt(1+2*teff))/teff;
+  
+  for(int d=0; d< ndim; d++){
+    //cout <<" derivatives.gradient("<<d<<")= "<<derivatives.gradient(d)<<endl;
+    avg.vals(d)=Jastrow_w2_inverse*derivatives.gradient(d)*gamma;
+    //avg.vals(d)=derivatives.gradient(d);
+  }
+  avg.vals(ndim)=Jastrow_w2_inverse;
+}
+
+void Average_linear_derivative::write_init(string & indent, ostream & os) { 
+  os << indent << "linear_der\n";
+}
+
+void Average_linear_derivative::read(vector <string> & words) { 
+  
+}
+
+void Average_linear_derivative::write_summary(Average_return & avg, Average_return & err, ostream & os) {
+  int ndim=avg.vals.GetDim(0)-1;
+  assert(ndim <= err.vals.GetDim(0));
+  os << "Linear derivatives \n";
+  for(int d=0; d< ndim; d++) {
+    os << avg.vals(d)/avg.vals(ndim) << " +/- " << err.vals(d)/avg.vals(ndim) << endl;
+  }
+      
+}
+//############################################################################

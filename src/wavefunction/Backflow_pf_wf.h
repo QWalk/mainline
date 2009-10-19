@@ -75,6 +75,10 @@ public:
 			   Sample_point *,
 			   Parm_deriv_return & );
 
+  virtual void getSymmetricVal(Wavefunction_data *, 
+			       int, 
+			       Wf_return &);
+
 
   void generateStorage(Wavefunction_storage * & wfstore);
 

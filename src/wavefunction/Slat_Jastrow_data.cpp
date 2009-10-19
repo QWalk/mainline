@@ -98,7 +98,7 @@ void Slat_Jastrow_data::setVarParms(Array1 <doublevar> & parms)
 {
   int nslatparms=slater->nparms();
   int njasparms=jastrow->nparms();
-
+  
   assert(nslatparms+njasparms==parms.GetDim(0));
 
   Array1 <doublevar> slatparms(nslatparms);
