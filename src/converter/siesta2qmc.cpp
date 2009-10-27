@@ -141,6 +141,12 @@ int main(int argc, char ** argv) {
   }
   is.close();
 
+  if(slwriter.calctype=="") { 
+    cout << "Couldn't find wave function coefficients.  You may want to make sure that \n"
+    << "LongOutput and WaveFuncKPoints are set.\n";
+    exit(1);
+  }
+  
   int num_kpoints = kpoints.size();
   reciprocal_lattice_vectors(latvec, recip_latvec);
   kpoint_to_frac_coords(recip_latvec, kpoints, kpoints_frac);
