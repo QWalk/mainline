@@ -27,6 +27,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <cmath>
 #include <cstring>
 #include <cstdlib>
+
 using namespace std;
 
 void reorder_orbs(vector <int> & orbs, double & det_weights){
@@ -145,6 +146,7 @@ void usage(const char * name) {
   cout << "-wthresh  threshold weight value (Default 0.01)\n";
   cout << "-state    write determinants for selected state \n";
   cout << "-norder  orbitals in determinants follow natural order\n";
+  cout << "-print_level (Default 1)\n";
   exit(1);
 }
 
@@ -157,6 +159,7 @@ int main(int argc, char ** argv) {
   double wtresh=0.01;
   int symmetry=0;
   int reorder=0;
+  int printout=1;
   
   for(int i=1; i< argc-1; i++) {
     if(!strcmp(argv[i], "-wthresh") && argc > i+1) {
@@ -173,6 +176,9 @@ int main(int argc, char ** argv) {
     }
     else if (!strcmp(argv[i], "-norder")) {
       reorder=1;
+    }
+    else if(!strcmp(argv[i], "-print_level") && argc > i+1) {
+            printout=int(atoi(argv[++i]));
     }
     else {
     cout << "Didn't understand option " << argv[i] << endl;
@@ -202,7 +208,9 @@ int main(int argc, char ** argv) {
   string space=" ";
   int using_guga=0;
   int using_determinants=0;
-  int csfmax=0;
+  int csfmax=0; //how many CSFs was there total
+  int number_of_core_orbitals=0;
+  vector <int> nelectrons(2);
   while(getline(is, line)){
     words.clear();
     split(line, space, words);
@@ -213,6 +221,21 @@ int main(int argc, char ** argv) {
       while(getline(is,line)) {
 	words.clear();
 	split(line, space, words);
+	//first read in CORE ALPHA BETA
+	if(words[0]=="NUMBER" && words[2]=="CORE" && words[3]=="MOLECULAR" && words[4]=="ORBITALS"){
+	  number_of_core_orbitals=atoi(words[6].c_str());
+	  cout <<number_of_core_orbitals<<" core orbitals"<<endl<<endl;
+	}
+	if(words[0]=="NUMBER" && words[2]=="ALPHA" && words[3]=="ELECTRONS"){
+	  nelectrons[0]=atoi(words[5].c_str());
+	  cout <<nelectrons[0]<<" alpha electrons"<<endl;
+	}
+	if(words[0]=="NUMBER" && words[2]=="BETA" && words[3]=="ELECTRONS"){
+	  nelectrons[1]=atoi(words[5].c_str());
+	  cout <<nelectrons[1]<<" beta electrons"<<endl;
+	}
+
+
 	//find COMPUTING THE HAMILTONIAN FOR THE    ????? CSF-S
 	if(words[0]=="COMPUTING" && words[2]=="HAMILTONIAN" && words[6]=="CSF-S..."){
 	  csfmax=atoi(words[5].c_str());
@@ -286,128 +309,221 @@ int main(int argc, char ** argv) {
     vector <int> csf;
     vector <double> csf_weights;
     vector <string> csf_occupations_str;
-    vector <vector <double> > det_weights(csfmax);
-    vector <vector <string> > det_str(csfmax);
-    int number_of_core_orbitals=0;
-    vector <int> nelectrons(2);
+    
+    
     int line_position;
-    int i,k;
-    int counter, counter_csf;
     is.open(infilename.c_str());
     while(getline(is, line)) {
       words.clear();
       split(line, space, words);
-      if (words[0]=="DETERMINANT" && words[1]=="CONTRIBUTION") {
-	k=0;
-	//cout <<"found location of CSF's"<<endl;
-	while(getline(is,line)) {
-	  words.clear();
-	  split(line, space, words);
-	  //cout << line << endl;
-	  if(words[0]=="......" && words[1]=="END" && words[2]=="OF" && words[3]=="-DRT-" && words[4]=="GENERATION"){
-	    // cout <<"found the end of DRT GENERATION"<<endl;
-	    if(k!=csfmax){
-	      cout <<"did not found enought CSF'S!, did you run gamess with NPRT=2 in $CIDRT?"<<endl;
-	      exit(1);
-	    }
-	    break;
-	  }
-	  
-	  if(words[0]=="CASE" && words[1]=="VECTOR"){
-	    csf_full.push_back(atoi(words[4].c_str())-1);
-	    k++;
-	    if(k>csfmax){
-	      cout<<"Number of CSF's is greater than designed limit of "<<csfmax<<"CSF's"<<endl;
-	      exit(1);
-	    }
-	    
-	  }
-	  
-	  if ( line.size() > 33  ){
-	    if (line.substr(13,2)=="C(" ){
-	      det_weights[k-1].push_back(atof(line.substr(20,10).c_str()));
-	      det_str[k-1].push_back(line.substr(33));
-              line_position=is.tellg();
-              while(getline(is,line)) {
-                words.clear();
-                split(line, space, words);
-                if ((words[0]=="C(" ) || (words[0]=="CASE" && words[1]=="VECTOR") || line.size()==0){
-                 is.seekg(line_position);
-                 break;
-                }
-                else{
-                det_str[k-1].back() += " ";
-                det_str[k-1].back() +=line.substr(33);
-                }
-              }
-	    }
-	  }
-	}
-      }
-      counter_csf=k;
-
-      words.clear();
-      split(line, space, words);
-      if(words[0]=="NUMBER" && words[2]=="CORE" && words[3]=="MOLECULAR" && words[4]=="ORBITALS"){
-	number_of_core_orbitals=atoi(words[6].c_str());
-	cout <<number_of_core_orbitals<<" core orbitals"<<endl<<endl;
-      }
-      if(words[0]=="NUMBER" && words[2]=="ALPHA" && words[3]=="ELECTRONS"){
-	nelectrons[0]=atoi(words[5].c_str());
-	cout <<nelectrons[0]<<" alpha electrons"<<endl;
-      }
-      if(words[0]=="NUMBER" && words[2]=="BETA" && words[3]=="ELECTRONS"){
-	nelectrons[1]=atoi(words[5].c_str());
-	cout <<nelectrons[1]<<" beta electrons"<<endl;
-      }
-      
-      
-      if(words[0]=="ITER." && words[2]=="IMPROVED") {
+      if(words[0]=="DAVIDSON" && words[1]=="METHOD"){
+	if(printout>1) cout <<"found DAVIDSON METHOD CI-MATRIX DIAGONALIZATION"<<endl;
+	//read in info on  DAVIDSON METHOD CI-MATRIX DIAGONALIZATION   
 	while(getline(is, line)) {
-	  cout << line <<endl;
-	  if(line=="") break;
-	}
-      }//---done energy info
-      words.clear();
-      split(line, space, words);
-
-      if (words[0]=="STATE"&& words[1]=="#" && words[3]=="ENERGY" && atoi(words[2].c_str())==nstate){
-
-        cout << "Printing CSFs for state :" << atoi(words[2].c_str()) << endl;
-
-	i=0;
-	while(getline(is,line)) {
 	  words.clear();
 	  split(line, space, words);
-	  if(words[0]=="......" || words[0]=="STATE") break;
-	  
-	  if(words.size()>1 && atoi(words[0].c_str())>0  && !(words[0]=="---") && !(words[0]=="CSF")){
-	    csf.push_back(atoi(words[0].c_str())-1);
-	    csf_weights.push_back(atof(words[1].c_str()));
-	    csf_occupations_str.push_back(words[2]);
-	    i++;
+	  if(words[0]=="ITER." && words[2]=="IMPROVED") {
+	    while(getline(is, line)) {
+	      if(printout>1) cout << line <<endl;
+	      if(line=="") break;
+	    }
+	  }//---done energy info
+	  //cout << line<<endl;
+	  words.clear();
+	  split(line, space, words);
+	  //read in contributing CSFs
+	  if (words[0]=="STATE"&& words[1]=="#" && words[3]=="ENERGY" && atoi(words[2].c_str())==nstate){
+	    cout << "Printing CSFs for state : " << atoi(words[2].c_str()) << endl;
+	    int i=0;
+	    double smallest_csf_weight=1.0;
+	    while(getline(is,line)) {
+	      words.clear();
+	      split(line, space, words);
+	      //cout << line<<endl;
+	      if(words[0]=="......" || words[0]=="STATE") break;
+	      
+	      if(words.size()>1 && atoi(words[0].c_str())>0  && !(words[0]=="---") && !(words[0]=="CSF")){
+		csf.push_back(atoi(words[0].c_str())-1);
+		csf_weights.push_back(atof(words[1].c_str()));
+		csf_occupations_str.push_back(words[2]);
+		if(smallest_csf_weight > abs(csf_weights[i]))
+		  smallest_csf_weight=abs(csf_weights[i]);
+		i++;
+	      }
+	      else if (words.size()==1){
+		csf_occupations_str.back()+=words[0];
+	      }
+	    }
+	    if(csf.size()>0){
+	      cout <<"Found "<<csf.size()<<" contributing CSFs with smallest weight of "<<smallest_csf_weight<<endl;
+	      if(printout>1)
+		cout <<"MB: to increase printout set PRTTOL smaller than "<<smallest_csf_weight<<" in $GUGDIA"<<endl;
+	    }
+	    else{
+	      cout <<"did not find any CSF COEF OCCUPANCY array in the DAVIDSON METHOD CI-MATRIX DIAGONALIZATION printout"<<endl;
+	      exit(1);
+	    }
 	  }
-	  else if (words.size()==1){
-	    csf_occupations_str.back()+=words[0];
-	  }
-	  
 	}
-	counter=i;
-      }
+      }//if DAVIDSON METHOD CI-MATRIX DIAGONALIZATION
     }
     is.close();
 
+    vector <vector <double> > det_weights(csf.size());
+    vector <vector <string> > det_str(csf.size());
+
+    
+    
+    int counter_csf=0;
+    is.open(infilename.c_str());
+    while(getline(is, line)) {
+      words.clear();
+      split(line, space, words);
+      //here where all CSFs printout starts
+      if (words[0]=="DETERMINANT" && words[1]=="CONTRIBUTION") {
+	if(printout>1) cout <<"looping to read the relevant CSFs"<<endl;
+	int kk=0;
+	for(int k=0;k<csf.size();k++){
+	  if(printout>1) cout <<"looking for CSF with index "<<csf[k]+1<<" .........";
+	  while(getline(is,line)) {
+	    words.clear();
+	    split(line, space, words);
+	    if(words[0]=="......" && words[1]=="END" && words[2]=="OF" && words[3]=="-DRT-" && words[4]=="GENERATION"){
+	      cout <<"\n found the end of DRT GENERATION"<<endl;
+	      if(kk!=csfmax){
+		cout <<"did not found enought CSF'S!, did you run gamess with NPRT=2 in $CIDRT?"<<endl;
+		exit(1);
+	      }
+	      break;
+	    }
+	    if(words[0]=="CASE" && words[1]=="VECTOR" && words[2]== "=" && words.size()==4){
+	      if(atoi(words[3].c_str()) > csf[k]+1){
+	     	cout <<"error, the CSF with index "<<csf[k]+1<<" could not be found"<<endl;
+	      	exit(1);
+	      }
+	      if(atoi(words[3].c_str())-1==csf[k]){
+		if(printout>1)  cout <<"found!"<<endl;
+		counter_csf++;
+		csf_full.push_back(atoi(words[4].c_str())-1);
+
+
+		//read in the determinants in:
+		double sum_of_weights=0.0;
+		int tries=0;
+		int max_tries=1000;
+		
+		while(getline(is,line)) {
+		  words.clear();
+		  split(line, space, words);
+		  /*
+		  the old way
+		  if ( line.size() > 33  ){
+		    if (line.substr(13,2)=="C(" ){
+		      if(printout>2) cout <<line<<endl;
+		      det_weights[k].push_back(atof(line.substr(20,10).c_str()));
+		      det_str[k].push_back(line.substr(33));
+		      line_position=is.tellg();
+		      //if there is a line which is too long this while has to be there
+		      while(getline(is,line)) {
+			words.clear();
+			split(line, space, words);
+			if ((words[0]=="C(" ) || (words[0]=="CASE" && words[1]=="VECTOR") || line.size()==0){
+			  is.seekg(line_position);
+			  break;
+			}
+			else{
+			  det_str[k].back() += " ";
+			  det_str[k].back() +=line.substr(33);
+			}
+		      }
+		    }//if
+		  }//if
+		  */
+		  //new way
+		  if ( line.size() > 33  ){
+		    if (line.substr(13,2)=="C(" ){
+		      if(printout>2) cout <<line<<endl;
+		      det_weights[k].push_back(atof(line.substr(20,10).c_str()));
+		      det_str[k].push_back(line.substr(33));
+		      //MB: new way of doing things: if there is a line which is too long this while has to be there
+		      int sum_of_string_leghts=det_str[k].back().size();		      
+		      while(sum_of_string_leghts <  (nelectrons[0]+nelectrons[1])*3){
+			getline(is,line);
+			split(line, space, words);
+			string remainder=line.substr(33);
+			det_str[k].back() += " ";
+			det_str[k].back() +=remainder;
+			sum_of_string_leghts+=remainder.size();
+		      }
+		      sum_of_weights+=det_weights[k].back()*det_weights[k].back();
+		      if(printout>3) cout <<"w: "<<det_weights[k].back()<<" at line number "<<line_position<<" sum of weights: "<<sum_of_weights<<endl;
+		      if(abs(sqrt(sum_of_weights)-1.0)<1e-5)
+			break;
+		      //M.B.: this was working before, but tellg() was giving negative number for files > 2Gb
+		      //if there is a line which is too long this while has to be there
+		      /*
+		      line_position=is.tellg();
+		      while(getline(is,line)) {
+			words.clear();
+			split(line, space, words);
+			tries++;
+			if ((words[0]=="C(" ) || (words[0]=="CASE" && words[1]=="VECTOR") || line.size()==0){
+			  is.seekg(line_position);
+			  cout <<"going back to line position" <<line_position<<endl;
+			  break;
+			}
+			else{
+			  if(printout>2) cout <<line<<endl;
+			  det_str[k].back() += " ";
+			  det_str[k].back() +=line.substr(33);
+			}
+		      }//while
+		      */
+		      
+		    }
+		    if(tries>max_tries){
+		      cout<<"could not fully read CSF "<<csf[k]+1<<" ...exiting"<<endl; 
+		      exit(1); 
+		    }
+		    tries++;
+		  }//if(line.size() > 33)
+		}//end of while
+		if(!(abs(sqrt(sum_of_weights)-1.0)<1e-5)){
+		  cout<<"could not fully read CSF "<<csf[k]+1<<" ...exiting"<<endl; 
+		  exit(1); 
+		}
+		//need to break in order to find another CSF
+		break;
+	      }//end of if CASE VECTOR = csf[k]
+	      if(kk>csfmax){
+		cout<<"Number of CSF's is greater than designed limit of "<<csfmax<<"CSF's"<<endl;
+		exit(1);
+	      }
+	      kk++;
+	    }
+	  }//while(getline(is,line))
+	}//int k loop
+      }//end of reading all CSFs
+    }
+    is.close();
+
+    if(counter_csf=!csf.size()){
+      cout <<"counter_csf "<<"and "<<csf.size()<<"dont match "<<endl;
+      exit(1);
+    }
     cout << "done readout"<<endl;
     //end of read out
-    
     //storing determinants and reodering orbs
-    det_weights.resize(counter_csf);
-    det_str.resize(counter_csf);
-    vector < vector < vector <int> > > det(counter_csf);
-    //vector < vector < vector <int> > > det_spinup(counter_csf);
-    //vector < vector < vector <int> > > det_spindown(counter_csf);
+    det_weights.resize(csf.size());
+    det_str.resize(csf.size());
+    vector < vector < vector <int> > > det(csf.size());
     
     for(int i=0;i<det_weights.size();i++){
+      if(!det_weights[i].size()){
+	cout<<" CSF with index "<<csf[i]+1<<" was zero determinants in!, exitting"<<endl;
+	exit(1);
+      }
+      
       det[i].resize(det_weights[i].size());
       for(int j=0;j<det_weights[i].size();j++){
 	for(int k=0; k < det_str[i][j].size(); k=k+3){
@@ -434,8 +550,8 @@ int main(int argc, char ** argv) {
     cout << "done storing determinants and reodering orbs"<<endl;
     
     //storing occupation array  
-    vector < vector <int> > csf_occupation(counter);
-    for(int i=0;i< csf_occupations_str.size();i++){
+    vector < vector <int> > csf_occupation(csf.size());
+    for(int i=0;i< csf.size();i++){
       for(int j=0;j< csf_occupations_str[i].size();j++){
 	csf_occupation[i].push_back(atoi(csf_occupations_str[i].substr(j,1).c_str()));
       }
@@ -445,11 +561,11 @@ int main(int argc, char ** argv) {
     if(symmetry==0){
       // assign full weight to each determimant
       for(int i=0;i<csf.size();i++){
-	for(int j=0;j<det_weights[csf[i]].size();j++){
+	for(int j=0;j<det_weights[i].size();j++){
 	  //if(csf[i]==847){
 	  //cout << csf_weights[i]<< " "<<det_weights[csf[i]-1][j]<<endl;
 	  //}
-	  det_weights[csf[i]][j]*=csf_weights[i];
+	  det_weights[i][j]*=csf_weights[i];
 	}
       }
       cout << "done assign full weight to each determimant"<<endl;
@@ -460,11 +576,11 @@ int main(int argc, char ** argv) {
 	for(int j=i+1;j<csf.size();j++){
 	  if(csf_occupations_str[i]==csf_occupations_str[j]){
 	    //cout << "CSF "<<csf[i]<<" and "<<csf[j]<<  " are the same"<<endl;
-	    for(int k=0;k<det[csf[i]].size();k++)
-	      for(int l=0;l<det[csf[j]].size();l++)
-		if(det[csf[i]][k]==det[csf[j]][l]){
-		  det_weights[csf[i]][k]+=det_weights[csf[j]][l];
-		  det_weights[csf[j]][l]=0.0;
+	    for(int k=0;k<det[i].size();k++)
+	      for(int l=0;l<det[j].size();l++)
+		if(det[i][k]==det[j][l]){
+		  det_weights[i][k]+=det_weights[j][l];
+		  det_weights[j][l]=0.0;
 		  //cout << "determimant"<<k<<" and "<<l<<" are the same"<<endl;
 		  //for(int h=0;h<det[csf[i]-1][k].size();h++)
 		  //  cout <<det[csf[i]-1][k][h]<<" ";
@@ -493,8 +609,8 @@ int main(int argc, char ** argv) {
       if(symmetry){
 	if(abs(csf_weights[i])> wtresh){
 	  csf_weights_printing.push_back(csf_weights[i]);
-	  csf_printing.push_back(csf[i]);
-	  //det_weights_printing_symmetry.push_back(det_weights[csf[i]]);
+	  csf_printing.push_back(i);
+	  //det_weights_printing_symmetry.push_back(det_weights[csf[]]);
 	  //for(int k=0;k<det[csf[i]].size();k++){
 	  // det_weights_printing.push_back(det_weights[csf[i]][k]);
 	  //det_printing.push_back(det[csf[i]][k]);
@@ -504,11 +620,11 @@ int main(int argc, char ** argv) {
 	}
       }
       else{
-	for(int k=0;k<det[csf[i]].size();k++){
-	  if(abs(det_weights[csf[i]][k])> wtresh){
+	for(int k=0;k<det[i].size();k++){
+	  if(abs(det_weights[i][k])> wtresh){
 	    // cout <<"det_weights "<< det_weights[csf[i]][k]<<endl;; 
-	    det_weights_printing.push_back(det_weights[csf[i]][k]);
-	    det_printing_old.push_back(det[csf[i]][k]);
+	    det_weights_printing.push_back(det_weights[i][k]);
+	    det_printing_old.push_back(det[i][k]);
 	  }
 	}
       }
@@ -536,11 +652,11 @@ int main(int argc, char ** argv) {
 
 
     if(symmetry){
-      cout << "found "<<det_weights_printing.size()<<" determinats with weights"<<endl;
-      cout << "number of independent weights "<<csf_weights_printing.size()<<endl;
+      cout << "After cutoff applied: found "<<det_weights_printing.size()<<" determinats with weights"<<endl;
+      cout << "and number of independent weights "<<csf_weights_printing.size()<<endl;
     }
     else
-      cout << "found "<<det_weights_printing.size()<<" unique determinats with weights"<<endl; 
+      cout << "After cutoff applied: found "<<det_weights_printing.size()<<" unique determinats with weights"<<endl; 
     
     
     vector < vector <int> > det_up(det_weights_printing.size());
