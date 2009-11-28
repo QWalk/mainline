@@ -72,18 +72,18 @@ void Optimize_method2::read(vector <string> words,
   
   string functiontype_str;
   if(readvalue(words, pos=0, functiontype_str, "MINFUNCTION")) {
-    if(functiontype_str== "VARIANCE") {
+    if(caseless_eq(functiontype_str, "VARIANCE")) {
       min_function=min_variance;
       //cout <<"Are you sure you want to use weights for variance optimization?"<<endl;
     }
-    else if(functiontype_str=="ENERGY") {
+    else if(caseless_eq(functiontype_str,"ENERGY")) {
       if(!use_weights) { 
         single_write(cout, "Turning on USE_WEIGHTS for energy optimization \n");
         use_weights=1;
       }
       min_function=min_energy;
     }
-    else if(functiontype_str=="MIXED") {
+    else if(caseless_eq(functiontype_str,"MIXED")) {
       if(!use_weights) { 
 	single_write(cout, "Turning on USE_WEIGHTS for mixed optimization \n");
 	use_weights=1;
