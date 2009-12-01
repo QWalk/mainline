@@ -1,6 +1,7 @@
 /*
  
 Copyright (C) 2007 Lucas K. Wagner
+addition of the PURE DMC: Michal Bajdich and Fernando A. Reboredo
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -69,6 +70,13 @@ void Dmc_method::read(vector <string> words,
 
   if(!readvalue(words, pos=0, nhist, "CORR_HIST")) 
     nhist=-1;
+
+  if(haskeyword(words, pos=0, "PURE_DMC")) { 
+    pure_dmc=1;
+    if( nhist < 1 )
+      error("CORR_HIST must be > 1 when PURE_DMC is on");
+  }
+  else pure_dmc=0;
 
   if(readvalue(words, pos=0, storeconfig, "STORECONFIG"))
     canonical_filename(storeconfig);
@@ -501,7 +509,11 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
             past.erase(past.begin()+nhist, past.end());
           
           pts(walker).prop=pt;
-          pts(walker).weight*=getWeight(pts(walker),teff,etrial);
+	  if(!pure_dmc)
+	    pts(walker).weight*=getWeight(pts(walker),teff,etrial);
+	  else
+	    pts(walker).weight=getWeightPURE_DMC(pts(walker),teff,etrial);
+
           if(pts(walker).ignore_walker) {
             pts(walker).ignore_walker=0;
             pts(walker).weight=1;
@@ -590,7 +602,12 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
 
       step+=npsteps;
 
-      int nkilled=calcBranch();
+      int nkilled;
+      if(!pure_dmc)
+	nkilled=calcBranch();
+      else
+	nkilled=0;
+      
       totkilled+=nkilled;
       totbranch+=nkilled;
     }
@@ -604,7 +621,11 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
       for(int i=0; i< nldensplt.GetDim(0); i++)
         nldensplt(i)->write(log_label);
     }
-    prop.endBlock();
+    if(!pure_dmc){
+      prop.endBlock();
+    }
+    else
+      prop.endBlockSHDMC();
     
     if(max_fw_lenght){
       for(int s=0;s<fw_lenght.GetSize();s++){
@@ -982,6 +1003,29 @@ doublevar Dmc_method::getWeight(Dmc_point & pt,
   return return_weight;
 } 
                                 
+//----------------------------------------------------------------------
+//using the pure DMC weight from last N steps in history
+doublevar Dmc_method::getWeightPURE_DMC(Dmc_point & pt,
+                                doublevar teff, doublevar etr) {
+  doublevar teffac=teff;
+
+  doublevar effenergy=0, effoldenergy=0;
+
+  int history=pt.past_energies.size();
+  assert(history>0);
+  doublevar sum=0;
+  for(int i=0;i<history;i++){
+    sum+=pt.past_energies[i].main_en;
+  }
+  sum/=history;
+  
+  doublevar return_weight;
+  return_weight=exp(teffac*history*(etr-sum));
+
+  //cout <<"SHDDMC weight "<<return_weight<<" energy average "<<sum<<endl;
+  //cout<<"current history size "<<history<<endl;
+  return return_weight;
+} 
 //----------------------------------------------------------------------
 
 

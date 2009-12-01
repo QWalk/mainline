@@ -805,3 +805,27 @@ void Slat_wf_data::setVarParms(Array1 <doublevar> & parms)
   }
   //cout <<"done setVarParms"<<endl;
 }
+
+void Slat_wf_data::renormalize(){
+
+  if(optimize_det && all_weights) {
+    doublevar norm=0.0;
+    if(use_csf){
+      for(int csf=0; csf< ncsf; csf++) 
+	norm+=CSF(csf)(0)*CSF(csf)(0);
+    }
+    else{
+      for(int i=0; i< detwt.GetDim(0); i++) 
+	norm+=detwt(i)*detwt(i);
+    }
+    doublevar factor=1.0/sqrt(norm);
+    if(use_csf){
+      for(int csf=0; csf< ncsf; csf++) 
+	CSF(csf)(0)*=factor;
+    }
+    else{
+      for(int i=0; i< detwt.GetDim(0); i++) 
+	detwt(i)*=factor;
+    }
+  }
+}

@@ -21,7 +21,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Vmc_method.h"
 #include "Optimize_method.h"
 #include "Optimize_method2.h"
-#include "Newton_opt_method.h"
+#include "Shdmc_method.h"
 #include "Dmc_method.h"
 #include "Rndmc_method.h"
 #include "Test_method.h"
@@ -47,8 +47,8 @@ int allocate(vector <string> & words,
   else if(caseless_eq(words[0],"OPTIMIZE2"))
     methptr=new Optimize_method2;
   
-  else if(caseless_eq(words[0],"NEWTON_OPT"))
-    methptr=new Newton_opt_method;
+  else if(caseless_eq(words[0],"SHDMC"))
+    methptr=new Shdmc_method;
   
   else if(caseless_eq(words[0],"DMC"))
     methptr=new Dmc_method;

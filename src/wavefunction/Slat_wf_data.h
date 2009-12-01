@@ -87,6 +87,8 @@ public:
   virtual void getVarParms(Array1 <doublevar> & parms);
   virtual void setVarParms(Array1 <doublevar> & parms);
 
+  virtual void renormalize();
+
   virtual void read(vector <string> & words,
                     unsigned int & pos,
                     System * sys
