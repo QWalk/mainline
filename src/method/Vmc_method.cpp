@@ -403,8 +403,12 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
                 diffusion_rate(block)+=(newpos(d)-oldpos(d))                  
                   *(newpos(d)-oldpos(d));
               }
-
-
+              if(print_wf_vals) { 
+                Wf_return wfval(nwf_guide, 2);
+                wf->getVal(wfdata,0,wfval);
+                cout << "step " << e << " amp " << wfval.amp(0,0) << endl;
+              }
+              
               if(acc>0) {
                 age(walker, e)=0;
               }
@@ -492,7 +496,7 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
            << " steps "<<  endl;
     doublevar avglife=0;
     for(int b=0; b< nblock; b++) {
-      avglife+=avglifetime(b)/(nblock*nstep*nconfig*ndecorr*ndecorr*nelectrons);
+      avglife+=avglifetime(b)/(nblock*nstep*nconfig*ndecorr*nelectrons);
     }
 
     output << "Average lifetime : " << avglife << " steps " << endl;

@@ -734,9 +734,17 @@ void Slat_wf::updateInverse(Slat_wf_data * dataptr, int e) {
       //fill the molecular orbitals for this
       //determinant
       if(fabs(detVal(f,det,s)) > 0) { 
+        ofstream matout("matrix_out", ios::app);
+        matout.precision(15);
+        if(f==0 && det==0 && s==0)
+          matout << "updating " << e << " : ";
         for(int i = 0; i < nelectrons(s); i++) {
           modet(i)=moVal(0,e,dataptr->occupation(f,det,s)(i));
+          if(f==0 && det==0 && s==0)
+            matout << modet(i) << " ";
         }
+        if(f==0 && det==0 && s==0)
+          matout << endl;
         
         
         doublevar ratio=1./InverseUpdateColumn(inverse(f,det,s),
@@ -942,7 +950,10 @@ void Slat_wf::calcLap(Slat_wf_data * dataptr, Sample_point * sample)
 
   int maxmatsize=max(nelectrons(0),nelectrons(1));
   Array2 <doublevar> modet(maxmatsize, maxmatsize);
-
+  //ofstream matout("matrix_out", ios::app);
+  //matout.precision(15);
+  //matout << "initial_matrix " << nelectrons(0) << " rows are electrons, columns are orbital values " << endl;
+  
   for(int f=0; f< nfunc_; f++)   {
     for(int det=0; det < ndet; det++ ) {
       for(int s=0; s< 2; s++ ) {
@@ -952,12 +963,19 @@ void Slat_wf::calcLap(Slat_wf_data * dataptr, Sample_point * sample)
           int curre=s*nelectrons(0)+e;
           for(int i=0; i< nelectrons(s); i++) {
             modet(e,i)=moVal(0,curre, dataptr->occupation(f,det,s)(i));
+            //if(f==0 && det==0 && s==0) { 
+            //  matout << modet(e,i) << " ";
+            //}
           }
+          //if(f==0 && det==0 && s==0) matout << endl;
         }
         
-        detVal(f,det,s)=
+        if(nelectrons(s) > 0) { 
+          detVal(f,det,s)=
           TransposeInverseMatrix(modet,inverse(f,det,s), nelectrons(s));
-  
+        }
+        else detVal(f,det,s)=1;
+        
       }
     }
   }
