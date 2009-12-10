@@ -57,14 +57,23 @@ void reorder_orbs(vector <int> & orbs, double & det_weights){
 }
 
 
-void normal_reorder_orbs(int & nup, int & ndown, vector <int> & orbs, double & det_weights){
+void normal_reorder_orbs(int & nup, int & ndown, int & ncore, vector <int> & orbs, double & det_weights){
   // put to normal order 
   int n=orbs.size();
   int tmp;
+
+  /*
+  cout <<"before normal_reorder_orbs"<<endl;
+  for(int i=0; i < n; i++) {
+    cout <<orbs[i]<<"  ";
+  }
+  cout <<endl;
+  */
+
   for(int i=0; i < n; i++) {
     if (orbs[i]>0) {
       if(orbs[i]!=nup-i){
-	for(int j=0; j < nup; j++){
+	for(int j=ncore; j < nup; j++){
 	  if(orbs[i]==j+1 && nup-j-1!=i ){
 	    tmp=orbs[nup-j-1];
 	    orbs[nup-j-1]=orbs[i];
@@ -75,11 +84,13 @@ void normal_reorder_orbs(int & nup, int & ndown, vector <int> & orbs, double & d
       }
     }
     else{
-      if(-orbs[i]!=i-nup+1){
-	for(int j=0; j < ndown; j++){	
-	  if(-orbs[i]==j+1 && nup+j!=i ){
-	    tmp=orbs[nup+j];
-	    orbs[nup+j]=orbs[i];
+      if(-orbs[i]!=(i+1-(nup))){
+	//cout <<"orbs[i] "<<orbs[i]<<"i+1-(nup) "<<i+1-(nup)<<endl;
+	for(int j=ncore; j < ndown; j++){	
+	  if(-orbs[i]==j+1 && nup-2*ncore+j!=i ){
+	    //cout <<" swap pos "<<nup-2*ncore+j<<" with pos "<<i<<endl;
+	    tmp=orbs[nup-2*ncore+j];
+	    orbs[nup-2*ncore+j]=orbs[i];
 	    orbs[i]=tmp;
 	    det_weights=-det_weights;  
 	  }
@@ -87,8 +98,9 @@ void normal_reorder_orbs(int & nup, int & ndown, vector <int> & orbs, double & d
       }
     }
   } 
+  
   /*
-  cout <<"normal_reorder_orbs"<<endl;
+  cout <<"after normal_reorder_orbs"<<endl;
   for(int i=0; i < n; i++) {
     cout <<orbs[i]<<"  ";
   }
@@ -446,8 +458,8 @@ int main(int argc, char ** argv) {
 		      det_weights[k].push_back(atof(line.substr(20,10).c_str()));
 		      det_str[k].push_back(line.substr(33));
 		      //MB: new way of doing things: if there is a line which is too long this while has to be there
-		      int sum_of_string_leghts=det_str[k].back().size();		      
-		      while(sum_of_string_leghts <  (nelectrons[0]+nelectrons[1])*3){
+		      int sum_of_string_leghts=det_str[k].back().size();
+		      while(sum_of_string_leghts <  (nelectrons[0]+nelectrons[1]-2*number_of_core_orbitals)*3){
 			getline(is,line);
 			split(line, space, words);
 			string remainder=line.substr(33);
@@ -532,7 +544,7 @@ int main(int argc, char ** argv) {
 	
 	reorder_orbs(det[i][j],det_weights[i][j]);
 	if(reorder)
-	  normal_reorder_orbs(nelectrons[0],nelectrons[1],det[i][j],det_weights[i][j]);
+	  normal_reorder_orbs(nelectrons[0],nelectrons[1], number_of_core_orbitals, det[i][j],det_weights[i][j]);
 
 	//if(i>0)
 	//  reorder3(det[i][j],det_weights[i][j],det[0][0]);
