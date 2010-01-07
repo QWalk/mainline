@@ -18,6 +18,7 @@ MY_SOURCES:= \
 	Slat_Jastrow_data.cpp \
 	Slat_wf_calc.cpp \
 	Slat_wf_data.cpp \
+	FSlat_wf_calc.cpp \
 	Wavefunction.cpp \
 	Wavefunction_data.cpp
 

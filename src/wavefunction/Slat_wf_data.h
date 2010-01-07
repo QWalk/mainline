@@ -1,6 +1,6 @@
 /*
  
-Copyright (C) 2007 Lucas K. Wagner
+Original Copyright (C) 2007 Lucas K. Wagner
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -124,6 +124,24 @@ private:
   void init_mo();
   friend class Slat_wf;
   friend class Cslat_wf;
+  friend class FSlat_wf;
+
+  void calc_determinant_evaluation_order(const int & f, const int & s, 
+					 const Array3<Array1<int> > & changes,
+					 const Array3 <int> & nchanges,
+					 const Array3< Array1 <int> > & occ,
+					 Array1 <int> & order,
+					 int dstart, int dend, int dlevel );
+  //!< Compute best order for determinant evaluation for determinants numbered inclusively between dstart,dend and for excitation level dlevel
+
+
+  int cost_iterative_determinant_order(const int & func, const int & spin, 
+				       const Array3<Array1<int> > & changes,
+				       const Array3 <int> & nchanges,
+				       const Array3< Array1 <int> > & occ,
+				       const Array1 <int> & order);
+  //!< Helper function: sum cost of updating determinants using iterative algorithm in O(N) units
+
   //vector <Wavefunction *> wfObserver;
   //!< The children of this _data
 
@@ -133,6 +151,12 @@ private:
   //!< The molecular orbitals numbers for (function, determinant, spin)
   Array1 <doublevar> detwt;
   Array1 < Array1 <int> > totoccupation; //!< all the molecular orbitals for a given spin
+
+  Array3 <int> occupation_nchanges;           //!< number of changes to occupations for (fn,det,spin)
+  Array3 <int> evaluation_order;              //!< Order to evaluate determinants (fn,idx,spin)
+  Array3 <int> occupation_first_diff_change_from_last_det;           //!< change index of first change different from previous determinant (fn,det,spin)
+  Array3 < Array1 <int> > occupation_changes; //!< list of changes to occupations for (fn,det,spin)
+  int max_occupation_changes;
 
   Array1 <int> spin;  //!< spin as a function of electron
   Array1 <int> opspin;//!< the opposing spin for an electron
@@ -158,6 +182,7 @@ private:
   General_MO_matrix * genmolecorb; 
   MO_matrix * molecorb;
   int use_complexmo;
+  int use_iterative_updates; //!<Whether to use "fast"/low-memory Nukala-Kent iterative updates for multideterminants
   Complex_MO_matrix * cmolecorb;
   
 

@@ -1,6 +1,9 @@
 /*
  
-Copyright (C) 2007 Lucas K. Wagner
+Based of Slat_wf_calc.cpp Copyright (C) 2007 Lucas K. Wagner
+Modified for "Fast" updates of multideterminant wavefunctions
+using iterative updates using only ground state determinant by
+Paul Kent / CNMS / ORNL 2009.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -18,8 +21,25 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  
 */
 
+// Debugging defines to enable iterative updates for specific methods only
+
+#define RECDET
+#ifdef RECDET
+#define RECDETUI
+#define RECDETUVNI
+#define RECDETCL
+#define RECDETGL
+#endif
+
+// Debugging:
+//#define RECDETDBG
+//#define RECDETUI
+//#define RECDETUVNI
+//#define RECDETCL
+//#define RECDETGL
+
 #include "Qmc_std.h"
-#include "Slat_wf.h"
+#include "FSlat_wf.h"
 #include "MatrixAlgebra.h"
 #include "Sample_point.h"
 #include "Slat_wf_data.h"
@@ -27,10 +47,10 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 //----------------------------------------------------------------------
 
 
-void Slat_wf::generateStorage(Wavefunction_storage * & wfstore)
+void FSlat_wf::generateStorage(Wavefunction_storage * & wfstore)
 {
-  wfstore=new Slat_wf_storage;
-  Slat_wf_storage * store;
+  wfstore=new FSlat_wf_storage;
+  FSlat_wf_storage * store;
   recast(wfstore, store);
   store->moVal_temp.Resize (5,   nmo);
   
@@ -38,7 +58,13 @@ void Slat_wf::generateStorage(Wavefunction_storage * & wfstore)
   store->moVal_temp_2.Resize (5,   nmo);
 
   store->detVal_temp.Resize(nfunc_, ndet, 2);
-  store->inverse_temp.Resize(nfunc_, ndet, 2);
+#ifndef RECDET
+  store->inverse_temp.Resize(nfunc_, ndet, 2); 
+#else
+  store->inverse_temp.Resize(nfunc_, 1, 2); 
+#endif
+
+#ifndef RECDET
   for(int i=0; i< nfunc_; i++)
   {
     for(int det=0; det < ndet; det++)
@@ -51,12 +77,27 @@ void Slat_wf::generateStorage(Wavefunction_storage * & wfstore)
       }
     }
   }
+#else
+  for(int i=0; i< nfunc_; i++)
+  {
+    for(int s=0; s<2; s++)
+      {
+	for(int det=0; det < ndet; det++)
+	{
+	  store->detVal_temp(i,det,s)=1;
+	}
+	store->inverse_temp(i,0,s).Resize(nelectrons(s), nelectrons(s));
+	store->inverse_temp(i,0,s)=0;
+      }
+  }
+#endif
+
 }
 
 
 //----------------------------------------------------------------------
 
-void Slat_wf::init(Wavefunction_data * wfdata)
+void FSlat_wf::init(Wavefunction_data * wfdata)
 {
 
   Slat_wf_data * dataptr;
@@ -78,10 +119,19 @@ void Slat_wf::init(Wavefunction_data * wfdata)
   updatedMoVal.Resize(nmo,5);
 
   detVal.Resize (nfunc_, ndet, 2);
+#ifdef RECDET
   inverse.Resize(nfunc_, ndet, 2);
+#else
+  inverse.Resize(nfunc_, 1, 2);
+#endif
 
   for(int i=0; i< nfunc_; i++) {
-    for(int det=0; det < ndet; det++) {
+#ifdef RECDET    
+    int tmpndet=1;
+#else
+    int tmpndet=ndet
+#endif
+    for(int det=0; det < tmpndet; det++) {
       for(int s=0; s<2; s++) {
         inverse(i,det,s).Resize(nelectrons(s), nelectrons(s));
         inverse(i,det,s)=0;
@@ -89,12 +139,27 @@ void Slat_wf::init(Wavefunction_data * wfdata)
           inverse(i,det,s)(e,e)=1;
           inverse(i,det,s)(e,e)=1;
         }
+      }
+    }
+  }
 
+  for(int i=0; i< nfunc_; i++) {
+    for(int det=0; det < ndet; det++) {
+      for(int s=0; s<2; s++) {
         detVal(i,det,s)=1;
       }
     }
   }
 
+  invgammastore.Resize(dataptr->max_occupation_changes);
+  ustore.Resize(dataptr->max_occupation_changes);
+  veestore.Resize(dataptr->max_occupation_changes);
+  int maxe;
+  if (nelectrons(0)>nelectrons(1)) { maxe=nelectrons(0); } else { maxe=nelectrons(1); }
+  for (int k=0; k<dataptr->max_occupation_changes; k++) {
+    ustore(k).Resize(maxe);
+    veestore(k).Resize(maxe);
+  }
 
   electronIsStaleVal.Resize(tote);
   electronIsStaleLap.Resize(tote);
@@ -119,7 +184,7 @@ we ignore all electron moves in the main algorithm, and the only way
 to update based on a move is by the getParmDepVal function.  The
 regular update functions will not work in this case.
 */
-void Slat_wf::notify(change_type change, int num)
+void FSlat_wf::notify(change_type change, int num)
 {
   switch(change)
   {
@@ -171,7 +236,7 @@ void Slat_wf::notify(change_type change, int num)
 
 //----------------------------------------------------------------------
 
-void Slat_wf::save_for_static() {
+void FSlat_wf::save_for_static() {
   assert(staticSample==0);
 
   if(!parent->optimize_mo && !parent->optimize_det) {
@@ -194,12 +259,12 @@ void Slat_wf::save_for_static() {
 
 //----------------------------------------------------------------------
 
-void Slat_wf::saveUpdate(Sample_point * sample, int e,
+void FSlat_wf::saveUpdate(Sample_point * sample, int e,
                          Wavefunction_storage * wfstore)
 {
 
   if(staticSample==0) {
-    Slat_wf_storage * store;
+    FSlat_wf_storage * store;
     recast(wfstore, store);
 
     //presumably, if we care enough to save the update, we care enough
@@ -211,44 +276,66 @@ void Slat_wf::saveUpdate(Sample_point * sample, int e,
     }
     int s=spin(e);
 
-    for(int f=0; f< nfunc_; f++) {
-      for(int det=0; det<ndet; det++) {
+    for(int f=0; f< nfunc_; f++)
+    {
+#ifdef RECDET
+      int tmpndet=1;
+#else
+      int tmpndet=ndet;
+#endif
+      for(int det=0; det<tmpndet; det++) {
         store->inverse_temp(f,det,s)=inverse(f,det,s);
+      }
+      for(int det=0; det<ndet; det++) {
         store->detVal_temp(f,det,s)=detVal(f,det,s);
       }
     }
 
 
-    for(int d=0; d< 5; d++) {
-      for(int i=0; i< moVal.GetDim(2); i++) {
+    for(int d=0; d< 5; d++)
+    {
+      for(int i=0; i< moVal.GetDim(2); i++)
+      {
         store->moVal_temp(d,i)=moVal(d,e,i);
       }
     }
   }
 
-
 }
 
 //----------------------------------------------------------------------
 
-void Slat_wf::restoreUpdate(Sample_point * sample, int e,
+void FSlat_wf::restoreUpdate(Sample_point * sample, int e,
                             Wavefunction_storage * wfstore)
 {
 
   if(staticSample==0) {
-    Slat_wf_storage * store;
+    FSlat_wf_storage * store;
     recast(wfstore, store);
     int s=spin(e);
     inverseStale=0;
     
-    for(int j=0; j<5; j++) {
-      for(int i=0; i<moVal.GetDim(2); i++) {
+    for(int j=0; j<5; j++)
+    {
+      for(int i=0; i<moVal.GetDim(2); i++)
+      {
         moVal(j,e,i)=store->moVal_temp(j,i);
       }
     }
-    for(int f=0; f< nfunc_; f++) {
-      for(int det=0; det < ndet; det++) {
+
+    for(int f=0; f< nfunc_; f++)
+    {
+#ifdef RECDET
+      int tmpndet=1;
+#else
+      int tmpndet=ndet;
+#endif
+      for(int det=0; det < tmpndet; det++)
+      {
         inverse(f,det,s)=store->inverse_temp(f,det,s);
+      }
+      for(int det=0; det < ndet; det++)
+      {
         detVal(f,det,s)=store->detVal_temp(f,det,s);
       }
     }
@@ -262,12 +349,12 @@ void Slat_wf::restoreUpdate(Sample_point * sample, int e,
 //----------------------------------------------------------------------
 
 // Added by Matous
-void Slat_wf::saveUpdate(Sample_point * sample, int e1, int e2,
+void FSlat_wf::saveUpdate(Sample_point * sample, int e1, int e2,
                          Wavefunction_storage * wfstore)
 {
 
   if(staticSample==0) {
-    Slat_wf_storage * store;
+    FSlat_wf_storage * store;
     recast(wfstore, store);
 
     //presumably, if we care enough to save the update, we care enough
@@ -281,14 +368,25 @@ void Slat_wf::saveUpdate(Sample_point * sample, int e1, int e2,
     int s1=spin(e1), s2=spin(e2);
 
     for(int f=0; f< nfunc_; f++) {
-      for(int det=0; det<ndet; det++) {
+#ifdef RECDET
+      int tmpndet=1;
+#else
+      int tmpndet=ndet;
+#endif
+      for(int det=0; det<tmpndet; det++) {
         if ( s1 == s2 ) {
 		store->inverse_temp(f,det,s1)=inverse(f,det,s1);
-		store->detVal_temp(f,det,s1)=detVal(f,det,s1);
 	}
 	else {
 		store->inverse_temp(f,det,s1)=inverse(f,det,s1);
 		store->inverse_temp(f,det,s2)=inverse(f,det,s2);
+	} 
+      }
+      for(int det=0; det<ndet; det++) {
+        if ( s1 == s2 ) {
+		store->detVal_temp(f,det,s1)=detVal(f,det,s1);
+	}
+	else {
 		store->detVal_temp(f,det,s1)=detVal(f,det,s1);
 		store->detVal_temp(f,det,s2)=detVal(f,det,s2);
 	}
@@ -310,12 +408,12 @@ void Slat_wf::saveUpdate(Sample_point * sample, int e1, int e2,
 //----------------------------------------------------------------------
 
 // Added by Matous
-void Slat_wf::restoreUpdate(Sample_point * sample, int e1, int e2,
+void FSlat_wf::restoreUpdate(Sample_point * sample, int e1, int e2,
                             Wavefunction_storage * wfstore)
 {
 
   if(staticSample==0) {
-    Slat_wf_storage * store;
+    FSlat_wf_storage * store;
     recast(wfstore, store);
     
     int s1=spin(e1), s2=spin(e2);
@@ -328,17 +426,34 @@ void Slat_wf::restoreUpdate(Sample_point * sample, int e1, int e2,
       }
     }
     for(int f=0; f< nfunc_; f++) {
-      for(int det=0; det < ndet; det++) {
-	      if ( s1 == s2 ) {
-		      inverse(f,det,s1)=store->inverse_temp(f,det,s1);
-		      detVal(f,det,s1)=store->detVal_temp(f,det,s1);
-	      }
-	      else {
-		      inverse(f,det,s1)=store->inverse_temp(f,det,s1);
-		      inverse(f,det,s2)=store->inverse_temp(f,det,s2);
-		      detVal(f,det,s1)=store->detVal_temp(f,det,s1);
-		      detVal(f,det,s2)=store->detVal_temp(f,det,s2);
-	      }
+#ifdef RECDET
+      int tmpndet=1;
+#else
+      int tmpndet=ndet;
+#endif
+      for(int det=0; det < tmpndet; det++)
+      {
+         if ( s1 == s2 )
+         {
+	   inverse(f,det,s1)=store->inverse_temp(f,det,s1);
+         }
+         else
+         {
+	   inverse(f,det,s1)=store->inverse_temp(f,det,s1);
+	   inverse(f,det,s2)=store->inverse_temp(f,det,s2);
+	 }
+      }
+      for(int det=0; det < ndet; det++)
+      {
+         if ( s1 == s2 )
+         {
+	    detVal(f,det,s1)=store->detVal_temp(f,det,s1);
+	 }
+	 else
+	 {
+	   detVal(f,det,s1)=store->detVal_temp(f,det,s1);
+	   detVal(f,det,s2)=store->detVal_temp(f,det,s2);
+	 }
       }
     }
 
@@ -352,7 +467,7 @@ void Slat_wf::restoreUpdate(Sample_point * sample, int e1, int e2,
 
 //----------------------------------------------------------------------
 
-void Slat_wf::updateVal(Wavefunction_data * wfdata,
+void FSlat_wf::updateVal(Wavefunction_data * wfdata,
                         Sample_point * sample)
 {
 
@@ -382,7 +497,7 @@ void Slat_wf::updateVal(Wavefunction_data * wfdata,
 
 //----------------------------------------------------------------------
 
-void Slat_wf::updateLap( Wavefunction_data * wfdata,
+void FSlat_wf::updateLap( Wavefunction_data * wfdata,
                         Sample_point * sample)
 {
   assert(sampleAttached);
@@ -417,7 +532,7 @@ void Slat_wf::updateLap( Wavefunction_data * wfdata,
 //----------------------------------------------------------------------
 
 
-void Slat_wf::storeParmIndVal(Wavefunction_data * wfdata, Sample_point * sample,
+void FSlat_wf::storeParmIndVal(Wavefunction_data * wfdata, Sample_point * sample,
                               int e, Array1 <doublevar> & vals )
 {
 
@@ -445,7 +560,7 @@ void Slat_wf::storeParmIndVal(Wavefunction_data * wfdata, Sample_point * sample,
 
 //----------------------------------------------------------------------
 
-void Slat_wf::getParmDepVal(Wavefunction_data * wfdata,
+void FSlat_wf::getParmDepVal(Wavefunction_data * wfdata,
                             Sample_point * sample,
                             int e,
                             Array1 <doublevar> & oldval,
@@ -486,7 +601,7 @@ void Slat_wf::getParmDepVal(Wavefunction_data * wfdata,
 
 //-----------------------------------------------------------------------
 
-int Slat_wf::getParmDeriv(Wavefunction_data *  wfdata, 
+int FSlat_wf::getParmDeriv(Wavefunction_data *  wfdata, 
 			  Sample_point * sample ,
 			  Parm_deriv_return & derivatives){
   
@@ -583,6 +698,7 @@ int Slat_wf::getParmDeriv(Wavefunction_data *  wfdata,
 	      //cout <<" orb "<<orb<<endl;
 	      for(int j=0;j<nmocoeff;j++)
 		for(int ee = 0; ee < nelectrons(s); ee++) {
+		  error("LAZY PROGRAMMER in FSlat_wf_calc.cpp:getParmDeriv  not implemented for fast updates");
 		  detGrad(f,det,s)(which_orbitals(f,det,s)(orb),j)+=inverse(f,det,s)(ee,which_occupation(f,det,s)(orb))*BasisVal(s,ee)(j);
 		}   
 	    }
@@ -713,7 +829,7 @@ int Slat_wf::getParmDeriv(Wavefunction_data *  wfdata,
 //------------------------------------------------------------------------
 
 
-void Slat_wf::calcVal(Slat_wf_data * dataptr, Sample_point * sample)
+void FSlat_wf::calcVal(Slat_wf_data * dataptr, Sample_point * sample)
 {
   //Hmm, I don't completely understand why, but something is not 
   //completely clean, so we can't just cycle through and updateVal
@@ -725,10 +841,112 @@ void Slat_wf::calcVal(Slat_wf_data * dataptr, Sample_point * sample)
 
 //------------------------------------------------------------------------
 
-void Slat_wf::updateInverse(Slat_wf_data * dataptr, int e) { 
+
+void FSlat_wf::updateInverse(Slat_wf_data * dataptr, int e) { 
   int maxmatsize=max(nelectrons(0),nelectrons(1));
   Array1 <doublevar> modet(maxmatsize);
   int s=spin(e);
+#ifdef RECDETUI
+  for(int f=0; f< nfunc_; f++)  { 
+
+    // If initial determinant is zero attempt rebuild
+    if (fabs(fabs(detVal(f,0,s))==0)) {
+        Array2 <doublevar> allmos(nelectrons(s), nelectrons(s));
+        for(int e=0; e< nelectrons(s); e++) {
+          int curre=s*nelectrons(0)+e;
+          for(int i=0; i< nelectrons(s); i++) {
+            allmos(e,i)=moVal(0,curre, dataptr->occupation(f,0,s)(i));
+          }
+        }
+        detVal(f,0,s)=
+          TransposeInverseMatrix(allmos,inverse(f,0,s), nelectrons(s));
+    }
+
+
+    if (fabs(detVal(f,0,s))>0) {
+      // First compute ratio for zeroth determinant, updating the inverse
+      for(int i = 0; i < nelectrons(s); i++) {
+	modet(i)=moVal(0,e,dataptr->occupation(f,0,s)(i));
+      }
+      doublevar zero_ratio=1./InverseUpdateColumn(inverse(f,0,s),
+					     modet, dataptr->rede(e),
+					     nelectrons(s));
+      for(int idx=1; idx< ndet; idx++)  {
+	int recdet=dataptr->evaluation_order(f,idx,s);
+	int nchanges=dataptr->occupation_nchanges(f,recdet,s);
+	doublevar newval;
+	if (nchanges==0) 
+	{
+           newval=zero_ratio*detVal(f,recdet,s);
+	}
+	else
+	{
+	  doublevar calcq,calcqtot;
+	  calcqtot=1.0;
+	  int ichstart=dataptr->occupation_first_diff_change_from_last_det(f,recdet,s);
+	  for (int ichange=0; ichange<ichstart; ichange++)
+	  {
+	    calcqtot*=invgammastore(ichange);
+	  }
+	  for (int ichange=ichstart; ichange<nchanges; ichange++)
+	  {
+	    // Factor the ichangeth change
+	    int erow=dataptr->occupation_changes(f,recdet,s)(ichange);
+	    for (int j=0; j<nelectrons(s); j++)
+	    {
+	      ustore(ichange)(j)=inverse(f,0,s)(j,erow);
+	    }
+	    for (int jchange=0;jchange<ichange;jchange++) 
+	    {
+	      doublevar prod=dot(ustore(ichange),veestore(jchange))/invgammastore(jchange);
+	      for (int j=0; j<nelectrons(s); j++)
+	      {
+		ustore(ichange)(j)=ustore(ichange)(j)-prod*ustore(jchange)(j);
+	      }
+	    }
+		      
+	    for(int j=0; j<nelectrons(s); j++)
+	    {
+	      int jr=j+s*nelectrons(0);
+	      veestore(ichange)(j)=moVal(0,jr,dataptr->occupation(f,recdet,s)(erow))-moVal(0,jr,dataptr->occupation(f,0,s)(erow));
+	    }
+	    calcq=1.0+dot(veestore(ichange),ustore(ichange));
+	    calcqtot*=calcq;
+	    invgammastore(ichange)=calcq;
+	  } // end for ichange
+	  newval=calcqtot*zero_ratio*detVal(f,0,s);
+	}
+
+#ifdef RECDETDBG
+	      Array2 <doublevar> allmos(nelectrons(s), nelectrons(s));
+	      for(int e=0; e< nelectrons(s); e++) {
+		int curre=s*nelectrons(0)+e;
+		for(int i=0; i< nelectrons(s); i++) {
+		  allmos(e,i)=moVal(0,curre, dataptr->occupation(f,recdet,s)(i));
+		}
+	      }
+	      doublevar tdetVal=TransposeInverseMatrix(allmos,inverse(f,recdet,s), nelectrons(s));
+	      if (abs(tdetVal-curratio*detVal(f,recdet,s))>1e-5) {
+		cout << "FSlat_wf_calc.cpp:UpdateInverse RECDETDBG accuracy problem" << f << " " << recdet << " " << s << endl;
+		cout << "Reference="<< tdetVal << " actual="<< detVal(f,recdet,s) << endl;
+		error ("FSlat_wf_calc.cpp:UpdateInverse RECDETDBG accuracy problem");
+	      }
+
+#endif
+	if (recdet>0)
+	{
+	  detVal(f,recdet,s)=newval;
+	} 
+      }
+      detVal(f,0,s)=zero_ratio*detVal(f,0,s);
+    }
+    else
+    {
+      error("FSlat_wf_calc.cpp:UpdateInverse not implemented for ZERO valued ground state (1st) determinant");
+    }
+  }
+#else
+
   for(int f=0; f< nfunc_; f++)  {
     for(int det=0; det< ndet; det++)  {
       //fill the molecular orbitals for this
@@ -742,7 +960,6 @@ void Slat_wf::updateInverse(Slat_wf_data * dataptr, int e) {
         doublevar ratio=1./InverseUpdateColumn(inverse(f,det,s),
                                      modet, dataptr->rede(e),
                                      nelectrons(s));
-
         detVal(f,det, s)=ratio*detVal(f,det, s);
       }
       else { 
@@ -761,12 +978,12 @@ void Slat_wf::updateInverse(Slat_wf_data * dataptr, int e) {
       }
     }
   }
-  
+#endif  
 }
 
 //------------------------------------------------------------------------
 
-int Slat_wf::updateValNoInverse(Slat_wf_data * dataptr, int e) { 
+int FSlat_wf::updateValNoInverse(Slat_wf_data * dataptr, int e) { 
   int maxmatsize=max(nelectrons(0),nelectrons(1));
   Array1 <doublevar> modet(maxmatsize);
   int s=spin(e);
@@ -779,8 +996,90 @@ int Slat_wf::updateValNoInverse(Slat_wf_data * dataptr, int e) {
   }
         
   
-  for(int f=0; f< nfunc_; f++)  {
+  for(int f=0; f< nfunc_; f++)
+  {
+#ifdef RECDETUVNI
+      // First compute ratio for zeroth determinant, updating the inverse
+#ifdef RECDETDBG
     for(int det=0; det< ndet; det++)  {
+      Array2 <doublevar> tinverse=inverse(f,det,s);
+
+      //fill the molecular orbitals for this
+      //determinant
+      for(int i = 0; i < nelectrons(s); i++) {
+        modet(i)=moVal(0,e,dataptr->occupation(f,det,s)(i));
+      }
+      
+      
+      doublevar ratio=1./InverseGetNewRatio(tinverse,
+                                            modet, dataptr->rede(e),
+                                            nelectrons(s));
+      cout << "UVNI REF " << s << " " << det << " IVAL=" << detVal(f,det,s) << " VAL/IVAL=" << ratio << " VAL=" << ratio*detVal(f,det,s) << endl;
+    }
+#endif
+    for(int i = 0; i < nelectrons(s); i++) {
+	modet(i)=moVal(0,e,dataptr->occupation(f,0,s)(i));
+    }
+    Array2 <doublevar> zeroinverse=inverse(f,0,s);
+    doublevar zero_ratio=1./InverseUpdateColumn(zeroinverse,
+					     modet, dataptr->rede(e),
+					     nelectrons(s));
+    for(int idx=1; idx< ndet; idx++)
+    {
+      int recdet=dataptr->evaluation_order(f,idx,s);
+      int nchanges=dataptr->occupation_nchanges(f,recdet,s);
+      doublevar newval;
+      if (nchanges==0) 
+      {
+	newval=zero_ratio*detVal(f,recdet,s);
+      }
+      else
+      {
+	doublevar calcq,calcqtot;
+	calcqtot=1.0;
+	int ichstart=dataptr->occupation_first_diff_change_from_last_det(f,recdet,s);
+	for (int ichange=0; ichange<ichstart; ichange++)
+	{
+	  calcqtot*=invgammastore(ichange);
+	}
+	for (int ichange=ichstart; ichange<nchanges; ichange++)
+	{
+	  // Factor the ichangeth change
+	  int erow=dataptr->occupation_changes(f,recdet,s)(ichange);
+	  for (int j=0; j<nelectrons(s); j++)
+	  {
+	    ustore(ichange)(j)=zeroinverse(j,erow);
+	  }
+	  for (int jchange=0;jchange<ichange;jchange++) 
+	  {
+	    doublevar prod=dot(ustore(ichange),veestore(jchange))/invgammastore(jchange);
+	    for (int j=0; j<nelectrons(s); j++)
+	    {
+	      ustore(ichange)(j)=ustore(ichange)(j)-prod*ustore(jchange)(j);
+	    }
+	  }
+	  
+	  for(int j=0; j<nelectrons(s); j++)
+	  {
+	    int jr=j+s*nelectrons(0);
+	    veestore(ichange)(j)=moVal(0,jr,dataptr->occupation(f,recdet,s)(erow))-moVal(0,jr,dataptr->occupation(f,0,s)(erow));
+	  }
+	  calcq=1.0+dot(veestore(ichange),ustore(ichange));
+	  calcqtot*=calcq;
+	  invgammastore(ichange)=calcq;
+	} // end for ichange
+	newval=calcqtot*zero_ratio*detVal(f,0,s);
+      }
+
+      if (recdet>0) {
+	detVal(f,recdet, s)=newval;
+      }
+      
+    }
+    detVal(f,0, s)=zero_ratio*detVal(f,0, s);	    
+#else
+    for(int det=0; det< ndet; det++)  {
+
       //fill the molecular orbitals for this
       //determinant
       for(int i = 0; i < nelectrons(s); i++) {
@@ -791,9 +1090,10 @@ int Slat_wf::updateValNoInverse(Slat_wf_data * dataptr, int e) {
       doublevar ratio=1./InverseGetNewRatio(inverse(f,det,s),
                                             modet, dataptr->rede(e),
                                             nelectrons(s));
-
       detVal(f,det, s)=ratio*detVal(f,det, s);
+
     }
+#endif
   }
   return 1;
 }
@@ -802,7 +1102,7 @@ int Slat_wf::updateValNoInverse(Slat_wf_data * dataptr, int e) {
 /*!
 
 */
-void Slat_wf::updateVal( Slat_wf_data * dataptr, Sample_point * sample,int e) {
+void FSlat_wf::updateVal( Slat_wf_data * dataptr, Sample_point * sample,int e) {
 
   if(inverseStale && lastValUpdate!=e) { 
     inverseStale=0;
@@ -840,7 +1140,7 @@ void Slat_wf::updateVal( Slat_wf_data * dataptr, Sample_point * sample,int e) {
 //------------------------------------------------------------------------
 
 
-void Slat_wf::getVal(Wavefunction_data * wfdata, int e,
+void FSlat_wf::getVal(Wavefunction_data * wfdata, int e,
                      Wf_return & val)
 {
   Array1 <doublevar> si(nfunc_, 0.0);
@@ -884,7 +1184,7 @@ void Slat_wf::getVal(Wavefunction_data * wfdata, int e,
 }
 
 //----------------------------------------------------------
-void Slat_wf::getSymmetricVal(Wavefunction_data * wfdata,
+void FSlat_wf::getSymmetricVal(Wavefunction_data * wfdata,
 		     int e, Wf_return & val){
   val.phase(0, 0)=0;
   val.amp(0, 0)=0;
@@ -893,7 +1193,7 @@ void Slat_wf::getSymmetricVal(Wavefunction_data * wfdata,
 
 //----------------------------------------------------------------------
 
-void Slat_wf::getDensity(Wavefunction_data * wfdata, int e,
+void FSlat_wf::getDensity(Wavefunction_data * wfdata, int e,
                          Array2 <doublevar> & dens)
 {
 
@@ -923,7 +1223,7 @@ void Slat_wf::getDensity(Wavefunction_data * wfdata, int e,
 //----------------------------------------------------------------------------
 
 
-void Slat_wf::calcLap(Slat_wf_data * dataptr, Sample_point * sample)
+void FSlat_wf::calcLap(Slat_wf_data * dataptr, Sample_point * sample)
 {
 
   inverseStale=0;
@@ -945,6 +1245,7 @@ void Slat_wf::calcLap(Slat_wf_data * dataptr, Sample_point * sample)
   int maxmatsize=max(nelectrons(0),nelectrons(1));
   Array2 <doublevar> modet(maxmatsize, maxmatsize);
 
+#ifndef RECDETCL
   for(int f=0; f< nfunc_; f++)   {
     for(int det=0; det < ndet; det++ ) {
       for(int s=0; s< 2; s++ ) {
@@ -959,10 +1260,80 @@ void Slat_wf::calcLap(Slat_wf_data * dataptr, Sample_point * sample)
         
         detVal(f,det,s)=
           TransposeInverseMatrix(modet,inverse(f,det,s), nelectrons(s));
-  
+
       }
     }
   }
+#else
+  for(int f=0; f< nfunc_; f++)   {
+    int det=0;
+      for(int s=0; s< 2; s++ ) {
+	// Fill the zeroth Slater determinant, setup inverse and value
+
+	for(int e=0; e< nelectrons(s); e++) {
+	  int curre=s*nelectrons(0)+e;
+	  for(int i=0; i< nelectrons(s); i++) {
+	    modet(e,i)=moVal(0,curre, dataptr->occupation(f,det,s)(i));
+	  }
+	}
+	detVal(f,det,s)=
+	  TransposeInverseMatrix(modet,inverse(f,det,s), nelectrons(s));
+	    
+	for(int idx=1; idx< ndet; idx++)
+        {
+	  int recdet=dataptr->evaluation_order(f,idx,s);
+	  int nchanges=dataptr->occupation_nchanges(f,recdet,s);
+	  doublevar curratio;
+	  if (nchanges==0) 
+	  {
+	    curratio=1.0;
+	  }
+	  else
+	  {
+	    doublevar calcq,calcqtot;
+	    calcqtot=1.0;
+	    int ichstart=dataptr->occupation_first_diff_change_from_last_det(f,recdet,s);
+	    for (int ichange=0; ichange<ichstart; ichange++)
+	    {
+	      calcqtot*=invgammastore(ichange);
+	    }
+
+	    for (int ichange=ichstart; ichange<nchanges; ichange++)
+	    {
+		// Factor the ichangeth change
+	      int erow=dataptr->occupation_changes(f,recdet,s)(ichange);
+	      for (int j=0; j<nelectrons(s); j++)
+	      {
+		ustore(ichange)(j)=inverse(f,0,s)(j,erow);
+	      }
+	      for (int jchange=0;jchange<ichange;jchange++) 
+	      {
+		doublevar prod=dot(ustore(ichange),veestore(jchange))/invgammastore(jchange);
+		for (int j=0; j<nelectrons(s); j++)
+		{
+		  ustore(ichange)(j)=ustore(ichange)(j)-prod*ustore(jchange)(j);
+		}
+	      }
+		      
+	      for(int j=0; j<nelectrons(s); j++)
+	      {
+		int jr=j+s*nelectrons(0);
+		veestore(ichange)(j)=moVal(0,jr,dataptr->occupation(f,recdet,s)(erow))-moVal(0,jr,dataptr->occupation(f,0,s)(erow));
+	      }
+	      
+	      calcq=1.0+dot(veestore(ichange),ustore(ichange));
+	      calcqtot*=calcq;
+	      invgammastore(ichange)=calcq;
+	    } // end for ichange
+	    curratio=calcqtot;
+	  }
+	  detVal(f,recdet,s)=curratio*detVal(f,0,s);
+	}
+      }
+  }
+
+#endif  
+
 }
 
 //------------------------------------------------------------------------
@@ -983,7 +1354,7 @@ cases, we overflow on the value
 
 */
 
-void Slat_wf::getLap(Wavefunction_data * wfdata,
+void FSlat_wf::getLap(Wavefunction_data * wfdata,
                      int e, Wf_return & lap)
 {
 
@@ -1009,6 +1380,7 @@ void Slat_wf::getLap(Wavefunction_data * wfdata,
     int s=dataptr->spin(e);
     int opp=dataptr->opspin(e);
 
+#ifndef RECDETGL
     for(int f=0; f< nfunc_; f++) {
       doublevar funcval=0;
 
@@ -1021,6 +1393,7 @@ void Slat_wf::getLap(Wavefunction_data * wfdata,
         vals(f,0)=log(fabs(funcval));
       else vals(f,0)=-1e3;
       si(f)=sign(funcval);
+
 
       for(int i=1; i< 5; i++) {
         lap.amp(f,i)=0;
@@ -1043,7 +1416,106 @@ void Slat_wf::getLap(Wavefunction_data * wfdata,
           //vals(f,i)+=dataptr->detwt(det)*temp
           //          *detVal(f,det, s)*detVal(f,det, opp);
         }
-        
+       
+        if(funcval==0)
+          vals(f,i)=0;  //Prevent division by zero
+        else if(ndet > 1) 
+          vals(f,i)/=funcval;
+
+      }
+      
+    }
+#else
+    for(int f=0; f< nfunc_; f++) {
+      doublevar funcval=0;
+
+      for(int det=0; det < ndet; det++) {
+        funcval += dataptr->detwt(det)*detVal(f,det,s)*detVal(f,det,opp);
+      }
+
+
+      if(fabs(funcval) > 0) 
+        vals(f,0)=log(fabs(funcval));
+      else vals(f,0)=-1e3;
+      si(f)=sign(funcval);
+
+      for(int i=1; i< 5; i++) {
+        lap.amp(f,i)=0;
+
+	Array1 <doublevar> modet(nelectrons(s));	
+	Array2 <doublevar> tinverse=inverse(f,0,s);
+
+	for(int ic = 0; ic < nelectrons(s); ic++) {
+	  modet(ic)=moVal(i,e,dataptr->occupation(f,0,s)(ic));
+	}
+
+	doublevar zero_ratio=1./InverseUpdateColumn(tinverse,
+						    modet, dataptr->rede(e),
+						    nelectrons(s));
+
+	for(int idx=0; idx< ndet; idx++)
+	{
+	  int recdet=dataptr->evaluation_order(f,idx,s);
+	  int nchanges=dataptr->occupation_nchanges(f,recdet,s);
+	  doublevar curratio;
+	  if (nchanges==0) 
+	  {
+	    curratio=zero_ratio;
+	  }
+	  else
+	  {
+	    doublevar calcq,calcqtot;
+	    calcqtot=1.0;
+	    int ichstart=dataptr->occupation_first_diff_change_from_last_det(f,recdet,s);
+	      
+	    for (int ichange=0; ichange<ichstart; ichange++)
+	    {
+	      calcqtot*=invgammastore(ichange);
+	    }
+	      
+	    for (int ichange=ichstart; ichange<nchanges; ichange++)
+	    {
+		  // Factor the ichangeth change
+	      int erow=dataptr->occupation_changes(f,recdet,s)(ichange);
+	      for (int j=0; j<nelectrons(s); j++)
+	      {
+		ustore(ichange)(j)=tinverse(j,erow);
+	      }
+	      for (int jchange=0;jchange<ichange;jchange++) 
+	      {
+		doublevar prod=dot(ustore(ichange),veestore(jchange))/invgammastore(jchange);
+		for (int j=0; j<nelectrons(s); j++)
+		{
+		  ustore(ichange)(j)=ustore(ichange)(j)-prod*ustore(jchange)(j);
+		}
+	      }
+		  
+	      for(int j=0; j<nelectrons(s); j++)
+	      {
+		int jr=j+s*nelectrons(0);
+		veestore(ichange)(j)=moVal(0,jr,dataptr->occupation(f,recdet,s)(erow))-moVal(0,jr,dataptr->occupation(f,0,s)(erow));
+	      }
+	      int er=e-s*nelectrons(0);
+	      veestore(ichange)(er)=moVal(i , e, dataptr->occupation(f,recdet,s)(erow) )-moVal(i , e, dataptr->occupation(f,0,s)(erow) );
+	      
+	      calcq=1.0+dot(veestore(ichange),ustore(ichange));
+	      calcqtot*=calcq;
+	      invgammastore(ichange)=calcq;
+	    } // end for ichange
+	    curratio=calcqtot*zero_ratio*detVal(f,0,s)/detVal(f,recdet,s);
+	  }
+
+	  doublevar temp=curratio;
+          //Prevent catastrophe with a singular matrix.
+          //Shouldn't happen much.
+          if(detVal(f,recdet,s)*detVal(f,recdet,opp)==0)
+            temp=0;
+          
+          if(ndet >1) 
+            temp*=dataptr->detwt(recdet)*detVal(f,recdet, s)*detVal(f,recdet, opp);
+          vals(f,i)+=temp;
+        }
+
         if(funcval==0)
           vals(f,i)=0;  //Prevent division by zero
         else if(ndet > 1) 
@@ -1051,8 +1523,8 @@ void Slat_wf::getLap(Wavefunction_data * wfdata,
       }
       
     }
+#endif
   }
-  
   lap.setVals(vals, si);
   
 }
@@ -1061,7 +1533,7 @@ void Slat_wf::getLap(Wavefunction_data * wfdata,
 
 /*!
 */
-void Slat_wf::updateLap(Slat_wf_data * dataptr,
+void FSlat_wf::updateLap(Slat_wf_data * dataptr,
                         Sample_point * sample,
                         int e ) {
   
