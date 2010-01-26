@@ -301,18 +301,25 @@ doublevar TransposeInverseMatrix(const Array2 <doublevar> & a, Array2 <doublevar
   doublevar d;
   
 #ifdef USE_LAPACK
-  for(int i=0; i < n;++i) {
-    for(int j=0; j< n; ++j) { 
-      temp.v[i*n+j]=a(i,j);
-      a1(i,j)=0.0;
-    }
-    a1(i,i)=1.0;
+  //LAPACK routines don't handle n==1 case??
+  if(n==1) { 
+    a1(0,0)=1.0/a(0,0);
+    return a(0,0);
   }
-  dgetrf(n, n, temp.v, n, indx.v);
-  for(int j=0; j< n; ++j) { 
-    dgetrs('T',n,1,temp.v,n,indx.v,a1.v+j*n,n);
-  }
+  else { 
   
+    for(int i=0; i < n;++i) {
+      for(int j=0; j< n; ++j) { 
+        temp.v[i*n+j]=a(i,j);
+        a1(i,j)=0.0;
+      }
+      a1(i,i)=1.0;
+    }
+    dgetrf(n, n, temp.v, n, indx.v);
+    for(int j=0; j< n; ++j) { 
+      dgetrs('T',n,1,temp.v,n,indx.v,a1.v+j*n,n);
+    }
+  }
   
 #else 
   
