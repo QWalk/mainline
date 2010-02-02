@@ -734,17 +734,17 @@ void Slat_wf::updateInverse(Slat_wf_data * dataptr, int e) {
       //fill the molecular orbitals for this
       //determinant
       if(fabs(detVal(f,det,s)) > 0) { 
-        ofstream matout("matrix_out", ios::app);
-        matout.precision(15);
-        if(f==0 && det==0 && s==0)
-          matout << "updating " << e << " : ";
+        //ofstream matout("matrix_out", ios::app);
+        //matout.precision(15);
+        //if(f==0 && det==0 && s==0)
+        //  matout << "updating " << e << " : ";
         for(int i = 0; i < nelectrons(s); i++) {
           modet(i)=moVal(0,e,dataptr->occupation(f,det,s)(i));
-          if(f==0 && det==0 && s==0)
-            matout << modet(i) << " ";
+          //if(f==0 && det==0 && s==0)
+          //  matout << modet(i) << " ";
         }
-        if(f==0 && det==0 && s==0)
-          matout << endl;
+        //if(f==0 && det==0 && s==0)
+        //  matout << endl;
         
         
         doublevar ratio=1./InverseUpdateColumn(inverse(f,det,s),
