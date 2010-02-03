@@ -298,7 +298,13 @@ doublevar TransposeInverseMatrix(const Array2 <doublevar> & a, Array2 <doublevar
   temp.Resize(n,n);
   Array1 <int>& indx(itmp1);
   indx.Resize(n);
-  doublevar d;
+  doublevar d=1;
+  
+  //for(int i=0; i< n; i++) { 
+  //  cout << "matrix ";
+  //  for(int j=0; j< n; j++) cout << a(i,j) << " ";
+  //  cout << endl;
+  //}
   
 #ifdef USE_LAPACK
   //LAPACK routines don't handle n==1 case??
@@ -321,6 +327,24 @@ doublevar TransposeInverseMatrix(const Array2 <doublevar> & a, Array2 <doublevar
     }
   }
   
+  //for(int i=0; i< n; i++) { 
+  //  cout << "ipiv " << indx[i] << endl;
+  //}
+  
+  double det=1;
+  for(int i=0; i< n; i++) { 
+    //cout << "lapack ";
+    //for(int j=0; j< n; j++) { 
+    //  cout << temp(i,j) << " ";
+    //}
+    //cout << endl;
+    if(indx(i) != i)
+      det*= -temp(i,i);
+    else det*=temp(i,i);
+  }
+  //cout << "lapack: " << det << endl;
+  return det;
+//#endif  
 #else 
   
   // a(i,j) first index i is row index (convention)
@@ -356,13 +380,23 @@ doublevar TransposeInverseMatrix(const Array2 <doublevar> & a, Array2 <doublevar
     yy.refer(a1(j));
     lubksb(temp,n,indx,yy);
   }
-#endif
-    
+//#endif
+  //for(int i=0; i< n; i++) { 
+   // cout << "crummy ";
+   // for(int j=0; j< n; j++) { 
+   //   cout << temp(i,j) << " ";
+   // }
+  //  cout << endl;
+  //}
+  
   // return the determinant as well since it's easy
+  d=1;
   for(int j=0;j<n;++j) {
     d *= temp(j,j);
   }
+  //cout << "crummy " << d << endl;
   return d;
+#endif
 }
 
 // Return det|a| and leave matrix a constant
