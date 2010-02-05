@@ -256,8 +256,8 @@ double find_centers(const Array1 <doublevar> & origin_,
   for(int i=0; i< 3; i++) {
     cutoff_piped(i).Resize(3);
     for(int j=0; j< 3; j++) {
-      origin[j]-=cutoff*latvec[i][j]/height(j);
-      cutoff_piped(i)(j)=latvec[i][j]*(1+2*cutoff/height(j));
+      origin[j]-=cutoff*latvec[i][j]/height(i);
+      cutoff_piped(i)(j)=latvec[i][j]*(1+2*cutoff/height(i));
     }
   }
 
