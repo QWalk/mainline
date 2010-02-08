@@ -24,6 +24,8 @@ int decide_averager(string & label, Average_generator *& avg) {
     avg=new Average_density_moments;
   else if(caseless_eq(label, "LINEAR_DER"))
     avg=new Average_linear_derivative;
+  else if(caseless_eq(label, "LINEAR_DELTA_DER"))
+    avg=new Average_linear_delta_derivative;
   else 
     error("Didn't understand ", label, " in Average_generator.");
   
@@ -949,7 +951,14 @@ void Average_density_moments::write_summary(Average_return & avg, Average_return
 //############################################################################
 //derivatives of multideterminant/pfaffian wf without jastrow(stored in symvals)
 //needed un SH_DMC
-void Average_linear_derivative::read(System * sys, Wavefunction_data * wfdata, vector <string> & words) { 
+void Average_linear_derivative::read(System * sys, Wavefunction_data * wfdata, vector <string> & words) {
+  unsigned int pos=0;
+  if(!readvalue(words, pos=0, tau, "TIMESTEP")) 
+    tau=0.01;
+  if(haskeyword(words, pos=0, "UNR"))
+    unr=1;
+  else
+    unr=0;
 }
 
 void Average_linear_derivative::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
@@ -974,21 +983,32 @@ void Average_linear_derivative::evaluate(Wavefunction_data * wfdata, Wavefunctio
   avg.vals.Resize(ndim+1);
   avg.vals=0.0;
 
-  wf->updateVal(wfdata, sample);
-  wf->getVal(wfdata, 0, vals);
+  if(!unr){
+    wf->updateVal(wfdata, sample);
+    wf->getVal(wfdata, 0, vals);
+  }
+  else{
+    wf->updateLap(wfdata, sample);
+    wf->getLap(wfdata, 0, vals);
+  }
+    
+  
   wf->getSymmetricVal(wfdata, 0, symvals);
   wf->getParmDeriv(wfdata, sample, derivatives);
   //cout <<symvals.amp(0,0)<<"  "<<vals.amp(0,0)<< endl;
 
   doublevar Jastrow_w2_inverse=exp(-2*symvals.amp(0,0));
-
-  //possibly drift in like UNR sampling
-  //doublevar drift=vals.amp(0,1)*vals.amp(0,1)+vals.amp(0,2)*vals.amp(0,2)+vals.amp(0,3)*vals.amp(0,3);
-  //doublevar teff=0.001;
-  //teff*=drift;
+  doublevar gamma=1.0;
+  if(unr){
+    //possibly drift in like UNR sampling
+    doublevar drift=vals.amp(0,1)*vals.amp(0,1)+vals.amp(0,2)*vals.amp(0,2)+vals.amp(0,3)*vals.amp(0,3);
+    doublevar teff=tau;
+    teff*=drift;
   
-  doublevar gamma=1.0;//(-1+sqrt(1+2*teff))/teff;
-  
+    gamma=(-1+sqrt(1+2*teff))/teff;
+    //if(gamma<0.5)
+    // cout <<" gamma "<<gamma<<endl;
+  }
   for(int d=0; d< ndim; d++){
     //cout <<" derivatives.gradient("<<d<<")= "<<derivatives.gradient(d)<<endl;
     avg.vals(d)=Jastrow_w2_inverse*derivatives.gradient(d)*gamma;
@@ -999,6 +1019,9 @@ void Average_linear_derivative::evaluate(Wavefunction_data * wfdata, Wavefunctio
 
 void Average_linear_derivative::write_init(string & indent, ostream & os) { 
   os << indent << "linear_der\n";
+  os << indent << "TIMESTEP "<<tau<<"\n";
+  if(unr)
+    os << indent << "UNR\n";
 }
 
 void Average_linear_derivative::read(vector <string> & words) { 
@@ -1012,6 +1035,101 @@ void Average_linear_derivative::write_summary(Average_return & avg, Average_retu
   for(int d=0; d< ndim; d++) {
     os << avg.vals(d)/avg.vals(ndim) << " +/- " << err.vals(d)/avg.vals(ndim) << endl;
   }
+  os <<" normalization "<<avg.vals(ndim)<<" +/- " << err.vals(ndim) << endl;
       
 }
+//############################################################################
+
+//############################################################################
+//derivatives of multideterminant/pfaffian wf without jastrow(stored in symvals)
+//needed un SH_DMC only differences
+void Average_linear_delta_derivative::read(System * sys, Wavefunction_data * wfdata, vector <string> & words) { 
+  unsigned int pos=0;
+  if(!readvalue(words, pos=0, tau, "TIMESTEP")) 
+    tau=0.01;
+  if(haskeyword(words, pos=0, "UNR"))
+    unr=1;
+  else
+    unr=0;
+}
+
+void Average_linear_delta_derivative::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+                              System * sys, Sample_point * sample, Average_return & avg ) { 
+  Parm_deriv_return derivatives;
+  int nfunctions=wf->nfunc();
+  Wf_return vals;
+  Wf_return symvals;
+
+  vals.Resize(nfunctions,5);
+  symvals.Resize(nfunctions,2);
+  
+  avg.type="linear_delta_der";
+  if(!wfdata->supports(parameter_derivatives))
+    error("Wavefunction needs to supports analytic parameter derivatives");
+  
+  derivatives.nparms_start=0;
+  derivatives.nparms_end=wfdata->nparms();
+  derivatives.need_hessian=0;
+
+  int ndim=wfdata->nparms();
+  avg.vals.Resize(ndim+1);
+  avg.vals=0.0;
+
+  if(!unr){
+    wf->updateVal(wfdata, sample);
+    wf->getVal(wfdata, 0, vals);
+  }
+  else{
+    wf->updateLap(wfdata, sample);
+    wf->getLap(wfdata, 0, vals);
+  }
+    
+  wf->getSymmetricVal(wfdata, 0, symvals);
+  wf->getParmDeriv(wfdata, sample, derivatives);
+  //cout <<symvals.amp(0,0)<<"  "<<vals.amp(0,0)<< endl;
+
+  doublevar Jastrow_w2_inverse=exp(-2*symvals.amp(0,0));
+  doublevar gamma=1.0;
+  if(unr){
+    //possibly drift in like UNR sampling
+    doublevar drift=vals.amp(0,1)*vals.amp(0,1)+vals.amp(0,2)*vals.amp(0,2)+vals.amp(0,3)*vals.amp(0,3);
+    doublevar teff=tau;
+    teff*=drift;
+  
+    gamma=(-1+sqrt(1+2*teff))/teff;
+    //if(gamma<0.5)
+    // cout <<" gamma "<<gamma<<endl;
+  }
+  
+  
+  for(int d=0; d< ndim; d++){
+    //cout <<" derivatives.gradient("<<d<<")= "<<derivatives.gradient(d)<<endl;
+    avg.vals(d)=Jastrow_w2_inverse*derivatives.gradient(d)*gamma;
+    //avg.vals(d)=derivatives.gradient(d);
+  }
+  avg.vals(ndim)=Jastrow_w2_inverse;
+}
+
+void Average_linear_delta_derivative::write_init(string & indent, ostream & os) { 
+  os << indent << "linear_delta_der\n";
+  os << indent << "TIMESTEP "<<tau<<"\n";
+  if(unr)
+    os << indent << "UNR\n";
+}
+
+void Average_linear_delta_derivative::read(vector <string> & words) { 
+  
+}
+
+void Average_linear_delta_derivative::write_summary(Average_return & avg, Average_return & err, ostream & os) {
+  int ndim=avg.vals.GetDim(0)-1;
+  assert(ndim <= err.vals.GetDim(0));
+  os << "Linear derivatives \n";
+  for(int d=0; d< ndim; d++) {
+    os << avg.vals(d)/avg.vals(ndim) << " +/- " << err.vals(d)/avg.vals(ndim) << endl;
+  }
+  os <<" normalization "<<avg.vals(ndim)<<" +/- " << err.vals(ndim) << endl;
+      
+}
+
 //############################################################################

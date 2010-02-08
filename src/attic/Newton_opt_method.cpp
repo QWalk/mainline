@@ -68,7 +68,7 @@ void Newton_opt_method::read(vector <string> words,
   }
   else { use_extended_output=0; }
   
-  if(haskeyword(words, pos=0, "PROJECTORS") )
+  if(haskeyword(words, pos=0, "SHDMC") )
     {
       calculate_projectors=1;
     }
@@ -132,6 +132,10 @@ void Newton_opt_method::read(vector <string> words,
 	use_weights=1;
       }
       min_function=min_mixed;
+    }
+    else if(functiontype_str=="WEIGHT_VARIANCE")
+    {
+      min_function=min_weight_variance;
     }
     else
     {
@@ -484,7 +488,9 @@ void Newton_opt_method::calculate_first_averages(Array1 <doublevar> & parms,
       break;
     case min_mixed:
       function_mean_est=mixing*energy_mean_est+(1-mixing)*variance_mean_est;
-      break;  
+      break; 
+    case min_weight_variance:
+      error("Newton_opt_method::min_function=WEIGHT_VARIANCE not implemented");
     default:
       error("Newton_opt_method::min_function has a very strange value");
     }
@@ -901,11 +907,24 @@ void Newton_opt_method::adjust_distribution(Array1 <doublevar> & parms,
 					    doublevar & function,
 					    doublevar & energy,
 					    doublevar & energy_err,
-					    doublevar & variance
+					    doublevar & variance,
+					    doublevar & weight_variance
 					    ){
   char strbuff[40];
   sprintf(strbuff,  "%d", nconfig);
   for (int mc_size=0; mc_size<mc_words.size(); mc_size++){
+    if(calculate_projectors){
+      int ndim=parms.GetSize();
+      doublevar norm=0.0;
+      for(int j=0; j< ndim; j++) {
+	norm+=parms(j)*parms(j);
+      }
+      doublevar sqrtnorm=1.0/sqrt(norm);
+      for(int j=0; j< ndim; j++) {
+	parms(j)*=sqrtnorm;
+      }
+    }
+
     wfdata->setVarParms(parms);
     wfdata->renormalize();
     log_label=mc_words[mc_size][0];
@@ -973,6 +992,7 @@ void Newton_opt_method::adjust_distribution(Array1 <doublevar> & parms,
     energy=finavg.avg(Properties_types::total_energy,0);
     variance=finavg.avgvar(Properties_types::total_energy,0);
     energy_err=sqrt(finavg.err(Properties_types::total_energy,0));
+    weight_variance=finavg.avgvar(Properties_types::weight,0);
     
     if(calculate_projectors){
       int navg_vals=finavg.avgavg.GetDim(0);
@@ -990,7 +1010,33 @@ void Newton_opt_method::adjust_distribution(Array1 <doublevar> & parms,
 	      parms(j)=0;
 	  }
 	  //output << " } " << endl;
-	}
+	}//end if 
+	else if(finavg.avgavg(i).type=="linear_delta_der"){
+	  int ndim=finavg.avgavg(i).vals.GetDim(0)-1;
+	  doublevar norm=0.0;
+          doublevar multiply=1.8;
+	  for(int j=0; j< ndim; j++) { 
+	    doublevar value=parms(j)+multiply*finavg.avgavg(i).vals(j)/finavg.avgavg(i).vals(ndim);
+	    if(fabs(parms(j))>0)
+	      delta_parms(j)=multiply*finavg.avgavg(i).vals(j)/finavg.avgavg(i).vals(ndim); 
+	    else
+	      delta_parms(j)=0.0; 
+	    doublevar error=finavg.avgerr(i).vals(j)/finavg.avgavg(i).vals(ndim);
+	    //output << value << " +/- "<<error<<endl;
+	    if(abs(value)>2*error){
+	      parms(j)=value;
+	      norm+=parms(j)*parms(j);
+	    }
+	    else
+	      parms(j)=0;
+	  }
+	  doublevar sqrtnorm=1.0/sqrt(norm);
+	  for(int j=0; j< ndim; j++) {
+	    parms(j)*=sqrtnorm;
+	    delta_parms(j)*=sqrtnorm;
+	  }
+	  //output << " } " << endl;
+	}//end if 
       }//i
     }
     wfdata->attachObserver(wf);
@@ -1006,6 +1052,9 @@ void Newton_opt_method::adjust_distribution(Array1 <doublevar> & parms,
       break;
     case min_mixed:
       function=mixing*energy+(1-mixing)*variance;
+      break;
+    case min_weight_variance:
+      function=weight_variance;
       break;
     }
   
@@ -1112,7 +1161,9 @@ void Newton_opt_method::wf_printout(Array1 <doublevar> & parms, int iter,
 				    doublevar & value, 
 				    doublevar & energy, 
 				    doublevar & energy_err, 
-				    doublevar & variance, int min_nconfig, 
+				    doublevar & variance, 
+				    doublevar & weight_variance, 
+				    int min_nconfig, 
 				    doublevar mu, ostream & output){
   wfdata->setVarParms(parms);
   wfdata->renormalize();
@@ -1136,11 +1187,13 @@ void Newton_opt_method::wf_printout(Array1 <doublevar> & parms, int iter,
 	output << setw(field)<<" dispersion= " <<setw(field)<<setiosflags(ios::fixed | ios::showpoint)<<sqrt(fabs(value)) 
 	       << " energy= " <<setw(field)<<setiosflags(ios::fixed | ios::showpoint)<< energy
 	       <<" +/- "<< setw(field)<< setiosflags(ios::fixed | ios::showpoint) <<energy_err
+	       <<" weight dispersion= " <<setw(field)<<setiosflags(ios::fixed | ios::showpoint)<<sqrt(fabs(weight_variance))
 	       <<" nconfig " << min_nconfig << "  damping "<<mu<< endl;
 	break;
       case min_energy:
 	output <<" energy= " <<setw(field)<<setiosflags(ios::fixed | ios::showpoint)<< value <<" +/- "<<setw(field)<<setiosflags(ios::fixed | ios::showpoint)
 	       << energy_err <<" dispersion= "<< setw(field)<< sqrt(variance) 
+	       <<" weight dispersion= " <<setw(field)<<setiosflags(ios::fixed | ios::showpoint)<<sqrt(fabs(weight_variance))
 	       <<" nconfig " << min_nconfig << " damping "<< setw(field)<<mu <<endl;
 	break;
       case min_mixed:
@@ -1148,8 +1201,16 @@ void Newton_opt_method::wf_printout(Array1 <doublevar> & parms, int iter,
 	       <<" energy= " <<setw(field)<<setiosflags(ios::fixed | ios::showpoint)<< energy 
 	       <<" +/- "<<setw(field)<<setiosflags(ios::fixed | ios::showpoint)<< energy_err
 	       <<" dispersion= "<<setw(field)<<setiosflags(ios::fixed | ios::showpoint)<< sqrt(variance)
+	       <<" weight dispersion= " <<setw(field)<<setiosflags(ios::fixed | ios::showpoint)<<sqrt(fabs(weight_variance))
 	       <<" nconfig " << min_nconfig << "  damping "<< setw(field)<<mu <<endl;
 	break;  
+      case min_weight_variance:
+	output <<setw(field)<<" weight dispersion= " <<setw(field)<<setiosflags(ios::fixed | ios::showpoint)<<sqrt(fabs(value)) 
+			  << " energy= " <<setw(field)<<setiosflags(ios::fixed | ios::showpoint)<< energy
+			  <<" +/- "<< setw(field)<< setiosflags(ios::fixed | ios::showpoint) <<energy_err
+	                  <<" dispersion= "<<setw(field)<<setiosflags(ios::fixed | ios::showpoint)<< sqrt(variance)
+			  <<" nconfig " << min_nconfig << "  damping "<<mu<< endl;
+	break;
       default:
 	error("Optimize_method::variance() : min_function has a very strange value");
       }
@@ -1242,14 +1303,15 @@ int Newton_opt_method::Levenberg_marquad(Array1 <doublevar> & gradient,
   sprintf(strbuff, "%d", iter);
   string log_label="vmc_";
   log_label+=strbuff;
-  adjust_distribution(parms_new, iter, log_label, vmcoutput, options, function_mean_new, energy_mean_new, energy_mean_err_new, variance_mean_new);
+  doublevar weight_variance;
+  adjust_distribution(parms_new, iter, log_label, vmcoutput, options, function_mean_new, energy_mean_new, energy_mean_err_new, variance_mean_new, weight_variance);
   if( mpi_info.node==0 ){
     cout << "iteration  function_mean      energy_mean     variance_mean "<<endl;
     cout <<"%%  "<<iter<<"  "<<function_mean_new << "  "<<energy_mean_new<<" +/- "<<energy_mean_err_new<<"   "<<variance_mean_new<<"  "<<endl;
   }
   
   if(use_correlated_sampling){
-    wf_printout(parms_new, iter, function_mean_new, energy_mean_new, energy_mean_err_new, variance_mean_new, nconfig, damping, output);
+    wf_printout(parms_new, iter, function_mean_new, energy_mean_new, energy_mean_err_new, variance_mean_new, weight_variance, nconfig, damping, output);
     function_mean=function_mean_new;
     energy_mean=energy_mean_new;
     energy_mean_err=energy_mean_err_new;
@@ -1304,7 +1366,7 @@ int Newton_opt_method::Levenberg_marquad(Array1 <doublevar> & gradient,
   if(dL>0.0 && dF>0.0 ){
     if(mpi_info.node==0 )
       cout << "reduction in error, step is accepted"<<endl;  
-    wf_printout(parms_new, iter, function_mean_new, energy_mean_new, energy_mean_err_new, variance_mean_new, nconfig, damping, output);
+    wf_printout(parms_new, iter, function_mean_new, energy_mean_new, energy_mean_err_new, variance_mean_new, weight_variance, nconfig, damping, output);
     function_mean=function_mean_new;
     energy_mean=energy_mean_new;
     energy_mean_err=energy_mean_err_new;
@@ -1321,7 +1383,7 @@ int Newton_opt_method::Levenberg_marquad(Array1 <doublevar> & gradient,
   else if(dL> -5.0*abs(energy_mean_err_new) && dF>-5.0*abs(energy_mean_err_new)){
     if(mpi_info.node==0 )
 	cout << "No reduction in error, but step is accepted"<<endl;  
-    wf_printout(parms_new, iter, function_mean_new, energy_mean_new, energy_mean_err_new, variance_mean_new, nconfig, damping, output);
+    wf_printout(parms_new, iter, function_mean_new, energy_mean_new, energy_mean_err_new, variance_mean_new, weight_variance, nconfig, damping, output);
     function_mean=function_mean_new;
     energy_mean=energy_mean_new;
     energy_mean_err=energy_mean_err_new;
@@ -1383,6 +1445,9 @@ int Newton_opt_method::showinfo(ostream & os)
   case min_mixed:
     os << "Mixed energy and variance\n";
     break;
+  case min_weight_variance:
+    os << "Weight variance\n";
+    break;
   default:
     os << "Unknown--add to showinfo()\n";
   }
@@ -1403,10 +1468,13 @@ void Newton_opt_method::run(Program_options & options, ostream & output)
 {
   output.precision(10);
   nparms=wfdata->nparms(); //Number of variables
-  cout <<"nparms "<<nparms<<endl;
   if(nparms<= 0 ) error("There appear to be no parameters to optimize!");
-  Array1 <double> delta(nparms);
+  Array1 <doublevar> delta(nparms);
   delta=0.0001; //decent value fo finite differences
+  delta_parms.Resize(nparms);
+  delta_parms=0.0; 
+  old_delta_parms.Resize(nparms);
+  old_delta_parms=0.0;
   Array1 <doublevar> parms(nparms);
   Array1 <doublevar> local_energy(nconfig);
   Array1 < Array1 <doublevar> > local_energy_gradient(nconfig);
@@ -1451,6 +1519,7 @@ void Newton_opt_method::run(Program_options & options, ostream & output)
   //doublevar variance_mean_fit=0;
   doublevar variance_mean=0;
   doublevar variance_mean_est=0;
+  doublevar weight_variance_mean=0;
   doublevar function_mean=0;
   //doublevar function_mean_fit=0; 
   doublevar function_mean_est=0;
@@ -1458,15 +1527,16 @@ void Newton_opt_method::run(Program_options & options, ostream & output)
   ofstream vmcoutput;
   if( mpi_info.node==0 )
     vmcoutput.open(vmcout.c_str());
-  doublevar best_function, best_energy, best_energy_err, best_variance;
-  best_function=best_energy=best_energy_err=best_variance=0;
+  doublevar best_function, best_energy, best_energy_err, best_variance, best_weight_variance;
+  best_function=best_energy=best_energy_err=best_variance=best_weight_variance=0;
   int iter_best=0;
 
   //start iterations
   int iter=0;
+  int reached_max_blocks=0;
   if( mpi_info.node==0 )
     cout <<"start iterations"<<endl;
-  while(iter<iterations){
+  while(iter<iterations && !reached_max_blocks){
     if( mpi_info.node==0 ){
       cout <<endl;
       cout <<"############### iteration "<<iter<<" #############################"<<endl<<endl;;
@@ -1474,15 +1544,16 @@ void Newton_opt_method::run(Program_options & options, ostream & output)
     
     if(iter==0){
       string log_label="vmc_-1";
-      adjust_distribution(parms, iter, log_label, vmcoutput, options, function_mean, energy_mean, energy_mean_err, variance_mean);
+      adjust_distribution(parms, iter, log_label, vmcoutput, options, function_mean, energy_mean, energy_mean_err, variance_mean, weight_variance_mean);
       readcheck(storeconfig);
       if(!eref_exists)
 	eref=energy_mean;
-      wf_printout(parms, iter, function_mean, energy_mean, energy_mean_err, variance_mean, nconfig, bestdamping, output);
+      wf_printout(parms, iter, function_mean, energy_mean, energy_mean_err, variance_mean, weight_variance_mean, nconfig, bestdamping, output);
       bestparms=parms;
-      best_function=function_mean;
+      best_function=function_mean+2.0*energy_mean_err;
       best_energy=energy_mean;
       best_variance=variance_mean;
+      best_weight_variance=weight_variance_mean;
       iter++;
     }
     
@@ -1583,39 +1654,68 @@ void Newton_opt_method::run(Program_options & options, ostream & output)
       sprintf(strbuff, "%d", iter);
       string log_label="vmc_";
       log_label+=strbuff;
-      adjust_distribution(parms, iter, log_label, vmcoutput, options, function_mean, energy_mean, energy_mean_err, variance_mean);
-      wf_printout(parms, iter, function_mean, energy_mean, energy_mean_err, variance_mean, nconfig, damping, output);
-      
+      old_delta_parms=delta_parms;
+      adjust_distribution(parms, iter, log_label, vmcoutput, options, function_mean, energy_mean, energy_mean_err, variance_mean, weight_variance_mean);
       if( mpi_info.node==0 ){
-	cout << "iteration  function_mean      energy_mean     variance_mean "<<endl;
-	cout <<"%%  "<<iter<<"  "<<function_mean << "  "<<energy_mean<<" +/- "<<energy_mean_err<<"   "<<variance_mean<<"  "<<endl;
-      }
-      //if this then 2x of number of blocks
-      if(function_mean > best_function){
-	for(int mc_size=0;mc_size<mc_words.size();mc_size++){
-	  int nblock_pos=1;
-	  while(mc_words[mc_size][nblock_pos++]!="NBLOCK"){
-	  }
-	  //cout <<"NBLOCK "<<mc_words[mc_size][nblock_pos]<<endl;
-	  int nblocks=atoi(mc_words[mc_size][nblock_pos].c_str());
-	  if(mc_size==mc_words.size()-1 && nblocks < nblocks_max ){
-	    nblocks*=2;
-	    char strbuff3[40];
-	    sprintf(strbuff3,  "%d", nblocks);
-	    mc_words[mc_size][nblock_pos]=strbuff3;
-	  }
+	for(int k=0; k<nparms; k++){
+	  cout<<k+1<<": old= "<< old_delta_parms(k)<<" new= "<<delta_parms(k)<<endl;
 	}
       }
+      doublevar scalar_product_of_delta_lamda=dot(old_delta_parms,delta_parms);
+      doublevar norm_old=dot(old_delta_parms,old_delta_parms);
+      doublevar norm_new=dot(delta_parms,delta_parms);
+      scalar_product_of_delta_lamda/=sqrt(norm_old*norm_new);
+      if( mpi_info.node==0 ){
+	cout <<" dlabmba_old.dlabmba_new "<<scalar_product_of_delta_lamda<<endl;
+	wf_printout(parms, iter, function_mean, energy_mean, energy_mean_err, variance_mean, weight_variance_mean, nconfig, damping, output);
+      }
+      
+      if( mpi_info.node==0 ){
+	cout << "iteration  function_mean      energy_mean     variance_mean   weight_variance_mean"<<endl;
+	cout <<"%%  "<<iter<<"  "<<function_mean << "  "<<energy_mean<<" +/- "<<energy_mean_err<<"   "<<variance_mean<<"  "<<weight_variance_mean<<endl;
+      }
+
+      
+      //change number of blocks in the last MC
+      //if(function_mean > best_function){
+	int nblock_pos=1;
+	int last_mc_words=mc_words.size()-1;
+	while(mc_words[last_mc_words][nblock_pos++]!="NBLOCK"){}
+	//cout <<"NBLOCK "<<mc_words[last_mc_words][nblock_pos]<<endl;
+	int nblocks=atoi(mc_words[last_mc_words][nblock_pos].c_str());
+	if(nblocks==nblocks_max){
+	  output<<"maximum number of blocks reached with no further improvement, exiting"<<endl;
+	  reached_max_blocks=1;
+	  //break;
+	}
+	if(nblocks < nblocks_max ){
+	  if(scalar_product_of_delta_lamda>=0)
+	    nblocks+=1;
+	  else
+	    nblocks=int(1.5*nblocks);
+	  //  nblocks*=2;
+	  if(nblocks>nblocks_max)
+	    nblocks=nblocks_max;
+	  char strbuff3[40];
+	  sprintf(strbuff3,  "%d", nblocks);
+	  mc_words[last_mc_words][nblock_pos]=strbuff3;
+	}
+	
+	//}
     }
 
 
-    if(function_mean < best_function){
+    //if((function_mean+2.0*energy_mean_err) < best_function){
+    if((function_mean) < best_function){
       if( mpi_info.node==0 )
 	cout << "Found better parameters"<<endl;
-      best_function=function_mean;
+      
+      output<< "Found better parameters"<<endl;
+      best_function=function_mean;//+2.0*energy_mean_err;
       best_energy=energy_mean;
       best_energy_err=energy_mean_err;
       best_variance=variance_mean;
+      best_weight_variance=weight_variance_mean;
       bestdamping=damping;
       bestparms=parms;
       iter_best=iter;
@@ -1632,8 +1732,11 @@ void Newton_opt_method::run(Program_options & options, ostream & output)
   {
     output << "Optimization finished.  ";
     output << "New wave function from iteration "<<iter_best<<" is in " << wfoutputfile << endl;
-    output << "Final objective function: " << best_function<< " and energy: "
-	   <<  best_energy <<" +/-" <<best_energy_err<< " and dispersion: "<<sqrt(best_variance)<< endl;
+    output << "Final objective function: " << best_function
+	   <<" and energy: "<<  best_energy <<" +/-" <<best_energy_err
+	   <<" and dispersion: "<<sqrt(best_variance)
+	   <<" and weight dispersion: "<<sqrt(best_weight_variance)
+	   <<endl;
   }
 #ifdef USE_MPI
   MPI_Barrier(MPI_Comm_grp);

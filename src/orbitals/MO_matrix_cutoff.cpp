@@ -441,6 +441,7 @@ void MO_matrix_cutoff::updateLap(
       b=centers.basis(ion, n);
       tempbasis=basis(b);
       if(R(0) < obj_cutoff(b)) {
+       // cout << "basis " << endl;
       tempbasis->calcLap(R, symmvals_temp);
 
       //cout << "symmvals: " << endl;
@@ -454,7 +455,6 @@ void MO_matrix_cutoff::updateLap(
 
         int reducedbasis=scalebasis*totfunc;
         scalesymm=i*5;
-	//if(e==60) cout << "R " << R(0) << "  cutoff " << cutoff(totfunc) <<  endl;
         if(R(0) < cutoff(totfunc))
         {
           //cout << "*****" << endl;

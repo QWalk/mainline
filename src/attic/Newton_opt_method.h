@@ -132,10 +132,11 @@ private:
 			   doublevar & vmc_function,
 			   doublevar & vmc_energy,
 			   doublevar & vmc_energy_err,
-			   doublevar & vmc_variance
+			   doublevar & vmc_variance,
+			   doublevar & weight_variance
 			   );
 
-  void wf_printout(Array1 <doublevar> & parms, int iter, doublevar & value, doublevar & energy, doublevar & energy_err, doublevar & variance, int nconfig, doublevar mu, 
+  void wf_printout(Array1 <doublevar> & parms, int iter, doublevar & value, doublevar & energy, doublevar & energy_err, doublevar & variance, doublevar & weight_variance, int nconfig, doublevar mu, 
 		   ostream & output);
 
   int Levenberg_marquad(Array1 <doublevar> & gradient, 
@@ -158,7 +159,7 @@ private:
   int vmc_nblocks; //!< Number of blocks in vmc for distribution adjustment
   int iterations; //!< Number of times that the variance can be called.  The variance routine is called about once per parameter per iteration
   int nfunctions; //!< Number of wavefunctions we have.
-  enum min_function_type { min_variance, min_energy, min_mixed } min_function;
+  enum min_function_type { min_variance, min_energy, min_mixed, min_weight_variance } min_function;
   int use_weights; //!< Whether to use weights in the correlated sampling
   doublevar mixing; //!< mixing weight for energy component in mixed minimization (0.95 default)
   int plus_version_of_hessian_of_energy;
@@ -189,6 +190,8 @@ private:
   Properties_manager myprop;
   int  calculate_projectors;
   int nblocks_max;
+  Array1 <doublevar> delta_parms;
+  Array1 <doublevar> old_delta_parms;
 
 
 

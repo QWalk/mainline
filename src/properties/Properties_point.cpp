@@ -23,7 +23,7 @@ void Properties_point::setSize(int nwf,
                                int n_aux, int n_aux_cvg) {
 
   
-  kinetic.Resize(1);
+  kinetic.Resize(nwf);
   potential.Resize(nwf);
   nonlocal.Resize(nwf);
   weight.Resize(nwf);

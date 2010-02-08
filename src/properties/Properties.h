@@ -76,6 +76,8 @@ class Properties_manager {
 
   void endBlock_per_step();
 
+  void endBlockSHDMC();
+
   void initializeLog(Array1 <Average_generator*> & avg_gen);
 
   void printBlockSummary(ostream & os);

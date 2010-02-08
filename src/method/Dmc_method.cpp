@@ -1,6 +1,7 @@
 /*
  
 Copyright (C) 2007 Lucas K. Wagner
+addition of the PURE DMC: Michal Bajdich and Fernando A. Reboredo
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -69,6 +70,13 @@ void Dmc_method::read(vector <string> words,
 
   if(!readvalue(words, pos=0, nhist, "CORR_HIST")) 
     nhist=-1;
+
+  if(haskeyword(words, pos=0, "PURE_DMC")) { 
+    pure_dmc=1;
+    if( nhist < 1 )
+      error("CORR_HIST must be > 1 when PURE_DMC is on");
+  }
+  else pure_dmc=0;
 
   if(readvalue(words, pos=0, storeconfig, "STORECONFIG"))
     canonical_filename(storeconfig);
@@ -349,9 +357,10 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
 
   int naux=mygather.nAux();
 
-  nhist=1;
+  if(nhist==-1)
+    nhist=1;
   //setting the projection time for auxillary walkers to 1 a.u.
-  if(naux >0 && nhist <0) nhist=int(1.0/timestep)+1;
+  if(naux >0) nhist=max(nhist,int(1.0/timestep)+1);
   if(naux > 0 && tmoves) error("Can't do t-moves and auxillary walks yet");
   //if(tmoves) pseudo->setDeterministic(1); //this may not be necessary..not sure yet.
   
@@ -500,7 +509,11 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
             past.erase(past.begin()+nhist, past.end());
           
           pts(walker).prop=pt;
-          pts(walker).weight*=getWeight(pts(walker),teff,etrial);
+	  if(!pure_dmc)
+	    pts(walker).weight*=getWeight(pts(walker),teff,etrial);
+	  else
+	    pts(walker).weight=getWeightPURE_DMC(pts(walker),teff,etrial);
+
           if(pts(walker).ignore_walker) {
             pts(walker).ignore_walker=0;
             pts(walker).weight=1;
@@ -589,7 +602,12 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
 
       step+=npsteps;
 
-      int nkilled=calcBranch();
+      int nkilled;
+      if(!pure_dmc)
+	nkilled=calcBranch();
+      else
+	nkilled=0;
+      
       totkilled+=nkilled;
       totbranch+=nkilled;
     }
@@ -603,7 +621,11 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
       for(int i=0; i< nldensplt.GetDim(0); i++)
         nldensplt(i)->write(log_label);
     }
-    prop.endBlock();
+    if(!pure_dmc){
+      prop.endBlock();
+    }
+    else
+      prop.endBlockSHDMC();
     
     if(max_fw_lenght){
       for(int s=0;s<fw_lenght.GetSize();s++){
@@ -982,6 +1004,29 @@ doublevar Dmc_method::getWeight(Dmc_point & pt,
 } 
                                 
 //----------------------------------------------------------------------
+//using the pure DMC weight from last N steps in history
+doublevar Dmc_method::getWeightPURE_DMC(Dmc_point & pt,
+                                doublevar teff, doublevar etr) {
+  doublevar teffac=teff;
+
+  doublevar effenergy=0, effoldenergy=0;
+
+  int history=pt.past_energies.size();
+  assert(history>0);
+  doublevar sum=0;
+  for(int i=0;i<history;i++){
+    sum+=pt.past_energies[i].main_en;
+  }
+  sum/=history;
+  
+  doublevar return_weight;
+  return_weight=exp(teffac*history*(etr-sum));
+
+  //cout <<"SHDDMC weight "<<return_weight<<" energy average "<<sum<<endl;
+  //cout<<"current history size "<<history<<endl;
+  return return_weight;
+} 
+//----------------------------------------------------------------------
 
 
 void Dmc_method::getAuxWeight(Dmc_point & pt, 
@@ -1208,89 +1253,6 @@ int Dmc_method::calcBranch() {
   //exit(0);
 }
 //----------------------------------------------------------------------
-
-/*
-#include <algorithm>
-struct procwt {
-  doublevar totwt;
-  int procnum;
-};
-bool operator<(const procwt & p1,const procwt & p2) {
-  return p1.totwt < p2.totwt;
-}
-
-void Dmc_method::loadbalance() {
-#ifdef USE_MPI
-  //string ldout="load";
-  //canonical_filename(ldout);
-  //ofstream loadout(ldout.c_str(),ios::app);
-  //ostream & loadout(cout);
-
-  doublevar totwt=0;
-  for(int i=0; i< nconfig; i++) 
-    totwt+=pts(i).weight;
-
-  double * weights=new double[mpi_info.nprocs];
-  MPI_Allgather(&totwt, 1, MPI_DOUBLE, weights, 1, MPI_DOUBLE,
-                MPI_Comm_grp);
-
-  vector <procwt> procs(mpi_info.nprocs);
-  int nprocs=mpi_info.nprocs;
-  for(int i=0; i< nprocs; i++) {
-    procs[i].totwt=weights[i];
-    procs[i].procnum=i;
-  }
-  sort(procs.begin(), procs.end());
-  
-  int myplace=-1;
-  for(int i=0; i< nprocs; i++) 
-    if(procs[i].procnum==mpi_info.node) {
-      myplace=i;
-      break;
-    }
-  assert(myplace != -1);
-
-  //Find the biggest and smallest weights
-  //on this processor
-  int big=-1, small=-1;
-  doublevar bigw=-1, smallw=1000;
-  for(int i=0; i< nconfig; i++) {
-    if(pts(i).weight > bigw) {
-      bigw=pts(i).weight;
-      big=i;
-    }
-    if(pts(i).weight < smallw) {
-      smallw=pts(i).weight;
-      small=i;
-    }
-  }
-      
-  //loadout << mpi_info.node << " here " << myplace << endl;
-//MPI_Barrier(MPI_Comm_grp);
-
-  int mate=0;
-  if(myplace > nprocs/2) {
-    mate=procs[nprocs-myplace-1].procnum;
-    pts[big].mpiSend(mate);
-    //loadout << "sent " << endl;
-    pts(big).mpiReceive(mate);
-  }
-  else if(nprocs-myplace-1 > nprocs/2) {
-    mate=procs[nprocs-myplace-1].procnum;
-    Dmc_point tmp_pt;
-    tmp_pt.mpiReceive(mate);
-    pts(small).mpiSend(mate);
-    pts(small)=tmp_pt;
-
-  }
-  
-
-  delete [] weights;
-
-
-#endif
-}
-*/
 
 //----------------------------------------------------------------------
 

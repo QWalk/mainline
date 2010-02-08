@@ -151,6 +151,9 @@ public:
   
   doublevar getWeight(Dmc_point & pt,
                       doublevar teff, doublevar etr);
+  
+  doublevar getWeightPURE_DMC(Dmc_point & pt,
+			   doublevar teff, doublevar etr);
 
   void getAuxWeight(Dmc_point & pt,
                     doublevar teff, 
@@ -220,7 +223,8 @@ public:
 
   Array1 <int> fw_lenght; //!<array of lenghts for forward walking times 
   int max_fw_lenght; //!maximum lenght for forward walking time
-  
+ 
+  int pure_dmc; //turn on SHDMC mode (pure diffusion for the lenght of nhist)
 };
 
 

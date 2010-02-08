@@ -1,12 +1,13 @@
 
 MY_SOURCES:= \
 	Dmc_method.cpp \
+        Dmc_corr_method.cpp \
 	Rndmc_method.cpp \
 	Force_fitter.cpp \
 	Levenberg_Marquardt.cpp \
         Localize_method.cpp \
 	Nodes_method.cpp \
-        Newton_opt_method.cpp \
+        Shdmc_method.cpp \
 	Optimize_method2.cpp \
 	Optimize_method.cpp \
 	Plot_method.cpp \

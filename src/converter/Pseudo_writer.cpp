@@ -24,6 +24,7 @@ using namespace std;
 
 void Gaussian_pseudo_writer::print_pseudo(ostream & os) {
     string indent="";
+  os.precision(32);
     int numL=exponents.size();
     int naip=6;
     if(numL > 2) naip=12;
