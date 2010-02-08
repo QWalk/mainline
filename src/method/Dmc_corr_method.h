@@ -54,6 +54,7 @@ struct Dmc_corr_point {
   Config_save_point config_pos;  
   Array1 <doublevar> age;  //!< age of each electron
   Array1 <doublevar> jacobian;
+  Array1 <int> initial_sign;
   Dmc_corr_point() { 
     weight=1;
   }

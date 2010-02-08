@@ -69,6 +69,8 @@ void Dmc_corr_method::read(vector <string> words,
 
   if(!readvalue(words, pos=0, log_label, "LABEL"))
     log_label="dmc";
+  if(haskeyword(words, pos=0, "NOWARP")) 
+    warper.set_warp(0);
 /*
   if(!readvalue(words, pos=0, start_feedback, "START_FEEDBACK"))
     start_feedback=1;
@@ -191,7 +193,7 @@ void Dmc_corr_method::run(Program_options & options, ostream & output) {
   for(int i=0; i< nconfig; i++) { 
     pts(i).age.Resize(nelectrons);
     pts(i).age=0;
-    pts(i).system=int(rng.ulec()*nsys);
+    pts(i).system= i%nsys;
     pts(i).jacobian.Resize(nsys);
     pts(i).jacobian=1;
     //cout << "walker " << i << " system " << pts(i).system << endl;
@@ -231,14 +233,22 @@ void Dmc_corr_method::run(Program_options & options, ostream & output) {
   eref=0;
   Array1 <int> nwalkers_sys(nsys);
   nwalkers_sys=0;
+  
   for(int walker=0; walker < nconfig; walker++) { 
     //cout << "add_point " << endl;
-    pts(walker).config_pos.restorePos(sample(pts(walker).system));
+    int currsys=pts(walker).system;
+    pts(walker).config_pos.restorePos(sample(currsys));
     add_point(walker);
+    pts(walker).initial_sign.Resize(nsys);
+    for(int i=0; i< nsys; i++) { 
+      Wf_return wfval(wf(i)->nfunc(), 2);
+      wf(i)->getVal(mywfdata(i), 0, wfval);
+      pts(walker).initial_sign(i)=wfval.sign(0);
+    }
     //cout << "eref " << endl;
-    eref(pts(walker).system)+=pts(walker).prop.energy(pts(walker).system);
+    eref(pts(walker).system)+=pts(walker).prop.energy(currsys);
     //cout << "energy " << pts(walker).prop.energy(pts(walker).system) << endl;
-    nwalkers_sys(pts(walker).system)++;
+    nwalkers_sys(currsys)++;
   }
 
   
@@ -249,7 +259,7 @@ void Dmc_corr_method::run(Program_options & options, ostream & output) {
   
   for(int sys=0; sys < nsys; sys++) { 
     eref(sys)/=nwalkers_sys(sys);
-    cout << "sys " << sys << " eref " << eref(sys) 
+    cout << mpi_info.node <<":sys " << sys << " eref " << eref(sys) 
          << " nwalkers " << nwalkers_sys(sys) << endl;
   }
   etrial=eref;
@@ -264,21 +274,57 @@ void Dmc_corr_method::run(Program_options & options, ostream & output) {
       
       doublevar avg_acceptance=0;  
       int n_partial=min(npsteps,nstep-step);
+      //cout << mpi_info.node << ":move" << endl;
+      int ncross=0;
       for(int walker=0; walker < nconfig; walker++) {
         int currsys=pts(walker).system;
         pts(walker).config_pos.restorePos(sample(currsys));
-        wf(currsys)->updateLap(mywfdata(currsys), sample(currsys));
+        //wf(currsys)->updateLap(mywfdata(currsys), sample(currsys));
+        for(int i=0; i < nsys; i++) { 
+          wf(i)->updateLap(mywfdata(i), sample(i));
+        }
+        Array2 <Config_save_point> configs(n_partial,nsys );
+        Array2 <double> values(n_partial, nsys);
         for(int p=0; p < n_partial; p++) { 
-          mypseudo->randomize();
-        
+          mypseudo->randomize();            
+          
+          
           propagate_walker(walker);
           myprop.insertPoint(step+p, walker, pts(walker).prop);
-          pts(walker).config_pos.savePos(sample(currsys));
-          
+          //------checking for node crossing
+          /*
+          for(int i=0; i< nsys; i++) { 
+            configs(p,i).savePos(sample(i));
+            cout.precision(15);
+            Wf_return wfval(wf(i)->nfunc(), 2);
+            wf(i)->getVal(mywfdata(i),0,wfval);
+            values(p,i)=wfval.amp(0,0);
+            if(wfval.sign(0) != pts(walker).initial_sign(i)) { 
+              //cout << "Node crossed! system "<< i << " " << endl;
+              pts(walker).initial_sign(i)*=-1;
+              ncross++;
+              if(p == n_partial-1) { 
+                cout << "crossed node in system " << i <<  " currsys " << currsys << endl;
+                for(int sy=0; sy< nsys; sy++) { 
+                  cout << "----system " << sy << " amplitude " << endl;
+                  for(int j=0; j<=p; j++) { 
+                    cout << "amp " << values(j,i) << endl;
+                  }
+                }
+              }
+            }
+          }//---finished node crossing checking */
         }
+        pts(walker).config_pos.savePos(sample(currsys));
+
       }
+      cout << "proportion crossed " << double(ncross)/(nsys*nconfig*n_partial) 
+      << endl;
       step+=n_partial;
+      //cout << mpi_info.node << ":branch" << endl;
       calcBranch();
+      //cout << mpi_info.node << ":etrial" << endl;
+
       updateEtrial();
       if(output) { 
         for(int i=0; i< nsys; i++) { 
@@ -351,14 +397,14 @@ doublevar Dmc_corr_method::propagate_walker(int walker) {
     if(pts(walker).past_energies.size() > 3) { 
       for(deque<Dmc_corr_history>::iterator h=pts(walker).past_energies.begin();
           h!= pts(walker).past_energies.end(); h++) { 
-        logpi(i)+=timestep*h->main_en(i);
+        logpi(i)-=timestep*h->main_en(i);
       }
-      logpi(i)-= 0.5*timestep*pts(walker).past_energies[0].main_en(i);
-      logpi(i)-= 0.5*timestep*pts(walker).past_energies[pts(walker).past_energies.size()-1].main_en(i);
+      logpi(i)+= 0.5*timestep*pts(walker).past_energies[0].main_en(i);
+      logpi(i)+= 0.5*timestep*pts(walker).past_energies[pts(walker).past_energies.size()-1].main_en(i);
     }
     Wf_return wfval(wf(i)->nfunc(), 2);
     wf(i)->getVal(mywfdata(i),0, wfval);
-    logpi(i)+=wfval.amp(0,0);
+    logpi(i)+=2*wfval.amp(0,0);
   }
   
   for(int i=0; i< nsys; i++) {
@@ -459,6 +505,7 @@ void Dmc_corr_method::updateEtrial() {
   for(int i=0; i< eref.GetDim(0); i++) { 
     doublevar totweight=0;
     int nc=0;
+    cout << "nconfig " << nconfig << endl;
     for(int walker=0; walker < nconfig; walker++) { 
       if(pts(walker).system==i) { 
         totweight+=pts(walker).weight;
@@ -466,7 +513,7 @@ void Dmc_corr_method::updateEtrial() {
       }
     }
     totweight=parallel_sum(totweight);
-    nconfig=parallel_sum(nc);
+    nc=parallel_sum(nc);
     etrial(i)=eref(i)-feed*log(totweight/double(nc));
   }
   

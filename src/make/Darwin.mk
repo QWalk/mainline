@@ -15,8 +15,8 @@ CXXFLAGS := -O3   \
 BLAS_LIBS := $(LAPACK_LIBS)
 BLAS_INCLUDE := $(LAPACK_INCLUDE)
 
-#DEBUG:= -Wall -DNO_RANGE_CHECKING -DNDEBUG    -DDEBUG_WRITE
-DEBUG := -Wall -DRANGE_CHECKING  -DDEBUG_WRITE
+DEBUG:= -Wall -DNO_RANGE_CHECKING -DNDEBUG    -DDEBUG_WRITE
+#DEBUG := -Wall -DRANGE_CHECKING  -DDEBUG_WRITE
 LDFLAGS:=  -framework Accelerate
 
 ######################################################################
