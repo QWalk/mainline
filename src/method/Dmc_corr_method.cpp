@@ -285,6 +285,7 @@ void Dmc_corr_method::run(Program_options & options, ostream & output) {
         }
         Array2 <Config_save_point> configs(n_partial,nsys );
         Array2 <double> values(n_partial, nsys);
+        cout << "start partial " << endl;
         for(int p=0; p < n_partial; p++) { 
           mypseudo->randomize();            
           
@@ -292,7 +293,7 @@ void Dmc_corr_method::run(Program_options & options, ostream & output) {
           propagate_walker(walker);
           myprop.insertPoint(step+p, walker, pts(walker).prop);
           //------checking for node crossing
-          /*
+          
           for(int i=0; i< nsys; i++) { 
             configs(p,i).savePos(sample(i));
             cout.precision(15);
@@ -313,7 +314,7 @@ void Dmc_corr_method::run(Program_options & options, ostream & output) {
                 }
               }
             }
-          }//---finished node crossing checking */
+          }//---finished node crossing checking 
         }
         pts(walker).config_pos.savePos(sample(currsys));
 
@@ -405,8 +406,9 @@ doublevar Dmc_corr_method::propagate_walker(int walker) {
     Wf_return wfval(wf(i)->nfunc(), 2);
     wf(i)->getVal(mywfdata(i),0, wfval);
     logpi(i)+=2*wfval.amp(0,0);
+    //cout  << setw(18) << wfval.amp(0,0) << setw(3) << wfval.sign(0);
   }
-  
+  //cout << endl;
   for(int i=0; i< nsys; i++) {
     double ratio=0;
     for(int j=0; j < nsys; j++) { 
@@ -505,7 +507,7 @@ void Dmc_corr_method::updateEtrial() {
   for(int i=0; i< eref.GetDim(0); i++) { 
     doublevar totweight=0;
     int nc=0;
-    cout << "nconfig " << nconfig << endl;
+    
     for(int walker=0; walker < nconfig; walker++) { 
       if(pts(walker).system==i) { 
         totweight+=pts(walker).weight;

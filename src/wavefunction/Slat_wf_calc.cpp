@@ -784,7 +784,7 @@ int Slat_wf::updateValNoInverse(Slat_wf_data * dataptr, int e) {
       if(!(fabs(detVal(f,det,s)) > 0)) return 0;
     }
   }
-        
+  
   
   for(int f=0; f< nfunc_; f++)  {
     for(int det=0; det< ndet; det++)  {
@@ -978,7 +978,8 @@ void Slat_wf::calcLap(Slat_wf_data * dataptr, Sample_point * sample)
           TransposeInverseMatrix(modet,inverse(f,det,s), nelectrons(s));
         }
         else detVal(f,det,s)=1;
-        
+        //if(f==0 && det==0 && s==0) matout << "determinant " << detVal(f,det,s) 
+         //   << " should be " << modet(0,0)*modet(1,1)-modet(0,1)*modet(1,0) << endl;
       }
     }
   }

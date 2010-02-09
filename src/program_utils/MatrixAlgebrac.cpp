@@ -316,14 +316,14 @@ doublevar TransposeInverseMatrix(const Array2 <doublevar> & a, Array2 <doublevar
   
     for(int i=0; i < n;++i) {
       for(int j=0; j< n; ++j) { 
-        temp.v[i*n+j]=a(i,j);
+        temp(j,i)=a(i,j);
         a1(i,j)=0.0;
       }
       a1(i,i)=1.0;
     }
     dgetrf(n, n, temp.v, n, indx.v);
     for(int j=0; j< n; ++j) { 
-      dgetrs('T',n,1,temp.v,n,indx.v,a1.v+j*n,n);
+      dgetrs('N',n,1,temp.v,n,indx.v,a1.v+j*n,n);
     }
   }
   
@@ -338,11 +338,13 @@ doublevar TransposeInverseMatrix(const Array2 <doublevar> & a, Array2 <doublevar
     //  cout << temp(i,j) << " ";
     //}
     //cout << endl;
-    if(indx(i) != i)
+    if(indx(i) != i+1)
       det*= -temp(i,i);
     else det*=temp(i,i);
   }
-  //cout << "lapack: " << det << endl;
+  cout << "lapack: " << det <<  " determinant " << Determinant(a,n) 
+  << " should be " << a(0,0)*a(1,1)-a(0,1)*a(1,0) << endl;
+
   return det;
 //#endif  
 #else 
@@ -368,6 +370,7 @@ doublevar TransposeInverseMatrix(const Array2 <doublevar> & a, Array2 <doublevar
 
   //cout << "ludcmp" << endl;
   //if the matrix is singular, the determinant is zero.
+  d=1;
   if(ludcmp(temp,n,indx,d)==0)
     return 0;
 
@@ -390,11 +393,14 @@ doublevar TransposeInverseMatrix(const Array2 <doublevar> & a, Array2 <doublevar
   //}
   
   // return the determinant as well since it's easy
-  d=1;
+  
   for(int j=0;j<n;++j) {
     d *= temp(j,j);
   }
   //cout << "crummy " << d << endl;
+  //cout << "determinant: " << d <<  " determinant " << Determinant(a,n) 
+  //<< " should be " << a(0,0)*a(1,1)-a(0,1)*a(1,0) << endl;
+
   return d;
 #endif
 }
