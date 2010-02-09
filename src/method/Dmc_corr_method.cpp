@@ -285,7 +285,7 @@ void Dmc_corr_method::run(Program_options & options, ostream & output) {
         }
         Array2 <Config_save_point> configs(n_partial,nsys );
         Array2 <double> values(n_partial, nsys);
-        cout << "start partial " << endl;
+        //cout << "start partial " << endl;
         for(int p=0; p < n_partial; p++) { 
           mypseudo->randomize();            
           

@@ -342,8 +342,8 @@ doublevar TransposeInverseMatrix(const Array2 <doublevar> & a, Array2 <doublevar
       det*= -temp(i,i);
     else det*=temp(i,i);
   }
-  cout << "lapack: " << det <<  " determinant " << Determinant(a,n) 
-  << " should be " << a(0,0)*a(1,1)-a(0,1)*a(1,0) << endl;
+  //cout << "lapack: " << det <<  " determinant " << Determinant(a,n) 
+  //<< " should be " << a(0,0)*a(1,1)-a(0,1)*a(1,0) << endl;
 
   return det;
 //#endif  
