@@ -4,12 +4,12 @@
 CXX:=mpic++
 
 
-#CXXFLAGS:= -O3 -fomit-frame-pointer -funroll-loops -ffast-math 
-CXXFLAGS := -O2  -fomit-frame-pointer -funroll-loops -ffast-math
+CXXFLAGS:= -O3 -fomit-frame-pointer -funroll-loops -ffast-math 
+#CXXFLAGS := -O2  -fomit-frame-pointer -funroll-loops -ffast-math
 CXXFLAGS += -DUSE_MPI $(INCLUDEPATH)
 
-DEBUG := -Wall  -DRANGE_CHECKING -DDEBUG_WRITE
-#DEBUG:= -Wall -DNO_RANGE_CHECKING   -DNDEBUG 
+#DEBUG := -Wall  -DRANGE_CHECKING -DDEBUG_WRITE
+DEBUG:= -Wall -DNO_RANGE_CHECKING   -DNDEBUG 
 #DEBUG:=-Wall -DNDEBUG -DNO_RANGE_CHECKING -pg
 #LDFLAGS := -static
 

@@ -323,7 +323,7 @@ void Dmc_corr_method::run(Program_options & options, ostream & output) {
       << endl;
       step+=n_partial;
       //cout << mpi_info.node << ":branch" << endl;
-      calcBranch();
+      //calcBranch();
       //cout << mpi_info.node << ":etrial" << endl;
 
       updateEtrial();
@@ -389,8 +389,8 @@ doublevar Dmc_corr_method::propagate_walker(int walker) {
   
   //The weight for the primary system
   deque<Dmc_corr_history>::iterator h=pts(walker).past_energies.begin();
-  pts(walker).weight*=exp(-timestep*0.5*(h->main_en(currsys)
-                                         +(h+1)->main_en(currsys)-2*etrial(currsys)));
+  //pts(walker).weight*=exp(-timestep*0.5*(h->main_en(currsys)
+  //                                       +(h+1)->main_en(currsys)-2*etrial(currsys)));
   //cout << "weight " << walker << "  " << pts(walker).weight << endl;
   Array1 <doublevar> logpi(nsys); //the logarithm of the pdf for each system
   logpi=0;
@@ -402,6 +402,11 @@ doublevar Dmc_corr_method::propagate_walker(int walker) {
       }
       logpi(i)+= 0.5*timestep*pts(walker).past_energies[0].main_en(i);
       logpi(i)+= 0.5*timestep*pts(walker).past_energies[pts(walker).past_energies.size()-1].main_en(i);
+    }
+    if(i==currsys) { 
+       pts(walker).weight=exp(logpi(i)+timestep*eref(i)*(pts(walker).past_energies.size()-1));
+       //cout << "walker " << walker << " weight " << pts(walker).weight << " projection " 
+       //     << pts(walker).past_energies.size() << endl;
     }
     Wf_return wfval(wf(i)->nfunc(), 2);
     wf(i)->getVal(mywfdata(i),0, wfval);
@@ -415,6 +420,7 @@ doublevar Dmc_corr_method::propagate_walker(int walker) {
       ratio+=pts(walker).jacobian(j)*exp(logpi(j)-logpi(i));
     }
     pts(walker).prop.weight(i)=pts(walker).weight* pts(walker).jacobian(i)/ratio;
+    //pts(walker).prop.weight(i)=pts(walker).jacobian(i)/ratio;
   }
   //This is somewhat inaccurate..will need to change it later
   //For the moment, the autocorrelation will be slightly
@@ -574,7 +580,7 @@ int Dmc_corr_method::calcBranch() {
     //this is the core of the branching algorithm..
     //my homegrown algo, based on Umrigar, Nightingale, and Runge
     branch=-1;
-    const doublevar split_threshold=1.8;
+    const doublevar split_threshold=1.1;
     for(int w=0; w< totwalkers; w++) { 
       if(weights(w) > split_threshold && branch(w)==-1) { 
         //find branching partner
@@ -750,6 +756,7 @@ void Dmc_corr_point::mpiSend(int node) {
   int njacob=jacobian.GetDim(0);
   MPI_Send(&njacob, 1, MPI_INT, node, 0, MPI_Comm_grp);
   MPI_Send(jacobian.v, njacob, MPI_DOUBLE, node, 0, MPI_Comm_grp);
+  MPI_Send(initial_sign.v, njacob, MPI_INT, node, 0, MPI_Comm_grp);
 #endif
 }
 
@@ -778,7 +785,8 @@ void Dmc_corr_point::mpiReceive(int node) {
   MPI_Recv(&njacob,1,MPI_INT, node, 0, MPI_Comm_grp, &status);
   jacobian.Resize(njacob);
   MPI_Recv(jacobian.v, njacob, MPI_DOUBLE, node, 0, MPI_Comm_grp, &status);
-  
+  initial_sign.Resize(njacob);
+  MPI_Recv(initial_sign.v, njacob, MPI_INT, node, 0, MPI_Comm_grp, &status);
 #endif
 }
 
