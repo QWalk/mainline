@@ -319,8 +319,10 @@ void Dmc_corr_method::run(Program_options & options, ostream & output) {
         pts(walker).config_pos.savePos(sample(currsys));
 
       }
-      cout << "proportion crossed " << double(ncross)/(nsys*nconfig*n_partial) 
-      << endl;
+      if(ncross > 0) { 
+        cout << "proportion crossed " << double(ncross)/(nsys*nconfig*n_partial) 
+        << endl;
+      }
       step+=n_partial;
       //cout << mpi_info.node << ":branch" << endl;
       //calcBranch();
@@ -395,6 +397,11 @@ doublevar Dmc_corr_method::propagate_walker(int walker) {
   Array1 <doublevar> logpi(nsys); //the logarithm of the pdf for each system
   logpi=0;
   for(int i=0; i< nsys; i++) { 
+    for(deque<Dmc_corr_history>::iterator h=pts(walker).past_energies.begin(); 
+        h!= pts(walker).past_energies.end()-1; h++) { 
+      logpi(i)-= 0.5*timestep*(h->main_en(i)+(h+1)->main_en(i) - 2*timestep*eref(i));
+    }
+   /* 
     if(pts(walker).past_energies.size() > 3) { 
       for(deque<Dmc_corr_history>::iterator h=pts(walker).past_energies.begin();
           h!= pts(walker).past_energies.end(); h++) { 
@@ -403,8 +410,9 @@ doublevar Dmc_corr_method::propagate_walker(int walker) {
       logpi(i)+= 0.5*timestep*pts(walker).past_energies[0].main_en(i);
       logpi(i)+= 0.5*timestep*pts(walker).past_energies[pts(walker).past_energies.size()-1].main_en(i);
     }
+    */
     if(i==currsys) { 
-       pts(walker).weight=exp(logpi(i)+timestep*eref(i)*(pts(walker).past_energies.size()-1));
+       pts(walker).weight=exp(logpi(i));
        //cout << "walker " << walker << " weight " << pts(walker).weight << " projection " 
        //     << pts(walker).past_energies.size() << endl;
     }
