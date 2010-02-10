@@ -399,7 +399,7 @@ doublevar Dmc_corr_method::propagate_walker(int walker) {
   for(int i=0; i< nsys; i++) { 
     for(deque<Dmc_corr_history>::iterator h=pts(walker).past_energies.begin(); 
         h!= pts(walker).past_energies.end()-1; h++) { 
-      logpi(i)-= 0.5*timestep*(h->main_en(i)+(h+1)->main_en(i) - 2*timestep*eref(i));
+      logpi(i)-= 0.5*timestep*(h->main_en(i)+(h+1)->main_en(i) - 2*eref(i));
     }
    /* 
     if(pts(walker).past_energies.size() > 3) { 
