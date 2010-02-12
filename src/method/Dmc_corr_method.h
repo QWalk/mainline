@@ -138,8 +138,9 @@ public:
   string log_label;
   int npsteps;
   int nconfig;
-  int nhist; //!< amount of history to go back when doing correlated sampling
-
+  int nhist; //!< amount of history to go back 
+  int pc_gf; //!< whether or not to use the Pierleoni-Ceperley correlated sampling
+  
   Dynamics_generator * dyngen;
 
   Dmc_guiding_function * guidingwf;

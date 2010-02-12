@@ -77,6 +77,10 @@ void Dmc_corr_method::read(vector <string> words,
   
   if(haskeyword(words, pos=0, "NOWARP")) 
     warper.set_warp(0);
+  
+  pc_gf=1;
+  if(haskeyword(words, pos=0, "FU_GF")) pc_gf=0;
+  
 /*
   if(!readvalue(words, pos=0, start_feedback, "START_FEEDBACK"))
     start_feedback=1;
@@ -402,7 +406,6 @@ doublevar Dmc_corr_method::propagate_walker(int walker) {
   //cout << "weight " << walker << "  " << pts(walker).weight << endl;
   Array1 <doublevar> logpi(nsys); //the logarithm of the pdf for each system
   logpi=0;
-  int pc_gf=1;
   for(int i=0; i< nsys; i++) { 
     for(deque<Dmc_corr_history>::iterator h=pts(walker).past_energies.begin(); 
         h!= pts(walker).past_energies.end()-1; h++) { 
