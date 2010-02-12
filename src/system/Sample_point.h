@@ -287,7 +287,9 @@ class Config_save_point {
   void restorePos(Sample_point * sample);
   void mpiSend(int node);
   void mpiReceive(int node);
-  
+  void getPos(int e, Array1 <doublevar> & r) { 
+    r=electronpos(e);
+  }
  private:
   Array1 <Array1 <doublevar> > electronpos;
 };

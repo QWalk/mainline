@@ -38,6 +38,9 @@ class Program_options;
 
 struct Dmc_corr_history { 
   Array1 <doublevar> main_en;
+  Array2 <Wf_return> wfs; //system number, electron number
+  Array1 <Config_save_point> configs;
+  Array1 <doublevar> jacobian;
   void mpiSend(int node);
   
   void mpiReceive(int node);

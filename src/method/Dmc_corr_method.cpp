@@ -69,6 +69,12 @@ void Dmc_corr_method::read(vector <string> words,
 
   if(!readvalue(words, pos=0, log_label, "LABEL"))
     log_label="dmc";
+  
+  vector <string> warpsec;
+  if(readsection(words, pos=0, warpsec,"WARPER")) {
+    warper.read(warpsec);
+  }
+  
   if(haskeyword(words, pos=0, "NOWARP")) 
     warper.set_warp(0);
 /*
@@ -396,38 +402,79 @@ doublevar Dmc_corr_method::propagate_walker(int walker) {
   //cout << "weight " << walker << "  " << pts(walker).weight << endl;
   Array1 <doublevar> logpi(nsys); //the logarithm of the pdf for each system
   logpi=0;
+  int pc_gf=1;
   for(int i=0; i< nsys; i++) { 
     for(deque<Dmc_corr_history>::iterator h=pts(walker).past_energies.begin(); 
         h!= pts(walker).past_energies.end()-1; h++) { 
       logpi(i)-= 0.5*timestep*(h->main_en(i)+(h+1)->main_en(i) - 2*eref(i));
     }
-   /* 
-    if(pts(walker).past_energies.size() > 3) { 
-      for(deque<Dmc_corr_history>::iterator h=pts(walker).past_energies.begin();
-          h!= pts(walker).past_energies.end(); h++) { 
-        logpi(i)-=timestep*h->main_en(i);
-      }
-      logpi(i)+= 0.5*timestep*pts(walker).past_energies[0].main_en(i);
-      logpi(i)+= 0.5*timestep*pts(walker).past_energies[pts(walker).past_energies.size()-1].main_en(i);
-    }
-    */
     if(i==currsys) { 
        pts(walker).weight=exp(logpi(i));
        //cout << "walker " << walker << " weight " << pts(walker).weight << " projection " 
        //     << pts(walker).past_energies.size() << endl;
     }
+    
+    
+    if(pc_gf) { //---------
+      for(deque<Dmc_corr_history>::iterator h=pts(walker).past_energies.begin(); 
+          h!= pts(walker).past_energies.end()-1; h++) { 
+        Array1 <doublevar> pos1(3), pos2(3), drift1(3), drift2(3);
+        for(int e=0; e< nelectrons; e++) { 
+          h->configs(i).getPos(e,pos1);
+          (h+1)->configs(i).getPos(e,pos2);
+          doublevar d12=0,d22=0;
+          doublevar rdiff2=0;
+          doublevar dot=0;
+          for(int d=0; d< 3; d++) { 
+            drift1(d)=h->wfs(i,e).amp(0,d+1);
+            drift2(d)=(h+1)->wfs(i,e).amp(0,d+1);
+            d12+=drift1(d)*drift1(d);
+            d22+=drift2(d)*drift2(d);
+            rdiff2+=(pos1(d)-pos2(d))*(pos1(d)-pos2(d));
+            dot+=(pos2(d)-pos1(d))*(drift2(d)-drift1(d));
+          }
+          logpi(i)-=0.25*timestep*(d12+d22)+rdiff2/(2*timestep)+0.5*dot;
+        }
+      }
+    }
+    
+    
     Wf_return wfval(wf(i)->nfunc(), 2);
     wf(i)->getVal(mywfdata(i),0, wfval);
-    logpi(i)+=2*wfval.amp(0,0);
+    if(pc_gf) { 
+      h=pts(walker).past_energies.begin();
+      logpi(i)+=h->wfs(i,0).amp(0,0);
+      h=pts(walker).past_energies.end()-1;
+      logpi(i)+=h->wfs(i,0).amp(0,0);      
+    }
+    else { 
+      logpi(i)+=2*wfval.amp(0,0);
+    }
     //cout  << setw(18) << wfval.amp(0,0) << setw(3) << wfval.sign(0);
   }
+  
+  Array1 <doublevar> totjacob(nsys);
+  for(int i=0; i< nsys; i++) { 
+    if(pc_gf) { 
+      totjacob(i)=1;
+      for(deque<Dmc_corr_history>::iterator h=pts(walker).past_energies.begin(); 
+          h!= pts(walker).past_energies.end()-1; h++) { 
+        totjacob(i)*=h->jacobian(i);
+      }
+    }
+    else { 
+      totjacob(i)=pts(walker).jacobian(i);
+    }
+  }
+  
   //cout << endl;
   for(int i=0; i< nsys; i++) {
     double ratio=0;
     for(int j=0; j < nsys; j++) { 
-      ratio+=pts(walker).jacobian(j)*exp(logpi(j)-logpi(i));
+
+        ratio+=totjacob(j)*exp(logpi(j)-logpi(i));
     }
-    pts(walker).prop.weight(i)=pts(walker).weight* pts(walker).jacobian(i)/ratio;
+    pts(walker).prop.weight(i)=pts(walker).weight* totjacob(i)/ratio;
     //pts(walker).prop.weight(i)=pts(walker).jacobian(i)/ratio;
   }
   //This is somewhat inaccurate..will need to change it later
@@ -502,9 +549,24 @@ void Dmc_corr_method::add_point(int walker) {
   //------------------------------Now store the information for the walker
   
   Dmc_corr_history new_hist;
+  new_hist.jacobian=pts(walker).jacobian;
   new_hist.main_en.Resize(nsys);
   for(int i=0; i< nsys; i++) { 
     new_hist.main_en(i)=pt.energy(i);
+  }
+  
+  new_hist.wfs.Resize(nsys, nelectrons);
+  //This is technically getLaping twice.  Might be slightly inefficient.
+  //Of course, this could be rectified by making getLap a bit smarter..
+  for(int i=0; i< nsys; i++) { 
+    for(int j=0; j< nelectrons; j++) { 
+      new_hist.wfs(i,j).Resize(1,6);
+      wf(i)->getLap(mywfdata(i), j, new_hist.wfs(i,j));
+    }
+  }
+  new_hist.configs.Resize(nsys);
+  for(int i=0; i< nsys; i++) { 
+    new_hist.configs(i).savePos(sample(i));
   }
   
   pts(walker).past_energies.push_front(new_hist);
