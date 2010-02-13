@@ -272,6 +272,11 @@ void Dmc_corr_method::run(Program_options & options, ostream & output) {
     cout << mpi_info.node <<":sys " << sys << " eref " << eref(sys) 
          << " nwalkers " << nwalkers_sys(sys) << endl;
   }
+  
+  doublevar erefavg=0;
+  for(int sys=0; sys < nsys; sys++) erefavg+=eref(sys)/nsys;
+  eref=erefavg;
+  
   etrial=eref;
   ///cout << "done " << endl;
   //exit(0);
@@ -338,19 +343,20 @@ void Dmc_corr_method::run(Program_options & options, ostream & output) {
       //calcBranch();
       //cout << mpi_info.node << ":etrial" << endl;
 
-      updateEtrial();
-      if(output) { 
-        for(int i=0; i< nsys; i++) { 
-          output << "etrial " << i << "  " << etrial(i) << endl;
-        }
-      }
+      //updateEtrial();
+      //if(output) { 
+      //  for(int i=0; i< nsys; i++) { 
+      //    output << "etrial " << i << "  " << etrial(i) << endl;
+      //  }
+      //}
     }
     myprop.endBlock();
 
     Properties_final_average finavg;
     myprop.getFinal(finavg);
+    eref=0;
     for(int i=0; i< nsys; i++) { 
-      eref(i)=finavg.avg(Properties_types::total_energy,i);    
+      eref(i)+=finavg.avg(Properties_types::total_energy,i)/nsys;    
     }
     
     if(output) { 
