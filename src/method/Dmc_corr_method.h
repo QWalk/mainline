@@ -58,8 +58,12 @@ struct Dmc_corr_point {
   Array1 <doublevar> age;  //!< age of each electron
   Array1 <doublevar> jacobian;
   Array1 <int> initial_sign;
+  Array1 <doublevar> branching;
+  Array1 <doublevar> totgf;
+  int recalc_gf;
   Dmc_corr_point() { 
     weight=1;
+    recalc_gf=1;
   }
   void mpiSend(int node);
   void mpiReceive(int node);
@@ -122,7 +126,10 @@ public:
 
   doublevar propagate_walker(int walker);
   void add_point(int walker); //calculate energies and other values for a new point
-
+  doublevar get_green_weight(deque <Dmc_corr_history>::iterator a, 
+                             deque <Dmc_corr_history>::iterator b,
+                             int sys, doublevar & branching);
+    
   
   
   int calcBranch();

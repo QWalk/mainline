@@ -367,6 +367,40 @@ void Dmc_corr_method::run(Program_options & options, ostream & output) {
 
 //----------------------------------------------------------------------
 
+doublevar Dmc_corr_method::get_green_weight(deque <Dmc_corr_history>::iterator a, 
+                                            deque <Dmc_corr_history>::iterator b,
+                                            int i, doublevar & branching) {
+  
+  //for(deque<Dmc_corr_history>::iterator h=pts(walker).past_energies.begin(); 
+  //    h!= pts(walker).past_energies.end()-1; h++) { 
+  branching=0;
+  branching-= 0.5*timestep*(a->main_en(i)+b->main_en(i) - 2*eref(i));
+  int nelectrons=mysys(i)->nelectrons(0)+mysys(i)->nelectrons(1);
+
+  
+  doublevar logpi=0;
+  if(pc_gf) { //---------
+    Array1 <doublevar> pos1(3), pos2(3), drift1(3), drift2(3);
+    for(int e=0; e< nelectrons; e++) { 
+      a->configs(i).getPos(e,pos1);
+      b->configs(i).getPos(e,pos2);
+      doublevar d12=0,d22=0;
+      doublevar rdiff2=0;
+      doublevar dot=0;
+      for(int d=0; d< 3; d++) { 
+        drift1(d)=a->wfs(i,e).amp(0,d+1);
+        drift2(d)=b->wfs(i,e).amp(0,d+1);
+        d12+=drift1(d)*drift1(d);
+        d22+=drift2(d)*drift2(d);
+        rdiff2+=(pos1(d)-pos2(d))*(pos1(d)-pos2(d));
+        dot+=(pos2(d)-pos1(d))*(drift2(d)-drift1(d));
+      }
+      logpi-=0.25*timestep*(d12+d22)+rdiff2/(2*timestep)+0.5*dot;
+    }
+  }
+  return logpi+branching;
+}
+
 //Move an walker by one DMC step, updating the pts(walker) variable and leaving
 //the samples and wave functions at the new position.
 //it's assumed that at least sample(pts(walker).system) is updated for that walker.
@@ -404,43 +438,81 @@ doublevar Dmc_corr_method::propagate_walker(int walker) {
   //pts(walker).weight*=exp(-timestep*0.5*(h->main_en(currsys)
   //                                       +(h+1)->main_en(currsys)-2*etrial(currsys)));
   //cout << "weight " << walker << "  " << pts(walker).weight << endl;
-  Array1 <doublevar> logpi(nsys); //the logarithm of the pdf for each system
-  logpi=0;
-  for(int i=0; i< nsys; i++) { 
-    for(deque<Dmc_corr_history>::iterator h=pts(walker).past_energies.begin(); 
-        h!= pts(walker).past_energies.end()-1; h++) { 
-      logpi(i)-= 0.5*timestep*(h->main_en(i)+(h+1)->main_en(i) - 2*eref(i));
-    }
-    if(i==currsys) { 
-       pts(walker).weight=exp(logpi(i));
-       //cout << "walker " << walker << " weight " << pts(walker).weight << " projection " 
-       //     << pts(walker).past_energies.size() << endl;
-    }
-    
-    
-    if(pc_gf) { //---------
+  
+  if(pts(walker).recalc_gf) { 
+    pts(walker).branching.Resize(nsys);
+    pts(walker).totgf.Resize(nsys);
+    pts(walker).totgf=0; pts(walker).branching=0;
+    for(int i=0; i< nsys; i++) { 
       for(deque<Dmc_corr_history>::iterator h=pts(walker).past_energies.begin(); 
           h!= pts(walker).past_energies.end()-1; h++) { 
-        Array1 <doublevar> pos1(3), pos2(3), drift1(3), drift2(3);
-        for(int e=0; e< nelectrons; e++) { 
-          h->configs(i).getPos(e,pos1);
-          (h+1)->configs(i).getPos(e,pos2);
-          doublevar d12=0,d22=0;
-          doublevar rdiff2=0;
-          doublevar dot=0;
-          for(int d=0; d< 3; d++) { 
-            drift1(d)=h->wfs(i,e).amp(0,d+1);
-            drift2(d)=(h+1)->wfs(i,e).amp(0,d+1);
-            d12+=drift1(d)*drift1(d);
-            d22+=drift2(d)*drift2(d);
-            rdiff2+=(pos1(d)-pos2(d))*(pos1(d)-pos2(d));
-            dot+=(pos2(d)-pos1(d))*(drift2(d)-drift1(d));
-          }
-          logpi(i)-=0.25*timestep*(d12+d22)+rdiff2/(2*timestep)+0.5*dot;
+        doublevar btmp;
+        pts(walker).totgf(i)+=get_green_weight(h,h+1,i,btmp);
+        pts(walker).branching(i)+=btmp;
+      }
+    }
+    pts(walker).recalc_gf=0;
+  }
+  else { 
+    for(int i=0; i < nsys; i++) { 
+      doublevar branchupdate=0;
+      pts(walker).totgf(i)+=get_green_weight(pts(walker).past_energies.begin(), 
+                                   pts(walker).past_energies.begin()+1,
+                                   i, branchupdate);
+      pts(walker).branching(i)+=branchupdate;
+      if(pts(walker).past_energies.size() > nhist) { 
+        int count=nhist;
+        for(deque<Dmc_corr_history>::iterator h=pts(walker).past_energies.begin()+nhist-1; 
+            h!= pts(walker).past_energies.end()-1; h++) { 
+          doublevar btmp;
+          pts(walker).totgf(i)-=get_green_weight(h,h+1,i,btmp);
+          pts(walker).branching(i)-=btmp;
+          
         }
       }
     }
-    
+  }
+
+  
+  deque<Dmc_corr_history> & past(pts(walker).past_energies);
+  if(past.size() > nhist) 
+    past.erase(past.begin()+nhist, past.end());
+  //cout << "after erase: size " << past.size() << endl;
+  
+  //-----------tmp update checking..
+  /*
+  for(int i=0; i< nsys; i++) {
+    cout << "  update: " << pts(walker).totgf(i) << "  " << pts(walker).branching(i); 
+  }
+  cout << endl;
+  pts(walker).totgf=0; pts(walker).branching=0;
+  for(int i=0; i< nsys; i++) { 
+    for(deque<Dmc_corr_history>::iterator h=pts(walker).past_energies.begin(); 
+        h!= pts(walker).past_energies.end()-1; h++) { 
+      doublevar btmp;
+      pts(walker).totgf(i)+=get_green_weight(h,h+1,i,btmp);
+      pts(walker).branching(i)+=btmp;
+    }
+  }
+  for(int i=0; i< nsys; i++) {
+    cout << "  recalc: " << pts(walker).totgf(i) << "  " << pts(walker).branching(i); 
+  }
+  cout << endl;
+  */
+  
+  
+  
+  Array1 <doublevar> logpi(nsys); //the logarithm of the pdf for each system
+  logpi=pts(walker).totgf;
+     
+  //Instead of recalculating the weight each time, we should update it
+  // as we go along.  For small systems, that's the largest cost.
+  for(int i=0; i< nsys; i++) { 
+    if(i==currsys) { 
+      pts(walker).weight=exp(pts(walker).branching(i));
+      //cout << "walker " << walker << " weight " << pts(walker).weight << " projection " 
+      //     << pts(walker).past_energies.size() << endl;
+    }
     
     Wf_return wfval(wf(i)->nfunc(), 2);
     wf(i)->getVal(mywfdata(i),0, wfval);
@@ -488,6 +560,8 @@ doublevar Dmc_corr_method::propagate_walker(int walker) {
   pts(walker).prop.children(0)=walker;
   pts(walker).prop.count=1;
      
+  
+  
     
 
   return avg_acceptance;
@@ -573,9 +647,6 @@ void Dmc_corr_method::add_point(int walker) {
   }
   
   pts(walker).past_energies.push_front(new_hist);
-  deque<Dmc_corr_history> & past(pts(walker).past_energies);
-  if(past.size() > nhist) 
-    past.erase(past.begin()+nhist, past.end());
   
   pts(walker).prop=pt;
 }  
