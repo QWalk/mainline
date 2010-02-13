@@ -78,9 +78,14 @@ void Dmc_corr_method::read(vector <string> words,
   if(haskeyword(words, pos=0, "NOWARP")) 
     warper.set_warp(0);
   
-  pc_gf=1;
-  if(haskeyword(words, pos=0, "FU_GF")) pc_gf=0;
+  pc_gf=0;
+  if(haskeyword(words, pos=0, "PC_GF")) pc_gf=1;
   
+  dmc_gf=0;
+  if(haskeyword(words, pos=0, "DMC_GF")) { 
+    pc_gf=0;
+    dmc_gf=1;
+  }
 /*
   if(!readvalue(words, pos=0, start_feedback, "START_FEEDBACK"))
     start_feedback=1;
@@ -404,6 +409,23 @@ doublevar Dmc_corr_method::get_green_weight(deque <Dmc_corr_history>::iterator a
       logpi-=0.25*timestep*(d12+d22)+rdiff2/(2*timestep)+0.5*dot;
     }
   }
+  else if(dmc_gf) { 
+    Array1 <doublevar> pos1(3), pos2(3), drift1(3), drift2(3);
+    for(int e=0; e< nelectrons; e++) { 
+      a->configs(i).getPos(e,pos1);
+      b->configs(i).getPos(e,pos2);
+      double atob=0, btoa=0;
+      for(int d=0; d< 3; d++) { 
+        drift1(d)=a->wfs(i,e).amp(0,d+1);
+        drift2(d)=b->wfs(i,e).amp(0,d+1);
+        btoa+=(pos1(d)-pos2(d)-drift2(d)*timestep)*(pos1(d)-pos2(d)-drift2(d)*timestep);
+        atob+=(pos2(d)-pos1(d)-drift1(d)*timestep)*(pos2(d)-pos1(d)-drift1(d)*timestep);
+      }
+      //doublevar prob=1;
+      logpi-=atob/(2*timestep);
+    }
+    
+  }
   return logpi+branching;
 }
 
@@ -522,7 +544,7 @@ doublevar Dmc_corr_method::propagate_walker(int walker) {
     
     Wf_return wfval(wf(i)->nfunc(), 2);
     wf(i)->getVal(mywfdata(i),0, wfval);
-    if(pc_gf) { 
+    if(pc_gf || dmc_gf ) { 
       h=pts(walker).past_energies.begin();
       logpi(i)+=h->wfs(i,0).amp(0,0);
       h=pts(walker).past_energies.end()-1;
@@ -536,7 +558,7 @@ doublevar Dmc_corr_method::propagate_walker(int walker) {
   
   Array1 <doublevar> totjacob(nsys);
   for(int i=0; i< nsys; i++) { 
-    if(pc_gf) { 
+    if(pc_gf || dmc_gf) { 
       totjacob(i)=1;
       for(deque<Dmc_corr_history>::iterator h=pts(walker).past_energies.begin(); 
           h!= pts(walker).past_energies.end()-1; h++) { 

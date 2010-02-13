@@ -147,6 +147,7 @@ public:
   int nconfig;
   int nhist; //!< amount of history to go back 
   int pc_gf; //!< whether or not to use the Pierleoni-Ceperley correlated sampling
+  int dmc_gf; //!< use the green's function suggested by Umrigar (suggested not to use, actually!)
   
   Dynamics_generator * dyngen;
 
