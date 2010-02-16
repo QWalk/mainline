@@ -206,44 +206,76 @@ void Dmc_corr_method::run(Program_options & options, ostream & output) {
   pts.Resize(nconfig);
   int nelectrons=mysys(0)->nelectrons(0)+mysys(0)->nelectrons(1);
   for(int i=0; i< nconfig; i++) { 
-    pts(i).age.Resize(nelectrons);
-    pts(i).age=0;
+    //pts(i).age.Resize(nelectrons);
+    //pts(i).age=0;
     pts(i).system= i%nsys;
-    pts(i).jacobian.Resize(nsys);
-    pts(i).jacobian=1;
+    //pts(i).jacobian.Resize(nsys);
+    //pts(i).jacobian=1;
     //cout << "walker " << i << " system " << pts(i).system << endl;
   }
   
   ///-----------------Generate VMC configs
-  for(int i=0; i< nconfig; i++) {
-    int currsys=pts(i).system;
+  
+  int nstep_vmc=50;
+  doublevar timestep_vmc=1.0;
+  //for(int block=0; block < nblock_vmc; block++) {
+  for(int walker=0; walker < nconfig; walker++) { 
+    int currsys=pts(walker).system;
     sample(currsys)->randomGuess();
-    pts(i).config_pos.savePos(sample(currsys));
+
+    //pts(walker).config_pos.restorePos(sample(currsys));
+    wf(currsys)->updateLap(mywfdata(currsys), sample(currsys));
+    for(int step=0; step < nstep_vmc; step++) { 
+      Dynamics_info dinfo;
+      for(int e=0; e< nelectrons; e++) {
+        dyngen->sample(e,sample(currsys), wf(currsys),
+                       mywfdata(currsys), guidingwf, dinfo, timestep_vmc);
+      }
+    }
+    cout << "finished walker " << walker << " sysy " << currsys << endl;
+    pts(walker).path.push_back(add_point(walker));
   }
   
-  int nblock_vmc=5;
-  int nstep_vmc=10;
-  doublevar timestep_vmc=1.0;
-  for(int block=0; block < nblock_vmc; block++) {
-    for(int walker=0; walker < nconfig; walker++) { 
-      int currsys=pts(walker).system;
-      pts(walker).config_pos.restorePos(sample(currsys));
-      wf(currsys)->updateLap(mywfdata(currsys), sample(currsys));
-      for(int step=0; step < nstep_vmc; step++) { 
-        Dynamics_info dinfo;
-        for(int e=0; e< nelectrons; e++) {
-          dyngen->sample(e,sample(currsys), wf(currsys),
-                         mywfdata(currsys), guidingwf, dinfo, timestep_vmc);
-        }
-      }
-      //cout << "finished walker " << walker << " sysy " << currsys << endl;
-      pts(walker).config_pos.savePos(sample(currsys));
-    }
-  }
   myprop.setSize(nsys, nblock, nstep+1, nconfig, mysys(0), 
                  mywfdata(0), 0, 0);
-
-  ///cout << "here " << endl;
+  //Generate first reptile  
+  cout << mpi_info.node << ":generating reptile " << endl;
+  for(int walker=0; walker < nconfig; walker++) { 
+    //cout << "size " << pts(walker).path.size() << endl;  
+    int currsiz=pts(walker).path.size();
+    int currsys=pts(walker).system;
+    pts(walker).path[currsiz-1].configs(currsys).restorePos(sample(currsys));
+    wf(currsys)->updateLap(mywfdata(currsys), sample(currsys));
+    for(int i=currsiz; i< nhist; i++) { 
+      Dynamics_info dinfo;
+      for(int e=0; e< nelectrons; e++) {
+        dyngen->sample(e,sample(currsys), wf(currsys),
+                       mywfdata(currsys), guidingwf, dinfo, timestep);
+      }
+      pts(walker).path.push_back(add_point(walker));
+    }
+    //cout << "final size " << pts(walker).path.size() << endl;
+  }
+  
+  for(int walker=0; walker < nconfig; walker++) {
+    pts(walker).branching.Resize(nsys);
+    pts(walker).totgf.Resize(nsys);
+    pts(walker).totgf=0; pts(walker).branching=0;
+    for(int i=0; i< nsys; i++) { 
+      for(deque<Dmc_corr_history>::iterator h=pts(walker).path.begin(); 
+          h!= pts(walker).path.end()-1; h++) { 
+        //cout << "h " << endl;
+        doublevar btmp;
+        pts(walker).totgf(i)+=get_green_weight(h,h+1,i,btmp);
+        pts(walker).branching(i)+=btmp;
+      }
+    }
+    pts(walker).recalc_gf=0;
+  }
+  
+  
+  //cout << "here " << endl;
+  /*
   eref.Resize(nsys);
   eref=0;
   Array1 <int> nwalkers_sys(nsys);
@@ -283,11 +315,13 @@ void Dmc_corr_method::run(Program_options & options, ostream & output) {
   eref=erefavg;
   
   etrial=eref;
+   */
   ///cout << "done " << endl;
   //exit(0);
   //------------------------------------------
-  
+  npsteps=nstep;
   for(int block=0; block < nblock; block++) { 
+    int accept=0;
     for(int step=0; step < nstep; ) { 
       //cout << "block " << block << " step " << step << endl;
       Dynamics_info dinfo;
@@ -298,73 +332,87 @@ void Dmc_corr_method::run(Program_options & options, ostream & output) {
       int ncross=0;
       for(int walker=0; walker < nconfig; walker++) {
         int currsys=pts(walker).system;
-        pts(walker).config_pos.restorePos(sample(currsys));
-        //wf(currsys)->updateLap(mywfdata(currsys), sample(currsys));
-        for(int i=0; i < nsys; i++) { 
-          wf(i)->updateLap(mywfdata(i), sample(i));
-        }
-        Array2 <Config_save_point> configs(n_partial,nsys );
-        Array2 <double> values(n_partial, nsys);
-        //cout << "start partial " << endl;
+        if(pts(walker).direction==1) 
+          (pts(walker).path.end()-1)->configs(currsys).restorePos(sample(currsys));
+        else 
+          pts(walker).path.begin()->configs(currsys).restorePos(sample(currsys));
+        
+        
         for(int p=0; p < n_partial; p++) { 
           mypseudo->randomize();            
           
           
-          propagate_walker(walker);
-          myprop.insertPoint(step+p, walker, pts(walker).prop);
-          //------checking for node crossing
+          accept+=propagate_walker(walker);
           
-          for(int i=0; i< nsys; i++) { 
-            configs(p,i).savePos(sample(i));
-            cout.precision(15);
-            Wf_return wfval(wf(i)->nfunc(), 2);
-            wf(i)->getVal(mywfdata(i),0,wfval);
-            values(p,i)=wfval.amp(0,0);
-            if(wfval.sign(0) != pts(walker).initial_sign(i)) { 
-              //cout << "Node crossed! system "<< i << " " << endl;
-              pts(walker).initial_sign(i)*=-1;
-              ncross++;
-              if(p == n_partial-1) { 
-                cout << "crossed node in system " << i <<  " currsys " << currsys << endl;
-                for(int sy=0; sy< nsys; sy++) { 
-                  cout << "----system " << sy << " amplitude " << endl;
-                  for(int j=0; j<=p; j++) { 
-                    cout << "amp " << values(j,i) << endl;
-                  }
-                }
-              }
-            }
-          }//---finished node crossing checking 
+          Properties_point pt=pts(walker).path.begin()->prop;
+          pt.parent=walker;
+          pt.nchildren=1;
+          pt.children(0)=walker;
+          pt.count=1;
+          pt.weight=pts(walker).weight;
+          myprop.insertPoint(step+p, walker, pt);
         }
-        pts(walker).config_pos.savePos(sample(currsys));
+        //pts(walker).config_pos.savePos(sample(currsys));
 
       }
+      //cout << "finished partial " << endl;
       if(ncross > 0) { 
         cout << "proportion crossed " << double(ncross)/(nsys*nconfig*n_partial) 
         << endl;
       }
+    
       step+=n_partial;
-      //cout << mpi_info.node << ":branch" << endl;
-      //calcBranch();
-      //cout << mpi_info.node << ":etrial" << endl;
-
-      //updateEtrial();
-      //if(output) { 
-      //  for(int i=0; i< nsys; i++) { 
-      //    output << "etrial " << i << "  " << etrial(i) << endl;
-      //  }
-      //}
     }
     myprop.endBlock();
 
+    doublevar acceptance=doublevar(parallel_sum(accept))/doublevar(parallel_sum(nconfig*nstep));
     Properties_final_average finavg;
     myprop.getFinal(finavg);
+    /*
     eref=0;
     for(int i=0; i< nsys; i++) { 
       eref(i)+=finavg.avg(Properties_types::total_energy,i)/nsys;    
     }
+     */ 
+    
+    /*
+    if(output) { 
+      string weight_out="weights";
+      append_number(weight_out, block);
+      ofstream weight_output(weight_out.c_str());
+      for(int walker=0; walker < nconfig; walker++) { 
+        weight_output << walker << " " << pts(walker).weight << " ";
+        for(int sys=0; sys < nsys; sys++) { 
+          weight_output <<pts(walker).prop.weight(walker) << " ";
+          string hist_save("hist_save");
+          append_number(hist_save,block);
+          hist_save+="_";
+          append_number(hist_save,walker);
+          hist_save+="_";
+          append_number(hist_save,sys);
+          ofstream hist(hist_save.c_str());
+          int n=0;
+          for(deque<Dmc_corr_history>::iterator h=pts(walker).path.begin();
+              h!= pts(walker).path.end(); h++) { 
+            hist << n << "  " << h->main_en(sys) << " " << h->wfs(sys,0).amp(0,0)
+               << " " << h->wfs(sys,0).sign(0) << " ";
+            n++;
+            for(int e=0; e < nelectrons; e++) { 
+              for(int d=0; d< 3; d++) { 
+                hist << h->wfs(sys,e).amp(0,d) << " ";
+              }
+            }
+            hist << endl;
+          }
+        }
+        weight_output << endl;
+      }
+      
+    }*/
     
     if(output) { 
+      output << "acceptance " << acceptance << 
+        " average steps before a bounce " << 1.0/(1-acceptance) << endl;
       myprop.printBlockSummary(output);
     }
   }
@@ -382,10 +430,11 @@ doublevar Dmc_corr_method::get_green_weight(deque <Dmc_corr_history>::iterator a
                                             deque <Dmc_corr_history>::iterator b,
                                             int i, doublevar & branching) {
   
-  //for(deque<Dmc_corr_history>::iterator h=pts(walker).past_energies.begin(); 
-  //    h!= pts(walker).past_energies.end()-1; h++) { 
+  //for(deque<Dmc_corr_history>::iterator h=pts(walker).path.begin(); 
+  //    h!= pts(walker).path.end()-1; h++) { 
   branching=0;
-  branching-= 0.5*timestep*(a->main_en(i)+b->main_en(i) - 2*eref(i));
+  //branching-= 0.5*timestep*(a->main_en(i)+b->main_en(i) - 2*eref(i));
+  branching-= 0.5*timestep*(a->main_en(i)+b->main_en(i) );
   int nelectrons=mysys(i)->nelectrons(0)+mysys(i)->nelectrons(1);
 
   
@@ -445,109 +494,109 @@ doublevar Dmc_corr_method::propagate_walker(int walker) {
     int acc;
     acc=dyngen->sample(e, sample(currsys), wf(currsys),
                        mywfdata(currsys), guidingwf,dinfo, timestep);
-    
+    /*
     if(dinfo.accepted)  {
       pts(walker).age(e)=0;
     }
     else { 
       pts(walker).age(e)++;
     }
+     */
     avg_acceptance+=dinfo.acceptance/(nelectrons*npsteps);
     
     //if(acc>0) acsum++;
   }
-  add_point(walker);
-  
-  
-  //----------------------------------------Finally, update the weights
-  
-  //The weight for the primary system
-  deque<Dmc_corr_history>::iterator h=pts(walker).past_energies.begin();
-  //pts(walker).weight*=exp(-timestep*0.5*(h->main_en(currsys)
-  //                                       +(h+1)->main_en(currsys)-2*etrial(currsys)));
-  //cout << "weight " << walker << "  " << pts(walker).weight << endl;
-  
-  if(pts(walker).recalc_gf) { 
-    pts(walker).branching.Resize(nsys);
-    pts(walker).totgf.Resize(nsys);
-    pts(walker).totgf=0; pts(walker).branching=0;
-    for(int i=0; i< nsys; i++) { 
-      for(deque<Dmc_corr_history>::iterator h=pts(walker).past_energies.begin(); 
-          h!= pts(walker).past_energies.end()-1; h++) { 
-        doublevar btmp;
-        pts(walker).totgf(i)+=get_green_weight(h,h+1,i,btmp);
-        pts(walker).branching(i)+=btmp;
-      }
-    }
-    pts(walker).recalc_gf=0;
+  if(pts(walker).direction==1) { 
+    pts(walker).path.push_back(add_point(walker));
   }
-  else { 
+  else {
+    pts(walker).path.push_front(add_point(walker));
+  }
+  
+  Array1 <doublevar> delbranch(nsys);
+  Array1 <doublevar> deltot(nsys);
+  delbranch=0;
+  deltot=0;
+  
+  if(pts(walker).direction==1) { 
     for(int i=0; i < nsys; i++) { 
       doublevar branchupdate=0;
-      pts(walker).totgf(i)+=get_green_weight(pts(walker).past_energies.begin(), 
-                                   pts(walker).past_energies.begin()+1,
-                                   i, branchupdate);
-      pts(walker).branching(i)+=branchupdate;
-      if(pts(walker).past_energies.size() > nhist) { 
+      deltot(i)+=get_green_weight(pts(walker).path.end()-2, 
+                                             pts(walker).path.end()-1,
+                                             i, branchupdate);
+      delbranch(i)+=branchupdate;
+      if(pts(walker).path.size() > nhist) { 
         int count=nhist;
-        for(deque<Dmc_corr_history>::iterator h=pts(walker).past_energies.begin()+nhist-1; 
-            h!= pts(walker).past_energies.end()-1; h++) { 
+        for(deque<Dmc_corr_history>::iterator h=pts(walker).path.begin(); 
+            h!= pts(walker).path.end()-nhist-1; h++) { 
           doublevar btmp;
-          pts(walker).totgf(i)-=get_green_weight(h,h+1,i,btmp);
-          pts(walker).branching(i)-=btmp;
+          deltot(i)-=get_green_weight(h,h+1,i,btmp);
+          delbranch(i)-=btmp;
+          
+        }
+      }
+    }
+    
+  }
+  else  { 
+    for(int i=0; i < nsys; i++) { 
+      doublevar branchupdate=0;
+      deltot(i)+=get_green_weight(pts(walker).path.begin(), 
+                                   pts(walker).path.begin()+1,
+                                   i, branchupdate);
+      delbranch(i)+=branchupdate;
+      if(pts(walker).path.size() > nhist) { 
+        int count=nhist;
+        for(deque<Dmc_corr_history>::iterator h=pts(walker).path.begin()+nhist-1; 
+            h!= pts(walker).path.end()-1; h++) { 
+          doublevar btmp;
+          deltot(i)-=get_green_weight(h,h+1,i,btmp);
+          delbranch(i)-=btmp;
           
         }
       }
     }
   }
+  int accepted=0;
 
-  
-  deque<Dmc_corr_history> & past(pts(walker).past_energies);
-  if(past.size() > nhist) 
-    past.erase(past.begin()+nhist, past.end());
-  //cout << "after erase: size " << past.size() << endl;
-  
-  //-----------tmp update checking..
-  /*
-  for(int i=0; i< nsys; i++) {
-    cout << "  update: " << pts(walker).totgf(i) << "  " << pts(walker).branching(i); 
-  }
-  cout << endl;
-  pts(walker).totgf=0; pts(walker).branching=0;
-  for(int i=0; i< nsys; i++) { 
-    for(deque<Dmc_corr_history>::iterator h=pts(walker).past_energies.begin(); 
-        h!= pts(walker).past_energies.end()-1; h++) { 
-      doublevar btmp;
-      pts(walker).totgf(i)+=get_green_weight(h,h+1,i,btmp);
-      pts(walker).branching(i)+=btmp;
+  if(int(exp(delbranch(currsys))+rng.ulec())) { 
+    //cout << " accept " << exp(delbranch(currsys)) << endl;
+    accepted=1;
+    for(int i=0; i < nsys; i++) { 
+      pts(walker).branching(i)+=delbranch(i);
+      pts(walker).totgf(i)+=deltot(i);
     }
   }
-  for(int i=0; i< nsys; i++) {
-    cout << "  recalc: " << pts(walker).totgf(i) << "  " << pts(walker).branching(i); 
+  else { 
+    //cout << "reject " << endl;
+    pts(walker).direction*=-1;
+    if(pts(walker).direction==1) 
+      (pts(walker).path.end()-1)->configs(currsys).restorePos(sample(currsys));
+    else 
+      pts(walker).path.begin()->configs(currsys).restorePos(sample(currsys));    
   }
-  cout << endl;
-  */
   
+  deque<Dmc_corr_history> & past(pts(walker).path);
+  if(past.size() > nhist) {
+    if(pts(walker).direction==1) past.erase(past.begin(), past.end()-nhist-1);
+    else past.erase(past.begin()+nhist, past.end());
+  }
   
   
   Array1 <doublevar> logpi(nsys); //the logarithm of the pdf for each system
   logpi=pts(walker).totgf;
      
-  //Instead of recalculating the weight each time, we should update it
-  // as we go along.  For small systems, that's the largest cost.
+  
+  pts(walker).weight=exp(pts(walker).branching(currsys));
+  deque<Dmc_corr_history>::iterator h;
   for(int i=0; i< nsys; i++) { 
-    if(i==currsys) { 
-      pts(walker).weight=exp(pts(walker).branching(i));
-      //cout << "walker " << walker << " weight " << pts(walker).weight << " projection " 
-      //     << pts(walker).past_energies.size() << endl;
-    }
     
     Wf_return wfval(wf(i)->nfunc(), 2);
     wf(i)->getVal(mywfdata(i),0, wfval);
     if(pc_gf || dmc_gf ) { 
-      h=pts(walker).past_energies.begin();
+      h=pts(walker).path.begin();
       logpi(i)+=h->wfs(i,0).amp(0,0);
-      h=pts(walker).past_energies.end()-1;
+      h=pts(walker).path.end()-1;
       logpi(i)+=h->wfs(i,0).amp(0,0);      
     }
     else { 
@@ -560,47 +609,38 @@ doublevar Dmc_corr_method::propagate_walker(int walker) {
   for(int i=0; i< nsys; i++) { 
     if(pc_gf || dmc_gf) { 
       totjacob(i)=1;
-      for(deque<Dmc_corr_history>::iterator h=pts(walker).past_energies.begin(); 
-          h!= pts(walker).past_energies.end()-1; h++) { 
+      for(deque<Dmc_corr_history>::iterator h=pts(walker).path.begin(); 
+          h!= pts(walker).path.end()-1; h++) { 
         totjacob(i)*=h->jacobian(i);
       }
     }
     else { 
-      totjacob(i)=pts(walker).jacobian(i);
+      totjacob(i)=pts(walker).path.begin()->jacobian(i);
     }
   }
   
   //cout << endl;
+  pts(walker).weight.Resize(nsys);
   for(int i=0; i< nsys; i++) {
     double ratio=0;
     for(int j=0; j < nsys; j++) { 
-
         ratio+=totjacob(j)*exp(logpi(j)-logpi(i));
     }
-    pts(walker).prop.weight(i)=pts(walker).weight* totjacob(i)/ratio;
-    //pts(walker).prop.weight(i)=pts(walker).jacobian(i)/ratio;
+    //pts(walker).weight(i)=pts(walker).weight* totjacob(i)/ratio;
+    pts(walker).weight(i)=totjacob(i)/ratio;
   }
-  //This is somewhat inaccurate..will need to change it later
-  //For the moment, the autocorrelation will be slightly
-  //underestimated
-  pts(walker).prop.parent=walker;
-  pts(walker).prop.nchildren=1;
-  pts(walker).prop.children(0)=walker;
-  pts(walker).prop.count=1;
-     
-  
-  
-    
 
-  return avg_acceptance;
+  return accepted;
 }
 
 
 //----------------------------------------------------------------------
 
 
-//-------------------------------Evaluate the new points
-void Dmc_corr_method::add_point(int walker) { 
+//-------------------------------Evaluate a new point
+Dmc_corr_history Dmc_corr_method::add_point(int walker) { 
+  Dmc_corr_history new_hist;
+
   int currsys=pts(walker).system;
   int nsys=mywfdata.GetDim(0);
   int nelectrons=mysys(currsys)->nelectrons(0)+mysys(currsys)->nelectrons(1);
@@ -608,9 +648,8 @@ void Dmc_corr_method::add_point(int walker) {
   //cout << "nrandvar " << nrandvar  << endl;
   Array1 <doublevar> rand_num(nrandvar);
   for(int i=0; i< nrandvar; i++) rand_num(i)=rng.ulec();
-  
-  Properties_point pt;
-  pt.setSize(nsys, nsys, 1);
+  Array1 <doublevar> jacobian_save(nsys);
+  new_hist.prop.setSize(nsys, nsys, 1);
   for(int i=0; i< nsys; i++) { 
     Array1 <doublevar> kinetic(wf(i)->nfunc());
     Array1 <doublevar> nonlocal(wf(i)->nfunc());
@@ -641,23 +680,22 @@ void Dmc_corr_method::add_point(int walker) {
     mysys(i)->calcKinetic(mywfdata(i),sample(i), 
                           wf(i), kinetic);
 
-    pt.kinetic(i)=kinetic(0);
+    new_hist.prop.kinetic(i)=kinetic(0);
     //cout << " blah " << pt.kinetic.GetDim(0) << " " << mysys.GetDim(0) 
     //<< " " << sample.GetDim(0) << endl;
-    pt.potential(i)=mysys(i)->calcLoc(sample(i));
+    new_hist.prop.potential(i)=mysys(i)->calcLoc(sample(i));
     //cout <<  " nonloc " << endl;
     mypseudo->calcNonlocWithTest(mywfdata(i), sample(i), wf(i),rand_num,nonlocal);
-    pt.nonlocal(i)=nonlocal(0);
-    pts(walker).jacobian(i)=tot_jacobian;
+    new_hist.prop.nonlocal(i)=nonlocal(0);
+    jacobian_save(i)=tot_jacobian;
   }
   //cout << "there " << endl;
   //------------------------------Now store the information for the walker
   
-  Dmc_corr_history new_hist;
-  new_hist.jacobian=pts(walker).jacobian;
+  new_hist.jacobian=jacobian_save;
   new_hist.main_en.Resize(nsys);
   for(int i=0; i< nsys; i++) { 
-    new_hist.main_en(i)=pt.energy(i);
+    new_hist.main_en(i)=new_hist.prop.energy(i);
   }
   
   new_hist.wfs.Resize(nsys, nelectrons);
@@ -674,314 +712,11 @@ void Dmc_corr_method::add_point(int walker) {
     new_hist.configs(i).savePos(sample(i));
   }
   
-  pts(walker).past_energies.push_front(new_hist);
+  return new_hist;
+  //pts(walker).path.push_front(new_hist);
   
-  pts(walker).prop=pt;
+  //pts(walker).prop=pt;
 }  
 
 //----------------------------------------------------------------------
-void Dmc_corr_method::updateEtrial() {
-  double feed=1.0;
-  for(int i=0; i< eref.GetDim(0); i++) { 
-    doublevar totweight=0;
-    int nc=0;
-    
-    for(int walker=0; walker < nconfig; walker++) { 
-      if(pts(walker).system==i) { 
-        totweight+=pts(walker).weight;
-        nc++;
-      }
-    }
-    totweight=parallel_sum(totweight);
-    nc=parallel_sum(nc);
-    etrial(i)=eref(i)-feed*log(totweight/double(nc));
-  }
-  
-}
-
-//----------------------------------------------------------------------
-
-
-struct Queue_element { 
-  int from_node;
-  int to_node;
-  Queue_element() { } 
-  Queue_element(int from, int to) { from_node=from; to_node=to; } 
-};
-
-struct Walker_sort { 
-  int node;
-  int index; //on the node
-  int branch; //how many copies to make
-  doublevar weight; 
-};
-
-
-int Dmc_corr_method::calcBranch() { 
-  int totwalkers=mpi_info.nprocs*nconfig;
-  Array1 <doublevar> weights(totwalkers);
-  Array1 <doublevar> my_weights(nconfig);
-  Array1 <int> systems(totwalkers);
-  Array1 <int> my_systems(totwalkers);
-  for(int walker=0; walker < nconfig; walker++) { 
-    my_weights(walker)=pts(walker).weight;
-    my_systems(walker)=pts(walker).system;
-  }
-#ifdef USE_MPI
-  MPI_Allgather(my_weights.v,nconfig, MPI_DOUBLE, weights.v,nconfig,MPI_DOUBLE, MPI_Comm_grp);
-  MPI_Allgather(my_systems.v,nconfig, MPI_INT, systems.v,nconfig,MPI_INT, MPI_Comm_grp);
-#else
-  weights=my_weights;
-#endif
-  Array1 <int> my_branch(nconfig);
-  Array1 <int> nwalkers(mpi_info.nprocs);
-  nwalkers=0;
-  int root=0;
-  //if(mpi_info.node==root) {
-  //  for(int i=0; i< totwalkers; i++) { 
-  //    cout << "walker " << i << " " << weights(i) << endl;
-  //  }
-  //}
-  
-  if(mpi_info.node==root) {  //this if/else clause may be refactored out
-    
-    Array1 <int> branch(totwalkers);
-    //----Find which walkers branch/die
-    //we do it on one node since otherwise we'll have different random numbers!
-    //we'll assign the weight for each copy that will be produced
-    //this is the core of the branching algorithm..
-    //my homegrown algo, based on Umrigar, Nightingale, and Runge
-    branch=-1;
-    const doublevar split_threshold=1.1;
-    for(int w=0; w< totwalkers; w++) { 
-      if(weights(w) > split_threshold && branch(w)==-1) { 
-        //find branching partner
-        doublevar smallestwt=100;
-        int smallest=-1;
-        for(int w2=0; w2 < totwalkers; w2++) { 
-          if(branch(w2)==-1 && w2!= w && weights(w2) < smallestwt
-             && systems(w)==systems(w2)) { //restrict branching to the same system
-            smallest=w2;
-            smallestwt=weights(w2);
-          }
-        }
-        //cout << "pairing " << w << " " << smallest << " systems " << systems(w)
-        //     << " " << systems(smallest) << " weights " << weights(w) << "  "
-        //<< weights(smallest) << endl;
-        if(smallest != -1) { 
-          doublevar weight1=weights(w)/(weights(w)+weights(smallest));
-          if(weight1+rng.ulec() >= 1.0) { 
-            branch(w)=2;
-            branch(smallest)=0;
-            weights(w)+=weights(smallest);
-            weights(w)/=2.0;
-          }
-          else { 
-            branch(w)=0;
-            branch(smallest)=2;
-            weights(smallest)+=weights(w);
-            weights(smallest)/=2.0;
-          }
-        }
-      }
-    }
-    for(int w=0; w< totwalkers; w++) {
-      if(branch(w)==-1) branch(w)=1;
-    }
-    //----end homegrown algo
-    //count how many walkers each node will have
-    //without balancing
-    int walk=0;
-    for(int n=0; n< mpi_info.nprocs; n++) { 
-      for(int i=0; i< nconfig; i++) {
-        nwalkers(n)+=branch(walk);
-        walk++;
-      }
-      //cout << "nwalkers " << n << " " << nwalkers(n) << endl;
-    }
-    //now send nwalkers and which to branch to all processors
-    for(int i=0; i< nconfig; i++) { 
-      my_branch(i)=branch(i);
-      my_weights(i)=weights(i);
-    }
-#ifdef USE_MPI
-    MPI_Bcast(nwalkers.v, mpi_info.nprocs, MPI_INT, mpi_info.node, MPI_Comm_grp);
-    for(int i=1; i< mpi_info.nprocs; i++) {
-      MPI_Send(branch.v+i*nconfig,nconfig,MPI_INT,i,0,MPI_Comm_grp);
-      MPI_Send(weights.v+i*nconfig, nconfig, MPI_DOUBLE, i,0,MPI_Comm_grp);
-    }
-#endif
-    
-  }
-  else { 
-#ifdef USE_MPI
-    MPI_Bcast(nwalkers.v, mpi_info.nprocs, MPI_INT, root, MPI_Comm_grp);
-    MPI_Status status;
-    MPI_Recv(my_branch.v,nconfig, MPI_INT,root,0,MPI_Comm_grp, &status);
-    MPI_Recv(my_weights.v,nconfig, MPI_DOUBLE,root,0,MPI_Comm_grp, &status);
-#endif	
-  }
-  //--end if/else clause
-  
-  for(int i=0; i< nconfig; i++) { 
-    pts(i).weight=my_weights(i);
-  }
-  
-  //Now we all have my_branch and nwalkers..we need to figure out who 
-  //needs to send walkers to whom--after this, nwalkers should be a flat array equal to 
-  //nconfig(so don't try to use it for anything useful afterwards)
-  vector <Queue_element> send_queue;
-  int curr_needs_walker=0;
-  int nnwalkers=nwalkers(mpi_info.node); //remember how many total we should have
-  for(int i=0; i< mpi_info.nprocs; i++) { 
-    while(nwalkers(i) > nconfig) {
-      if(nwalkers(curr_needs_walker) < nconfig) { 
-        nwalkers(curr_needs_walker)++;
-        nwalkers(i)--;
-        send_queue.push_back(Queue_element(i,curr_needs_walker));
-        //cout << mpi_info.node << ":nwalkers " << nwalkers(i) << "  " << nwalkers(curr_needs_walker) << endl;
-        //cout << mpi_info.node << ":send " << i << "  " << curr_needs_walker << endl;
-      }
-      else { 
-        curr_needs_walker++;
-      }
-    }
-  }
-  
-  for(int i=0; i< mpi_info.nprocs; i++) assert(nwalkers(i)==nconfig);
-  int killsize=0;
-  for(int i=0; i< nconfig; i++) {
-    //cout << mpi_info.node << ":branch " << i << "  " << my_branch(i) << " weight " << pts(i).weight <<  endl;
-    if(my_branch(i)==0) killsize++;
-  }
-  //cout << mpi_info.node << ": send queue= " << send_queue.size() << endl;
-  //now do branching for the walkers that we get to keep
-  Array1 <Dmc_corr_point> savepts=pts;
-  int curr=0; //what walker we're currently copying from
-  int curr_copy=0; //what walker we're currently copying to
-  while(curr_copy < min(nnwalkers,nconfig)) { 
-    if(my_branch(curr)>0) { 
-      //cout << mpi_info.node << ": copying " << curr << " to " << curr_copy << " branch " << my_branch(curr) << endl;
-      my_branch(curr)--;
-      pts(curr_copy)=savepts(curr);
-      //pts(curr_copy).weight=1;
-      curr_copy++;
-    }
-    else curr++;
-  }
-#ifdef USE_MPI
-  //Finally, send or receive spillover walkers 
-  if(nnwalkers > nconfig) { 
-    vector<Queue_element>::iterator queue_pos=send_queue.begin();
-    while(curr < nconfig) { 
-      if(my_branch(curr) > 0) { 
-        my_branch(curr)--;
-        while(queue_pos->from_node != mpi_info.node) { 
-          queue_pos++;
-        }
-        cout << mpi_info.node << ":curr " << curr << " my_branch " << my_branch(curr) << endl;
-        cout << mpi_info.node << ":sending " << queue_pos->from_node << " to " << queue_pos->to_node << endl;
-        savepts(curr).mpiSend(queue_pos->to_node);
-        queue_pos++;
-      }
-      else curr++;
-    }
-    
-  }
-  else { //if nnwalkers == nconfig, then this will just get skipped immediately
-    vector <Queue_element>::iterator queue_pos=send_queue.begin();
-    while(curr_copy < nconfig) { 
-      while(queue_pos->to_node != mpi_info.node) queue_pos++;
-      cout << mpi_info.node <<":receiving from " << queue_pos->from_node << " to " << curr_copy << endl;
-      pts(curr_copy).mpiReceive(queue_pos->from_node);
-      //pts(curr_copy).weight=1;
-      curr_copy++;
-      queue_pos++;
-    }
-  }
-#endif
-  return killsize;
-  //exit(0);
-}
-
-
-
-//----------------------------------------------------------------------
-
-void Dmc_corr_point::mpiSend(int node) { 
-#ifdef USE_MPI
-  prop.mpiSend(node);
-  config_pos.mpiSend(node);
-  int n=past_energies.size();
-  MPI_Send(&n,1, MPI_INT,node,0,MPI_Comm_grp);
-  for(deque<Dmc_corr_history>::iterator i=past_energies.begin();
-      i!= past_energies.end(); i++) { 
-    i->mpiSend(node);
-  }
-  
-  MPI_Send(&weight,1,MPI_DOUBLE,node,0,MPI_Comm_grp);  
-  int nelectrons=age.GetDim(0);
-  MPI_Send(&nelectrons,1, MPI_INT,node,0,MPI_Comm_grp);
-  MPI_Send(age.v,nelectrons, MPI_DOUBLE, node,0,MPI_Comm_grp);
-  MPI_Send(&system,1, MPI_INT,node,0,MPI_Comm_grp);
-  
-  int njacob=jacobian.GetDim(0);
-  MPI_Send(&njacob, 1, MPI_INT, node, 0, MPI_Comm_grp);
-  MPI_Send(jacobian.v, njacob, MPI_DOUBLE, node, 0, MPI_Comm_grp);
-  MPI_Send(initial_sign.v, njacob, MPI_INT, node, 0, MPI_Comm_grp);
-#endif
-}
-
-void Dmc_corr_point::mpiReceive(int node) {
-#ifdef USE_MPI
-  prop.mpiReceive(node);
-  config_pos.mpiReceive(node);
-  int n;
-  MPI_Status status;
-  MPI_Recv(&n,1,MPI_INT,node,0,MPI_Comm_grp, &status);
-  Dmc_corr_history tmp_hist;
-  past_energies.clear();
-  for(int i=0; i< n; i++) {
-    tmp_hist.mpiReceive(node);
-    past_energies.push_back(tmp_hist);
-  }  
-  
-  MPI_Recv(&weight,1,MPI_DOUBLE,node,0,MPI_Comm_grp, &status);
-  
-  int nelectrons;
-  MPI_Recv(&nelectrons,1,MPI_INT,node,0,MPI_Comm_grp,&status);
-  age.Resize(nelectrons);
-  MPI_Recv(age.v,nelectrons,MPI_DOUBLE, node,0,MPI_Comm_grp,&status);
-  MPI_Recv(&system,1,MPI_INT,node,0,MPI_Comm_grp,&status);
-  int njacob;
-  MPI_Recv(&njacob,1,MPI_INT, node, 0, MPI_Comm_grp, &status);
-  jacobian.Resize(njacob);
-  MPI_Recv(jacobian.v, njacob, MPI_DOUBLE, node, 0, MPI_Comm_grp, &status);
-  initial_sign.Resize(njacob);
-  MPI_Recv(initial_sign.v, njacob, MPI_INT, node, 0, MPI_Comm_grp, &status);
-#endif
-}
-
-void Dmc_corr_history::mpiSend(int node) { 
-#ifdef USE_MPI
-  int nen=main_en.GetDim(0);
-  MPI_Send(&nen, 1,MPI_INT, node,0,MPI_Comm_grp);
-  MPI_Send(main_en.v,nen,MPI_DOUBLE,node,0,MPI_Comm_grp);
-#endif
-}
-
-void Dmc_corr_history::mpiReceive(int node) { 
-#ifdef USE_MPI
-  MPI_Status status;
-  int nen;
-  MPI_Recv(&nen, 1,MPI_INT, node, 0, MPI_Comm_grp, & status);
-  main_en.Resize(nen);
-  MPI_Recv(main_en.v,nen,MPI_DOUBLE,node,0,MPI_Comm_grp,&status);
-#endif
-}
-
-
-
-//----------------------------------------------------------------------
-
 

@@ -41,6 +41,7 @@ struct Dmc_corr_history {
   Array2 <Wf_return> wfs; //system number, electron number
   Array1 <Config_save_point> configs;
   Array1 <doublevar> jacobian;
+  Properties_point prop;
   void mpiSend(int node);
   
   void mpiReceive(int node);
@@ -50,20 +51,23 @@ struct Dmc_corr_history {
 
 
 struct Dmc_corr_point { 
-  Properties_point prop;
-  deque <Dmc_corr_history> past_energies;
-  doublevar weight;
+  //Properties_point prop;
+  deque <Dmc_corr_history> path;
+  //doublevar weight;
   int system; // the system that sampled this point.
-  Config_save_point config_pos;  
-  Array1 <doublevar> age;  //!< age of each electron
-  Array1 <doublevar> jacobian;
-  Array1 <int> initial_sign;
+  //Config_save_point config_pos;  
+  //Array1 <doublevar> age;  //!< age of each electron
+  //Array1 <doublevar> jacobian;
+  //Array1 <int> initial_sign;
+  Array1 <doublevar> weight;
   Array1 <doublevar> branching;
   Array1 <doublevar> totgf;
   int recalc_gf;
+  int direction;
   Dmc_corr_point() { 
-    weight=1;
+    //weight=1;
     recalc_gf=1;
+    direction=1;
   }
   void mpiSend(int node);
   void mpiReceive(int node);
@@ -125,7 +129,7 @@ public:
 			 Wavefunction_data * wfdata,Pseudopotential * pseudo);
 
   doublevar propagate_walker(int walker);
-  void add_point(int walker); //calculate energies and other values for a new point
+  Dmc_corr_history add_point(int walker); //calculate energies and other values for a new point
   doublevar get_green_weight(deque <Dmc_corr_history>::iterator a, 
                              deque <Dmc_corr_history>::iterator b,
                              int sys, doublevar & branching);
