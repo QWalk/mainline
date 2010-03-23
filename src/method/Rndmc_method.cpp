@@ -625,7 +625,7 @@ void Rndmc_method::runWithVariables(Properties_manager & prop,
             pt.potential=sys->calcLoc(sample);
             pt.weight=1.0; //this gets set later anyway
             pt.count=1;
-            pseudo->calcNonlocTmove(wfdata,sample,wf,pt.nonlocal,tmov);
+            pseudo->calcNonlocTmove(wfdata,sys,sample,wf,pt.nonlocal,tmov);
             getZpol(sys, sample, pt.z_pol,1); //always do the many-body zpol, because it's correct
             //cout << "choosing among " <<  tmov.size() << " tmoves " << endl;
             //Now we do the t-move

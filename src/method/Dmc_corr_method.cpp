@@ -685,7 +685,7 @@ Dmc_corr_history Dmc_corr_method::add_point(int walker) {
     //<< " " << sample.GetDim(0) << endl;
     new_hist.prop.potential(i)=mysys(i)->calcLoc(sample(i));
     //cout <<  " nonloc " << endl;
-    mypseudo->calcNonlocWithTest(mywfdata(i), sample(i), wf(i),rand_num,nonlocal);
+    mypseudo->calcNonlocWithTest(mywfdata(i), mysys(i), sample(i), wf(i),rand_num,nonlocal);
     new_hist.prop.nonlocal(i)=nonlocal(0);
     jacobian_save(i)=tot_jacobian;
   }

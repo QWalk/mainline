@@ -491,17 +491,17 @@ void Optimize_method2::func_val(int n, const Array1 <double> & parms, double & v
     doublevar coulpot=local_energy(walker);
     if(dynamic_pp){
       if(dynamic_wf)
-	pseudo->calcNonlocWithTest(wfdata, sample(0), wf(0), psp_test(walker), nonloc );    
+	pseudo->calcNonlocWithTest(wfdata, sysprop,sample(0), wf(0), psp_test(walker), nonloc );    
       else{
-	pseudo->calcNonlocWithTest(wfdata, sample(walker), wf(walker), psp_test(walker), nonloc );  
+	pseudo->calcNonlocWithTest(wfdata, sysprop,sample(walker), wf(walker), psp_test(walker), nonloc );  
       }
     }
     else{
       if(dynamic_wf)
-	pseudo->calcNonlocWithFile(wfdata, sample(0), wf(0),
+	pseudo->calcNonlocWithFile(wfdata,sysprop, sample(0), wf(0),
 				   nonloc, psp_buff);
       else
-	pseudo->calcNonlocWithFile(wfdata, sample(walker), wf(walker),
+	pseudo->calcNonlocWithFile(wfdata, sysprop, sample(walker), wf(walker),
 				   nonloc, psp_buff);
     }
 
@@ -621,19 +621,19 @@ void Optimize_method2::energy_grad(Array1 <double> & parms, int nparms_start, in
 
       if(dynamic_pp){
 	if(dynamic_wf){
-	  pseudo->calcNonlocWithTest(wfdata, sample(0), wf(0), psp_test(walker),nonloc );
+	  pseudo->calcNonlocWithTest(wfdata, sysprop, sample(0), wf(0), psp_test(walker),nonloc );
 	}
 	else{
-	  pseudo->calcNonlocWithTest(wfdata, sample(walker), wf(walker), psp_test(walker),nonloc );
+	  pseudo->calcNonlocWithTest(wfdata, sysprop, sample(walker), wf(walker), psp_test(walker),nonloc );
 	}
       }
       else{
 	if(dynamic_wf){
-	  pseudo->calcNonlocWithFile(wfdata, sample(0), wf(0),
+	  pseudo->calcNonlocWithFile(wfdata, sysprop, sample(0), wf(0),
 				     nonloc, psp_buff);
 	}
 	else{  
-	  pseudo->calcNonlocWithFile(wfdata, sample(walker), wf(walker),
+	  pseudo->calcNonlocWithFile(wfdata, sysprop,sample(walker), wf(walker),
 				     nonloc, psp_buff);
 	}
       }
@@ -778,17 +778,17 @@ void Optimize_method2::func_hessian(Array1 <double> & parms, int nparms_start, i
 	  doublevar coulpot=local_energy(walker);
 	  if(dynamic_pp){
 	    if(dynamic_wf)
-	      pseudo->calcNonlocWithTest(wfdata, sample(0), wf(0), psp_test(walker),nonloc );
+	      pseudo->calcNonlocWithTest(wfdata,sysprop, sample(0), wf(0), psp_test(walker),nonloc );
 	    else
-	      pseudo->calcNonlocWithTest(wfdata, sample(walker), wf(walker), psp_test(walker),nonloc );
+	      pseudo->calcNonlocWithTest(wfdata,sysprop, sample(walker), wf(walker), psp_test(walker),nonloc );
 	  }
 	  else{
 	    if(dynamic_wf){
-	      pseudo->calcNonlocWithFile(wfdata, sample(0), wf(0),
+	      pseudo->calcNonlocWithFile(wfdata,sysprop, sample(0), wf(0),
 					 nonloc, psp_buff);
 	    }
 	    else{
-	      pseudo->calcNonlocWithFile(wfdata, sample(walker), wf(walker),
+	      pseudo->calcNonlocWithFile(wfdata,sysprop, sample(walker), wf(walker),
 					 nonloc, psp_buff);
 	    }
 	  }
@@ -1065,16 +1065,16 @@ void Optimize_method2::energy_grad_analytical(Array1 <double> & parms, int nparm
     doublevar coulpot=local_energy(walker);
     if(dynamic_pp){
       if(dynamic_wf)
-	pseudo->calcNonlocWithTest(wfdata, sample(0), wf(0), psp_test(walker),nonloc );    
+	pseudo->calcNonlocWithTest(wfdata,sysprop, sample(0), wf(0), psp_test(walker),nonloc );    
       else{
-	pseudo->calcNonlocWithTest(wfdata, sample(walker), wf(walker), psp_test(walker),nonloc );
+	pseudo->calcNonlocWithTest(wfdata, sysprop, sample(walker), wf(walker), psp_test(walker),nonloc );
       }
     }
     else { //not dynamic_pp
       if(dynamic_wf)
-	pseudo->calcNonlocWithFile(wfdata, sample(0), wf(0),nonloc, psp_buff);
+	pseudo->calcNonlocWithFile(wfdata,sysprop, sample(0), wf(0),nonloc, psp_buff);
       else
-	pseudo->calcNonlocWithFile(wfdata, sample(walker), wf(walker),nonloc, psp_buff);
+	pseudo->calcNonlocWithFile(wfdata, sysprop,sample(walker), wf(walker),nonloc, psp_buff);
     }
     
     E_local(walker)=kinetic(0) + coulpot+ nonloc(0);
@@ -1195,19 +1195,19 @@ void Optimize_method2::func_hessian_analytical(Array1 <double> & parms, int npar
     if(dynamic_pp){
       nonloc_deriv(walker).Resize(nparms);
       if(dynamic_wf)
-	pseudo->calcNonlocParmDeriv(wfdata, sample(0), wf(0),
+	pseudo->calcNonlocParmDeriv(wfdata, sysprop, sample(0), wf(0),
 				    psp_test(walker), nonloc, nonloc_deriv(walker));
       else{
-	pseudo->calcNonlocParmDeriv(wfdata, sample(walker), wf(walker),
+	pseudo->calcNonlocParmDeriv(wfdata, sysprop, sample(walker), wf(walker),
 				    psp_test(walker), nonloc, nonloc_deriv(walker));
       }
     }
     else{ //not dynamic_pp
       if(dynamic_wf){
-	pseudo->calcNonlocWithFile(wfdata, sample(0), wf(0),nonloc, psp_buff);
+	pseudo->calcNonlocWithFile(wfdata, sysprop, sample(0), wf(0),nonloc, psp_buff);
       }
       else{
-	pseudo->calcNonlocWithFile(wfdata, sample(walker), wf(walker),nonloc, psp_buff);
+	pseudo->calcNonlocWithFile(wfdata,sysprop, sample(walker), wf(walker),nonloc, psp_buff);
       }
       nonloc_old(walker)=nonloc(0);
     }
@@ -1241,12 +1241,12 @@ void Optimize_method2::func_hessian_analytical(Array1 <double> & parms, int npar
 	  config_pos(walker).restorePos(sample(0)); 
 	  wf(0)->updateLap(wfdata, sample(0));
 	  sysprop->calcKinetic(wfdata, sample(0), wf(0), kinetic);
-	  pseudo->calcNonlocWithFile(wfdata, sample(0), wf(0),nonloc, psp_buff);
+	  pseudo->calcNonlocWithFile(wfdata,sysprop, sample(0), wf(0),nonloc, psp_buff);
 	}
 	else{
 	  wf(walker)->updateLap(wfdata, sample(walker));
 	  sysprop->calcKinetic(wfdata, sample(walker), wf(walker), kinetic);
-	  pseudo->calcNonlocWithFile(wfdata, sample(walker), wf(walker),nonloc, psp_buff);
+	  pseudo->calcNonlocWithFile(wfdata, sysprop, sample(walker), wf(walker),nonloc, psp_buff);
 	}
 	e_local_gradient(i)(walker)=(kinetic(0)+nonloc(0)-kinetic_old(walker)-nonloc_old(walker))/ddelta(i);
       }

@@ -325,7 +325,7 @@ void Properties_gather::gatherData(Properties_point & myprop,
   for(int i=0; i< nrandvar; i++) 
     rand_num(i)=rng.ulec();
 
-  psp->calcNonlocWithTest(wfdata, sample, wf,
+  psp->calcNonlocWithTest(wfdata, sys,sample, wf,
                           rand_num,  myprop.nonlocal);
 
   
@@ -377,7 +377,7 @@ void Properties_gather::gatherData(Properties_point & myprop,
     //cout << "pg: new wfval " << myprop.aux_wf_val(i).amp(0,0) << endl;
     aux_sys(i)->calcKinetic(usewfdata, aux_sample(i), 
                             aux_wf(i), a_kin);
-    psp->calcNonlocWithTest(usewfdata, aux_sample(i),
+    psp->calcNonlocWithTest(usewfdata, aux_sys(i), aux_sample(i),
                             aux_wf(i),rand_num, a_nonloc);
     a_loc=aux_sys(i)->calcLoc(aux_sample(i));
         

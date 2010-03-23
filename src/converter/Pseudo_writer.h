@@ -45,6 +45,9 @@ public:
 
 class Spline_pseudo_writer {
 public:
+  //If spin_dep is true, then the first half of L-values is the down spin,
+  //and the second is the up spin.
+  
   // Pseudopotential positions.  First is for l-value, second for vector..
   std::vector < std::vector <double> > psp_pos;
 
@@ -52,8 +55,11 @@ public:
   std::vector <std::vector <double> > psp_val;
 
   std::string label;
-
+  bool spin_dep;
   virtual void print_pseudo(std::ostream & os);
+  Spline_pseudo_writer() { 
+    spin_dep=false;
+  }
 };
 
 #endif

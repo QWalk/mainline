@@ -824,9 +824,9 @@ void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis ) {
     Spline_basis_writer tmp_basis;
     tmp_basis.label=*nm;
     //do S orbitals..
-    for(int el=1; el < 5; el++) { //search over possible l-values
+    for(int st=1; st < 20; st++) { //search over possible states
       string prefix="ORB.S";
-      append_number(prefix, el);
+      append_number(prefix, st);
       prefix+=".";
       string postfix="."+*nm;
       int n=1;
@@ -836,18 +836,27 @@ void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis ) {
         file+=postfix;
         ifstream is(file.c_str());
         if(!is) break;
-        cout << "found " << file << endl;
+        string dummy;
+        is >> dummy >> dummy; 
+        if(dummy != *nm) { 
+          cout << "file " << file << " doesn't match name in file " << dummy << endl;
+          exit(1);
+        }
+        int el;
+        is >> el;
+        is.ignore(180,'\n');
+        cout << "found " << file << " l-value " << el <<  endl;
         switch(el) { 
-          case 1:
+          case 0:
             tmp_basis.types.push_back("S");
             break;
-          case 2:
+          case 1:
             tmp_basis.types.push_back("P_siesta");
             break;
-          case 3:
+          case 2:
             tmp_basis.types.push_back("5D_siesta");
             break;
-          case 4:
+          case 3:
             tmp_basis.types.push_back("7F_siesta");
             break;
           default:
@@ -855,7 +864,7 @@ void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis ) {
             exit(1);
         }
         //Read in the file..
-        is.ignore(180,'\n'); is.ignore(180,'\n');
+        is.ignore(180,'\n');
         double rad, val;
         vector <double> rads, vals;
         while(is >> rad && is >> val) {
@@ -923,9 +932,13 @@ void read_psp(vector <Atom> & atoms, vector <Spline_pseudo_writer> & pseudo) {
     int npoints=atoi(spl[2].c_str());
     int nl=atoi(spl[0].c_str());
     int nl_up=atoi(spl[1].c_str());
+    int nl_down=nl;
     if(nl_up > 0) { 
-      cout << "Can't deal with spin-polarized pseudopotentials..sorry\n";
-      exit(1);
+      tmp_pseudo.spin_dep=true;
+      cout << "Spin-dependent pseudopotential found for " << *at << endl;
+      nl+=nl_up;
+      //cout << "Can't deal with spin-polarized pseudopotentials..sorry\n";
+      //exit(1);
     }
     //cout << "npoints " << npoints <<  " nl " << nl << endl;
     is.ignore(180,'\n'); //Radial grid..
@@ -936,16 +949,18 @@ void read_psp(vector <Atom> & atoms, vector <Spline_pseudo_writer> & pseudo) {
       rad.push_back(dum);
     }
 
+    vector <int> lvalue;
+    vector <vector <double> > up_rad(nl_down), up_val(nl_down);
+    vector <vector <double> > down_rad(nl_down), down_val(nl_down);
     for(int l=0; l< nl; l++) { 
       vector <double> val;
       is.ignore(180,'\n');
       getline(is, line);
       //cout << line << endl;
       int currl; is >> currl;
-      //cout << "l " << l << " "  << currl << endl;
-      assert(l==currl);
-      
-
+      cout << "l " << l << " "  << currl << endl;
+      lvalue.push_back(currl);
+     // assert(l==currl || l==currl-nl_down);
       for(int i=0; i< npoints; i++) { 
         double dum; is >> dum; 
         val.push_back(dum);
@@ -954,25 +969,72 @@ void read_psp(vector <Atom> & atoms, vector <Spline_pseudo_writer> & pseudo) {
       vector <double> urad, uval;
       make_uniform(rad,val,urad,uval);
       
-      //string outname="psp";
-      //append_number(outname,l);
-      //ofstream out(outname.c_str());
-      //int n=urad.size();
-      //for(int i=0; i< n; i++) {
-      //  out << urad[i] << "  " << uval[i] << endl;
-      //}
-      
-      tmp_pseudo.psp_pos.push_back(urad);
-      tmp_pseudo.psp_val.push_back(uval);
-      
+      if(l < nl_down) { 
+        down_rad[currl]=urad;
+        down_val[currl]=uval;
+      }
+      else { 
+        up_rad[currl]=urad;
+        up_val[currl]=uval;
+      }
+      //tmp_pseudo.psp_pos.push_back(urad);
+      //tmp_pseudo.psp_val.push_back(uval);
     }
     tmp_pseudo.label=*at;
+    int npts=down_val[0].size();
+
+    for(int i=0; i < nl_down; i++) { 
+      assert(down_rad[i].size() > 0);
+      cout << i << " : " << up_rad[i].size() << "  " << down_rad[i].size() << endl;
+      if(up_rad[i].size()==0) {
+        cout << "setting up channel " << i << " to down channel "<< endl;
+        up_rad[i]=down_rad[i];
+        up_val[i]=down_val[i];
+      }
+      else { 
+        for(int j=0; j< npts; j++) { 
+          assert(fabs(up_rad[i][j]-down_rad[i][j]) < 1e-9);
+          up_val[i][j]+=down_val[i][j];
+        }
+      }
+    }
+
+    
+    for(int l=0; l < nl_down-1; l++) { 
+      for(int i=0; i< npts; i++) { 
+        up_val[l][i]-=up_val[nl_down-1][i];
+        down_val[l][i]-=down_val[nl_down-1][i];
+      }
+    }
+     
+    
+    for(int l=0; l < nl_down; l++) { 
+      tmp_pseudo.psp_pos.push_back(down_rad[l]);
+      tmp_pseudo.psp_val.push_back(down_val[l]);
+    }
+    for(int l=0; l < nl_down; l++) { 
+      tmp_pseudo.psp_pos.push_back(up_rad[l]);
+      tmp_pseudo.psp_val.push_back(up_val[l]);
+    }
+    
+    /*
     int npts=tmp_pseudo.psp_val[0].size();
+        
+    if(nl_up > 0) { 
+      //Add the local part onto the up spin channel, too..
+      tmp_pseudo.psp_pos.push_back(tmp_pseudo.psp_pos[nl_down-1]);
+      tmp_pseudo.psp_val.push_back(tmp_pseudo.psp_val[nl_down-1]);
+    }
+        
     for(int i=0; i< npts; i++) { 
-      for(int l=0; l< nl-1; l++) { 
+      for(int l=0; l< nl_down-1; l++) { 
+        tmp_pseudo.psp_val[l][i]-=tmp_pseudo.psp_val[nl_down-1][i];
+      }
+      for(int l=nl_down; l< nl-1; l++) { 
         tmp_pseudo.psp_val[l][i]-=tmp_pseudo.psp_val[nl-1][i];
       }
     }
+         */
     pseudo.push_back(tmp_pseudo);
   }
 }

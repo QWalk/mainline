@@ -87,12 +87,12 @@ public:
 
     Uses random evaluation of the pseudopotential automatically.
    */
-  void calcNonloc(Wavefunction_data * wfdata,
+  void calcNonloc(Wavefunction_data * wfdata, System *,
                   Sample_point * sample, Wavefunction * wf,
                   Array1 <doublevar> & totalv);
 
 
-  void calcNonlocTmove(Wavefunction_data * wfdata,
+  void calcNonlocTmove(Wavefunction_data * wfdata, System *,
                        Sample_point * sample,
                        Wavefunction * wf,
                        Array1 <doublevar> & totalv,  //total p.e. from the psp
@@ -105,7 +105,7 @@ public:
     If all of them are set to one, everything is evaluated.  If it's set
     to zero, nothing is evaluated.
   */
-  void calcNonlocWithTest(Wavefunction_data *, Sample_point *, Wavefunction *,
+  void calcNonlocWithTest(Wavefunction_data *, System *,Sample_point *, Wavefunction *,
                           const Array1 <doublevar> & accept_var,
                           Array1 <doublevar> & totalv);
 
@@ -115,12 +115,12 @@ public:
 
     Uses a cutoff radius for evaluation, completely nonrandom
    */
-  void calcNonlocWithFile(Wavefunction_data *, Sample_point *, Wavefunction *,
+  void calcNonlocWithFile(Wavefunction_data *, System *,Sample_point *, Wavefunction *,
                           Array1 <doublevar> &, Pseudo_buffer & input);
 
 
   
-  void calcNonlocParmDeriv(Wavefunction_data * wfdata,
+  void calcNonlocParmDeriv(Wavefunction_data * wfdata, System *,
                                             Sample_point * sample,
                                             Wavefunction * wf,
                                             const Array1 <doublevar> & accept_var,
@@ -130,7 +130,7 @@ public:
     The worker function; the rest just provide simple defaults when functions don't need everything
    
     */
-  void calcNonlocWithAllvariables(Wavefunction_data * wfdata,
+  void calcNonlocWithAllvariables(Wavefunction_data * wfdata, System *,
                                   Sample_point * sample,
                                   Wavefunction * wf,
                                   const Array1 <doublevar> & accept_var, //random variables for stochastic evaluation
@@ -171,15 +171,13 @@ public:
 
   ~Pseudopotential();
 
-  void getLocalDerivative(Sample_point *, Force_fitter & ,
-                          Array2 <doublevar> & der);
 
 private:
   int deterministic;
 
-  void getRadial(int at, Sample_point * sample,
+  void getRadial(int at, int spin, Sample_point * sample,
                                 Array1 <doublevar> & r, Array1 <doublevar> & v_l);
-  void getRadial(int at, Sample_point * sample,
+  void getRadial(int at, int spin, Sample_point * sample,
                                   Array1 <doublevar> & r, 
                                   Array2 <doublevar> & v_l);
   const int maxaip; //!< Maximum number of atomic integration points
@@ -195,7 +193,7 @@ private:
 
   Storage_container wfStore;
 
-  Array1 <Basis_function *> radial_basis;
+  Array2 <Basis_function *> radial_basis;
 
 };
 

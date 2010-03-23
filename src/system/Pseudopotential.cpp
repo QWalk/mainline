@@ -27,6 +27,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "ulec.h"
 #include "Wavefunction_data.h"
 #include "Basis_function.h"
+#include "System.h"
 using namespace std;
 /*!
 Some legendre polynomials..
@@ -77,7 +78,8 @@ doublevar legendre_der(doublevar x, int n) {
 
 Pseudopotential::~Pseudopotential()  {
   for(int i=0; i< radial_basis.GetDim(0); i++)
-    if(radial_basis(i)) delete radial_basis(i);
+    for(int j=0; j < radial_basis.GetDim(1); j++)  
+      if(radial_basis(i,j)) delete radial_basis(i,j);
 }
 
 
@@ -140,10 +142,11 @@ int Pseudopotential::initializeStatic(Wavefunction_data *wfdata,
 //----------------------------------------------------------------------
 
 void Pseudopotential::calcNonlocWithFile(Wavefunction_data * wfdata,
-    Sample_point * sample,
-    Wavefunction * wf,
-    Array1 <doublevar> & totalv,
-    Pseudo_buffer & input)
+                                         System * sys,
+                                         Sample_point * sample,
+                                         Wavefunction * wf,
+                                         Array1 <doublevar> & totalv,
+                                         Pseudo_buffer & input)
 {
   int natoms=sample->ionSize();
   int nwf=wf->nfunc();
@@ -182,7 +185,11 @@ void Pseudopotential::calcNonlocWithFile(Wavefunction_data * wfdata,
 
         Array1 <doublevar> v_l(numL(at));
         //cout << "getRadial " << endl;
-        getRadial(at, sample, olddist, v_l);
+        int spin=1;
+        if(e < sys->nelectrons(0)) { 
+          spin=0;
+        }
+        getRadial(at,spin, sample, olddist, v_l);
 
 
         //----------------------------------------
@@ -202,7 +209,7 @@ void Pseudopotential::calcNonlocWithFile(Wavefunction_data * wfdata,
             
             sample->setElectronPos(e, oldpos);
             doublevar base_sign=sample->overallSign();
-	    doublevar base_phase=sample->overallPhase();
+            doublevar base_phase=sample->overallPhase();
             //Make sure to move the electron relative to the nearest neighbor
             //in a periodic calculation(so subtract the distance rather than
             //adding to the ionic position).  This actually only matters 
@@ -301,14 +308,14 @@ atom and l-value.
 
  */
 
-void Pseudopotential::getRadial(int at, Sample_point * sample,
+void Pseudopotential::getRadial(int at, int spin,Sample_point * sample,
                                 Array1 <doublevar> & r, Array1 <doublevar> & v_l) {
-  assert(radial_basis(at) != NULL);
-  radial_basis(at)->calcVal(r, v_l);
+  assert(radial_basis(at,spin) != NULL);
+  radial_basis(at,spin)->calcVal(r, v_l);
   if(addzeff(at)) {
     //for(int l=0; l < numL(at); l++) {
     int l=numL(at)-1;
-    doublevar cutoff_rad=radial_basis(at)->cutoff(l);
+    doublevar cutoff_rad=radial_basis(at,spin)->cutoff(l);
     if(r(0) < cutoff_rad) {
       v_l(l) += sample->getIonCharge(at)/r(0);
     }
@@ -317,14 +324,14 @@ void Pseudopotential::getRadial(int at, Sample_point * sample,
 }
 
 
-void Pseudopotential::getRadial(int at, Sample_point * sample,
+void Pseudopotential::getRadial(int at, int spin, Sample_point * sample,
                                 Array1 <doublevar> & r, 
                                 Array2 <doublevar> & v_l){
-  assert(radial_basis(at) != NULL);
-  radial_basis(at)->calcLap(r, v_l);
+  assert(radial_basis(at,spin) != NULL);
+  radial_basis(at,spin)->calcLap(r, v_l);
   if(addzeff(at)) {
     int l=numL(at)-1;
-    doublevar cutoff_rad=radial_basis(at)->cutoff(l);
+    doublevar cutoff_rad=radial_basis(at,spin)->cutoff(l);
     if(r(0) < cutoff_rad) {
       v_l(l,0) += sample->getIonCharge(at)/r(0);
       for(int d=0; d< 3; d++) {
@@ -353,7 +360,7 @@ int Pseudopotential::nTest() {
 
 //----------------------------------------------------------------------
 
-void Pseudopotential::calcNonloc(Wavefunction_data * wfdata,
+void Pseudopotential::calcNonloc(Wavefunction_data * wfdata, System * sys,
                                  Sample_point * sample, Wavefunction * wf,
                                  Array1 <doublevar> & totalv) {
   int tot=nTest();
@@ -361,13 +368,13 @@ void Pseudopotential::calcNonloc(Wavefunction_data * wfdata,
   for(int i=0; i< tot; i++) {
     test(i)=rng.ulec();
   }
-  calcNonlocWithTest(wfdata, sample, wf, test, totalv);
+  calcNonlocWithTest(wfdata, sys, sample, wf, test, totalv);
 }
 
 //----------------------------------------------------------------------
 
 
-void Pseudopotential::calcNonlocTmove(Wavefunction_data * wfdata,
+void Pseudopotential::calcNonlocTmove(Wavefunction_data * wfdata, System * sys,
                      Sample_point * sample,
                      Wavefunction * wf,
                      Array1 <doublevar> & totalv,  //total p.e. from the psp
@@ -379,29 +386,31 @@ void Pseudopotential::calcNonlocTmove(Wavefunction_data * wfdata,
     test(i)=rng.ulec();
   }
   Array1 <doublevar> parm_deriv;
-  calcNonlocWithAllvariables(wfdata,sample, wf, test,totalv, true, tmoves,false, parm_deriv);
+  calcNonlocWithAllvariables(wfdata,sys,sample, wf, test,totalv, true, tmoves,false, parm_deriv);
 }
 //----------------------------------------------------------------------
 
-void Pseudopotential::calcNonlocWithTest(Wavefunction_data *wfdata , Sample_point * sample, Wavefunction *wf ,
+void Pseudopotential::calcNonlocWithTest(Wavefunction_data *wfdata , System * sys, 
+                                         Sample_point * sample, Wavefunction *wf ,
                                          const Array1 <doublevar> & accept_var,
                                          Array1 <doublevar> & totalv) { 
   vector<Tmove>  tmoves;
   Array1 <doublevar> parm_deriv;
-  calcNonlocWithAllvariables(wfdata,sample, wf, accept_var,totalv, false, tmoves,false, parm_deriv);
+  calcNonlocWithAllvariables(wfdata,sys, sample, wf, accept_var,totalv, false, tmoves,false, parm_deriv);
 }
 
-void Pseudopotential::calcNonlocParmDeriv(Wavefunction_data * wfdata,
+void Pseudopotential::calcNonlocParmDeriv(Wavefunction_data * wfdata, System * sys,
                                           Sample_point * sample,
                                           Wavefunction * wf,
                                           const Array1 <doublevar> & accept_var,
                                           Array1 <doublevar> & totalv, Array1 <doublevar> & parm_deriv) { 
   vector<Tmove>  tmoves;
-  calcNonlocWithAllvariables(wfdata,sample, wf, accept_var,totalv, false, tmoves,true, parm_deriv);
+  calcNonlocWithAllvariables(wfdata,sys,sample, wf, accept_var,totalv, false, tmoves,true, parm_deriv);
   
 }
 
 void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
+                                                 System * sys,
                                                  Sample_point * sample,
                                                  Wavefunction * wf,
                                                  const Array1 <doublevar> & accept_var,
@@ -462,7 +471,9 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
         nonlocal=0;
 
         Array1 <doublevar> v_l(numL(at));
-        getRadial(at, sample, olddist, v_l);
+        int spin=1;
+        if(e < sys->nelectrons(0)) spin=0;
+        getRadial(at,spin, sample, olddist, v_l);
 
         //----------------------------------------
         //Start integral
@@ -619,37 +630,6 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
 //------------------------------------------------------------------------
 
 
-void Pseudopotential::getLocalDerivative(Sample_point * sample, 
-                                         Force_fitter & fitter,
-                                         Array2 <doublevar> & der) {
-  
-  int natoms=sample->ionSize();
-  der.Resize(natoms, 3);
-  der=0;
-  Array1 <doublevar> olddist(5);
-  Array1 <doublevar> tmpder(3), tmpder_fit(3);
-
-  for(int at=0; at< natoms; at++){
-    if(numL(at) != 0){
-      Array2 <doublevar> v_l(numL(at), 5);
-
-      for(int e=0; e < sample->electronSize(); e++) {
-        sample->getEIDist(e,at, olddist);
-        getRadial(at, sample, olddist, v_l);
-        int lastL=numL(at)-1;
-        for(int d=0; d< 3; d++) 
-          //der(at,d)-=v_l(lastL, d+1);
-          tmpder(d)=-v_l(lastL,d+1);
-        fitter.fit_force(olddist,tmpder, tmpder_fit);
-        for(int d=0; d< 3; d++) 
-          der(at,d)+=tmpder_fit(d);
-      }
-    }
-  }
-
-}
-
-//----------------------------------------------------------------------
 void Pseudopotential::randomize() {
   Array1 <doublevar> x(3), y(3), z(3);
   generate_random_rotation(x,y,z);
@@ -722,52 +702,49 @@ void Pseudopotential::read(vector <vector <string> > & pseudotext,
   Array1 <int> atom_has_psp(natoms);
   atom_has_psp=0;
   int maxL=0;
-
-  radial_basis.Resize(natoms);
+  
+  //Assuming we have spin 1/2 particles here, as often assumed..
+  radial_basis.Resize(natoms,2);
   radial_basis=NULL;
+  /*
   vector < vector < string > > basistxt;
   for(unsigned int i=0; i< pseudotext.size(); i++) {
     unsigned int pos=0;
-    vector <string> basistmp;
-    if(!readsection(pseudotext[i], pos=0, basistmp, "BASIS"))
-      error("Need Basis section in pseudopotential for ", pseudotext[i][0]);
-    vector <string> oldqmctxt;
-    if(readsection(pseudotext[i], pos=0, oldqmctxt, "OLDQMC")) {
-      error("OLDQMC is out of date.  Please enclose it in:\nBASIS { \n",
-            pseudotext[i][0], "\n RGAUSSIAN \n  ....   \n}");
-    }    
     basistxt.push_back(basistmp);
   }
+   */
 
-  for(unsigned int i=0; i< pseudotext.size(); i++ )
-  {
-    for(int at=0; at<natoms; at++)
-    {
+  for(unsigned int i=0; i< pseudotext.size(); i++ ) {
+    for(int at=0; at<natoms; at++) {
       unsigned int pos=0;
-
-      if( pseudotext[i][0] == atomnames[at] )
-      {
+      if( pseudotext[i][0] == atomnames[at] ) {
         if(atom_has_psp(at))
           error("There are two PSEUDO sections for ", atomnames[at]);
         atom_has_psp(at)=1;
-        string type;
-        //vector <string> oldqmctxt;
-        //vector <string> basistxt;
-        //if(readsection(pseudotext[i], pos=0, basistxt, "BASIS")) {
-        vector <string> tmpbasis(basistxt[i]);
-          allocate(tmpbasis, radial_basis(at));
-          int nlval=radial_basis(at)->nfunc();
-          if(maxL < nlval) maxL=nlval;
+        vector <string> basistmp;
+        if(haskeyword(pseudotext[i], pos=0, "SPIN_DEP")) { 
+          if(!readsection(pseudotext[i], pos=0, basistmp, "BASIS_UP"))
+            error("Need BASIS_DN section in pseudopotential for ", pseudotext[i][0]);
+          allocate(basistmp, radial_basis(at,0));
+          basistmp.clear();
+          if(!readsection(pseudotext[i], pos=0, basistmp, "BASIS_DN"))
+            error("Need BASIS_UP section in pseudopotential for ", pseudotext[i][0]);
+          allocate(basistmp, radial_basis(at,1));
+          
+        }
+        else { 
+          if(!readsection(pseudotext[i], pos=0, basistmp, "BASIS"))
+            error("Need Basis section in pseudopotential for ", pseudotext[i][0]);
+          allocate(basistmp, radial_basis(at,0));
+          allocate(basistmp, radial_basis(at,1));
 
-          //}
-          //else if(readsection(pseudotext[i], pos=0, oldqmctxt, "OLDQMC")) {
-          //error("OLDQMC is out of date.  Please enclose it in:\nBASIS { \n",
-          //     atomnames[at], "\n RGAUSSIAN \n  ....   \n}");
-          // }
-          // else {
-          // error("Need BASIS section in pseudopotential for ", atomnames[at]);
-          //}
-
+        }
+        
+//        string type;
+        //vector <string> tmpbasis(basistxt[i]);
+        assert(radial_basis(at,0)->nfunc()==radial_basis(at,1)->nfunc());
+        int nlval=radial_basis(at,0)->nfunc();
+        if(maxL < nlval) maxL=nlval;
         pos=0;
         readvalue(pseudotext[i], pos, aip(at), "AIP");
         if(haskeyword(pseudotext[i], pos=0, "ADD_ZEFF")) {
@@ -780,8 +757,7 @@ void Pseudopotential::read(vector <vector <string> > & pseudotext,
 
 
 
-  for(int at=0; at<natoms; at++)
-  {
+  for(int at=0; at<natoms; at++) {
     int aiptemp=aip(at);
     Array1 <doublevar> xpt(maxaip);
     Array1 <doublevar> ypt(maxaip);
@@ -811,8 +787,8 @@ void Pseudopotential::read(vector <vector <string> > & pseudotext,
   numL=0;
   for(int at=0; at < natoms; at++ )
   {
-    if(radial_basis(at) != NULL)
-      numL(at)=radial_basis(at)->nfunc();
+    if(radial_basis(at,0) != NULL)
+      numL(at)=radial_basis(at,0)->nfunc();
   }
 
 
@@ -830,6 +806,7 @@ void Pseudopotential::read(vector <vector <string> > & pseudotext,
     if(numL(at) > 0) {
     Array1 <doublevar> cutoffL(numL(at));
     Array1 <doublevar> v_l(numL(at));
+    Array1 <doublevar> v_l2(numL(at));
     Array1 <doublevar> tempr(5);
     Array1 <int> foundcutoff(numL(at));
     foundcutoff=0;
@@ -841,10 +818,12 @@ void Pseudopotential::read(vector <vector <string> > & pseudotext,
       //potentials
 
       tempr(0)=r; tempr(1)=r*r; tempr(4)=r;
-      getRadial(at, tempsample, tempr, v_l);
+      getRadial(at,0, tempsample, tempr, v_l);
+      getRadial(at,1, tempsample, tempr, v_l2);
       for(int l=0; l< numL(at)-1; l++)
       {
-        if(fabs(v_l(l)) > cutoff_threshold && !foundcutoff(l))
+        if( (fabs(v_l(l)) > cutoff_threshold 
+             || fabs(v_l2(l)) > cutoff_threshold) && !foundcutoff(l))
         {
           //It seems to me that it should be r+cutoff_interval,
           //but for compatability with the f90 code, we'll put it
@@ -901,7 +880,10 @@ int Pseudopotential::showinfo(ostream & os)
 //	       << setw(10)  << integralweight(at, i) << endl;
 //	  }	
 	os << "Cutoff for static calculation "<<cutoff(at)<<endl;
-        radial_basis(at)->showinfo(indent, os);
+        os << "Pseudopotential for spin up: \n";
+        radial_basis(at,0)->showinfo(indent, os);
+        os << "Pseudopotential for spin down: \n";
+        radial_basis(at,1)->showinfo(indent, os);
       }
     }
   }
