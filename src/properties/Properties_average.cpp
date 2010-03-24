@@ -51,18 +51,10 @@ void Properties_final_average::setSize(int nwf, int naux, int n_cvg) {
 
   aux_diff.Resize(naux, n_cvg);
   aux_differr.Resize(naux, n_cvg);
-  z_pol.Resize(3);
-  z_pol_err.Resize(3);
-  z_pol=dcomplex(0.0,0.0); z_pol_err=dcomplex(0.0, 0.0);
-
-  aux_z_poldiff.Resize(naux,3);
-  aux_z_poldiff_err.Resize(naux,3);
 
   avgvar=0.0;
   aux_energy=0; aux_energyerr=0; aux_diff=0; aux_differr=0; aux_energyvar=0;  
  
-  aux_z_poldiff=dcomplex(0.0,0.0);
-  aux_z_poldiff_err=dcomplex(0.0,0.0);
 }
 
 //----------------------------------------------------------------------
@@ -79,9 +71,6 @@ void Properties_final_average::blockReduce(Array1 <Properties_block> & block_avg
   int n_cvg=block_avg(start_block).aux_energy.GetDim(1);
   setSize(nwf, naux, n_cvg);
 
-  //avgvar=0.0;
-  //aux_energy=0; aux_energyerr=0; aux_diff=0; aux_differr=0;
-  //z_pol=dcomplex(0.0,0.0); z_pol_err=dcomplex(0.0, 0.0);
 
   int autocorr_depth=block_avg(start_block).autocorr.GetDim(1);
   autocorr.Resize(nwf, autocorr_depth); autocorr=0;
@@ -142,8 +131,6 @@ void Properties_final_average::blockReduce(Array1 <Properties_block> & block_avg
   for(int block=start_block; block < end_block; block++) {
     doublevar thisweight=block_avg(block).totweight/totweight;
     for(int w=0; w< nwf; w++) {
-      for(int d=0; d< 3; d++) 
-        z_pol(d)+=block_avg(block).z_pol(d)*thisweight;
       for(int i=0; i< NUM_QUANTITIES; i++) {
         avg(i,w)+=block_avg(block).avg(i,w)*thisweight;
         avgvar(i,w)+=block_avg(block).var(i,w)*thisweight;
@@ -166,9 +153,6 @@ void Properties_final_average::blockReduce(Array1 <Properties_block> & block_avg
     }
     
     for(int i=0; i< naux; i++) {
-      for(int d=0;d < 3; d++) 
-        aux_z_poldiff(i,d)+=(block_avg(block).aux_z_pol(i,d)-
-                             block_avg(block).z_pol(d))*thisweight;
       for(int w=0; w< n_cvg; w++) {
         aux_diff(i,w)+=block_avg(block).aux_diff(i,w)*thisweight;
         aux_energy(i,w)+=block_avg(block).aux_energy(i,w)*thisweight;
@@ -182,11 +166,6 @@ void Properties_final_average::blockReduce(Array1 <Properties_block> & block_avg
     //doublevar wt=block_avg(block).totweight/totweight;
     doublevar thisweight=block_avg(block).totweight/(nblock*totweight);
     
-    for(int d=0; d< 3;d++) {
-      doublevar realdiff=block_avg(block).z_pol(d).real()-z_pol(d).real();
-      doublevar imagdiff=block_avg(block).z_pol(d).imag()-z_pol(d).imag();
-      z_pol_err(d)+=dcomplex(realdiff*realdiff, imagdiff*imagdiff)*thisweight;
-    }
     for(int w=0; w< nwf; w++) {
       for(int i=0; i< NUM_QUANTITIES; i++) {
         err(i,w)+=(block_avg(block).avg(i,w)-avg(i,w))
@@ -212,12 +191,6 @@ void Properties_final_average::blockReduce(Array1 <Properties_block> & block_avg
     }
     
     for(int i=0; i< naux; i++) {
-      for(int d=0; d< 3; d++) {
-        dcomplex diff=(block_avg(block).aux_z_pol(i,d)-
-                       block_avg(block).z_pol(d)-aux_z_poldiff(i,d));
-        aux_z_poldiff_err(i,d)+=dcomplex(diff.real()*diff.real(),
-                                         diff.imag()*diff.imag())*thisweight;
-      }
       for(int w=0; w< n_cvg; w++) {
         doublevar diff=block_avg(block).aux_diff(i,w);
         aux_differr(i,w)+=(diff-aux_diff(i,w))*(diff-aux_diff(i,w))*thisweight;
@@ -253,7 +226,6 @@ void Properties_final_average::averageReduce(Array1 <Properties_final_average> &
 
   avgvar=0.0;
   aux_energy=0; aux_energyerr=0; aux_diff=0; aux_differr=0;
-  z_pol=dcomplex(0.0,0.0); z_pol_err=dcomplex(0.0, 0.0);
   int autocorr_depth=final_avg(start).autocorr.GetDim(1);
   autocorr.Resize(nwf, autocorr_depth); autocorr=0;
   autocorrerr.Resize(nwf, autocorr_depth); autocorrerr=0;
@@ -272,9 +244,6 @@ void Properties_final_average::averageReduce(Array1 <Properties_final_average> &
   for(int block=start; block < end; block++) {
     totweight+=final_avg(block).totweight;
     for(int w=0; w< nwf; w++) {
-      for(int d=0; d< 3; d++) 
-        z_pol(d)+=dcomplex(final_avg(block).z_pol(d).real()/nblock, 
-                           final_avg(block).z_pol(d).imag()/nblock);
       for(int i=0; i< NUM_QUANTITIES; i++) {
         avg(i,w)+=final_avg(block).avg(i,w)/nblock;
         avgvar(i,w)+=final_avg(block).avgvar(i,w)/nblock;
@@ -302,9 +271,6 @@ void Properties_final_average::averageReduce(Array1 <Properties_final_average> &
   for(int block=start; block < end; block++) {
     doublevar thisweight=1.0/n2;
     
-    for(int d=0; d< 3;d++) {
-      z_pol_err(d)+=final_avg(block).z_pol_err(d)*thisweight;
-    }
     for(int w=0; w< nwf; w++) {
       for(int i=0; i< NUM_QUANTITIES; i++) {
         err(i,w)+=final_avg(block).err(i,w)*thisweight;
@@ -402,17 +368,6 @@ void Properties_final_average::showSummary(ostream & os, Array1 <Average_generat
       os << "  diff_" << w << "-0    " << diff_energy(w)
          << "  +/-   " << sqrt(diff_energyerr(w)) << endl;
   }
-  
-  for(int d=0; d< 3; d++) {
-    dcomplex err=dcomplex(sqrt(z_pol_err(d).real()), sqrt(z_pol_err(d).imag()));
-    if(fabs(z_pol(d).imag()) < 1e-8) 
-      os << "dipole_moment" << d << "   " << z_pol(d).real()
-        << " +/- " << err.real() << endl;
-    else
-      os << "z_pol" << d << "  " << z_pol(d).real()<< " + i " << z_pol(d).imag()
-       << " +/- " << err.real() << " + i " << err.imag() << endl;
-  }
-  
   
   
   if(naux > 0) 

@@ -608,16 +608,12 @@ void Properties_manager::endBlock() {
               }
             }
           }
-          for(int d=0; d< 3; d++)
-            z_pol(d)+=trace(step, walker).z_pol(d)*wt;
           for(int i=0; i< naux; i++) {
             //the convention(in RMC and VMC) is that the last
             //converge point is the 'pure' estimator
             int last=n_cvg-1;
             doublevar aux_wt=trace(step,walker).aux_weight(i,last)
               /(aux_wt_sum(i,last)*totpts);
-            for(int d=0; d< 3; d++) 
-              aux_z_pol(i,d)+=trace(step,walker).aux_z_pol(i,d)*aux_wt;
             
             for(int c=0; c< n_cvg; c++) {
               auxen(i,c)+=trace(step, walker).aux_energy(i,c)
@@ -641,12 +637,7 @@ void Properties_manager::endBlock() {
     block_avg(current_block).avg(nonlocal,w)=parallel_sum(avgnonloc)/weight_sum;
     block_avg(current_block).avg(total_energy,w)=parallel_sum(avgen)/weight_sum;
     block_avg(current_block).avg(weight,w)=weight_sum/totpts;
-    for(int d=0;d < 3; d++) {
-      block_avg(current_block).z_pol(d)=parallel_sum(z_pol(d))/weight_sum;
-    }
     for(int i=0; i< naux; i++) {
-      for(int d=0;d < 3; d++) 
-        block_avg(current_block).aux_z_pol(i,d)=parallel_sum(aux_z_pol(i,d));
       for(int c=0; c< n_cvg; c++) {
         aux_wt_sum(i,c)*=totpts;
         block_avg(current_block).aux_energy(i,c)=parallel_sum(auxen(i,c));
@@ -915,16 +906,12 @@ void Properties_manager::endBlock_per_step() {
               }
             }
           }
-          for(int d=0; d< 3; d++)
-            z_pol(d)+=trace(step, walker).z_pol(d)*wt;
           for(int i=0; i< naux; i++) {
             //the convention(in RMC and VMC) is that the last
             //converge point is the 'pure' estimator
             int last=n_cvg-1;
             doublevar aux_wt=trace(step,walker).aux_weight(i,last)
               /(aux_wt_sum(i,last)*totpts);
-            for(int d=0; d< 3; d++) 
-              aux_z_pol(i,d)+=trace(step,walker).aux_z_pol(i,d)*aux_wt;
             
             for(int c=0; c< n_cvg; c++) {
               auxen(i,c)+=trace(step, walker).aux_energy(i,c)
@@ -961,12 +948,7 @@ void Properties_manager::endBlock_per_step() {
     block_avg(current_block).avg(weight,w)/=(nsteps-start_avg_step);
 
     
-    for(int d=0;d < 3; d++) {
-      block_avg(current_block).z_pol(d)=parallel_sum(z_pol(d))/weight_sum;
-    }
     for(int i=0; i< naux; i++) {
-      for(int d=0;d < 3; d++) 
-        block_avg(current_block).aux_z_pol(i,d)=parallel_sum(aux_z_pol(i,d));
       for(int c=0; c< n_cvg; c++) {
         aux_wt_sum(i,c)*=totpts;
         block_avg(current_block).aux_energy(i,c)=parallel_sum(auxen(i,c));
@@ -1187,9 +1169,6 @@ void Properties_manager::endBlockSHDMC() {
         aux_wt_sum(i,c)=parallel_sum(auxwt(i,c))/totpts;
     doublevar weight_sum=parallel_sum(totweight)/totpts;
     doublevar sum_inv=1.0/weight_sum;
-    Array1 <dcomplex> z_pol(3, dcomplex(0.0, 0.0));
-    Array2 <dcomplex> aux_z_pol(naux, 3, dcomplex(0.0, 0.0));
-    
     
     for(int step=start_avg_step; step < nsteps; step++) {
       for(int walker=0; walker < nwalkers; walker++) {
@@ -1213,16 +1192,12 @@ void Properties_manager::endBlockSHDMC() {
               }
             }
           }
-          for(int d=0; d< 3; d++)
-            z_pol(d)+=trace(step, walker).z_pol(d)*wt;
           for(int i=0; i< naux; i++) {
             //the convention(in RMC and VMC) is that the last
             //converge point is the 'pure' estimator
             int last=n_cvg-1;
             doublevar aux_wt=trace(step,walker).aux_weight(i,last)
               /(aux_wt_sum(i,last)*totpts);
-            for(int d=0; d< 3; d++) 
-              aux_z_pol(i,d)+=trace(step,walker).aux_z_pol(i,d)*aux_wt;
             
             for(int c=0; c< n_cvg; c++) {
               auxen(i,c)+=trace(step, walker).aux_energy(i,c)
@@ -1246,12 +1221,7 @@ void Properties_manager::endBlockSHDMC() {
     block_avg(current_block).avg(nonlocal,w)=parallel_sum(avgnonloc)/weight_sum;
     block_avg(current_block).avg(total_energy,w)=parallel_sum(avgen)/weight_sum;
     block_avg(current_block).avg(weight,w)=weight_sum/totpts;
-    for(int d=0;d < 3; d++) {
-      block_avg(current_block).z_pol(d)=parallel_sum(z_pol(d))/weight_sum;
-    }
     for(int i=0; i< naux; i++) {
-      for(int d=0;d < 3; d++) 
-        block_avg(current_block).aux_z_pol(i,d)=parallel_sum(aux_z_pol(i,d));
       for(int c=0; c< n_cvg; c++) {
         aux_wt_sum(i,c)*=totpts;
         block_avg(current_block).aux_energy(i,c)=parallel_sum(auxen(i,c));

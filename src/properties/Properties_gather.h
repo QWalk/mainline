@@ -38,7 +38,6 @@ class Properties_gather {
 
   Properties_gather() {
     square_weight=0;
-    zpol_manye=0;
   }
 
   ~Properties_gather();
@@ -82,7 +81,6 @@ class Properties_gather {
  private:
 
   int square_weight;
-  int zpol_manye; //whether to use the many-electron operator for the position
 
   //Auxillary wave function data
   Space_warper warper;
@@ -95,8 +93,6 @@ class Properties_gather {
 };
 
 
-void getZpol(System * sys, Sample_point * sample, Array1 <dcomplex> & zpol,
-             int zpol_manye);
 
 #endif //PROPERTIES_GATHER_H_INCLUDED
 

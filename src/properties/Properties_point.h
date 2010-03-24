@@ -82,14 +82,13 @@ struct Properties_point {
   Array1 <doublevar> weight; //!< averaging weight
   Wf_return wf_val; //!< wavefunction value
 
-  Array1 <dcomplex> z_pol; //!< =exp(i G dot sum x_j)
+  //Array1 <dcomplex> z_pol; //!< =exp(i G dot sum x_j)
 
   Array2 <doublevar> aux_energy;
   Array2 <doublevar> aux_weight;
 
   Array1 <doublevar> aux_jacobian;
   Array1 <Wf_return> aux_wf_val;
-  Array2 <dcomplex> aux_z_pol;
 
 
   doublevar gf_weight; //weight of green's function between this and the last point(used in DMC)

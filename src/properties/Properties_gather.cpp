@@ -68,10 +68,6 @@ void Properties_gather::read(vector < string> & words) {
   if(haskeyword(words, pos=0, "NOWARP")) 
     warper.set_warp(0);
   
-  zpol_manye=0;
-  if(haskeyword(words, pos=0, "ZPOL_manye"))
-    zpol_manye=1;
-
 
   int naux=aux_systxt.size();
 
@@ -175,71 +171,6 @@ void Properties_gather::getGreensFunctions(Dynamics_generator * dyngen,
 //----------------------------------------------------------------------
 #include "Force_fitter.h"
 
-void getZpol(System * sys, Sample_point * sample, Array1 <dcomplex> & zpol,
-	     int zpol_manye) { 
-
-  int nelectrons=sample->electronSize();
-  Array2 <doublevar> gvec;
-  Array1 <doublevar> pos(3);
-  zpol.Resize(3);
-  
-  if(sys->getRecipLattice(gvec)) {
-    zpol=dcomplex(0.0,0.0);
-    if(zpol_manye) { 
-      Array1 <doublevar> sum(3,0.0);
-      //See Souza et al. PRB v 62 pp 1666
-      //We're using the relation given in section
-      //VII.B 
-      for(int e=0; e< nelectrons; e++) {
-        sample->getElectronPos(e,pos);
-        for(int i=0; i< 3; i++) {
-          for(int d=0; d< 3; d++) {
-            sum(i)+=gvec(i,d)*pos(d);
-          }
-        }
-      }
-      
-      //cout << "pos " << pos(2) << "  sum " << sum(2) << endl;
-      for(int i=0; i< 3; i++) {
-        zpol(i)=dcomplex(cos(2*pi*sum(i)),sin(2*pi*sum(i)));
-      }
-    }
-    else { 
-      sys->getPrimRecipLattice(gvec);
-      for(int e=0; e< nelectrons; e++) { 
-        sample->getElectronPos(e,pos);
-        for(int i=0; i< 3; i++) {
-          doublevar tmp=0;
-          for(int d=0; d< 3; d++) {
-            tmp+=gvec(i,d)*pos(d);
-          }
-          zpol(i)+=dcomplex(cos(2*pi*tmp),sin(2*pi*tmp))/doublevar(nelectrons);
-        }
-      }
-    }
-
-  }
-  else {
-    Array1 <doublevar> sum(3,0.0);
-    for(int e=0; e< nelectrons; e++) {
-      sample->getElectronPos(e,pos);
-      for(int d=0; d< 3; d++) {
-        sum(d)-=pos(d);
-      }
-    }
-    int nions=sample->ionSize();
-    for(int at=0; at < nions; at++) {
-      sample->getIonPos(at,pos);
-      doublevar charge=sample->getIonCharge(at);
-      for(int d=0; d< 3; d++) {
-        sum(d)+=charge*pos(d);
-      }
-    }
-    for(int d=0; d< 3; d++)
-      zpol(d)=dcomplex(sum(d),0.0);
-  }
-    
-}
 
 /*!
 
@@ -328,10 +259,6 @@ void Properties_gather::gatherData(Properties_point & myprop,
   psp->calcNonlocWithTest(wfdata, sys,sample, wf,
                           rand_num,  myprop.nonlocal);
 
-  
-  getZpol(sys, sample, myprop.z_pol, zpol_manye);
-  
-
   //Collect auxillary points
 
   Array1 <doublevar> a_kin(nwf);
@@ -383,11 +310,6 @@ void Properties_gather::gatherData(Properties_point & myprop,
         
     
     myprop.aux_jacobian(i)=tot_jacob;
-
-    Array1<dcomplex> z_pol_tmp(3);
-    getZpol(aux_sys(i), aux_sample(i),z_pol_tmp, zpol_manye);
-    for(int d=0; d< 3; d++) 
-      myprop.aux_z_pol(i,d)=z_pol_tmp(d);
 
     for(int w=0; w< n_converge; w++) {
       myprop.aux_energy(i,w)=a_kin(0)+a_nonloc(0)+a_loc;

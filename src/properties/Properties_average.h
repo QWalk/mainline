@@ -63,9 +63,6 @@ struct Properties_final_average {
   Array1 <doublevar> diff_energy;
   Array1 <doublevar> diff_energyerr;
 
-  Array1 <dcomplex> z_pol;
-  Array1 <dcomplex> z_pol_err;
-
   Array2 <doublevar> autocorr; //autocorrelation of energy
   Array2 <doublevar> autocorrerr; 
 
@@ -79,9 +76,6 @@ struct Properties_final_average {
   Array2 <doublevar> aux_autocorr; 
   Array2 <doublevar> aux_autocorrerr; 
   
-  Array2 <dcomplex> aux_z_poldiff;
-  Array2 <dcomplex> aux_z_poldiff_err;
-
   Array1 <doublevar> aux_size;
 
   private:

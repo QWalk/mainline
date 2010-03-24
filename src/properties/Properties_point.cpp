@@ -46,9 +46,6 @@ void Properties_point::setSize(int nwf,
     aux_wf_val(i).Resize(nwf,1);
   }
   aux_gf_weight.Resize(n_aux);
-   z_pol.Resize(3);
-
-  aux_z_pol.Resize(n_aux,3);
 }
 
 
@@ -96,15 +93,7 @@ void Properties_point::mpiSend(int node) {
   for(int i=0; i< naux; i++) {
     aux_wf_val(i).mpiSend(node);
   }
-
-
-  for(int d=0; d< 3; d++) 
-    MPI_Send_complex(z_pol(d), node);
-
-  for(int a=0; a< naux; a++) 
-    for(int d=0; d< 3; d++) 
-      MPI_Send_complex(aux_z_pol(a,d),node);
-
+  
 #else
     error("Properties_point::mpi_send: not using MPI,"
           " this is most likely a bug");
@@ -159,14 +148,6 @@ void Properties_point::mpiReceive(int node) {
     aux_wf_val(i).mpiRecieve(node);
   } 
 
-
-  for(int d=0; d< 3; d++) 
-    MPI_Recv_complex(z_pol(d), node);
-
-  for(int a=0; a< naux; a++) 
-    for(int d=0; d< 3; d++) 
-      MPI_Recv_complex(aux_z_pol(a,d), node);
-
 #else
   
   error("Properties_point::mpiRecieve: not using MPI,"
@@ -203,8 +184,6 @@ void Properties_point::read(istream & is) {
   wf_val.read(is);
   is >> dummy; //}
   
-  is >> dummy; //z_pol
-  read_array(is, 3, z_pol);
   if(naux > 0) { 
     is >> dummy; //aux_energy
     read_array(is, naux, n_aux_cvg, aux_energy);
@@ -222,9 +201,6 @@ void Properties_point::read(istream & is) {
     read_array(is, naux, aux_gf_weight);
 
     basic_istream<char>::pos_type place=is.tellg();    
-    is >> dummy; // aux_z_pol
-    if(dummy != "aux_z_pol") is.seekg(place);
-    else read_array(is, naux, 3, aux_z_pol);
   }
 
 }
@@ -255,9 +231,6 @@ void Properties_point::write(string & indent, ostream & os) {
   wf_val.write(indent2, os);
   os << indent << "}\n";
   
-  
-  os << indent << " z_pol "; write_array(os, z_pol); os << endl;
-  
   if(naux > 0) { 
     os << indent << " aux_energy "; write_array(os, aux_energy); os << endl;
     os << indent << " aux_weight "; write_array(os, aux_weight); os << endl;
@@ -271,7 +244,6 @@ void Properties_point::write(string & indent, ostream & os) {
     
     os << indent << "gf_weight " << gf_weight << endl;
     os << indent << "aux_gf_weight "; write_array(os,aux_gf_weight); os << endl;
-    os << indent << "aux_z_pol " ; write_array(os, aux_z_pol); os << endl;
 
   }
   
