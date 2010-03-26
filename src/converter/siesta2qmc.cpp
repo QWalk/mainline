@@ -1012,9 +1012,11 @@ void read_psp(vector <Atom> & atoms, vector <Spline_pseudo_writer> & pseudo) {
       tmp_pseudo.psp_pos.push_back(down_rad[l]);
       tmp_pseudo.psp_val.push_back(down_val[l]);
     }
-    for(int l=0; l < nl_down; l++) { 
-      tmp_pseudo.psp_pos.push_back(up_rad[l]);
-      tmp_pseudo.psp_val.push_back(up_val[l]);
+    if(tmp_pseudo.spin_dep) { 
+      for(int l=0; l < nl_down; l++) { 
+        tmp_pseudo.psp_pos.push_back(up_rad[l]);
+        tmp_pseudo.psp_val.push_back(up_val[l]);
+      }
     }
     
     /*
