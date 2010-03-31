@@ -30,7 +30,7 @@ void Properties_point::setSize(int nwf,
   wf_val.Resize(nwf, 1);
   sign.Resize(nwf);
   
-  moved=0;
+  //moved=0;
   weight=1;
   count=0;
   sign=1;
@@ -45,7 +45,6 @@ void Properties_point::setSize(int nwf,
   for(int i=0; i< n_aux; i++) {
     aux_wf_val(i).Resize(nwf,1);
   }
-  aux_gf_weight.Resize(n_aux);
 }
 
 
@@ -81,12 +80,9 @@ void Properties_point::mpiSend(int node) {
            MPI_DOUBLE, node, 0, MPI_Comm_grp);
   
   // cout << mpi_info.node << ":sending aux_energy " << endl;
-  MPI_Send(&gf_weight, 1, MPI_DOUBLE, node, 0, MPI_Comm_grp);  
   MPI_Send(aux_energy.v, aux_energy.GetDim(0)*aux_energy.GetDim(1),
            MPI_DOUBLE, node, 0, MPI_Comm_grp);
   MPI_Send(aux_weight.v, aux_weight.GetDim(0)*aux_weight.GetDim(1),
-           MPI_DOUBLE, node, 0, MPI_Comm_grp);
-  MPI_Send(aux_gf_weight.v, aux_gf_weight.GetDim(0),
            MPI_DOUBLE, node, 0, MPI_Comm_grp);
   MPI_Send(aux_jacobian.v, aux_jacobian.GetDim(0), MPI_DOUBLE,
            node, 0, MPI_Comm_grp); 
@@ -135,12 +131,9 @@ void Properties_point::mpiReceive(int node) {
   MPI_Recv(wf_val.phase.v, wf_val.phase.GetDim(0)*wf_val.phase.GetDim(1),
            MPI_DOUBLE,node, 0, MPI_Comm_grp, & status);
 
-  MPI_Recv(&gf_weight, 1, MPI_DOUBLE, node, 0, MPI_Comm_grp, & status);
   MPI_Recv(aux_energy.v, aux_energy.GetDim(0)*aux_energy.GetDim(1),
            MPI_DOUBLE, node, 0, MPI_Comm_grp, & status);
   MPI_Recv(aux_weight.v, aux_weight.GetDim(0)*aux_weight.GetDim(1),
-           MPI_DOUBLE, node, 0, MPI_Comm_grp, & status);
-  MPI_Recv(aux_gf_weight.v, aux_gf_weight.GetDim(0),
            MPI_DOUBLE, node, 0, MPI_Comm_grp, & status);
   MPI_Recv(aux_jacobian.v, aux_jacobian.GetDim(0),
            MPI_DOUBLE, node, 0, MPI_Comm_grp, & status);
@@ -196,9 +189,6 @@ void Properties_point::read(istream & is) {
       aux_wf_val(a).read(is);
       is >> dummy; // } 
     }
-    is >> dummy >> gf_weight;
-    is >> dummy; //aux_gf_weight
-    read_array(is, naux, aux_gf_weight);
 
     basic_istream<char>::pos_type place=is.tellg();    
   }
@@ -242,9 +232,6 @@ void Properties_point::write(string & indent, ostream & os) {
       os << indent << "}\n";
     }
     
-    os << indent << "gf_weight " << gf_weight << endl;
-    os << indent << "aux_gf_weight "; write_array(os,aux_gf_weight); os << endl;
-
   }
   
 }

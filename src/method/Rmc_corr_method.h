@@ -19,8 +19,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 
 
-#ifndef DMC_CORR_METHOD_H_INCLUDED
-#define DMC_CORR_METHOD_H_INCLUDED
+#ifndef RMC_CORR_METHOD_H_INCLUDED
+#define RMC_CORR_METHOD_H_INCLUDED
 
 #include "Qmc_std.h"
 #include "Qmc_method.h"
@@ -36,46 +36,38 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 class Program_options;
 
-struct Dmc_corr_history { 
+struct Rmc_corr_history { 
   Array1 <doublevar> main_en;
   Array2 <Wf_return> wfs; //system number, electron number
   Array1 <Config_save_point> configs;
   Array1 <doublevar> jacobian;
   Properties_point prop;
   void mpiSend(int node);
-  
   void mpiReceive(int node);
-
 };
 
 
 
-struct Dmc_corr_point { 
+struct Rmc_corr_point { 
   //Properties_point prop;
-  deque <Dmc_corr_history> path;
-  //doublevar weight;
+  deque <Rmc_corr_history> path;
   int system; // the system that sampled this point.
-  //Config_save_point config_pos;  
-  //Array1 <doublevar> age;  //!< age of each electron
-  //Array1 <doublevar> jacobian;
-  //Array1 <int> initial_sign;
   Array1 <doublevar> weight;
   Array1 <doublevar> branching;
   Array1 <doublevar> totgf;
   int recalc_gf;
   int direction;
-  Dmc_corr_point() { 
+  Rmc_corr_point() { 
     //weight=1;
     recalc_gf=1;
     direction=1;
   }
   void mpiSend(int node);
   void mpiReceive(int node);
-  
 };
 
 
-class Dmc_corr_method : public Qmc_method
+class Rmc_corr_method : public Qmc_method
 {
 public:
 
@@ -86,24 +78,12 @@ public:
   int generateVariables(Program_options & options);
   void run(Program_options & options, ostream & output);
 
-  Dmc_corr_method() {
+  Rmc_corr_method() {
     have_read_options=0;
     have_allocated_variables=0;
   }
-  ~Dmc_corr_method()
+  ~Rmc_corr_method()
   {
-    /*
-    if(have_allocated_variables) {
-      if(mypseudo) delete mypseudo;
-      if(mysys) delete mysys;
-      deallocate(mywfdata);
-      
-    }
-    if(guidingwf) delete guidingwf;
-    if(dyngen) delete dyngen;
-    for(int i=0; i< densplt.GetDim(0); i++) {
-      if(densplt(i)) delete densplt(i);
-    }*/
     for(int i=0; i< mywfdata.GetDim(0); i++)  if(mywfdata(i)) delete mywfdata(i);
     for(int i=0; i< mysys.GetDim(0); i++)  if(mysys(i)) delete mysys(i);
     if(guidingwf) delete guidingwf;
@@ -117,7 +97,9 @@ public:
  private:
 
 
-
+  void readcheck();
+  void storecheck();
+  
 
   void deallocateIntermediateVariables() {
     for(int i=0; i< wf.GetDim(0); i++)  if(wf(i)) delete wf(i);
@@ -129,9 +111,11 @@ public:
 			 Wavefunction_data * wfdata,Pseudopotential * pseudo);
 
   doublevar propagate_walker(int walker);
-  Dmc_corr_history add_point(int walker); //calculate energies and other values for a new point
-  doublevar get_green_weight(deque <Dmc_corr_history>::iterator a, 
-                             deque <Dmc_corr_history>::iterator b,
+  Rmc_corr_history add_point(int walker); //calculate energies and other values for a new point
+  doublevar get_green_weight(//deque <Rmc_corr_history>::iterator a, 
+                             //deque <Rmc_corr_history>::iterator b,
+                             Rmc_corr_history & a,
+                             Rmc_corr_history & b,
                              int sys, doublevar & branching);
     
   
@@ -172,16 +156,16 @@ public:
   Array1 <doublevar> eref;
   Array1 <doublevar> etrial;
 
-  Array1 <Dmc_corr_point> pts;
+  Array1 <Rmc_corr_point> pts;
 
   Space_warper warper;
   Properties_manager myprop;
   Properties_gather mygather;
-
+  
 };
 
 
 
 
-#endif //DMC_CORR_METHOD_H_INCLUDED
+#endif //RMC_CORR_METHOD_H_INCLUDED
 //------------------------------------------------------------------------

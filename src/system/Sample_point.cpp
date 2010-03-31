@@ -115,3 +115,32 @@ void Config_save_point::mpiSend(int node) {
 }
 
 //----------------------------------------------------------------------
+void Config_save_point::read(istream & is) { 
+  string dummy;
+  is >> dummy;
+  assert(dummy=="nElec");
+  int nelec;
+  is >> nelec;
+  electronpos.Resize(nelec);
+  is >> dummy;
+  assert(dummy=="ndim");
+  int ndim;
+  is >> ndim;
+  for(int e=0; e< nelec; e++) { 
+    electronpos(e).Resize(ndim);
+    for(int d=0; d< 3; d++) { 
+      is >> electronpos(e)(d);
+    }
+  }
+}
+void Config_save_point::write(ostream & os) { 
+  os << "nElec " << electronpos.GetDim(0) << " ndim " << 3 << endl;
+  for(int e=0; e< electronpos.GetDim(0); e++) { 
+    for(int d=0; d< 3; d++) { 
+      os << electronpos(e)(d) << " ";
+    }
+    os << endl;
+  }
+}
+
+//----------------------------------------------------------------------

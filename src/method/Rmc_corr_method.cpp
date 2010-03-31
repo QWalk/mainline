@@ -20,14 +20,14 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 
 
-#include "Dmc_corr_method.h"
+#include "Rmc_corr_method.h"
 #include "qmc_io.h"
 #include "ulec.h"
 #include "Program_options.h"
 #include "average.h"
 
 
-void Dmc_corr_method::read(vector <string> words,
+void Rmc_corr_method::read(vector <string> words,
                       unsigned int & pos,
                       Program_options & options)
 {
@@ -51,24 +51,25 @@ void Dmc_corr_method::read(vector <string> words,
   if(!readvalue(words, pos=0, timestep, "TIMESTEP"))
     error("Need TIMESTEP in METHOD section");
 
-  //if(readvalue(words, pos=0, readconfig, "READCONFIG"))
-  //  canonical_filename(readconfig);
-  //else
-  //  error("Must give READCONFIG for DMC");
+  
+  if(!readvalue(words, pos=0, nhist, "LENGTH")) 
+    nhist=50;
+
 
   //optional options
 
-  if(!readvalue(words, pos=0, nhist, "CORR_HIST")) 
-    nhist=50;
 
   if(!readvalue(words, pos=0,npsteps, "PARTIAL_STEPS")) 
     npsteps=5;
 
   if(readvalue(words, pos=0, storeconfig, "STORECONFIG"))
     canonical_filename(storeconfig);
+  
+  if(readvalue(words, pos=0, readconfig, "READCONFIG"))
+    canonical_filename(readconfig);
 
   if(!readvalue(words, pos=0, log_label, "LABEL"))
-    log_label="dmc";
+    log_label="rmc_corr";
   
   vector <string> warpsec;
   if(readsection(words, pos=0, warpsec,"WARPER")) {
@@ -86,24 +87,6 @@ void Dmc_corr_method::read(vector <string> words,
     pc_gf=0;
     dmc_gf=1;
   }
-/*
-  if(!readvalue(words, pos=0, start_feedback, "START_FEEDBACK"))
-    start_feedback=1;
-
-  if(readvalue(words, pos=0, feedback_interval, "FEEDBACK_INTERVAL")) {
-    if(feedback_interval < 1) 
-      error("FEEDBACK_INTERVAL must be greater than or equal to 1");
-  }
-  else feedback_interval=5;
-
-  if(!readvalue(words, pos=0, feedback, "FEEDBACK"))
-    feedback=1.0;
-*/
-  //if(!readvalue(words, pos=0, branch_start_cutoff, "BRANCH_START_CUTOFF")) 
-  //  branch_start_cutoff=10;
-  
-
-  //branch_stop_cutoff=branch_start_cutoff*1.5;
   
   
   vector <string> dynamics_words;
@@ -118,12 +101,12 @@ void Dmc_corr_method::read(vector <string> words,
 
 //----------------------------------------------------------------------
 
-int Dmc_corr_method::generateVariables(Program_options & options) {
+int Rmc_corr_method::generateVariables(Program_options & options) {
 
   if(!have_read_options) 
-    error("need to call Dmc_corr_method::read before generateVariables");
+    error("need to call Rmc_corr_method::read before generateVariables");
   if(have_allocated_variables) 
-    error("already allocated variables in Dmc_corr_method");
+    error("already allocated variables in Rmc_corr_method");
 
   have_allocated_variables=1;
   int nsys=options.systemtext.size();
@@ -146,7 +129,7 @@ int Dmc_corr_method::generateVariables(Program_options & options) {
 
 
 
-int Dmc_corr_method::showinfo(ostream & os) {
+int Rmc_corr_method::showinfo(ostream & os) {
   int nsys=mysys.GetDim(0);
   for(int i=0; i< nsys; i++) { 
     mysys(i)->showinfo(os);
@@ -174,9 +157,9 @@ int Dmc_corr_method::showinfo(ostream & os) {
 
 //----------------------------------------------------------------------
 
-void Dmc_corr_method::run(Program_options & options, ostream & output) {
+void Rmc_corr_method::run(Program_options & options, ostream & output) {
   if(!have_allocated_variables) 
-    error("Must generate variables to use Dmc_corr_method::run");
+    error("Must generate variables to use Rmc_corr_method::run");
   string logfile=options.runid+".log";
   
   if(mpi_info.node==0 ) {
@@ -205,68 +188,64 @@ void Dmc_corr_method::run(Program_options & options, ostream & output) {
   guidingwf=new Primary;
   pts.Resize(nconfig);
   int nelectrons=mysys(0)->nelectrons(0)+mysys(0)->nelectrons(1);
+  if(nconfig%nsys!=0) { 
+    error("nconfig must be an even multiple of the number of systems");
+  }
   for(int i=0; i< nconfig; i++) { 
-    //pts(i).age.Resize(nelectrons);
-    //pts(i).age=0;
     pts(i).system= i%nsys;
-    //pts(i).jacobian.Resize(nsys);
-    //pts(i).jacobian=1;
-    //cout << "walker " << i << " system " << pts(i).system << endl;
   }
-  
-  ///-----------------Generate VMC configs
-  
-  int nstep_vmc=50;
-  doublevar timestep_vmc=1.0;
-  //for(int block=0; block < nblock_vmc; block++) {
-  for(int walker=0; walker < nconfig; walker++) { 
-    int currsys=pts(walker).system;
-    sample(currsys)->randomGuess();
-
-    //pts(walker).config_pos.restorePos(sample(currsys));
-    wf(currsys)->updateLap(mywfdata(currsys), sample(currsys));
-    for(int step=0; step < nstep_vmc; step++) { 
-      Dynamics_info dinfo;
-      for(int e=0; e< nelectrons; e++) {
-        dyngen->sample(e,sample(currsys), wf(currsys),
-                       mywfdata(currsys), guidingwf, dinfo, timestep_vmc);
-      }
-    }
-    cout << "finished walker " << walker << " sysy " << currsys << endl;
-    pts(walker).path.push_back(add_point(walker));
-  }
-  
   myprop.setSize(nsys, nblock, nstep+1, nconfig, mysys(0), 
                  mywfdata(0), 0, 0);
-  //Generate first reptile  
-  cout << mpi_info.node << ":generating reptile " << endl;
-  for(int walker=0; walker < nconfig; walker++) { 
-    //cout << "size " << pts(walker).path.size() << endl;  
-    int currsiz=pts(walker).path.size();
-    int currsys=pts(walker).system;
-    pts(walker).path[currsiz-1].configs(currsys).restorePos(sample(currsys));
-    wf(currsys)->updateLap(mywfdata(currsys), sample(currsys));
-    for(int i=currsiz; i< nhist; i++) { 
-      Dynamics_info dinfo;
-      for(int e=0; e< nelectrons; e++) {
-        dyngen->sample(e,sample(currsys), wf(currsys),
-                       mywfdata(currsys), guidingwf, dinfo, timestep);
+  
+  ///-----------------Generate VMC configs
+  if(readconfig=="") { 
+    int nstep_vmc=50;
+    doublevar timestep_vmc=1.0;
+    for(int walker=0; walker < nconfig; walker++) { 
+      int currsys=pts(walker).system;
+      sample(currsys)->randomGuess();
+      wf(currsys)->updateLap(mywfdata(currsys), sample(currsys));
+      for(int step=0; step < nstep_vmc; step++) { 
+        Dynamics_info dinfo;
+        for(int e=0; e< nelectrons; e++) {
+          dyngen->sample(e,sample(currsys), wf(currsys),
+                         mywfdata(currsys), guidingwf, dinfo, timestep_vmc);
+        }
       }
+      cout << "finished walker " << walker << " sysy " << currsys << endl;
       pts(walker).path.push_back(add_point(walker));
     }
-    //cout << "final size " << pts(walker).path.size() << endl;
+    
+    //Generate first reptile  
+    cout << mpi_info.node << ":generating reptile " << endl;
+    for(int walker=0; walker < nconfig; walker++) { 
+      //cout << "size " << pts(walker).path.size() << endl;  
+      int currsiz=pts(walker).path.size();
+      int currsys=pts(walker).system;
+      pts(walker).path[currsiz-1].configs(currsys).restorePos(sample(currsys));
+      wf(currsys)->updateLap(mywfdata(currsys), sample(currsys));
+      while(pts(walker).path.size() < nhist) { 
+        Dynamics_info dinfo;
+        for(int e=0; e< nelectrons; e++) {
+          dyngen->sample(e,sample(currsys), wf(currsys),
+                         mywfdata(currsys), guidingwf, dinfo, timestep);
+        }
+        pts(walker).path.push_back(add_point(walker));
+      }
+      //cout << "final size " << pts(walker).path.size() << endl;
+    }
   }
-  
+  else readcheck();
   for(int walker=0; walker < nconfig; walker++) {
     pts(walker).branching.Resize(nsys);
     pts(walker).totgf.Resize(nsys);
     pts(walker).totgf=0; pts(walker).branching=0;
     for(int i=0; i< nsys; i++) { 
-      for(deque<Dmc_corr_history>::iterator h=pts(walker).path.begin(); 
+      for(deque<Rmc_corr_history>::iterator h=pts(walker).path.begin(); 
           h!= pts(walker).path.end()-1; h++) { 
         //cout << "h " << endl;
         doublevar btmp;
-        pts(walker).totgf(i)+=get_green_weight(h,h+1,i,btmp);
+        pts(walker).totgf(i)+=get_green_weight(*h,*(h+1),i,btmp);
         pts(walker).branching(i)+=btmp;
       }
     }
@@ -274,50 +253,6 @@ void Dmc_corr_method::run(Program_options & options, ostream & output) {
   }
   
   
-  //cout << "here " << endl;
-  /*
-  eref.Resize(nsys);
-  eref=0;
-  Array1 <int> nwalkers_sys(nsys);
-  nwalkers_sys=0;
-  
-  for(int walker=0; walker < nconfig; walker++) { 
-    //cout << "add_point " << endl;
-    int currsys=pts(walker).system;
-    pts(walker).config_pos.restorePos(sample(currsys));
-    add_point(walker);
-    pts(walker).initial_sign.Resize(nsys);
-    for(int i=0; i< nsys; i++) { 
-      Wf_return wfval(wf(i)->nfunc(), 2);
-      wf(i)->getVal(mywfdata(i), 0, wfval);
-      pts(walker).initial_sign(i)=wfval.sign(0);
-    }
-    //cout << "eref " << endl;
-    eref(pts(walker).system)+=pts(walker).prop.energy(currsys);
-    //cout << "energy " << pts(walker).prop.energy(pts(walker).system) << endl;
-    nwalkers_sys(currsys)++;
-  }
-
-  
-  for(int sys=0; sys< nsys; sys++) { 
-    eref(sys)=parallel_sum(eref(sys));
-    nwalkers_sys(sys)=parallel_sum(nwalkers_sys(sys));
-  }
-  
-  for(int sys=0; sys < nsys; sys++) { 
-    eref(sys)/=nwalkers_sys(sys);
-    cout << mpi_info.node <<":sys " << sys << " eref " << eref(sys) 
-         << " nwalkers " << nwalkers_sys(sys) << endl;
-  }
-  
-  doublevar erefavg=0;
-  for(int sys=0; sys < nsys; sys++) erefavg+=eref(sys)/nsys;
-  eref=erefavg;
-  
-  etrial=eref;
-   */
-  ///cout << "done " << endl;
-  //exit(0);
   //------------------------------------------
   npsteps=nstep;
   for(int block=0; block < nblock; block++) { 
@@ -364,51 +299,10 @@ void Dmc_corr_method::run(Program_options & options, ostream & output) {
       step+=n_partial;
     }
     myprop.endBlock();
-
+    storecheck();
     doublevar acceptance=doublevar(parallel_sum(accept))/doublevar(parallel_sum(nconfig*nstep));
     Properties_final_average finavg;
     myprop.getFinal(finavg);
-    /*
-    eref=0;
-    for(int i=0; i< nsys; i++) { 
-      eref(i)+=finavg.avg(Properties_types::total_energy,i)/nsys;    
-    }
-     */ 
-    
-    /*
-    if(output) { 
-      string weight_out="weights";
-      append_number(weight_out, block);
-      ofstream weight_output(weight_out.c_str());
-      for(int walker=0; walker < nconfig; walker++) { 
-        weight_output << walker << " " << pts(walker).weight << " ";
-        for(int sys=0; sys < nsys; sys++) { 
-          weight_output <<pts(walker).prop.weight(walker) << " ";
-          string hist_save("hist_save");
-          append_number(hist_save,block);
-          hist_save+="_";
-          append_number(hist_save,walker);
-          hist_save+="_";
-          append_number(hist_save,sys);
-          ofstream hist(hist_save.c_str());
-          int n=0;
-          for(deque<Dmc_corr_history>::iterator h=pts(walker).path.begin();
-              h!= pts(walker).path.end(); h++) { 
-            hist << n << "  " << h->main_en(sys) << " " << h->wfs(sys,0).amp(0,0)
-               << " " << h->wfs(sys,0).sign(0) << " ";
-            n++;
-            for(int e=0; e < nelectrons; e++) { 
-              for(int d=0; d< 3; d++) { 
-                hist << h->wfs(sys,e).amp(0,d) << " ";
-              }
-            }
-            hist << endl;
-          }
-        }
-        weight_output << endl;
-      }
-      
-    }*/
     
     if(output) { 
       output << "acceptance " << acceptance << 
@@ -426,15 +320,14 @@ void Dmc_corr_method::run(Program_options & options, ostream & output) {
 
 //----------------------------------------------------------------------
 
-doublevar Dmc_corr_method::get_green_weight(deque <Dmc_corr_history>::iterator a, 
-                                            deque <Dmc_corr_history>::iterator b,
+doublevar Rmc_corr_method::get_green_weight(//deque <Rmc_corr_history>::iterator a, 
+                                            //deque <Rmc_corr_history>::iterator b,
+                                            Rmc_corr_history & a,
+                                            Rmc_corr_history & b,
                                             int i, doublevar & branching) {
   
-  //for(deque<Dmc_corr_history>::iterator h=pts(walker).path.begin(); 
-  //    h!= pts(walker).path.end()-1; h++) { 
   branching=0;
-  //branching-= 0.5*timestep*(a->main_en(i)+b->main_en(i) - 2*eref(i));
-  branching-= 0.5*timestep*(a->main_en(i)+b->main_en(i) );
+  branching-= 0.5*timestep*(a.main_en(i)+b.main_en(i) );
   int nelectrons=mysys(i)->nelectrons(0)+mysys(i)->nelectrons(1);
 
   
@@ -442,14 +335,14 @@ doublevar Dmc_corr_method::get_green_weight(deque <Dmc_corr_history>::iterator a
   if(pc_gf) { //---------
     Array1 <doublevar> pos1(3), pos2(3), drift1(3), drift2(3);
     for(int e=0; e< nelectrons; e++) { 
-      a->configs(i).getPos(e,pos1);
-      b->configs(i).getPos(e,pos2);
+      a.configs(i).getPos(e,pos1);
+      b.configs(i).getPos(e,pos2);
       doublevar d12=0,d22=0;
       doublevar rdiff2=0;
       doublevar dot=0;
       for(int d=0; d< 3; d++) { 
-        drift1(d)=a->wfs(i,e).amp(0,d+1);
-        drift2(d)=b->wfs(i,e).amp(0,d+1);
+        drift1(d)=a.wfs(i,e).amp(0,d+1);
+        drift2(d)=b.wfs(i,e).amp(0,d+1);
         d12+=drift1(d)*drift1(d);
         d22+=drift2(d)*drift2(d);
         rdiff2+=(pos1(d)-pos2(d))*(pos1(d)-pos2(d));
@@ -461,12 +354,12 @@ doublevar Dmc_corr_method::get_green_weight(deque <Dmc_corr_history>::iterator a
   else if(dmc_gf) { 
     Array1 <doublevar> pos1(3), pos2(3), drift1(3), drift2(3);
     for(int e=0; e< nelectrons; e++) { 
-      a->configs(i).getPos(e,pos1);
-      b->configs(i).getPos(e,pos2);
+      a.configs(i).getPos(e,pos1);
+      b.configs(i).getPos(e,pos2);
       double atob=0, btoa=0;
       for(int d=0; d< 3; d++) { 
-        drift1(d)=a->wfs(i,e).amp(0,d+1);
-        drift2(d)=b->wfs(i,e).amp(0,d+1);
+        drift1(d)=a.wfs(i,e).amp(0,d+1);
+        drift2(d)=b.wfs(i,e).amp(0,d+1);
         btoa+=(pos1(d)-pos2(d)-drift2(d)*timestep)*(pos1(d)-pos2(d)-drift2(d)*timestep);
         atob+=(pos2(d)-pos1(d)-drift1(d)*timestep)*(pos2(d)-pos1(d)-drift1(d)*timestep);
       }
@@ -482,36 +375,21 @@ doublevar Dmc_corr_method::get_green_weight(deque <Dmc_corr_history>::iterator a
 //the samples and wave functions at the new position.
 //it's assumed that at least sample(pts(walker).system) is updated for that walker.
 
-doublevar Dmc_corr_method::propagate_walker(int walker) { 
+doublevar Rmc_corr_method::propagate_walker(int walker) { 
   int currsys=pts(walker).system;
   int nsys=mywfdata.GetDim(0);
   Dynamics_info dinfo;
   doublevar avg_acceptance=0;
   int nelectrons=mysys(currsys)->nelectrons(0)+mysys(currsys)->nelectrons(1);
-  //------Do several steps without branching
-  
   for(int e=0; e< nelectrons; e++) {
     int acc;
     acc=dyngen->sample(e, sample(currsys), wf(currsys),
                        mywfdata(currsys), guidingwf,dinfo, timestep);
-    /*
-    if(dinfo.accepted)  {
-      pts(walker).age(e)=0;
-    }
-    else { 
-      pts(walker).age(e)++;
-    }
-     */
     avg_acceptance+=dinfo.acceptance/(nelectrons*npsteps);
-    
-    //if(acc>0) acsum++;
   }
-  if(pts(walker).direction==1) { 
-    pts(walker).path.push_back(add_point(walker));
-  }
-  else {
-    pts(walker).path.push_front(add_point(walker));
-  }
+  Rmc_corr_history newpt=add_point(walker);
+  
+  
   
   Array1 <doublevar> delbranch(nsys);
   Array1 <doublevar> deltot(nsys);
@@ -521,65 +399,56 @@ doublevar Dmc_corr_method::propagate_walker(int walker) {
   if(pts(walker).direction==1) { 
     for(int i=0; i < nsys; i++) { 
       doublevar branchupdate=0;
-      deltot(i)+=get_green_weight(pts(walker).path.end()-2, 
-                                             pts(walker).path.end()-1,
-                                             i, branchupdate);
+      deltot(i)+=get_green_weight(*(pts(walker).path.end()-1), 
+                                  newpt,
+                                  i, branchupdate);
       delbranch(i)+=branchupdate;
-      if(pts(walker).path.size() > nhist) { 
-        int count=nhist;
-        for(deque<Dmc_corr_history>::iterator h=pts(walker).path.begin(); 
-            h!= pts(walker).path.end()-nhist-1; h++) { 
-          doublevar btmp;
-          deltot(i)-=get_green_weight(h,h+1,i,btmp);
-          delbranch(i)-=btmp;
-          
-        }
-      }
+      deltot(i)+=get_green_weight(*pts(walker).path.begin(),
+                                  *(pts(walker).path.begin()+1),i,branchupdate);
+      delbranch(i)-=branchupdate;
     }
     
   }
   else  { 
     for(int i=0; i < nsys; i++) { 
       doublevar branchupdate=0;
-      deltot(i)+=get_green_weight(pts(walker).path.begin(), 
-                                   pts(walker).path.begin()+1,
-                                   i, branchupdate);
+      deltot(i)+=get_green_weight(newpt,
+                                  *pts(walker).path.begin(),
+                                  i, branchupdate);
       delbranch(i)+=branchupdate;
-      if(pts(walker).path.size() > nhist) { 
-        int count=nhist;
-        for(deque<Dmc_corr_history>::iterator h=pts(walker).path.begin()+nhist-1; 
-            h!= pts(walker).path.end()-1; h++) { 
-          doublevar btmp;
-          deltot(i)-=get_green_weight(h,h+1,i,btmp);
-          delbranch(i)-=btmp;
-          
-        }
-      }
+      deltot(i)+=get_green_weight(*(pts(walker).path.end()-1),
+                                  *(pts(walker).path.end()-2),i,branchupdate);
+      
+      delbranch(i)-=branchupdate;
     }
   }
   int accepted=0;
 
   if(int(exp(delbranch(currsys))+rng.ulec())) { 
-    //cout << " accept " << exp(delbranch(currsys)) << endl;
+    
     accepted=1;
+    if(pts(walker).direction==1) { 
+      pts(walker).path.push_back(newpt);
+      pts(walker).path.pop_front();
+    }
+    else { 
+      pts(walker).path.push_front(newpt);
+      pts(walker).path.pop_back();
+    }
+    
     for(int i=0; i < nsys; i++) { 
       pts(walker).branching(i)+=delbranch(i);
       pts(walker).totgf(i)+=deltot(i);
     }
   }
   else { 
-    //cout << "reject " << endl;
+    
     pts(walker).direction*=-1;
     if(pts(walker).direction==1) 
       (pts(walker).path.end()-1)->configs(currsys).restorePos(sample(currsys));
     else 
       pts(walker).path.begin()->configs(currsys).restorePos(sample(currsys));    
-  }
-  
-  deque<Dmc_corr_history> & past(pts(walker).path);
-  if(past.size() > nhist) {
-    if(pts(walker).direction==1) past.erase(past.begin(), past.end()-nhist-1);
-    else past.erase(past.begin()+nhist, past.end());
+    
   }
   
   
@@ -588,7 +457,7 @@ doublevar Dmc_corr_method::propagate_walker(int walker) {
      
   
   pts(walker).weight=exp(pts(walker).branching(currsys));
-  deque<Dmc_corr_history>::iterator h;
+  deque<Rmc_corr_history>::iterator h;
   for(int i=0; i< nsys; i++) { 
     
     Wf_return wfval(wf(i)->nfunc(), 2);
@@ -609,7 +478,7 @@ doublevar Dmc_corr_method::propagate_walker(int walker) {
   for(int i=0; i< nsys; i++) { 
     if(pc_gf || dmc_gf) { 
       totjacob(i)=1;
-      for(deque<Dmc_corr_history>::iterator h=pts(walker).path.begin(); 
+      for(deque<Rmc_corr_history>::iterator h=pts(walker).path.begin(); 
           h!= pts(walker).path.end()-1; h++) { 
         totjacob(i)*=h->jacobian(i);
       }
@@ -629,7 +498,7 @@ doublevar Dmc_corr_method::propagate_walker(int walker) {
     //pts(walker).weight(i)=pts(walker).weight* totjacob(i)/ratio;
     pts(walker).weight(i)=totjacob(i)/ratio;
   }
-
+  
   return accepted;
 }
 
@@ -638,8 +507,8 @@ doublevar Dmc_corr_method::propagate_walker(int walker) {
 
 
 //-------------------------------Evaluate a new point
-Dmc_corr_history Dmc_corr_method::add_point(int walker) { 
-  Dmc_corr_history new_hist;
+Rmc_corr_history Rmc_corr_method::add_point(int walker) { 
+  Rmc_corr_history new_hist;
 
   int currsys=pts(walker).system;
   int nsys=mywfdata.GetDim(0);
@@ -719,4 +588,66 @@ Dmc_corr_history Dmc_corr_method::add_point(int walker) {
 }  
 
 //----------------------------------------------------------------------
+
+void Rmc_corr_method::storecheck() { 
+  if(storeconfig=="") return;
+  ofstream os(storeconfig.c_str());
+  long int is1, is2;
+  rng.getseed(is1,is2);
+  os << "RANDNUM " << is1 << " " << is2 << endl;
+  assert(pts.GetDim(0)==nconfig);
+  for(int w=0; w< nconfig; w++) { 
+    os << "REPTILE { " << endl;
+    os << "SYSTEM " << pts(w).system << endl;
+    os << "DIRECTION " << pts(w).direction << endl;
+    os << "PATH_SIZE " << pts(w).path.size() << endl;
+    for(deque<Rmc_corr_history>::iterator i=pts(w).path.begin(); 
+        i!=pts(w).path.end(); i++) { 
+      os << "SAMPLE_POINT { \n";
+      i->configs(pts(w).system).write(os);
+      os << " } \n";      
+    }
+    os << " } \n";
+  }
+}
+
+void Rmc_corr_method::readcheck() { 
+  if(readconfig=="") return;
+  ifstream is(readconfig.c_str());
+  if(!is) {
+    error("Could not open ",readconfig);
+  }
+  long int is1, is2;
+  string dummy;
+  is >> dummy >> is1 >> is2;
+  if(dummy!="RANDNUM") error("expected RANDNUM");
+  rng.seed(is1,is2);
+  pts.Resize(nconfig);
+  Config_save_point tmpsave;
+
+  for(int w=0; w< nconfig; w++) { 
+    is >> dummy >> dummy;
+    is >> dummy >> pts(w).system;
+    is >>  dummy >> pts(w).direction;
+    if(dummy!="DIRECTION") error("expected DIRECTION");
+    int path_size;
+    is >> dummy >> path_size;
+    if(path_size != nhist) error("Can't restart with a different path length");
+    int currsys=pts(w).system;
+    for(int i=0; i< nhist; i++) { 
+      //cout << "walker " << w << " hist " << i << endl;
+      is >> dummy ; 
+      if(dummy!="SAMPLE_POINT") error("expected SAMPLE_POINT");
+      is >> dummy; 
+      tmpsave.read(is);
+      is >> dummy;
+      tmpsave.restorePos(sample(currsys));
+      wf(currsys)->updateLap(mywfdata(currsys),sample(currsys));
+      pts(w).path.push_back(add_point(w));
+    }
+    is >> dummy; //last end bracket
+  }
+  
+}
+
 

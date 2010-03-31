@@ -45,7 +45,6 @@ struct Properties_point {
     nchildren=0;
     parent=-1;
     sign=1;
-    moved=0;
     weight=0;
     count=0;
     
@@ -68,7 +67,6 @@ struct Properties_point {
   int nchildren;
   int parent;
   Array1 <int> children;
-  int moved; //whether we moved or not from this point
 
   int count; //whether to count this point or not
 
@@ -82,17 +80,14 @@ struct Properties_point {
   Array1 <doublevar> weight; //!< averaging weight
   Wf_return wf_val; //!< wavefunction value
 
-  //Array1 <dcomplex> z_pol; //!< =exp(i G dot sum x_j)
 
+  //Do not use these values; they are scheduled for deletion.
   Array2 <doublevar> aux_energy;
   Array2 <doublevar> aux_weight;
 
   Array1 <doublevar> aux_jacobian;
   Array1 <Wf_return> aux_wf_val;
-
-
-  doublevar gf_weight; //weight of green's function between this and the last point(used in DMC)
-  Array1 <doublevar> aux_gf_weight;
+  //--end of obselete values
 
   
   Array1 <Average_return> avgrets; //general accumulations from Average_generators

@@ -31,7 +31,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Reptation_method.h"
 #include "Postprocess_method.h"
 #include "Plot1d_method.h"
-#include "Dmc_corr_method.h"
+#include "Rmc_corr_method.h"
 
 int allocate(vector <string> & words,
              Program_options & options,
@@ -57,8 +57,8 @@ int allocate(vector <string> & words,
   else if(caseless_eq(words[0],"RNDMC"))
     methptr=new Rndmc_method;
   
-  else if(caseless_eq(words[0],"DMC_CORR")) 
-    methptr=new Dmc_corr_method;
+  else if(caseless_eq(words[0],"RMC_CORR")) 
+    methptr=new Rmc_corr_method;
   
   else if(caseless_eq(words[0],"TEST"))
     methptr=new Test_method;

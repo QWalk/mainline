@@ -101,20 +101,20 @@ struct Reptile_point {
     for(int a=0; a< naux; a++) {
       os << indent << "aux_position" << endl;
       for(int e=0; e< nelectrons; e++) {
-	os << indent;
-	for(int d=0; d< 3; d++) 
-	  os << aux_positions(a)(e,d) << "   ";
-	os << endl;
+        os << indent;
+        for(int d=0; d< 3; d++) 
+          os << aux_positions(a)(e,d) << "   ";
+        os << endl;
       }   
       os << indent << "aux_drift" << endl;
       for(int e=0; e< nelectrons; e++) {
-	os << indent;
-	for(int d=0; d< 3; d++) 
-	  os << aux_drift(a)(e,d) << "   ";
-	os << endl;
+        os << indent;
+        for(int d=0; d< 3; d++) 
+          os << aux_drift(a)(e,d) << "   ";
+        os << endl;
       }    
     }
-
+    
     
     if(deriv.GetDim(0) > 0) {
       error("don't support derivative saving");
@@ -192,36 +192,6 @@ struct Reptile_point {
   //--------------------------------------------------
 
 };
-
-//---------------------------------------------------------------------
-/*
- *Removing this because it doesn't really work very well.
-#include "Force_fitter.h"
-
-void getDerivative(Pseudopotential * psp, System *sys , 
-                   Wavefunction_data *wfdata,
-                   Wavefunction * wf, Sample_point * sample, 
-                   Array2 <doublevar> & deriv) {
-  
-  Force_fitter f_fit;
-  f_fit.setup(1.0,15);
-
-  
-  deriv=0;
-  //psp->getLocalDerivative(sample,f_fit, deriv);
-  Array1 <doublevar> totalv(wf->nfunc());
-  psp->calcNonloc(wfdata,sample, wf, f_fit, totalv,deriv);
-  Array1 <doublevar> locder(3);
-
-  int nions=sys->nIons();
-  for(int  at=0; at < nions; at++) {
-    sys->locDerivative(at, sample,f_fit, locder);
-    for(int d=0; d< 3;d++)
-      deriv(at,d)+=locder(d);
-  }
-
-}
-*/
 
 //----------------------------------------------------------------------
 
@@ -552,33 +522,7 @@ void Reptation_method::get_avg(deque <Reptile_point> & reptile,
   //pt.potential(0)=.5*(first.prop.potential(0) + last.prop.potential(0));
   pt.count=1;
   pt.weight=1;
-
-  //for(int a=0; a< naux; a++) {
-  //  for(int i=0; i< 2; i++) 
-  //    pt.aux_energy(a,i)=.5*(first.prop.aux_energy(a,i)
-  //			     +last.prop.aux_energy(a,i));
-  //}
   
-  pt.aux_weight.Resize(naux,2);
-  pt.aux_weight=1.0;
-  for(deque<Reptile_point>::iterator r=reptile.begin()+1;
-      r!=reptile.end(); r++) {
-    for(int a=0; a< naux; a++) {
-      doublevar branch_part=exp(r->aux_branching(a)-r->branching);
-      pt.aux_weight(a,0)*=branch_part;
-      doublevar dyn_part=exp(r->prop.aux_gf_weight(a)-r->prop.gf_weight);
-      pt.aux_weight(a,1)*=branch_part*dyn_part*r->prop.aux_jacobian(a);
-    }
-  }
-  for(int a=0; a< naux; a++) {
-    doublevar first_ratio=guidewf->getTrialRatio(first.prop.aux_wf_val(a),
-        first.prop.wf_val);
-    doublevar last_ratio=guidewf->getTrialRatio(last.prop.aux_wf_val(a),
-        last.prop.wf_val);
-    pt.aux_weight(a,0)*=last_ratio*last_ratio*last.prop.aux_jacobian(a);
-
-    pt.aux_weight(a,1)*=first_ratio*last_ratio*first.prop.aux_jacobian(a);
-  } 
 }
 
 
@@ -613,12 +557,6 @@ doublevar Reptation_method::slither(int direction,
   Dynamics_info dinfo;
   int nelectrons=sample->electronSize();
   int naux=mygather.nAux();
-  Array1 <Dynamics_info> aux_dinfo(naux);
-  main_diffusion=0;
-  aux_diffusion.Resize(naux); aux_diffusion=0;
-  pt.prop.gf_weight=1;
-  pt.prop.aux_gf_weight.Resize(naux);
-  pt.prop.aux_gf_weight=1;
   
   for(int e=0; e<nelectrons; e++) {
     sampler->sample(e,sample, wf, 
@@ -626,25 +564,11 @@ doublevar Reptation_method::slither(int direction,
 
   }
   //Update all the quantities we want
-  mygather.extendedGather(pt.prop, pseudo, sys, mywfdata, wf,
-                        sample, guidewf, n_aux_cvg,0,pt.drift,
-			  pt.aux_drift, pt.aux_positions);
+  //mygather.extendedGather(pt.prop, pseudo, sys, mywfdata, wf,
+  //                      sample, guidewf, n_aux_cvg,0,pt.drift,
+	//		  pt.aux_drift, pt.aux_positions);
+  mygather.gatherData(pt.prop, pseudo, sys, mywfdata, wf, sample, guidewf);
 
-  Array1 <doublevar> tmpdft(3);
-  for(int e=0;e < nelectrons; e++) {
-    for(int d=0;d < 3; d++) tmpdft(d)=pt.drift(e,d);
-    limDrift(tmpdft,timestep, drift_cyrus);
-    for(int d=0;d < 3; d++) pt.drift(e,d)=tmpdft(d);
-    for(int a=0; a< naux; a++) {
-      for(int d=0; d< 3; d++) tmpdft(d)=pt.aux_drift(a)(e,d);
-      limDrift(tmpdft,timestep, drift_cyrus);
-      for(int d=0; d< 3; d++) pt.aux_drift(a)(e,d)=tmpdft(d);
-    }
-  }
-
-  //let's not worry about H-F derivatives at the moment
-  //if(calc_hf_derivatives) 
-  //  getDerivative(pseudo, sys, mywfdata, wf, sample, pt.deriv);
 
   pt.savePos(sample);
 
@@ -657,43 +581,9 @@ doublevar Reptation_method::slither(int direction,
       last_point=(reptile.end()-1);
     else 
       last_point=reptile.begin();
-    olden=last_point->prop.energy(0);
-
-    for(int e=0; e< nelectrons; e++) {
-      for(int d=0;d < 3; d++) {
-	doublevar y=pt.electronpos(e)(d);
-	doublevar x=last_point->electronpos(e)(d);
-	if(fabs(y-x) > 1e-15) { 
-	  doublevar dry=pt.drift(e,d);
-	  doublevar drx=last_point->drift(e,d);
-
-	  pt.prop.gf_weight+=(x-y)*(x-y)
-	    +(x-y)*(drx-dry)
-	    +.5*(drx*drx+dry*dry);
-	    
-	  main_diffusion+=(y-x-drx)*(y-x-drx);
-	}
-      }
-    }
-    pt.prop.gf_weight=-pt.prop.gf_weight/(2*timestep);
-    for(int a=0; a< naux; a++) { 
-      for(int e=0; e< nelectrons; e++) {
-	for(int d=0;d < 3; d++) {
-	  doublevar y=pt.aux_positions(a)(e,d);
-	  doublevar x=last_point->aux_positions(a)(e,d);
-	  if(fabs(y-x)> 1e-15) { 
-	    doublevar dry=pt.aux_drift(a)(e,d);
-	    doublevar drx=last_point->aux_drift(a)(e,d);
-	    pt.prop.aux_gf_weight(a)+=(x-y)*(x-y)
-	      +(x-y)*(drx-dry)
-	      +.5*(drx*drx+dry*dry);
-	    aux_diffusion(a)+=(y-x-drx)*(y-x-drx);
-	  }
-	}
-      } 
-      pt.prop.aux_gf_weight(a)*= -1.0/(2*aux_timestep(a));
-    }
+      olden=last_point->prop.energy(0);
   }
+
   //Cutting off the energy
   doublevar fbet=max(eref-nen,eref-olden);
   doublevar cutoff=1;
@@ -704,13 +594,6 @@ doublevar Reptation_method::slither(int direction,
 
   pt.branching=-0.5*timestep*cutoff*(olden+nen);
 
-  pt.aux_branching.Resize(naux);
-  pt.aux_branching=0.0;
-  if(reptile.size()>0) { 
-    for(int a=0; a< naux; a++) 
-      pt.aux_branching(a)=-0.5*aux_timestep(a)*cutoff
-        *(pt.prop.aux_energy(a,0)+last_point->prop.aux_energy(a,0));
-  }
   
   
   //Acceptance..
@@ -727,7 +610,6 @@ doublevar Reptation_method::slither(int direction,
     cout  << "rejecting based on wf value" << endl;
     accept=0;
   }
-  
   
   pt.prop.avgrets.Resize(average_var.GetDim(0));
   for(int i=0; i< average_var.GetDim(0); i++) { 
@@ -870,10 +752,7 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
         }
         else {
           reptile.pop_back();
-          reptile[0].prop.aux_gf_weight=pt.prop.aux_gf_weight;
-          reptile[0].prop.gf_weight=pt.prop.gf_weight;
           reptile[0].branching=pt.branching;
-          reptile[0].aux_branching=pt.aux_branching;
           reptile.push_front(pt);
         }
       }

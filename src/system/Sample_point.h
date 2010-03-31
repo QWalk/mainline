@@ -264,10 +264,6 @@ private:
   Array1 <doublevar> pos_temp;
 };
 
-//int restore_configs(Array1 <Sample_point *> & sample_array,
- //                   string & startconfig);
-
-//int initialize_configs(vector <string> words, Array1 <Sample_point * > & sample_array, Program_options & options);
 
 
 /*!
@@ -290,6 +286,8 @@ class Config_save_point {
   void getPos(int e, Array1 <doublevar> & r) { 
     r=electronpos(e);
   }
+  void read(istream & is);
+  void write(ostream & os);
  private:
   Array1 <Array1 <doublevar> > electronpos;
 };
