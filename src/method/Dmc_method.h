@@ -221,10 +221,10 @@ public:
   Array1 < Average_generator * > average_var;
   vector <vector <string> > avg_words;
 
-  Array1 <int> fw_lenght; //!<array of lenghts for forward walking times 
-  int max_fw_lenght; //!maximum lenght for forward walking time
+  Array1 <int> fw_length; //!<array of lengths for forward walking times 
+  int max_fw_length; //!maximum length for forward walking time
  
-  int pure_dmc; //turn on SHDMC mode (pure diffusion for the lenght of nhist)
+  int pure_dmc; //turn on SHDMC mode (pure diffusion for the length of nhist)
 };
 
 

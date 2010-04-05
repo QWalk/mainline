@@ -134,20 +134,20 @@ void Dmc_method::read(vector <string> words,
   allocate(dynamics_words, dyngen);
   dyngen->enforceNodes(1);
 
-  //MB: forwark walking lenghts 
-  fw_lenght.Resize(0);
-  fw_lenght=0;
+  //MB: forwark walking lengths 
+  fw_length.Resize(0);
+  fw_length=0;
   vector <string> fw_words;
-  max_fw_lenght=0;
-  if(readsection(words, pos=0, fw_words, "FW_LENGHTS")){
-    fw_lenght.Resize(fw_words.size());
+  max_fw_length=0;
+  if(readsection(words, pos=0, fw_words, "fw_length")){
+    fw_length.Resize(fw_words.size());
     for(int i=0;i<fw_words.size();i++){
-      fw_lenght(i)=atoi(fw_words[i].c_str());
-      if(fw_lenght(i) > max_fw_lenght)
-	max_fw_lenght=fw_lenght(i);
+      fw_length(i)=atoi(fw_words[i].c_str());
+      if(fw_length(i) > max_fw_length)
+        max_fw_length=fw_length(i);
     }
   }
-  //cout <<" Maximum forward walking history is "<<max_fw_lenght<<" steps"<<endl;
+  //cout <<" Maximum forward walking history is "<<max_fw_length<<" steps"<<endl;
 
 }
 
@@ -234,10 +234,10 @@ int Dmc_method::showinfo(ostream & os)
     os << "T-moves turned on" << endl;
   string indent="  ";
 
-  if(max_fw_lenght){
-    os << "Forward walking averaging over lenghts "; 
-    for(int s=0;s<fw_lenght.GetSize();s++)
-      os<<fw_lenght(s)<<"  ";
+  if(max_fw_length){
+    os << "Forward walking averaging over lengths "; 
+    for(int s=0;s<fw_length.GetSize();s++)
+      os<<fw_length(s)<<"  ";
     os<< endl;
   }
   dyngen->showinfo(indent, os);
@@ -337,15 +337,15 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
   prop.initializeLog(average_var);
 
 
-  //MB: new properties manager for forward walking (one per each lenght)
+  //MB: new properties manager for forward walking (one per each length)
   Array1 <Properties_manager> prop_fw;
-  prop_fw.Resize(fw_lenght.GetSize());
-  if(max_fw_lenght){
-    for(int s=0;s<fw_lenght.GetSize();s++){
+  prop_fw.Resize(fw_length.GetSize());
+  if(max_fw_length){
+    for(int s=0;s<fw_length.GetSize();s++){
       string logfile, label_temp;
       prop.getLog(logfile, label_temp);
       char strbuff[40];
-      sprintf(strbuff, "%d", fw_lenght(s));
+      sprintf(strbuff, "%d", fw_length(s));
       label_temp+="_fw";
       label_temp+=strbuff;
       prop_fw(s).setLog(logfile, label_temp);
@@ -514,7 +514,7 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
 
 
 	  //MB: making the history of prop.avgrets for forward walking
-	  if(max_fw_lenght){
+	  if(max_fw_length){
 	    //store the obeservables
 	    Dmc_history_avgrets new_avgrets;
 	    new_avgrets.avgrets=pts(walker).prop.avgrets;
@@ -526,25 +526,25 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
 	    
 	    pts(walker).past_properties.push_front(new_avgrets);
 
-	    //tailor the array if larger than max_fw_lenght
+	    //tailor the array if larger than max_fw_length
 	    deque<Dmc_history_avgrets> & past_avgrets(pts(walker).past_properties);
-	    if(past_avgrets.size() > max_fw_lenght) 
-	      past_avgrets.erase(past_avgrets.begin()+max_fw_lenght, past_avgrets.end());
+	    if(past_avgrets.size() > max_fw_length) 
+	      past_avgrets.erase(past_avgrets.begin()+max_fw_length, past_avgrets.end());
 
 	    int size=pts(walker).past_properties.size();
 	    //	    cout <<"size of the queqe "<<size<<endl;
 
 	    //find the element from the past
 	    doublevar oldweight;
-	    for(int s=0;s<fw_lenght.GetSize();s++){
-	      if(fw_lenght(s)>size){
+	    for(int s=0;s<fw_length.GetSize();s++){
+	      if(fw_length(s)>size){
 		pts(walker).prop.avgrets=pts(walker).past_properties[size-1].avgrets;
 		oldweight=pts(walker).past_properties[size-1].weight;
 	      }
 	      else{
-		//call the prop.avgrets from fw_lenght(s) steps a go
-		pts(walker).prop.avgrets=pts(walker).past_properties[fw_lenght(s)-1].avgrets;
-		oldweight=pts(walker).past_properties[fw_lenght(s)-1].weight;
+		//call the prop.avgrets from fw_length(s) steps a go
+		pts(walker).prop.avgrets=pts(walker).past_properties[fw_length(s)-1].avgrets;
+		oldweight=pts(walker).past_properties[fw_length(s)-1].weight;
 	      }
 
 	      //for(int i=0; i< pts(walker).prop.avgrets.GetDim(0); i++)
@@ -599,8 +599,8 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
     else
       prop.endBlockSHDMC();
     
-    if(max_fw_lenght){
-      for(int s=0;s<fw_lenght.GetSize();s++){
+    if(max_fw_length){
+      for(int s=0;s<fw_length.GetSize();s++){
 	//prop_fw(s).endBlock();
 	prop_fw(s).endBlock_per_step();
       }
@@ -661,8 +661,8 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
     prop.printSummary(output,average_var);  
     
     //MB: final printout for FW
-    if(max_fw_lenght){
-      for(int s=0;s<fw_lenght.GetSize();s++)
+    if(max_fw_length){
+      for(int s=0;s<fw_length.GetSize();s++)
 	prop_fw(s).printSummary(output,average_var);
     }
 
