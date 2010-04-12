@@ -328,10 +328,9 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
   cout.precision(15);
   output.precision(10);
 
-  aux_converge=1;
   
   prop.setSize(wf->nfunc(), nblock, nstep, nconfig, sys, 
-	       wfdata, mygather.nAux(), aux_converge);
+	       wfdata);
 
   restorecheckpoint(readconfig, sys, wfdata, pseudo);
   prop.initializeLog(average_var);
@@ -350,22 +349,16 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
       label_temp+=strbuff;
       prop_fw(s).setLog(logfile, label_temp);
       prop_fw(s).setSize(wf->nfunc(), nblock, nstep, nconfig, sys, 
-		    wfdata, mygather.nAux(), aux_converge);
+		    wfdata);
       prop_fw(s).initializeLog(average_var);
     }
   }
 
-  int naux=mygather.nAux();
 
   if(nhist==-1)
     nhist=1;
-  //setting the projection time for auxillary walkers to 1 a.u.
-  if(naux >0) nhist=max(nhist,int(1.0/timestep)+1);
-  if(naux > 0 && tmoves) error("Can't do t-moves and auxillary walks yet");
-  //if(tmoves) pseudo->setDeterministic(1); //this may not be necessary..not sure yet.
   
   doublevar teff=timestep;
-  Array1 <doublevar> aux_timestep(naux,teff);
 
   for(int block=0; block < nblock; block++) {
 
@@ -378,13 +371,9 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
       Dynamics_info dinfo;
       doublevar acsum=0;
       doublevar deltar2=0;
-      Array1 <doublevar> aux_rf_diffusion(naux,0.0);
       Array1 <doublevar> epos(3);
       
       doublevar avg_acceptance=0;
-      
-      doublevar rf_diffusion=0; //diffusion rate without rejection
-
       
       for(int walker=0; walker < nconfig; walker++) {
 
@@ -404,16 +393,8 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
             if(dinfo.accepted) 
               deltar2+=dinfo.diffusion_rate/(nconfig*nelectrons*npsteps);
             
-            Array1 <Dynamics_info> aux_dinfo(naux);
-            mygather.getGreensFunctions(dyngen, dinfo, e,sample, guidingwf,
-                                        timestep, aux_dinfo, 0);
             
-            if(dinfo.accepted) { 
-              rf_diffusion+=dinfo.diffusion_rate/(nconfig*nelectrons*npsteps);
-              for(int i=0; i< naux; i++) 
-                aux_rf_diffusion(i)+=
-                  aux_dinfo(i).diffusion_rate/(nconfig*nelectrons*npsteps);
-              
+            if(dinfo.accepted) {               
               pts(walker).age(e)=0;
             }
             else { 
@@ -467,14 +448,11 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
           } ///---------------------------------done with the T-moves
           else { 
             mygather.gatherData(pt, pseudo, sys, wfdata, wf, 
-                                sample, guidingwf, aux_converge,0);
+                                sample, guidingwf);
           }
           
           Dmc_history new_hist;
           new_hist.main_en=pts(walker).prop.energy(0);
-          new_hist.aux_en=pts(walker).prop.aux_energy;
-          //cout << " main en " << pts(walker).prop.energy(0) << endl;
-          //cout << " aux en " << pts(walker).prop.aux_energy(0,0) << endl;
           pts(walker).past_energies.push_front(new_hist);
           deque<Dmc_history> & past(pts(walker).past_energies);
           if(past.size() > nhist) 
@@ -492,8 +470,6 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
             pts(walker).prop.count=0;
           }
           pts(walker).prop.weight=pts(walker).weight;
-          getAuxWeight(pts(walker), teff, aux_timestep,pts(walker).prop.aux_weight);
-          for(int a=0; a< naux; a++) pts(walker).prop.aux_weight(a,0)*=pts(walker).weight;
           //This is somewhat inaccurate..will need to change it later
           //For the moment, the autocorrelation will be slightly
           //underestimated
@@ -563,12 +539,8 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
       }
       //---Finished moving all walkers
 
-      //-----------Find the effective timesteps(of main and aux walks)
       doublevar accept_ratio=acsum/(nconfig*nelectrons*npsteps);
       teff=timestep*accept_ratio; //deltar2/rf_diffusion; 
-      for(int i=0; i< naux; i++)  {
-        aux_timestep(i)=teff*(aux_rf_diffusion(i)/rf_diffusion);
-      }
 
       updateEtrial(feedback);
 
@@ -576,9 +548,9 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
 
       int nkilled;
       if(!pure_dmc)
-	nkilled=calcBranch();
+        nkilled=calcBranch();
       else
-	nkilled=0;
+        nkilled=0;
       
       totkilled+=nkilled;
       totbranch+=nkilled;
@@ -981,8 +953,6 @@ doublevar Dmc_method::getWeightPURE_DMC(Dmc_point & pt,
                                 doublevar teff, doublevar etr) {
   doublevar teffac=teff;
 
-  doublevar effenergy=0, effoldenergy=0;
-
   int history=pt.past_energies.size();
   assert(history>0);
   doublevar sum=0;
@@ -1000,42 +970,6 @@ doublevar Dmc_method::getWeightPURE_DMC(Dmc_point & pt,
 } 
 //----------------------------------------------------------------------
 
-
-void Dmc_method::getAuxWeight(Dmc_point & pt, 
-                              doublevar teff, 
-                              Array1 <doublevar>&  aux_teff, 
-			      Array2 <doublevar> & aux_weight) {
-
-
-  int naux=pt.prop.aux_energy.GetDim(0);
-  doublevar etr=eref;
-  aux_weight.Resize(naux,1);
-  for(int a=0; a< naux; a++) { 
-    doublevar w=1;
-    w*=pt.prop.aux_jacobian(a);
-    doublevar ratio=guidingwf->getTrialRatio(pt.prop.aux_wf_val(a), 
-					     pt.prop.wf_val);
-    w*= ratio*ratio;
-
-    doublevar fbet=max(etr-pt.prop.aux_energy(a,0), etr-pt.prop.energy(0));
-    if(fbet > branchcut_stop) w=0;
-    w*=exp(-.5*(aux_teff(a)*pt.prop.aux_energy(a,0)-teff*pt.prop.energy(0)));
-    for(deque<Dmc_history>::iterator i=pt.past_energies.begin();
-        i!=pt.past_energies.end()-1; i++) {
-      doublevar fbet=max(etr-i->main_en, etr-i->aux_en(a,0));
-      if(fbet < branchcut_stop) 
-        w*=exp(-(aux_teff(a)*i->aux_en(a,0)-teff*i->main_en));
-    }
-    Dmc_history & last(*(pt.past_energies.end()-1));
-     fbet=max(etr-last.main_en, etr-last.aux_en(a,0));
-    if(fbet< branchcut_stop) 
-      w*=exp(-(aux_teff(a)*last.aux_en(a,0)-teff*last.main_en));
-    aux_weight(a,0)=w; 
-  }
-  
-}
-
-//----------------------------------------------------------------------
 
 struct Queue_element { 
   int from_node;
@@ -1295,11 +1229,6 @@ void Dmc_point::mpiReceive(int node) {
 void Dmc_history::mpiSend(int node) { 
 #ifdef USE_MPI
   MPI_Send(&main_en,1,MPI_DOUBLE,node,0,MPI_Comm_grp);
-  int n1=aux_en.GetDim(0);
-  int n2=aux_en.GetDim(1);
-  MPI_Send(&n1,1,MPI_INT,node,0,MPI_Comm_grp);
-  MPI_Send(&n2,1,MPI_INT,node,0,MPI_Comm_grp);
-  MPI_Send(aux_en.v,n1*n2,MPI_DOUBLE,node,0,MPI_Comm_grp);
 #endif
 }
 
@@ -1308,10 +1237,6 @@ void Dmc_history::mpiReceive(int node) {
   MPI_Status status;
   int n1,n2;
   MPI_Recv(&main_en,1,MPI_DOUBLE,node,0,MPI_Comm_grp,&status);
-  MPI_Recv(&n1,1,MPI_INT,node,0,MPI_Comm_grp,&status);
-  MPI_Recv(&n2,1,MPI_INT,node,0,MPI_Comm_grp,&status);
-  aux_en.Resize(n1,n2);
-  MPI_Recv(aux_en.v,n1*n2,MPI_DOUBLE,node,0,MPI_Comm_grp,&status);  
 #endif
 }
 

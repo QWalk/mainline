@@ -38,7 +38,6 @@ class Program_options;
 
 struct Dmc_history { 
   doublevar main_en;
-  Array2 <doublevar> aux_en;
   void mpiSend(int node);
   
   void mpiReceive(int node);
@@ -155,10 +154,6 @@ public:
   doublevar getWeightPURE_DMC(Dmc_point & pt,
 			   doublevar teff, doublevar etr);
 
-  void getAuxWeight(Dmc_point & pt,
-                    doublevar teff, 
-                    Array1 <doublevar>&  aux_teff, 
-                    Array2 <doublevar> & aux_weight);
   
   int calcBranch();
   void find_cutoffs();
@@ -170,7 +165,6 @@ public:
   int have_read_options;
   int do_cdmc;
   int low_io; //!< write out configs and densities only at the end.
-  int aux_converge; //!< Number of projection lengths at which to evaluate correlated sampling
   int tmoves; //!< whether to do Casula's t-moves
 
   int nblock, nstep;

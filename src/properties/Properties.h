@@ -49,7 +49,7 @@ class Properties_manager {
             vector < string> & wftxt);
 
   void setSize(int nwf_, int nblocks, int nsteps, int maxwalkers, System *, 
-               Wavefunction_data *,int naux_,int n_aux_cvg=1);
+               Wavefunction_data *,int naux_=0,int n_aux_cvg=1);
   void setFirstStep(int s) {
     start_avg_step=s;
     int nsteps=trace.GetDim(0);
