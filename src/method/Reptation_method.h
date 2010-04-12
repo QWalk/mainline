@@ -103,8 +103,7 @@ private:
                     deque <Reptile_point> & reptile,
                     Properties_gather & mygather, 
                     Reptile_point & pt,
-                    doublevar & main_diffusion, 
-                    Array1 <doublevar> & aux_diffusion);
+                    doublevar & main_diffusion);
 
   void get_avg(deque <Reptile_point> & reptile, 
 	       Properties_point & pt);
@@ -113,9 +112,6 @@ private:
   int have_read_options;
   int have_generated_variables;
   int have_attached_variables;
-
-  int calc_hf_derivatives;//!< Hellmann-Feynman derivatives
-  int calc_full_gf;
 
   string center_trace;
   int trace_wait;
@@ -128,12 +124,10 @@ private:
 
   int nblock;
   int nstep;
-  int n_aux_cvg;
   string readconfig;
   string log_label;
   string storeconfig;
   doublevar timestep;
-  Array1 <doublevar> aux_timestep;
   int reptile_length;
 
   Properties_gather mygather;
