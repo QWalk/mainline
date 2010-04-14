@@ -97,22 +97,14 @@ void Vmc_method::read(vector <string> words,
 
 
   pos=0;
-  if(readvalue(words, pos, guidetype, "GUIDETYPE"))
-  {
-    if(guidetype=="SUMSQUARES")
-    {
+  if(readvalue(words, pos, guidetype, "GUIDETYPE")) {
+    if(guidetype=="SUMSQUARES") 
       guidewf=new Vmc_sum_squares;
-    }
-    else if(guidetype=="FIRST") {
+    else if(guidetype=="FIRST") 
       guidewf=new Primary;
-    }
-    else
-    {
-      error("I don't understand ", guidetype, " after GUIDETYPE.");
-    }
+    else error("I don't understand ", guidetype, " after GUIDETYPE.");
   }
-  else
-  {
+  else {
     guidetype="SUMSQUARES";
     guidewf=new Vmc_sum_squares;
   }
@@ -251,12 +243,10 @@ void Vmc_method::readcheck(string & filename) {
     checkfile >> dummy;
     if(dummy != "RANDNUM") error("Expected RANDNUM in checkfile");
     checkfile >> is1 >> is2;
-    //rng.seed(is1, is2);  
+    rng.seed(is1, is2);  
 
 
     while(checkfile >>dummy && configsread < nconfig) {
-    //if(read_config(dummy, checkfile, electrons(configsread)))
-    //  configsread++;
       if(read_config(dummy, checkfile, sample)) {
         config_pos(configsread++).savePos(sample);
       }
@@ -266,7 +256,6 @@ void Vmc_method::readcheck(string & filename) {
   }
 
   for(int i=configsread; i< nconfig; i++) {
-    //electrons(i)->randomGuess();
     sample->randomGuess();
     config_pos(i).savePos(sample);
   }
@@ -290,7 +279,6 @@ void Vmc_method::storecheck(string & filename, int append) {
   checkfile << "RANDNUM " << is1 << "  " << is2 << endl;
   for(int i=0; i< nconfig; i++) {
     checkfile << "SAMPLE_POINT { \n";
-    //write_config(checkfile, electrons(i));
     config_pos(i).restorePos(sample);
     write_config(checkfile, sample);
     checkfile << "}\n\n";
@@ -344,15 +332,7 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
 
   if(output) output << "Entering VMC" << endl;
 
-  prop.setSize(wf->nfunc(), nblock, nstep, nconfig, sys, wfdata,
-	       mygather.nAux());
-  mygather.squareWeight(1);
-
-  
-  //Properties_point pt;
-  //mygather.gatherData(pt, psp, sys, wfdata, wf, 
-  //                    sample, guidewf);
-  //cout << "energy test " << pt.energy(0) << endl;
+  prop.setSize(wf->nfunc(), nblock, nstep, nconfig, sys, wfdata);
   output.precision(10);
   prop.initializeLog(average_var);
   //our averaging variables
@@ -427,9 +407,9 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
         
         for(int i=0; i< densplt.GetDim(0); i++)
           densplt(i)->accumulate(sample,1.0);
-	for(int i=0; i< nldensplt.GetDim(0); i++)
+        for(int i=0; i< nldensplt.GetDim(0); i++)
           nldensplt(i)->accumulate(sample,1.0,wfdata,wf);
-
+        
         pt.avgrets.Resize(average_var.GetDim(0));
         for(int i=0; i< average_var.GetDim(0); i++) { 
           average_var(i)->evaluate(wfdata, wf, sys, sample, pt.avgrets(i));

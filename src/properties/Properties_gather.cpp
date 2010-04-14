@@ -24,69 +24,11 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 //----------------------------------------------------------------------
 
 Properties_gather::~Properties_gather() {
-  int naux=aux_sys.GetDim(0);
-  for(int i=0; i< naux; i++) {
-    if(aux_sys(i)) delete aux_sys(i);
-    if(aux_wf(i)) delete aux_wf(i);
-    if(aux_wfdata(i)) delete aux_wfdata(i);
-    if(aux_sample(i)) delete aux_sample(i);
-  }
 }
 
 //----------------------------------------------------------------------
 
 void Properties_gather::read(vector < string> & words) {
-  
-  unsigned int pos=0;
-
-  vector < vector < string> > aux_systxt;
-  vector < vector < string > > aux_wftxt;
-  vector < string> tmp, tmp2;
-
-  pos=0;
-  while(readsection(words, pos, tmp, "AUX_SYS")) {
-    unsigned int pos2=0;
-    if(readsection(tmp, pos2, tmp2, "SYSTEM"))
-      aux_systxt.push_back(tmp2);
-    else 
-      aux_systxt.push_back(tmp);
-  }
-
-  pos=0;
-  while(readsection(words, pos, tmp, "AUX_WF")) 
-    aux_wftxt.push_back(tmp);
-  
-
-  if(aux_systxt.size() != aux_wftxt.size())
-    error("the number of AUX_SYS and AUX_WF must be the same in properties");
-
-  vector <string> warpsec;
-  if(readsection(words, pos=0, warpsec,"WARPER")) {
-    warper.read(warpsec);
-  }
-
-  if(haskeyword(words, pos=0, "NOWARP")) 
-    warper.set_warp(0);
-  
-
-  int naux=aux_systxt.size();
-
-  aux_wfdata.Resize(naux);
-  aux_sys.Resize(naux);
-  aux_wf.Resize(naux);
-  aux_sample.Resize(naux);
-
-  aux_wfdata=NULL; aux_sys=NULL;
-  aux_wf=NULL; aux_sample=NULL;
-
-  for(int i=0; i < naux; i++) {
-    allocate(aux_systxt[i], aux_sys(i));
-    allocate(aux_wftxt[i], aux_sys(i), aux_wfdata(i));
-    aux_sys(i)->generateSample(aux_sample(i));
-    aux_wfdata(i)->generateWavefunction(aux_wf(i));
-    aux_sample(i)->attachObserver(aux_wf(i));
-  }  
-  
 
 }
 
@@ -94,132 +36,9 @@ void Properties_gather::read(vector < string> & words) {
 //----------------------------------------------------------------------
 #include "Split_sample.h"
 
-void Properties_gather::updateAuxFunctions(Sample_point * sample) {
-  int naux=aux_sys.GetDim(0);
-  Array1 <doublevar> pos(3); doublevar jacobian;
-
-  Array1 <doublevar> ref_pos(3);
-  for(int i=0; i< naux; i++) {
-    for(int e=0; e < sample->electronSize() ; e++) {
-      sample->getElectronPos(e,ref_pos);
-      warper.space_warp(sample, aux_sample(i), e,ref_pos,pos, jacobian);
-      aux_sample(i)->setElectronPos(e,pos);
-    }
-    aux_wf(i)->notify(all_electrons_move, 0);
-    aux_wf(i)->updateLap(aux_wfdata(i), aux_sample(i));
-  }
-}
-
-
-void Properties_gather::getGreensFunctions(Dynamics_generator * dyngen,
-                                           Dynamics_info & dinfo,
-                                           int e, Sample_point * sample,
-                                           Guiding_function * guide,
-                                           doublevar timestep,
-                                           Array1 <Dynamics_info> & aux_dinfo,
-                                           int eval_gf) {
-  doublevar jacobian;
-  //Array1 <doublevar> pos(3);
-  int naux=aux_sys.GetDim(0);
-  //gf.Resize(naux);
- 
-  //Array1 <doublevar> ref_pos(3);
-  aux_dinfo.Resize(naux);
-  for(int i=0; i< naux; i++) {
-    
-    Wavefunction_data * usewfdata=NULL;
-    if(aux_wfdata(i)==NULL) 
-      error("bad assumption in Properties_gather::getGreensFunctions");
-    else usewfdata=aux_wfdata(i);
-    int ndim=aux_sys(i)->ndim();
-    
-    Array1 <doublevar> test_pos(3);
-    aux_sample(i)->getElectronPos(e,test_pos);
-        
-    Array1 <doublevar> new_pos(3);
-    warper.space_warp(sample, aux_sample(i), e,dinfo.new_pos, new_pos, jacobian);
-    
-    Array1 <doublevar> ref_pos(3);
-    warper.space_warp(sample, aux_sample(i), e,dinfo.orig_pos, ref_pos, jacobian);
-    
-    
-    if(dinfo.accepted && eval_gf) {
-      //cout << "moving " << e << " to " << new_pos(0) << endl;
-    
-      dyngen->greenFunction(aux_sample(i), aux_wf(i), usewfdata,
-                            guide,e, new_pos, timestep, aux_dinfo(i), dinfo);
-    
-    }
-    else { //cout << "not moving " << e<< " at " << test_pos(0) << endl; 
-           aux_dinfo(i).green_forward=1;}
-      
-    
-    aux_dinfo(i).accepted=dinfo.accepted;
-
-    Array1 <doublevar> diffuse_start(3), diffuse_end(3);
-    warper.space_warp(sample, aux_sample(i), e,dinfo.diffuse_start, diffuse_start, jacobian);
-    warper.space_warp(sample, aux_sample(i), e,dinfo.diffuse_end, diffuse_end, jacobian);
-    aux_dinfo(i).diffusion_rate=0;
-    for(int d=0; d< ndim; d++)
-      aux_dinfo(i).diffusion_rate+=(diffuse_end(d)-diffuse_start(d))
-          *(diffuse_end(d)-diffuse_start(d));
-                                      
-  }
- 
-}
-
-//----------------------------------------------------------------------
 #include "Force_fitter.h"
 
 
-/*!
-
- */
-
-void Properties_gather::extendedGather(Properties_point & myprop,
-                                   Pseudopotential * psp, 
-                                   System * sys, 
-                                   Wavefunction_data * wfdata,
-                                   Wavefunction * wf, 
-                                   Sample_point * sample, 
-                                   Guiding_function * guide, int n_converge,
-				       int aux_updated,
-				       Array2 <doublevar> & drift,
-				       Array1 < Array2 <doublevar> > & aux_drift
-,
-				       Array1 <Array2 <doublevar> > & aux_positions) { 
-  int nwf=wf->nfunc();
-  int naux=aux_sys.GetDim(0);
-
-  //updated all the aux wfs, etc.
-  gatherData(myprop, psp, sys, wfdata, wf, sample, guide, n_converge,
-	     aux_updated);
-  Wf_return temp(nwf,5);
-  
-  int nelectrons=sample->electronSize();
-  drift.Resize(nelectrons,3);
-  for(int e=0; e< nelectrons; e++) { 
-    wf->getLap(wfdata, e, temp);
-    for(int d=0; d< 3; d++) { 
-      drift(e,d)=temp.amp(0,d+1);
-    }
-  }
-  aux_drift.Resize(naux);
-  aux_positions.Resize(naux);
-  Array1 <doublevar> apos(3);
-  for(int a=0; a< naux; a++) { 
-    aux_positions(a).Resize(nelectrons,3);
-    aux_drift(a).Resize(nelectrons,3);
-    for(int e=0;e < nelectrons; e++) { 
-      aux_sample(a)->getElectronPos(e,apos);
-      aux_wf(a)->getLap(aux_wfdata(a),e,temp);
-      for(int d=0; d< 3; d++) { 
-	aux_positions(a)(e,d)=apos(d);
-	aux_drift(a)(e,d)=temp.amp(0,d+1);
-      }
-    }
-  }
-}
 
 
 void Properties_gather::gatherData(Properties_point & myprop,
@@ -231,9 +50,8 @@ void Properties_gather::gatherData(Properties_point & myprop,
                                    Guiding_function * guide, int n_converge,
                                    int aux_updated) {  
   int nwf=wf->nfunc();
-  int naux=aux_sys.GetDim(0);
   
-  myprop.setSize(nwf, naux, n_converge);
+  myprop.setSize(nwf, 0,0);
   
 
   wf->updateLap(wfdata, sample);
@@ -245,10 +63,7 @@ void Properties_gather::gatherData(Properties_point & myprop,
   for(int w=0; w< nwf; w++) {
     myprop.weight(w)=guide->getWeight(myprop.wf_val, 
                                       myprop.wf_val, w);
-    myprop.sign(w)=myprop.wf_val.sign(w);
-    if(square_weight) 
-      myprop.weight(w)*=myprop.weight(w);
-      
+    myprop.sign(w)=myprop.wf_val.sign(w);      
   }
 
   int nrandvar=psp->nTest();
@@ -259,74 +74,6 @@ void Properties_gather::gatherData(Properties_point & myprop,
   psp->calcNonlocWithTest(wfdata, sys,sample, wf,
                           rand_num,  myprop.nonlocal);
 
-  //Collect auxillary points
-
-  Array1 <doublevar> a_kin(nwf);
-  Array1 <doublevar> a_nonloc(nwf);
-  doublevar a_loc;
-  int nelectrons=sys->nelectrons(0)+sys->nelectrons(1);
-  Array1 <doublevar> pos(3);
-  
-  
-  
-  
-  
-  //cout << "----------------------Auxillary points " << endl;
-
-  for(int i=0; i< naux; i++) {
-    Wavefunction_data * usewfdata;
-    if(aux_wfdata(i)==NULL) usewfdata=wfdata;
-    else usewfdata=aux_wfdata(i);
-
-    doublevar tot_jacob=1;
-    Array1 <doublevar> ref_drift(3), aux_drift(3);
-    Array1 <doublevar> ref_pos(3), orig_pos(3);
-
-    for(int e=0;e< nelectrons; e++) {
-      doublevar jacobian=1;
-      sample->getElectronPos(e,ref_pos);
-      aux_sample(i)->getElectronPos(e,orig_pos);
-      warper.space_warp(sample, aux_sample(i), 
-                        e,ref_pos, pos, jacobian);
-      tot_jacob*=jacobian;
-
-      if(!aux_updated)
-        aux_sample(i)->setElectronPos(e,pos);
-      
-      //for(int d=0; d< 3; d++) 
-      //   cout << "e=" << e << "  diff " << pos(d) << "  " << orig_pos(d) << endl;
-    }
-    if(!aux_updated) {
-      aux_wf(i)->notify(all_electrons_move, 0);
-      aux_wf(i)->updateLap(usewfdata, aux_sample(i));
-    }
-    aux_wf(i)->getVal(usewfdata, 0, myprop.aux_wf_val(i));  
-    //cout << "pg: new wfval " << myprop.aux_wf_val(i).amp(0,0) << endl;
-    aux_sys(i)->calcKinetic(usewfdata, aux_sample(i), 
-                            aux_wf(i), a_kin);
-    psp->calcNonlocWithTest(usewfdata, aux_sys(i), aux_sample(i),
-                            aux_wf(i),rand_num, a_nonloc);
-    a_loc=aux_sys(i)->calcLoc(aux_sample(i));
-        
-    
-    myprop.aux_jacobian(i)=tot_jacob;
-
-    for(int w=0; w< n_converge; w++) {
-      myprop.aux_energy(i,w)=a_kin(0)+a_nonloc(0)+a_loc;
-      myprop.aux_weight(i,w)=guide->getWeight(myprop.aux_wf_val(i), 
-					      myprop.wf_val, 0);
-      myprop.aux_weight(i,w)*=myprop.aux_weight(i,w);
-      myprop.aux_weight(i,w)*=tot_jacob;
-    }
-  }
-
-  //for(int i=0; i< naux; i++) {
-  //  cout << "aux en " << myprop.aux_energy(i,0) 
-  //      << "  weight " << myprop.aux_weight(i,0) 
-  //      << "  val " << myprop.aux_wf_val(i).amp(0,0)
-  //      << "  jacobian " << myprop.aux_jacobian(i) << endl;
-  //}
-  
   myprop.count=1;
 
 

@@ -597,7 +597,6 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
     
     wf->notify(all_electrons_move, 0);
     wf->updateLap(wfdata, sample);
-    mygather.updateAuxFunctions(sample);
     
     for(int i=0; i< reptile_length; i++) {
       doublevar main_diffusion;
@@ -643,9 +642,7 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
         if(direction==1) 
           reptile[reptile_length-1].restorePos(sample);
         else
-          reptile[0].restorePos(sample);
-          
-        mygather.updateAuxFunctions(sample);
+          reptile[0].restorePos(sample);          
       }
 
       
