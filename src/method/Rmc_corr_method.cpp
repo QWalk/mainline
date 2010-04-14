@@ -195,7 +195,7 @@ void Rmc_corr_method::run(Program_options & options, ostream & output) {
     pts(i).system= i%nsys;
   }
   myprop.setSize(nsys, nblock, nstep+1, nconfig, mysys(0), 
-                 mywfdata(0), 0, 0);
+                 mywfdata(0));
   
   ///-----------------Generate VMC configs
   if(readconfig=="") { 

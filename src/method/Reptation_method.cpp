@@ -577,7 +577,7 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
   prop_center.setLog(logfile, label_temp);
   
   prop_center.setSize(wf->nfunc(), nblock, nstep, 1, sys, 
-                      wfdata,0);
+                      wfdata);
   prop_center.initializeLog(average_var);
 
 

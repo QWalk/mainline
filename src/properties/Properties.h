@@ -49,7 +49,7 @@ class Properties_manager {
             vector < string> & wftxt);
 
   void setSize(int nwf_, int nblocks, int nsteps, int maxwalkers, System *, 
-               Wavefunction_data *,int naux_=0,int n_aux_cvg=1);
+               Wavefunction_data *);
   void setFirstStep(int s) {
     start_avg_step=s;
     int nsteps=trace.GetDim(0);
@@ -101,7 +101,7 @@ class Properties_manager {
 
 
  private:
-  void autocorrelation(Array2 <doublevar> &,Array2 <doublevar> & ,  int);
+  void autocorrelation(Array2 <doublevar> &,  int);
   Array2 < Properties_point > trace;
   //control
   int start_avg_step;
@@ -116,10 +116,6 @@ class Properties_manager {
   int nwf; //!< the number of wave functions we can have in the primary walk
   int maxchildren; //!< maximum number of children a walker can have
   int autocorr_depth;
-  int num_aux_converge; //!<convergence points in the auxillary walk
-
-  int naux;  //!< number of auxillary energies to collect(forces)
-  Array1 <doublevar> aux_size; //!< size of the distortion
 
   //Averaging 
   int current_block;
@@ -127,9 +123,6 @@ class Properties_manager {
   Properties_block local_sum;
 
   Properties_final_average final_avg;
-
-
-
 };
 
 

@@ -356,8 +356,6 @@ Properties_manager::Properties_manager() {
   start_avg_step=0;
   current_block=0;
   autocorr_depth=0;
-  num_aux_converge=1;
-  naux=0;
   max_autocorr_depth=10;
   log_file="";
   //maxhist=0;
@@ -389,8 +387,7 @@ void Properties_manager::read(vector <string> & words,
 void Properties_manager::setSize(int nwf_, int nblocks, int nsteps, 
                                  int maxwalkers,
                                  System * sys, 
-                                 Wavefunction_data * wfdata, int naux_, 
-				 int n_aux_cvg) {
+                                 Wavefunction_data * wfdata) {
   assert(nblocks >= 0 );
   assert(nsteps >= 0);
   assert(maxwalkers >= 0);
@@ -398,12 +395,10 @@ void Properties_manager::setSize(int nwf_, int nblocks, int nsteps,
   nwf=nwf_;
 
   current_block=0;
-  naux=naux_;
-  num_aux_converge=n_aux_cvg;
   
   block_avg.Resize(nblocks);
   for(int i=0; i< nblocks; i++) { 
-    block_avg(i).setSize(nwf, naux, n_aux_cvg);
+    block_avg(i).setSize(nwf, 0,0);
     block_avg(i).aux_size=1;
   }
   
@@ -437,7 +432,6 @@ find the energy autocorrelation.  In general, we have a directed
 graph, so let's start at the bottom and follow parents up.
 */
 void Properties_manager::autocorrelation(Array2 <doublevar> & autocorr,
-					 Array2 <doublevar> & aux_autocorr,
                                          int depth) {
 
   using namespace Properties_types;
@@ -447,10 +441,6 @@ void Properties_manager::autocorrelation(Array2 <doublevar> & autocorr,
   int nwf=trace(0,0).kinetic.GetDim(0);
   autocorr.Resize(nwf, depth);
   autocorr=0;
-  aux_autocorr.Resize(naux, depth);
-  aux_autocorr=0;
-
-  
   
   for(int d=1; d< depth+1; d++) {
     int npts=0;
@@ -558,8 +548,6 @@ void Properties_manager::endBlock() {
     totpts=parallel_sum(npts);
     //cout << "donepsum" << endl;
     doublevar weight_sum=parallel_sum(totweight)/totpts;
-    doublevar sum_inv=1.0/weight_sum;
-    
     
     for(int step=start_avg_step; step < nsteps; step++) {
       for(int walker=0; walker < nwalkers; walker++) {
@@ -646,7 +634,6 @@ void Properties_manager::endBlock() {
   //cout << "autocorrelation " << endl;
   
   autocorrelation(block_avg(current_block).autocorr,
-                  block_avg(current_block).aux_autocorr,
                   autocorr_depth);
   
   //cout << "writing block " << endl;
@@ -684,7 +671,6 @@ void Properties_manager::endBlock_per_step() {
 
   
   int nwalkers=trace.GetDim(1);
-  int n_cvg=num_aux_converge;
   
   int nsteps=trace.GetDim(0);
   int totpts=0;
@@ -737,9 +723,6 @@ void Properties_manager::endBlock_per_step() {
       //cout <<"step"<<step<<" totnpts_per_step "<<totnpts_per_step(step-start_avg_step)<<" totweight_per_step " <<totweight_per_step(step-start_avg_step)<<endl;
     }
     doublevar weight_sum=parallel_sum(totweight)/totpts;
-    doublevar sum_inv=1.0/weight_sum;
-    
-    
     
     Array1 < Array1 < Array1 <doublevar> > > avgrets_per_step(nsteps-start_avg_step);
     for(int step=start_avg_step; step < nsteps; step++) {
@@ -849,7 +832,6 @@ void Properties_manager::endBlock_per_step() {
   
   
   autocorrelation(block_avg(current_block).autocorr,
-                  block_avg(current_block).aux_autocorr,
                   autocorr_depth);
   
   //cout << "writing block " << endl;
@@ -917,7 +899,6 @@ void Properties_manager::endBlockSHDMC() {
     totpts=parallel_sum(npts);
     //cout << "donepsum" << endl;
     doublevar weight_sum=parallel_sum(totweight)/totpts;
-    doublevar sum_inv=1.0/weight_sum;
     
     for(int step=start_avg_step; step < nsteps; step++) {
       for(int walker=0; walker < nwalkers; walker++) {
@@ -1004,7 +985,6 @@ void Properties_manager::endBlockSHDMC() {
   }
   
   autocorrelation(block_avg(current_block).autocorr,
-                  block_avg(current_block).aux_autocorr,
                   autocorr_depth);
   
   if(mpi_info.node==0 && log_file != "") {
