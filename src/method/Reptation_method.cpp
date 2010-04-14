@@ -441,7 +441,7 @@ void Reptation_method::get_avg(deque <Reptile_point> & reptile,
   int nwf=reptile[0].prop.kinetic.GetDim(0);
   if(nwf >1) error("nwf > 0 not supported yet");
 
-  pt.setSize(nwf, 0,2);
+  pt.setSize(nwf);
   
   Reptile_point & last(reptile[size-1]);
 
@@ -467,7 +467,7 @@ void Reptation_method::get_center_avg(deque <Reptile_point> & reptile,
   int size=reptile.size();
   if(nwf >1) error("nwf > 0 not supported yet");
 
-  pt.setSize(nwf, 0);
+  pt.setSize(nwf);
   int num=size/2+1;
   pt=reptile[num].prop;
 

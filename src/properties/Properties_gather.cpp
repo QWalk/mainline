@@ -51,7 +51,7 @@ void Properties_gather::gatherData(Properties_point & myprop,
                                    int aux_updated) {  
   int nwf=wf->nfunc();
   
-  myprop.setSize(nwf, 0,0);
+  myprop.setSize(nwf);
   
 
   wf->updateLap(wfdata, sample);

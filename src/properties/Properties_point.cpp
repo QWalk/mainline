@@ -19,8 +19,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 #include "Properties_point.h"
 
-void Properties_point::setSize(int nwf, 
-                               int n_aux, int n_aux_cvg) {
+void Properties_point::setSize(int nwf) {
 
   
   kinetic.Resize(nwf);
@@ -35,16 +34,6 @@ void Properties_point::setSize(int nwf,
   count=0;
   sign=1;
   
-  aux_energy.Resize(n_aux, n_aux_cvg);
-  aux_weight.Resize(n_aux, n_aux_cvg);
-  aux_energy=0;
-  aux_weight=0;
-  
-  aux_jacobian.Resize(n_aux);
-  aux_wf_val.Resize(n_aux);
-  for(int i=0; i< n_aux; i++) {
-    aux_wf_val(i).Resize(nwf,1);
-  }
 }
 
 
@@ -53,13 +42,8 @@ void Properties_point::setSize(int nwf,
 void Properties_point::mpiSend(int node) {
 #ifdef USE_MPI
   int nwf=kinetic.GetDim(0);
-  int naux=aux_energy.GetDim(0);
-  int n_aux_cvg=aux_energy.GetDim(1);
-  //cout << mpi_info.node << "  " << nwf << "  " << naux << endl;
 
   MPI_Send(&nwf, 1, MPI_INT, node, 0, MPI_Comm_grp);
-  MPI_Send(&naux, 1, MPI_INT, node, 0, MPI_Comm_grp);
-  MPI_Send(&n_aux_cvg, 1, MPI_INT, node, 0, MPI_Comm_grp);
 
   MPI_Send(children.v, children.GetDim(0), MPI_INT,
            node, 0,MPI_Comm_grp);
@@ -80,15 +64,6 @@ void Properties_point::mpiSend(int node) {
            MPI_DOUBLE, node, 0, MPI_Comm_grp);
   
   // cout << mpi_info.node << ":sending aux_energy " << endl;
-  MPI_Send(aux_energy.v, aux_energy.GetDim(0)*aux_energy.GetDim(1),
-           MPI_DOUBLE, node, 0, MPI_Comm_grp);
-  MPI_Send(aux_weight.v, aux_weight.GetDim(0)*aux_weight.GetDim(1),
-           MPI_DOUBLE, node, 0, MPI_Comm_grp);
-  MPI_Send(aux_jacobian.v, aux_jacobian.GetDim(0), MPI_DOUBLE,
-           node, 0, MPI_Comm_grp); 
-  for(int i=0; i< naux; i++) {
-    aux_wf_val(i).mpiSend(node);
-  }
   
 #else
     error("Properties_point::mpi_send: not using MPI,"
@@ -103,14 +78,11 @@ void Properties_point::mpiReceive(int node) {
 #ifdef USE_MPI
   MPI_Status status;
 
-  int naux, nwf;
-  int n_aux_cvg;
+  int nwf;
   MPI_Recv(&nwf, 1, MPI_INT, node, 0, MPI_Comm_grp, &status);
-  MPI_Recv(&naux, 1, MPI_INT, node, 0, MPI_Comm_grp, &status);
-  MPI_Recv(&n_aux_cvg, 1, MPI_INT, node, 0, MPI_Comm_grp, &status);
   //cout << mpi_info.node << "  " << nwf << "  " << naux << endl;
 
-  setSize(nwf, naux, n_aux_cvg);
+  setSize(nwf);
   MPI_Recv(children.v, children.GetDim(0), MPI_INT,
            node, 0,MPI_Comm_grp, &status);
   MPI_Recv(&nchildren, 1, MPI_INT, node, 0, MPI_Comm_grp, &status);
@@ -131,16 +103,6 @@ void Properties_point::mpiReceive(int node) {
   MPI_Recv(wf_val.phase.v, wf_val.phase.GetDim(0)*wf_val.phase.GetDim(1),
            MPI_DOUBLE,node, 0, MPI_Comm_grp, & status);
 
-  MPI_Recv(aux_energy.v, aux_energy.GetDim(0)*aux_energy.GetDim(1),
-           MPI_DOUBLE, node, 0, MPI_Comm_grp, & status);
-  MPI_Recv(aux_weight.v, aux_weight.GetDim(0)*aux_weight.GetDim(1),
-           MPI_DOUBLE, node, 0, MPI_Comm_grp, & status);
-  MPI_Recv(aux_jacobian.v, aux_jacobian.GetDim(0),
-           MPI_DOUBLE, node, 0, MPI_Comm_grp, & status);
-  for(int i=0; i< naux; i++) {
-    aux_wf_val(i).mpiRecieve(node);
-  } 
-
 #else
   
   error("Properties_point::mpiRecieve: not using MPI,"
@@ -150,21 +112,23 @@ void Properties_point::mpiReceive(int node) {
 
 //----------------------------------------------------------------------
 
+#include "qmc_io.h"
 
 void Properties_point::read(istream & is) { 
-  int nwf, naux, n_aux_cvg;
+  int nwf;
   string dummy;
   const string errmsg="Properties error in checkpoint read";
   is >> dummy >> nwf;
   if(dummy != "nwf") error("expected nwf, got ", dummy);
-  is >> dummy >> naux;
-  is >> dummy >> n_aux_cvg;
-  setSize(nwf, naux, n_aux_cvg);
-  //is >> dummy >> nchildren;
-  //read_array(is,nchildren, children);
-  //is >> dummy >> parent;
-  //is >> dummy >> moved;
-  //is >> dummy >> count;
+  is >> dummy;
+  if(dummy=="naux") {
+    debug_write(cout,"Trying to read from old Properties_point..");
+    int naux;
+    is >> naux;
+    if(naux > 0) error("Don't support auxiliary wave functions any more!");
+    is >> dummy >> dummy;
+  }
+  setSize(nwf);
   is >> dummy;
   read_array(is, nwf, kinetic);
   is >> dummy;
@@ -177,22 +141,6 @@ void Properties_point::read(istream & is) {
   wf_val.read(is);
   is >> dummy; //}
   
-  if(naux > 0) { 
-    is >> dummy; //aux_energy
-    read_array(is, naux, n_aux_cvg, aux_energy);
-    is >> dummy; //aux_weight
-    read_array(is, naux, n_aux_cvg, aux_weight);
-    is >> dummy; //aux_jacobian
-    read_array(is, naux, aux_jacobian);
-    for(int a=0; a< naux; a++) {
-      is >> dummy >> dummy; //aux_wf_val { 
-      aux_wf_val(a).read(is);
-      is >> dummy; // } 
-    }
-
-    basic_istream<char>::pos_type place=is.tellg();    
-  }
-
 }
 
 //----------------------------------------------------------------------
@@ -200,11 +148,7 @@ void Properties_point::read(istream & is) {
 
 void Properties_point::write(string & indent, ostream & os) { 
   int nwf=kinetic.GetDim(0);
-  int naux=aux_energy.GetDim(0);
-  int n_aux_cvg=aux_energy.GetDim(1);
   os << indent << "nwf " << nwf << endl;
-  os << indent << "naux " << naux << endl;
-  os << indent << "n_aux_cvg " << n_aux_cvg << endl;
   
   os << indent << "kinetic ";
   write_array(os, kinetic);
@@ -220,20 +164,7 @@ void Properties_point::write(string & indent, ostream & os) {
   string indent2=indent+"  ";
   wf_val.write(indent2, os);
   os << indent << "}\n";
-  
-  if(naux > 0) { 
-    os << indent << " aux_energy "; write_array(os, aux_energy); os << endl;
-    os << indent << " aux_weight "; write_array(os, aux_weight); os << endl;
-    os << indent << " aux_jacobian "; write_array(os, aux_jacobian); os << endl;
     
-    for(int a=0; a< naux; a++) {
-      os << indent << "aux_wf_val { \n";
-      aux_wf_val(a).write(indent2, os);
-      os << indent << "}\n";
-    }
-    
-  }
-  
 }
 
 //----------------------------------------------------------------------

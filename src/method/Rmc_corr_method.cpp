@@ -518,7 +518,7 @@ Rmc_corr_history Rmc_corr_method::add_point(int walker) {
   Array1 <doublevar> rand_num(nrandvar);
   for(int i=0; i< nrandvar; i++) rand_num(i)=rng.ulec();
   Array1 <doublevar> jacobian_save(nsys);
-  new_hist.prop.setSize(nsys, nsys, 1);
+  new_hist.prop.setSize(nsys);
   for(int i=0; i< nsys; i++) { 
     Array1 <doublevar> kinetic(wf(i)->nfunc());
     Array1 <doublevar> nonlocal(wf(i)->nfunc());

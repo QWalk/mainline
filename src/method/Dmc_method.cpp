@@ -410,7 +410,7 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
           vector <Tmove> tmov;
           doublevar subtract_out_enwt=0;
           if(tmoves) {  //------------------T-moves
-            pt.setSize(nwf,0,0);
+            pt.setSize(nwf);
             wf->getVal(wfdata,0,pt.wf_val);
             sys->calcKinetic(wfdata,sample,wf,pt.kinetic);
             pt.potential=sys->calcLoc(sample);

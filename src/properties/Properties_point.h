@@ -38,9 +38,8 @@ struct Properties_point {
     children.Resize(maxchildren);
     reset();
   }
-  void setSize(int nwf, int n_aux, int n_aux_cvg=1 //Number of convergence steps
-              );
-
+  
+  void setSize(int nwf);
   void reset() {
     nchildren=0;
     parent=-1;
@@ -80,7 +79,7 @@ struct Properties_point {
   Array1 <doublevar> weight; //!< averaging weight
   Wf_return wf_val; //!< wavefunction value
 
-
+/*
   //Do not use these values; they are scheduled for deletion.
   Array2 <doublevar> aux_energy;
   Array2 <doublevar> aux_weight;
@@ -88,7 +87,7 @@ struct Properties_point {
   Array1 <doublevar> aux_jacobian;
   Array1 <Wf_return> aux_wf_val;
   //--end of obselete values
-
+*/
   
   Array1 <Average_return> avgrets; //general accumulations from Average_generators
   private:
