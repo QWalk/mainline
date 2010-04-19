@@ -27,13 +27,8 @@ void Properties_point::setSize(int nwf) {
   nonlocal.Resize(nwf);
   weight.Resize(nwf);
   wf_val.Resize(nwf, 1);
-  sign.Resize(nwf);
-  
-  //moved=0;
   weight=1;
   count=0;
-  sign=1;
-  
 }
 
 
@@ -62,9 +57,6 @@ void Properties_point::mpiSend(int node) {
            MPI_DOUBLE, node, 0, MPI_Comm_grp);
   MPI_Send(wf_val.phase.v, wf_val.phase.GetDim(0)*wf_val.phase.GetDim(1),
            MPI_DOUBLE, node, 0, MPI_Comm_grp);
-  
-  // cout << mpi_info.node << ":sending aux_energy " << endl;
-  
 #else
     error("Properties_point::mpi_send: not using MPI,"
           " this is most likely a bug");

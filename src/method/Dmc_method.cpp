@@ -105,7 +105,6 @@ void Dmc_method::read(vector <string> words,
   
   vector <string> proptxt;
   if(readsection(words, pos=0, proptxt, "PROPERTIES")) 
-    //    myprop.read(proptxt, options.systemtext[0], options.twftext[0]);
     mygather.read(proptxt);
 
   vector<string> tmp_dens;

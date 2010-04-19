@@ -662,7 +662,7 @@ void Rndmc_method::runWithVariables(Properties_manager & prop,
 	  //MB: this is how we track the sign
           //MB: pts(walker).sign is before the step and the pts(walker).prop.sign(0) is after
           //MB: if they change weight will change the sign as well
-	  if(pts(walker).sign!=pts(walker).prop.sign(0)){
+	  if(pts(walker).sign!=pts(walker).prop.wf_val.sign(0)){
 	    cout <<"node: "<<mpi_info.node <<" walker "<<walker<<" changed the sign "<<endl;
 	    //cout <<" pts(walker).weight "<<pts(walker).weight<<" pts(walker).prop.weight(0) "<<pts(walker).prop.weight(0)<<
 	    // " pts(walker).sign "<<pts(walker).sign<<" pts(walker).prop.sign "<<pts(walker).prop.sign<<endl;
@@ -689,7 +689,9 @@ void Rndmc_method::runWithVariables(Properties_manager & prop,
 
 	  //MB: finnaly everything is put to pts(walker).prop for averaging
           pts(walker).prop.weight=pts(walker).weight;
-	  pts(walker).prop.sign=pts(walker).sign;
+    //LKW: prop.sign() is redundant information..either the sign should be in 
+          //the weight or in wf_val.
+	  //pts(walker).prop.sign=pts(walker).sign;
 	  
 	  //cout <<"final weight is "<<pts(walker).prop.weight(0)<<endl;
 

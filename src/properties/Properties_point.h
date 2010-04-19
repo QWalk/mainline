@@ -43,7 +43,6 @@ struct Properties_point {
   void reset() {
     nchildren=0;
     parent=-1;
-    sign=1;
     weight=0;
     count=0;
     
@@ -69,31 +68,17 @@ struct Properties_point {
 
   int count; //whether to count this point or not
 
-  Array1 <int> sign; //track the sign of walker's wavefunction
-  
   //Properties to track
   Array1 <doublevar> kinetic;
   Array1 <doublevar> potential;
   Array1 <doublevar> nonlocal;
 
   Array1 <doublevar> weight; //!< averaging weight
-  Wf_return wf_val; //!< wavefunction value
-
-/*
-  //Do not use these values; they are scheduled for deletion.
-  Array2 <doublevar> aux_energy;
-  Array2 <doublevar> aux_weight;
-
-  Array1 <doublevar> aux_jacobian;
-  Array1 <Wf_return> aux_wf_val;
-  //--end of obselete values
-*/
-  
+  Wf_return wf_val; //!< wavefunction value  
   Array1 <Average_return> avgrets; //general accumulations from Average_generators
+  
   private:
   int maxchildren;
-  
-
 };
 
 
