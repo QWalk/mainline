@@ -24,7 +24,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Wavefunction.h"
 #include "Average_generator.h"
 /*!
-  All relevant quantities at one point
+  Universal quantities at one point.  This includes the wave function value,
+  any averaging variables, and the various energy components of the configuration.
  */
 struct Properties_point {
 
@@ -45,34 +46,25 @@ struct Properties_point {
     parent=-1;
     weight=0;
     count=0;
-    
   }
-
-
   void mpiSend(int node);
-
   void mpiReceive(int node);
-
   void write(string & indent, ostream & os);
   void read(istream & is);
-
 
   doublevar energy(int w) {
     return kinetic(w)+potential(w)+nonlocal(w);
   }
-
  
   int nchildren;
   int parent;
   Array1 <int> children;
-
   int count; //whether to count this point or not
 
   //Properties to track
   Array1 <doublevar> kinetic;
   Array1 <doublevar> potential;
   Array1 <doublevar> nonlocal;
-
   Array1 <doublevar> weight; //!< averaging weight
   Wf_return wf_val; //!< wavefunction value  
   Array1 <Average_return> avgrets; //general accumulations from Average_generators

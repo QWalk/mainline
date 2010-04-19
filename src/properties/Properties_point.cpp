@@ -20,8 +20,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Properties_point.h"
 
 void Properties_point::setSize(int nwf) {
-
-  
   kinetic.Resize(nwf);
   potential.Resize(nwf);
   nonlocal.Resize(nwf);
@@ -39,7 +37,6 @@ void Properties_point::mpiSend(int node) {
   int nwf=kinetic.GetDim(0);
 
   MPI_Send(&nwf, 1, MPI_INT, node, 0, MPI_Comm_grp);
-
   MPI_Send(children.v, children.GetDim(0), MPI_INT,
            node, 0,MPI_Comm_grp);
   MPI_Send(&nchildren, 1, MPI_INT, node, 0, MPI_Comm_grp);
@@ -63,8 +60,7 @@ void Properties_point::mpiSend(int node) {
 #endif
 }
 
-//--------------------------------------------------
-
+//---------------------------------------------------------------------
 
 void Properties_point::mpiReceive(int node) {
 #ifdef USE_MPI
@@ -132,7 +128,6 @@ void Properties_point::read(istream & is) {
   is >> dummy >> dummy;  //Wf_val { 
   wf_val.read(is);
   is >> dummy; //}
-  
 }
 
 //----------------------------------------------------------------------
@@ -141,7 +136,6 @@ void Properties_point::read(istream & is) {
 void Properties_point::write(string & indent, ostream & os) { 
   int nwf=kinetic.GetDim(0);
   os << indent << "nwf " << nwf << endl;
-  
   os << indent << "kinetic ";
   write_array(os, kinetic);
   os << endl << indent << "potential ";
@@ -156,7 +150,6 @@ void Properties_point::write(string & indent, ostream & os) {
   string indent2=indent+"  ";
   wf_val.write(indent2, os);
   os << indent << "}\n";
-    
 }
 
 //----------------------------------------------------------------------

@@ -35,11 +35,7 @@ void Properties_gather::read(vector < string> & words) {
 
 //----------------------------------------------------------------------
 #include "Split_sample.h"
-
 #include "Force_fitter.h"
-
-
-
 
 void Properties_gather::gatherData(Properties_point & myprop,
                                    Pseudopotential * psp, 
@@ -47,8 +43,7 @@ void Properties_gather::gatherData(Properties_point & myprop,
                                    Wavefunction_data * wfdata,
                                    Wavefunction * wf, 
                                    Sample_point * sample, 
-                                   Guiding_function * guide, int n_converge,
-                                   int aux_updated) {  
+                                   Guiding_function * guide) {  
   int nwf=wf->nfunc();
   
   myprop.setSize(nwf);

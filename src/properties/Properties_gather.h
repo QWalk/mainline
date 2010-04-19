@@ -37,7 +37,6 @@ class Properties_gather {
  public:
 
   Properties_gather() {
-    //square_weight=0;
   }
 
   ~Properties_gather();
@@ -45,46 +44,8 @@ class Properties_gather {
 
   void gatherData(Properties_point &,
                   Pseudopotential *, System *, Wavefunction_data *, 
-                  Wavefunction *, Sample_point *, Guiding_function *, int n_converge=1,
-                  int aux_updated=0); 
-  /*
-   void extendedGather(Properties_point & myprop,
-                                   Pseudopotential * psp, 
-                                   System * sys, 
-                                   Wavefunction_data * wfdata,
-                                   Wavefunction * wf, 
-                                   Sample_point * sample, 
-                                   Guiding_function * guide, int n_converge,
-				   int aux_updated,
-				   Array2 <doublevar> & drift,
-				   Array1 < Array2 <doublevar> > & aux_drift,
-				       Array1 <Array2 <doublevar> > & aux_positions);
-*/
-/*
-  void updateAuxFunctions(Sample_point * sample);
-
- 
-  int nAux() {
-    return aux_sys.GetDim(0);
-  }
-
-  void squareWeight(int s) {
-    assert(s==0 || s==1);
-    square_weight=s;
-  }  
-*/
+                  Wavefunction *, Sample_point *, Guiding_function *); 
  private:
-/*
-  int square_weight;
-
-  //Auxillary wave function data
-  Space_warper warper;
-  Array1 <System * > aux_sys;
-  Array1 <Wavefunction_data *> aux_wfdata;
-  Array1 <Wavefunction * > aux_wf;
-  Array1 <Sample_point * > aux_sample;
-  */
-
 };
 
 
