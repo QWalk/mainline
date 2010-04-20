@@ -153,6 +153,8 @@ int Cubic_spline::read(
   enforce_cusp=false;
   if(readvalue(words, pos=0, cusp, "CUSP")) enforce_cusp=true;
 
+  if(!readvalue(words,pos=0, cusp_matching, "CUSP_MATCHING")) cusp_matching=0.1;
+  
   zero_derivative=false;
   if(haskeyword(words, pos=0, "ZERO_DERIVATIVE")) zero_derivative=true;
 
@@ -351,75 +353,6 @@ void Cubic_spline::findCutoffs()
 }
 //-------------------------------------------------------
 
-#include "macopt.h"
-
-
-
-class Minimize_cusp_err:public Macopt { 
-public:
-  Minimize_cusp_err(int _n,int _verbose, double _tol,
-                     int _itmax,int _rich):Macopt(_n,_verbose,_tol,_itmax,_rich) {
-  } 
-  double func(double * _p) { 
-    
-    double a=_p[1];
-    double b=_p[2];
-    double c=_p[3];
-    double d=_p[4];
-    double err=0;
-    for(int j=0; j< nmax; j++) {
-      double diff=a*exp(gamma*x(j))*(1+b*x(j)*x(j)+c*x(j)*x(j)*x(j))+d-y(j);
-      err+=diff*diff;
-    }
-    return err;
-  }  
-  
-  double dfunc(double * _p, double * _g) {
-    int m=a_n;
-    double base=func(_p);
-    double step=1e-8;
-    for(int i=1; i<= m; i++) {
-      _p[i]+=step;
-      double nwfunc=func(_p);
-      _p[i]-=step;
-      _g[i]=(nwfunc-base)/step;
-    }
-    _g[0]=base;
-    return base;
-  }
-  void iteration_print(double f, double gg, double tol,  int itn) {
-    cout <<"iteration " << itn << ": " << f << " gradient " << gg << endl;
-  }
-  
-  void optimize(Array1 <double> & parms) { 
-    int n=parms.GetDim(0);
-    double p[n+1];
-    for(int i=1; i<=n; i++) p[i]=parms(i-1);
-    //maccheckgrad(p,c.size(),.0001, c.size());
-    int ntot=x.GetDim(0);
-    for(int j=0; j< ntot; j++) { 
-      if(x(j) < range) nmax=j;
-    }
-    cout << "nmax " << nmax << endl;
-    
-    macoptII(p,n);
-    for(int i=0; i < n; i++) {
-      parms[i]=p[i+1];
-    }
-    
-    cout << "final error " << p[0] << endl;
-  }
-  
-  Array1 <doublevar> x,y;
-  double range;
-  int nmax;
-  double gamma;
-};
-
-
-double eval_cusp_func(Array1 <double> & parms, double x, double der) { 
-  return parms(0)*exp(der*x)*(1+parms(1)*x*x+parms(2)*x*x*x)+parms(3);
-}
 
 /*!
 This takes a vector of words
@@ -640,60 +573,21 @@ int Cubic_spline::readbasis(vector <string> & words,unsigned int & pos,
       cout << "enforcing cusp" << endl;
       double der=cusp/double(symmetry_lvalue(symmetry(funcNum))+1);
       
-        yp1=der;
-        double rc=0.2;
-        int closest=rc/spacing;
-        rc=x(closest);
-        cout << "rc " << rc << endl;
-        double curve=(y(closest+1)+y(closest-1)-2*y(closest))/(spacing*spacing);
-        double deriv=(y(closest+1)-y(closest-1))/(2*spacing);
-        double f=y(closest);
-        double b=(deriv*der*der-curve*der)/(curve*der*rc*rc+curve*rc*2-deriv*der*der*rc*rc-deriv*4*der*rc-2*deriv);
-        double a=curve/(exp(der*rc)*(der*der*(1+b*rc*rc)+4*der*b*rc+2*b));
-        double c=f-a*exp(der*rc)*(1+b*rc*rc);
-        cout << "a " << a << " b " << b << " c " << c << endl;
-        for(int j=0; j <= closest; j++) {
-          y(j)=a*exp(der*x(j))*(1+b*x(j)*x(j))+c;
-        }
-        
-        /*
-        double end_range=0.5;
-        double start_range=0.1;
-        Array1 <double> parms(4);
-        Minimize_cusp_err min_err(4,0, 1e-5, 50,1);
-        parms=0;
-        min_err.x=x;
-        min_err.y=y;
-        min_err.range=end_range;
-        min_err.gamma=der;
-        min_err.optimize(parms);
-        cout << "a " << parms(0) << " b " << parms(1) << " c " << parms(2) <<  " d " << parms(3) << endl;
-        int jminerr=1;
-        double mincurve_err=1e18;
-        for(int j=1; j< n-1; j++) { 
-          if(x(j) < end_range && x(j) > start_range) { 
-            double fm=eval_cusp_func(parms,x(j-1),der);
-            double fc=eval_cusp_func(parms,x(j),der);
-            double fp=eval_cusp_func(parms,x(j+1),der);
-            double curve=(fm+fp-2*fc)/(x(j+1)-x(j-1));
-            double curve_real=(y(j+1)+y(j-1)-2*y(j))/(x(j+1)-x(j-1));
-            if(fabs(curve_real-curve) < mincurve_err) { 
-              jminerr=j;
-              mincurve_err=fabs(curve_real-curve);
-            }
-          }
-        }
-        cout << "minimum curvature error " << x(jminerr) << " .. " << mincurve_err << endl;
-        for(int j=0; j< jminerr; j++) {
-          double func=eval_cusp_func(parms,x(j),der);
-          if(x(j) < start_range) y(j)=func;
-          if(x(j) < x(jminerr)) {
-            double frac=(x(j)-start_range)/(x(jminerr)-start_range);
-            y(j)=(1-frac)*func+frac*y(j);
-          }
-        }
-         */
-      
+      yp1=der;
+      double rc=cusp_matching;
+      int closest=rc/spacing;
+      rc=x(closest);
+      cout << "rc " << rc << endl;
+      double curve=(y(closest+1)+y(closest-1)-2*y(closest))/(spacing*spacing);
+      double deriv=(y(closest+1)-y(closest-1))/(2*spacing);
+      double f=y(closest);
+      double b=(deriv*der*der-curve*der)/(curve*der*rc*rc+curve*rc*2-deriv*der*der*rc*rc-deriv*4*der*rc-2*deriv);
+      double a=curve/(exp(der*rc)*(der*der*(1+b*rc*rc)+4*der*b*rc+2*b));
+      double c=f-a*exp(der*rc)*(1+b*rc*rc);
+      cout << "a " << a << " b " << b << " c " << c << endl;
+      for(int j=0; j <= closest; j++) {
+        y(j)=a*exp(der*x(j))*(1+b*x(j)*x(j))+c;
+      }
       
     }
     /*
