@@ -639,7 +639,7 @@ int Cubic_spline::readbasis(vector <string> & words,unsigned int & pos,
       //replace the function from [0:rc] with the Slater function.
       cout << "enforcing cusp" << endl;
       double der=cusp/double(symmetry_lvalue(symmetry(funcNum))+1);
-      if(symmetry_lvalue(symmetry(funcNum)) ==0) {
+      
         yp1=der;
         double rc=0.2;
         int closest=rc/spacing;
@@ -693,7 +693,7 @@ int Cubic_spline::readbasis(vector <string> & words,unsigned int & pos,
           }
         }
          */
-      }
+      
       
     }
     /*
