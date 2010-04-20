@@ -761,6 +761,10 @@ int Cubic_spline::writeinput(string & indent, ostream & os)
   if(requested_cutoff > 0 ) {
     os << indent << "CUTOFF " << requested_cutoff << endl;
   }
+  if(enforce_cusp) { 
+    os << indent << "CUSP " << cusp << endl;
+    os << indent << "CUSP_MATCHING " << cusp_matching << endl;
+  }
   if(exponent.size() > 0) { 
     os << indent << "GAMESS { \n";
     
