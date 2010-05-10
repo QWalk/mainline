@@ -362,7 +362,28 @@ public:
       return os;
   }
   */
+  
+  
 };
+
+
+
+inline void MPI_Send(Array1 <doublevar> & arr, int node) {
+#ifdef USE_MPI
+  int s=arr.GetDim(0);
+  MPI_Send(s, node);
+  MPI_Send(arr.v,s, MPI_DOUBLE, node, 0,MPI_Comm_grp);
+#endif
+}
+inline void MPI_Recv(Array1 <doublevar> & arr, int node) { 
+#ifdef USE_MPI
+  int s;
+  MPI_Recv(s,node);
+  arr.Resize(s);
+  MPI_Status status;
+  MPI_Recv(arr.v, s, MPI_DOUBLE,node,0, MPI_Comm_grp, &status);    
+#endif
+}
 
 
 template < class T> 

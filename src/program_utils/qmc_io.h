@@ -356,7 +356,130 @@ template <class T> void read(string & s, T & t) {
   sstemp >> t;
 }
 */
+//-----------------------------------------------------------------------------
+//A pair of functions for storing and retrieving configurations from all 
+//nodes to/from a single file. 
+//ConfigType should have the following functions:
+//read(istream & is)
+//write(ostream & os)
+//mpiSend(int node)
+//mpiReceive(int node)
+//The read() function should be particularly careful not to read past the 
+//end of its section; otherwise the retrieval will not go well.
+template <class ConfigType> void write_configurations(string & filename, 
+                                                      Array1 <ConfigType> & configs) { 
+  int nconfigs=configs.GetDim(0);
+  string tmpfilename=filename+".qw_tomove";
+  if(mpi_info.node==0) { 
+    ofstream os;
+    os.open(tmpfilename.c_str());
+    for(int i=0; i< nconfigs; i++) { 
+      os << "walker { \n";
+      configs(i).write(os);
+      os << "} \n";
+    }
+#ifdef USE_MPI
+    ConfigType tmpconf;
+    for(int node=1; node < mpi_info.nprocs; node++) { 
+      int nconf_node;
+      MPI_Status status;
+      MPI_Recv(&nconf_node, 1, MPI_INT,
+               node, 0, MPI_Comm_grp, &status);
+      cout << mpi_info.node << ": receiving " << nconf_node << " from " << node << endl;
+      for(int i=0; i< nconf_node; i++) { 
+        tmpconf.mpiReceive(node);
+        os << "walker { \n";
+        tmpconf.write(os);
+        os << "}\n";
+      }
+    }
+#endif
+  }
+  else { 
+#ifdef USE_MPI
+    MPI_Send(&nconfigs, 1, MPI_INT,0, 0, MPI_Comm_grp);
+    for(int i=0; i< nconfigs; i++) {
+      configs(i).mpiSend(0);
+    }
+#endif
+  }
+  rename(tmpfilename.c_str(), filename.c_str());
+}
 
+//Reads configurations from the file and gives an array with the configurations 
+//for this 
+template <class ConfigType> void read_configurations(string & filename, 
+                                                     Array1 <ConfigType> & configs) { 
+  cout << "read_configurations" << mpi_info.node << endl;
+  vector <ConfigType> allconfigs; 
+
+  if(mpi_info.node==0) { 
+    ifstream is(filename.c_str());
+    string dummy;
+    //This may be rough on memory, but gets deleted quickly and is relatively
+    //easy to implement
+    ConfigType tmpconf;
+    while(is >> dummy) { 
+      if(caseless_eq(dummy, "walker")) { 
+        is >> dummy;
+        if(dummy!="{") error("expected { in read_configurations()");
+        tmpconf.read(is);
+        allconfigs.push_back(tmpconf);
+        //is >> dummy;
+        //if(dummy!="}") error("expected } in read_configurations()");
+      }
+    }
+    cout << mpi_info.node << ": Done reading " << endl;
+  }
+  
+  
+#ifdef USE_MPI
+  if(mpi_info.node==0) { 
+    int totconfs=allconfigs.size();
+    if(totconfs%mpi_info.nprocs != 0) {
+      error("Non-even number of walkers/node.  Change the number of processors to something that divides ",totconfs);
+    }
+    int n_per_node=totconfs/mpi_info.nprocs;
+    cout << mpi_info.node << ": n_per_node " << n_per_node << endl;
+    configs.Resize(n_per_node);
+    
+    int count=0;
+    for(int i=0; i< n_per_node; i++) { 
+      configs(i)=allconfigs[count++];
+    }
+    cout << mpi_info.node << ": ......" << endl;
+    for(int node=1; node < mpi_info.nprocs; node++) { 
+      MPI_Send(&n_per_node, 1, MPI_INT,node, 0, MPI_Comm_grp);
+      for(int i=0; i< n_per_node; i++) { 
+        //cout << mpi_info.node << ": count " << count << endl;
+        allconfigs[count++].mpiSend(node);
+      }
+    }
+    cout << mpi_info.node << ": done sending "<< count << endl;
+  }
+  else { 
+    int nconf_node;
+    MPI_Status status;
+    MPI_Recv(&nconf_node, 1, MPI_INT,
+             0, 0, MPI_Comm_grp, &status);
+    cout << mpi_info.node << ": receiving " << nconf_node << "configurations " << endl;
+    configs.Resize(nconf_node);
+    for(int i=0; i< nconf_node; i++) { 
+      configs(i).mpiReceive(0);
+    }
+    cout << mpi_info.node << ": done receiving " << endl;
+  }
+#else
+  int totconfs=allconfigs.size();
+  cout << mpi_info.node << ": totconfs " << totconfs << endl;
+  configs.Resize(totconfs);
+  for(int i=0; i< totconfs; i++) {
+    configs(i)=allconfigs[i];
+  }
+#endif //USE_MPI
+  
+  
+}
 
 
 #endif  //QMC_IO_H_INCLUDED

@@ -52,11 +52,8 @@ void Vmc_method::read(vector <string> words,
   if(!readvalue(words, pos=0, ndecorr, "NDECORR"))
     ndecorr=2;
 
-  if(readvalue(words, pos=0, storeconfig, "STORECONFIG"))
-    canonical_filename(storeconfig);
-
-  if(readvalue(words, pos=0, readconfig, "READCONFIG"))
-    canonical_filename(readconfig);
+  readvalue(words, pos=0, storeconfig, "STORECONFIG");
+  readvalue(words, pos=0, readconfig, "READCONFIG");
   
 
   if(!readvalue(words, pos=0, log_label, "LABEL"))
@@ -228,6 +225,7 @@ int Vmc_method::showinfo(ostream & os)
 //----------------------------------------------------------------------
 
 void Vmc_method::readcheck(string & filename) {
+  /*
   int configsread=0;
 
   config_pos.Resize(nconfig);
@@ -254,20 +252,27 @@ void Vmc_method::readcheck(string & filename) {
     }
     checkfile.close();
   }
-
-  for(int i=configsread; i< nconfig; i++) {
-    sample->randomGuess();
-    config_pos(i).savePos(sample);
+   */
+  if(filename!="") { 
+    cout << mpi_info.node << ": reading " << endl;
+    read_configurations(filename, config_pos);
+    cout << mpi_info.node << " : done reading " << endl;
   }
-  debug_write(cout, configsread, " configs read ", nconfig-configsread,
-              " configs randomly generated \n");
+  else { 
+    config_pos.Resize(nconfig);
+    for(int i=0; i< nconfig; i++) {
+      sample->randomGuess();
+      config_pos(i).savePos(sample);
+    }
+  }   
 }
 
 //----------------------------------------------------------------------
 
 void Vmc_method::storecheck(string & filename, int append) {
+  
   if(filename=="") return;
-
+/*
   ofstream checkfile;
   if(append) checkfile.open(filename.c_str(), ios::app);
   else checkfile.open(filename.c_str());
@@ -286,6 +291,9 @@ void Vmc_method::storecheck(string & filename, int append) {
 
   checkfile.close();  
 
+  string tmpfilename="tmp.config";
+   */
+  write_configurations(filename, config_pos);
 }
 
 

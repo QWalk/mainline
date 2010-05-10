@@ -53,9 +53,7 @@ void Dmc_method::read(vector <string> words,
   if(!readvalue(words, pos=0, timestep, "TIMESTEP"))
     error("Need TIMESTEP in METHOD section");
 
-  if(readvalue(words, pos=0, readconfig, "READCONFIG"))
-    canonical_filename(readconfig);
-  else
+  if(!readvalue(words, pos=0, readconfig, "READCONFIG"))
     error("Must give READCONFIG for DMC");
 
   //optional options
@@ -78,8 +76,7 @@ void Dmc_method::read(vector <string> words,
   }
   else pure_dmc=0;
 
-  if(readvalue(words, pos=0, storeconfig, "STORECONFIG"))
-    canonical_filename(storeconfig);
+  readvalue(words, pos=0, storeconfig, "STORECONFIG");
 
   if(!readvalue(words, pos=0, log_label, "LABEL"))
     log_label="dmc";
@@ -649,6 +646,10 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
 void Dmc_method::savecheckpoint(string & filename,                     
                                  Sample_point * config) {
   if(filename=="") return;
+  
+  write_configurations(filename, pts);
+  return;
+  
   ofstream checkfile(filename.c_str());
   if(!checkfile) error("Couldn't open", filename );
   checkfile.precision(15);
@@ -689,7 +690,7 @@ void Dmc_method::restorecheckpoint(string & filename, System * sys,
                                     Wavefunction_data * wfdata,
                                     Pseudopotential * pseudo) {
 
-
+/*
   ifstream checkfile(filename.c_str());
   if(!checkfile) 
     error("Couldn't open ", filename);
@@ -744,6 +745,9 @@ void Dmc_method::restorecheckpoint(string & filename, System * sys,
     }
 
   }
+ */
+  read_configurations(filename, pts);
+  int ncread=pts.GetDim(0);
 
   //cout << "ncread " << ncread << "  nwread " << nwread << endl;
   if(nconfig!=ncread) { 
@@ -759,14 +763,14 @@ void Dmc_method::restorecheckpoint(string & filename, System * sys,
   find_cutoffs();
 
   updateEtrial(start_feedback);
-
+/*
   if(do_cdmc) { 
     if(ncread!=nwread) {
       cout << "WARNING! do_cdmc and ncread!=nwread " << endl;
     }
     cdmcReWeight(energy_temp, value_temp);
   }
-
+*/
     
 }
 
@@ -1190,6 +1194,8 @@ void Dmc_point::mpiSend(int node) {
 #endif
 }
 
+//----------------------------------------------------------------------
+
 void Dmc_point::mpiReceive(int node) {
 #ifdef USE_MPI
   prop.mpiReceive(node);
@@ -1224,12 +1230,70 @@ void Dmc_point::mpiReceive(int node) {
   MPI_Recv(age.v,nelectrons,MPI_DOUBLE, node,0,MPI_Comm_grp,&status);
 #endif
 }
+//----------------------------------------------------------------------
+
+void Dmc_point::write(ostream & os) { 
+  string indent="";
+  config_pos.write(os);
+  os << "DMC { \n";
+  //prop.write(indent,os);
+  os << "weight " << weight<< endl;
+  os << "sign " << sign << endl;
+  /*
+  for(deque<Dmc_history>::iterator i=past_energies.begin(); 
+      i!=past_energies.end(); i++) { 
+    os << "past_energies { ";
+    i->write(os);
+    os << "}\n";    
+  }
+  for(deque<Dmc_history_avgrets>::iterator i=past_properties.begin(); 
+      i!=past_properties.end(); i++) {
+    os << "past_properties { ";
+    i->write(os);
+    os << "}\n";
+  }
+   */
+  os << "}\n";
+}
+
+void Dmc_point::read(istream & is) { 
+  config_pos.read(is);
+  int filepos=is.tellg();
+  string dum;
+  is >> dum;
+  if(!caseless_eq(dum, "DMC")) {
+    is.seekg(filepos);
+    return;
+  }
+  
+  is >> dum; //the {
+  //prop.read(is);
+  is >> dum >> weight;
+  is >> dum >> sign;
+  //ignoring the past stuff for the moment..
+}
+
+
+//----------------------------------------------------------------------
+void Dmc_history_avgrets::write(ostream & os) { 
+  os << "weight " << weight << endl;
+  for(int i=0; i< avgrets.GetDim(0); i++) { 
+    os << "avgret { ";
+  }
+    
+}
+
+void Dmc_history_avgrets::read(istream & is) { 
+}
+
+//----------------------------------------------------------------------
 
 void Dmc_history::mpiSend(int node) { 
 #ifdef USE_MPI
   MPI_Send(&main_en,1,MPI_DOUBLE,node,0,MPI_Comm_grp);
 #endif
 }
+
 
 void Dmc_history::mpiReceive(int node) { 
 #ifdef USE_MPI

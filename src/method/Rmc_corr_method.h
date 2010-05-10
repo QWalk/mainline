@@ -1,6 +1,6 @@
 /*
  
-Copyright (C) 2007 Lucas K. Wagner
+Copyright (C) 2010 Lucas K. Wagner
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -36,18 +36,23 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 class Program_options;
 
+//All the important variables in a given slice
 struct Rmc_corr_history { 
   Array1 <doublevar> main_en;
   Array2 <Wf_return> wfs; //system number, electron number
   Array1 <Config_save_point> configs;
   Array1 <doublevar> jacobian;
   Properties_point prop;
+
   void mpiSend(int node);
   void mpiReceive(int node);
+  void read(istream & is);
+  void write(ostream & os);
 };
 
 
-
+//This is a point in the dNs space, where d is dimension,
+//N is the number of electrons, and s is the number of slices.
 struct Rmc_corr_point { 
   //Properties_point prop;
   deque <Rmc_corr_history> path;
@@ -62,8 +67,16 @@ struct Rmc_corr_point {
     recalc_gf=1;
     direction=1;
   }
+  
+  //Careful when using these; I've implemented them to send
+  //only the most basic parts, so a lot of stuff needs
+  //to be recalculated.  Works fine for reading from the config
+  //files.
   void mpiSend(int node);
   void mpiReceive(int node);
+  void read(istream & is);
+  void write(ostream & os);
+  
 };
 
 

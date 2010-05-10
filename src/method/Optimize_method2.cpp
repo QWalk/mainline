@@ -103,11 +103,6 @@ void Optimize_method2::read(vector <string> words,
     error("READCONFIG required for OPTIMIZE2 method!");
   canonical_filename(readconfig);
 
-  /*
-  string oldreadconfig;
-  if(readvalue(words, pos=0, oldreadconfig, "OLDREADCONFIG"))
-    canonical_filename(oldreadconfig);
-  */
 
   //--Set up variables
   sysprop=NULL;
@@ -169,77 +164,32 @@ void Optimize_method2::read(vector <string> words,
   debug_out=0;
 }
 
+//-------------------------------------------------------------------
+
 void Optimize_method2::readcheck(string & readconfig) {
-  int configsread=0;
-  int nwread=0;
-  if(dynamic_wf)
-    config_pos.Resize(nconfig);
-  else
-    config_pos.Resize(1);
+  //This can be modified to get DMC weights; we just need to make a 
+  //new structure that contains config_pos and the weights. 
+  //If someone actually uses this, they may reimplement it.
   dmc_weight.Resize(nconfig);
   dmc_weight=1.0;
-  if(readconfig !="") {
-    ifstream checkfile(readconfig.c_str());
-    if(!checkfile) 
-      error("Couldn't open ", readconfig);
-    
-    long int is1, is2;
-    string dummy;
-    checkfile >> dummy;
-    if(dummy != "RANDNUM") error("Expected RANDNUM in checkfile");
-    checkfile >> is1 >> is2;
-
-    while(checkfile >>dummy && configsread < nconfig && nwread < nconfig) {
-      
-      if(dynamic_wf){
-	if(read_config(dummy, checkfile, sample(0))) {
-	  config_pos(configsread++).savePos(sample(0));
-	}
-      }
-      else{
-	if(read_config(dummy, checkfile, sample(configsread))) {
-	  // config_pos(configsread++).savePos(sample(configsread));
-	  configsread++;
-	}
-      }
-      if(dummy=="DMC") {
-	checkfile >> dummy;
-	if(dummy != "{") error("Need a { after DMC");
-	checkfile >> dummy >> dmc_weight(nwread);
-	if(dummy != "DMCWEIGHT") {
-	  error("expected DMCWEIGHT, got ", dummy);
-	}
-	int nwf_temp;
-	checkfile >> dummy >> nwf_temp;
-	if(dummy != "VALEN") {
-	  error("expected VALEN, got ", dummy);
-	}
-	//if(nwf_temp != nwf) {
-	// error("Wrong number of wavefunctions in the checkpoint file");
-	nwread++;
-      }
-    }
-    checkfile.close();    
-  }
-
+  
   if(readconfig ==""){
     error("No file name given for READCONFIG ", readconfig);
   }
-
-  if(configsread < nconfig)
-  {
-    nconfig=configsread;
-    cout << "processor " << mpi_info.node << " : "
-    << "WARNING: Didn't find enough configurations in the "
-    << "file.  Running optimization with only " << nconfig
-    << " sample points." << endl;
+  read_configurations(readconfig, config_pos);
+  if(config_pos.GetDim(0) < nconfig) { 
+    error("Not enough configurations in ", readconfig);
   }
+  
+  if(!dynamic_wf) { 
+    for(int i=0; i< nconfig; i++) { 
+      config_pos(i).restorePos(sample(i));
+    }
+  }
+  else { config_pos(0).restorePos(sample(0)); } 
 }
 
-
-
-
-
+//-------------------------------------------------------------------
 
 int Optimize_method2::showinfo(ostream & os)
 {

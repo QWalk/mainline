@@ -100,29 +100,8 @@ void Optimize_method::read(vector <string> words,
   allocate(options.systemtext[0],  sys);
   sys->generatePseudo(options.pseudotext, pseudo);
   sys->generateSample(sample);
-  config_pos.Resize(nconfig);
-  
-  int configsread=0;
-  if(readconfig !="") {
-    ifstream checkfile(readconfig.c_str());
-    if(!checkfile) 
-      error("Couldn't open ", readconfig);
-    
-    long int is1, is2;
-    string dummy;
-    checkfile >> dummy;
-    if(dummy != "RANDNUM") error("Expected RANDNUM in checkfile");
-    checkfile >> is1 >> is2;
-    
-    
-    while(checkfile >>dummy && configsread < nconfig) {
-      if(read_config(dummy, checkfile, sample))  { 
-        config_pos(configsread++).savePos(sample);        
-      }
-    }
-    checkfile.close();    
-  }
-
+  read_configurations(readconfig,config_pos);
+  int configsread=config_pos.GetDim(0);
 
 
   if(configsread < nconfig)

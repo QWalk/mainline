@@ -44,7 +44,7 @@ void Plot1D_method::read(vector <string> words,
 
 /*!
   mywfdata has to be allocated already in generateVariables, otherwise
-  we could not use it in showinfo. As simple as that.
+  we could not use it in showinfo.
 */
 int Plot1D_method::generateVariables(Program_options & options) {
 

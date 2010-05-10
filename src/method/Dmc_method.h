@@ -38,10 +38,15 @@ class Program_options;
 
 struct Dmc_history { 
   doublevar main_en;
-  void mpiSend(int node);
-  
+  void mpiSend(int node);  
   void mpiReceive(int node);
-
+  void read(istream & is) { 
+    string dummy;
+    is >> dummy >> main_en;
+  }
+  void write(ostream & os) { 
+    os << "hist_en " << main_en << endl;
+  }
 };
 
 
@@ -50,6 +55,8 @@ struct Dmc_history_avgrets {
   doublevar weight;
   void mpiSend(int node);
   void mpiReceive(int node);
+  void read(istream & is);
+  void write(ostream & os);
 };
 
 struct Dmc_point { 
@@ -64,11 +71,13 @@ struct Dmc_point {
   Dmc_point() { 
     weight=1;
     ignore_walker=0;
-    //MB: keeping track of the sign 
     sign=1;
   }
   void mpiSend(int node);
   void mpiReceive(int node);
+  void read(istream & is);
+  void write(ostream & os);
+  
   
 };
 

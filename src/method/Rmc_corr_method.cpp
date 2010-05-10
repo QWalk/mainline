@@ -62,11 +62,8 @@ void Rmc_corr_method::read(vector <string> words,
   if(!readvalue(words, pos=0,npsteps, "PARTIAL_STEPS")) 
     npsteps=5;
 
-  if(readvalue(words, pos=0, storeconfig, "STORECONFIG"))
-    canonical_filename(storeconfig);
-  
-  if(readvalue(words, pos=0, readconfig, "READCONFIG"))
-    canonical_filename(readconfig);
+  readvalue(words, pos=0, storeconfig, "STORECONFIG");
+  readvalue(words, pos=0, readconfig, "READCONFIG");
 
   if(!readvalue(words, pos=0, log_label, "LABEL"))
     log_label="rmc_corr";
@@ -591,63 +588,109 @@ Rmc_corr_history Rmc_corr_method::add_point(int walker) {
 
 void Rmc_corr_method::storecheck() { 
   if(storeconfig=="") return;
-  ofstream os(storeconfig.c_str());
-  long int is1, is2;
-  rng.getseed(is1,is2);
-  os << "RANDNUM " << is1 << " " << is2 << endl;
-  assert(pts.GetDim(0)==nconfig);
-  for(int w=0; w< nconfig; w++) { 
-    os << "REPTILE { " << endl;
-    os << "SYSTEM " << pts(w).system << endl;
-    os << "DIRECTION " << pts(w).direction << endl;
-    os << "PATH_SIZE " << pts(w).path.size() << endl;
+  write_configurations(storeconfig, pts);
+}
+
+//----------------------------------------------------------------------
+void Rmc_corr_method::readcheck() { 
+  if(readconfig=="") return;
+  read_configurations(readconfig, pts);
+  if(pts.GetDim(0)!=nconfig) error("Changed number of configurations in RMC_CORR");
+  for(int w=0; w < pts.GetDim(0); w++) { 
+    int sys=pts(w).system;
     for(deque<Rmc_corr_history>::iterator i=pts(w).path.begin(); 
         i!=pts(w).path.end(); i++) { 
-      os << "SAMPLE_POINT { \n";
-      i->configs(pts(w).system).write(os);
-      os << " } \n";      
+      i->configs(sys).restorePos(sample(sys));
+      *i=add_point(w);
     }
-    os << " } \n";
   }
 }
 
-void Rmc_corr_method::readcheck() { 
-  if(readconfig=="") return;
-  ifstream is(readconfig.c_str());
-  if(!is) {
-    error("Could not open ",readconfig);
-  }
-  long int is1, is2;
-  string dummy;
-  is >> dummy >> is1 >> is2;
-  if(dummy!="RANDNUM") error("expected RANDNUM");
-  rng.seed(is1,is2);
-  pts.Resize(nconfig);
-  Config_save_point tmpsave;
+//----------------------------------------------------------------------
 
-  for(int w=0; w< nconfig; w++) { 
-    is >> dummy >> dummy;
-    is >> dummy >> pts(w).system;
-    is >>  dummy >> pts(w).direction;
-    if(dummy!="DIRECTION") error("expected DIRECTION");
-    int path_size;
-    is >> dummy >> path_size;
-    if(path_size != nhist) error("Can't restart with a different path length");
-    int currsys=pts(w).system;
-    for(int i=0; i< nhist; i++) { 
-      //cout << "walker " << w << " hist " << i << endl;
-      is >> dummy ; 
-      if(dummy!="SAMPLE_POINT") error("expected SAMPLE_POINT");
-      is >> dummy; 
-      tmpsave.read(is);
-      is >> dummy;
-      tmpsave.restorePos(sample(currsys));
-      wf(currsys)->updateLap(mywfdata(currsys),sample(currsys));
-      pts(w).path.push_back(add_point(w));
-    }
-    is >> dummy; //last end bracket
+void Rmc_corr_history::write(ostream & os ) { 
+  //We'll write only the configurations and expect the rest to 
+  //be recalculated.
+  os << "nsys " << configs.GetDim(0) << endl;
+  for(int i=0; i< configs.GetDim(0); i++) { 
+    configs(i).write(os);
   }
+}
+//----------------------------------------------------------------------
+void Rmc_corr_history::read(istream & is) { 
+  string dummy;
+  int nsys;
+  is >> dummy >> nsys;
+  configs.Resize(nsys);
+  for(int i=0; i< nsys; i++) configs(i).read(is);
+}
+//----------------------------------------------------------------------
+void Rmc_corr_point::write(ostream & os) { 
+  os << "direction " << direction << endl;
+  os << "system " << system << endl;
+  os << "path_length " << path.size() << endl;
+  for(deque<Rmc_corr_history>::iterator i=path.begin(); i!=path.end(); 
+      i++) { 
+    i->write(os);
+  }
+}
+//----------------------------------------------------------------------
+void Rmc_corr_point::read(istream & is) { 
+  string dummy;
+  is >> dummy >> direction;
+  is >> dummy >> system; 
+  int path_length;
+  is >> dummy >> path_length;
+  path.resize(path_length);
+  for(deque<Rmc_corr_history>::iterator i=path.begin(); i!=path.end(); 
+      i++) i->read(is);
+}
+//----------------------------------------------------------------------
+
+
+void Rmc_corr_history::mpiSend(int node) { 
+  int nsys=configs.GetDim(0);
+  MPI_Send(nsys, node);
+  for(int i=0; i< nsys; i++) 
+    configs(i).mpiSend(node);
+}
+
+
+//----------------------------------------------------------------------
+
+void Rmc_corr_history::mpiReceive(int node) { 
+  int nsys;
+  MPI_Recv(nsys, node);
+  configs.Resize(nsys);
+  for(int i=0; i < nsys; i++) 
+    configs(i).mpiReceive(node);
+}
+
+
+//----------------------------------------------------------------------
+
+
+void Rmc_corr_point::mpiSend(int node) { 
+  int npath=path.size();
+  MPI_Send(direction, node);
+  MPI_Send(system, node);
+  MPI_Send(npath, node);
+  for(deque<Rmc_corr_history>::iterator i=path.begin(); i!=path.end(); i++)
+    i->mpiSend(node);
   
 }
 
+//----------------------------------------------------------------------
 
+
+void Rmc_corr_point::mpiReceive(int node) { 
+  int npath;
+  MPI_Recv(direction, node);
+  MPI_Recv(system, node);
+  MPI_Recv(npath, node);
+  path.resize(npath);
+  for(deque<Rmc_corr_history>::iterator i=path.begin(); i!=path.end(); i++)
+    i->mpiReceive(node);
+}
+
+//----------------------------------------------------------------------

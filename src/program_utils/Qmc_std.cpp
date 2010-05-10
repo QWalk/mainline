@@ -103,6 +103,35 @@ int MPI_Recv_complex(dcomplex & c , int node) {
 }
 
 
+int MPI_Send(double & d, int node) { 
+#ifdef USE_MPI
+  MPI_Send(&d, 1, MPI_DOUBLE, node, 0, MPI_Comm_grp);  
+#endif
+  return 1;
+}
+int MPI_Recv(double &d, int node) { 
+#ifdef USE_MPI
+  MPI_Status status;
+  MPI_Recv(&d, 1, MPI_DOUBLE, node, 0, MPI_Comm_grp, &status);
+#endif
+  return 1;
+}
+
+int MPI_Send(int & i, int node) { 
+#ifdef USE_MPI
+  MPI_Send(&i, 1, MPI_INT, node, 0, MPI_Comm_grp);  
+#endif
+  return 1;
+}
+int MPI_Recv(int &i, int node) { 
+#ifdef USE_MPI
+  MPI_Status status;
+  MPI_Recv(&i, 1, MPI_INT, node, 0, MPI_Comm_grp, &status);
+#endif
+  return 1;
+}
+
+
 
 //----------------------------------------------------------------------
 
