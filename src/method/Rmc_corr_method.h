@@ -125,9 +125,7 @@ public:
 
   doublevar propagate_walker(int walker);
   Rmc_corr_history add_point(int walker); //calculate energies and other values for a new point
-  doublevar get_green_weight(//deque <Rmc_corr_history>::iterator a, 
-                             //deque <Rmc_corr_history>::iterator b,
-                             Rmc_corr_history & a,
+  doublevar get_green_weight(Rmc_corr_history & a,
                              Rmc_corr_history & b,
                              int sys, doublevar & branching);
     
@@ -170,7 +168,11 @@ public:
   Array1 <doublevar> etrial;
 
   Array1 <Rmc_corr_point> pts;
-
+  Array2 <Local_density_accumulator *> local_dens;
+  vector <vector <string> > denswords;
+  Array2 <Average_generator *> avggen;
+  vector <vector < string> > avgwords;
+  
   Space_warper warper;
   Properties_manager myprop;
   Properties_gather mygather;

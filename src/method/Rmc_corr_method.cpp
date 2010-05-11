@@ -86,6 +86,14 @@ void Rmc_corr_method::read(vector <string> words,
   }
   
   
+  vector <string> avg_gen;
+  pos=0;
+  while(readsection(words, pos, avg_gen, "AVERAGE"))
+    avgwords.push_back(avg_gen);
+  pos=0;
+  while(readsection(words, pos, avg_gen, "DENSITY"))
+    denswords.push_back(avg_gen);
+  
   vector <string> dynamics_words;
   if(!readsection(words, pos=0, dynamics_words, "DYNAMICS") ) 
     dynamics_words.push_back("SPLIT");
@@ -135,7 +143,7 @@ int Rmc_corr_method::showinfo(ostream & os) {
     
   mypseudo->showinfo(os);
   os << "###########################################################\n";
-  os << "Correlated Diffusion Monte Carlo:\n";
+  os << "Reptation Monte Carlo:\n";
   os << "Number of processors " <<           mpi_info.nprocs << endl;
   os << "Blocks: " <<                        nblock    << endl;
   os << "Steps per block: " <<               nstep     << endl;
@@ -193,8 +201,24 @@ void Rmc_corr_method::run(Program_options & options, ostream & output) {
   }
   myprop.setSize(nsys, nblock, nstep+1, nconfig, mysys(0), 
                  mywfdata(0));
+  //-------------Properties generators
+  int navg=avgwords.size();
+  avggen.Resize(nsys, navg);
+  for(int sys=0; sys < nsys; sys++) {
+    for(int i=0; i< navg; i++) 
+      allocate(avgwords[i],mysys(sys),mywfdata(sys),avggen(sys,i));
+  }
+  int ndens=denswords.size();
+  local_dens.Resize(nsys,ndens);
+  for(int sys=0; sys< nsys; sys++) { 
+    string runidsys=options.runid;
+    append_number(runidsys, sys);
+    for(int i=0; i< ndens; i++) 
+      allocate(denswords[i], mysys(sys), options.runid, local_dens(sys,i));
+  }
   
-  ///-----------------Generate VMC configs
+  
+  ///-----------------Generate VMC configs if we don't have a checkfile
   if(readconfig=="") { 
     int nstep_vmc=50;
     doublevar timestep_vmc=1.0;
@@ -233,6 +257,8 @@ void Rmc_corr_method::run(Program_options & options, ostream & output) {
     }
   }
   else readcheck();
+  
+  //-------------------------calculate the green's functions for the updates
   for(int walker=0; walker < nconfig; walker++) {
     pts(walker).branching.Resize(nsys);
     pts(walker).totgf.Resize(nsys);
@@ -254,13 +280,12 @@ void Rmc_corr_method::run(Program_options & options, ostream & output) {
   npsteps=nstep;
   for(int block=0; block < nblock; block++) { 
     int accept=0;
-    for(int step=0; step < nstep; ) { 
+    //for(int step=0; step < nstep; ) { 
       //cout << "block " << block << " step " << step << endl;
       Dynamics_info dinfo;
       
       doublevar avg_acceptance=0;  
-      int n_partial=min(npsteps,nstep-step);
-      //cout << mpi_info.node << ":move" << endl;
+      //int n_partial=min(npsteps,nstep-step);
       int ncross=0;
       for(int walker=0; walker < nconfig; walker++) {
         int currsys=pts(walker).system;
@@ -270,7 +295,7 @@ void Rmc_corr_method::run(Program_options & options, ostream & output) {
           pts(walker).path.begin()->configs(currsys).restorePos(sample(currsys));
         
         
-        for(int p=0; p < n_partial; p++) { 
+        for(int step=0; step < nstep; step++) { 
           mypseudo->randomize();            
           
           
@@ -282,19 +307,25 @@ void Rmc_corr_method::run(Program_options & options, ostream & output) {
           pt.children(0)=walker;
           pt.count=1;
           pt.weight=pts(walker).weight;
-          myprop.insertPoint(step+p, walker, pt);
+          
+          
+          myprop.insertPoint(step, walker, pt);
+          for(int sys=0; sys < nsys; sys++) { 
+            for(int i=0; i< local_dens.GetDim(1); i++) { 
+              local_dens(sys,i)->accumulate(sample(sys), pts(walker).weight(sys));
+            }
+          }
+                                           
         }
-        //pts(walker).config_pos.savePos(sample(currsys));
 
       }
-      //cout << "finished partial " << endl;
       if(ncross > 0) { 
-        cout << "proportion crossed " << double(ncross)/(nsys*nconfig*n_partial) 
+        cout << "proportion crossed " << double(ncross)/(nsys*nconfig*nstep) 
         << endl;
       }
     
-      step+=n_partial;
-    }
+      //step+=n_partial;
+    
     myprop.endBlock();
     storecheck();
     doublevar acceptance=doublevar(parallel_sum(accept))/doublevar(parallel_sum(nconfig*nstep));
@@ -516,6 +547,7 @@ Rmc_corr_history Rmc_corr_method::add_point(int walker) {
   for(int i=0; i< nrandvar; i++) rand_num(i)=rng.ulec();
   Array1 <doublevar> jacobian_save(nsys);
   new_hist.prop.setSize(nsys);
+  //new_hist.prop.avgrets.Resize(avggen.GetDim(0)*avggen.GetDim(1));
   for(int i=0; i< nsys; i++) { 
     Array1 <doublevar> kinetic(wf(i)->nfunc());
     Array1 <doublevar> nonlocal(wf(i)->nfunc());
@@ -554,8 +586,8 @@ Rmc_corr_history Rmc_corr_method::add_point(int walker) {
     mypseudo->calcNonlocWithTest(mywfdata(i), mysys(i), sample(i), wf(i),rand_num,nonlocal);
     new_hist.prop.nonlocal(i)=nonlocal(0);
     jacobian_save(i)=tot_jacobian;
+    
   }
-  //cout << "there " << endl;
   //------------------------------Now store the information for the walker
   
   new_hist.jacobian=jacobian_save;
