@@ -253,12 +253,15 @@ void Vmc_method::readcheck(string & filename) {
     checkfile.close();
   }
    */
+  config_pos.Resize(0);
   if(filename!="") { 
     read_configurations(filename, config_pos);
   }
-  else { 
+  if(config_pos.GetDim(0) < nconfig) { 
+    Array1 <Config_save_point> tmpconfig=config_pos;
     config_pos.Resize(nconfig);
-    for(int i=0; i< nconfig; i++) {
+    for(int i=0; i< tmpconfig.GetDim(0); i++) { config_pos(i)=tmpconfig(i);} 
+    for(int i=tmpconfig.GetDim(0); i< nconfig; i++) {
       sample->randomGuess();
       config_pos(i).savePos(sample);
     }

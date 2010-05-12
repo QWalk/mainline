@@ -741,10 +741,15 @@ void Dmc_method::restorecheckpoint(string & filename, System * sys,
  */
   read_configurations(filename, pts);
   int ncread=pts.GetDim(0);
-
+  
   //cout << "ncread " << ncread << "  nwread " << nwread << endl;
-  if(nconfig!=ncread) { 
-    error("nconfig doesn't match the number of walkers in the config file");
+  if(nconfig < ncread) { 
+    Array1 <Dmc_point> tmp_pts(nconfig);
+    for(int i=0; i< nconfig; i++) tmp_pts(i)=pts(i);
+    pts=tmp_pts;
+  }
+  else if(nconfig > ncread) { 
+    error("Not enough configurations in ", filename);
   }
 
   for(int walker=0; walker < nconfig; walker++) {
