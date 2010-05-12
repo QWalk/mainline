@@ -518,8 +518,9 @@ void Properties_manager::endBlock() {
   //the calling program isn't consistent with the ordering and 
   //number of Average_returns.  I can't think of any reason why someone
   //would want to do that other than spite, though.
-  int navg_gen=trace(0,0).avgrets.GetDim(0);
-  block_avg(current_block).avgrets.Resize(navg_gen);
+  int navg_gen=trace(0,0).avgrets.GetDim(1);
+  block_avg(current_block).avgrets.Resize(nwf, navg_gen);
+  assert(trace(0,0).avgrets.GetDim(0)==nwf);
   
   for(int w=0; w< nwf; w++) {
     doublevar totweight=0;
@@ -527,12 +528,10 @@ void Properties_manager::endBlock() {
     doublevar avgpot=0;
     doublevar avgnonloc=0;
     doublevar avgen=0;
-    if(w==0) { 
-      for(int i=0; i< navg_gen; i++) { 
-        block_avg(current_block).avgrets(i).vals.Resize(trace(0,0).avgrets(i).vals.GetDim(0));      
-        block_avg(current_block).avgrets(i).vals=0;
-        block_avg(current_block).avgrets(i).type=trace(0,0).avgrets(i).type;
-      }
+    for(int i=0; i< navg_gen; i++) { 
+      block_avg(current_block).avgrets(w,i).vals.Resize(trace(0,0).avgrets(w,i).vals.GetDim(0));      
+      block_avg(current_block).avgrets(w,i).vals=0;
+      block_avg(current_block).avgrets(w,i).type=trace(0,0).avgrets(w,i).type;
     }
     int npts=0;
     for(int step=start_avg_step; step < nsteps; step++) {
@@ -559,11 +558,9 @@ void Properties_manager::endBlock() {
           avgen+=(trace(step, walker).kinetic(w)
                   +trace(step, walker).potential(w)
                   +trace(step, walker).nonlocal(w))*wt;
-          if(w==0) { 
-            for(int i=0; i< navg_gen; i++) { 
-              for(int j=0; j< block_avg(current_block).avgrets(i).vals.GetDim(0); j++) { 
-                block_avg(current_block).avgrets(i).vals(j)+=wt*trace(step,walker).avgrets(i).vals(j);
-              }
+          for(int i=0; i< navg_gen; i++) { 
+            for(int j=0; j< block_avg(current_block).avgrets(w,i).vals.GetDim(0); j++) { 
+              block_avg(current_block).avgrets(w,i).vals(j)+=wt*trace(step,walker).avgrets(w,i).vals(j);
             }
           }
         }
@@ -580,12 +577,10 @@ void Properties_manager::endBlock() {
     block_avg(current_block).avg(total_energy,w)=parallel_sum(avgen)/weight_sum;
     block_avg(current_block).avg(weight,w)=weight_sum/totpts;
     
-    if(w==0) { 
-      for(int i=0; i< navg_gen; i++) { 
-        for(int j=0; j< block_avg(current_block).avgrets(i).vals.GetDim(0); j++) { 
-          block_avg(current_block).avgrets(i).vals(j)=
-          parallel_sum(block_avg(current_block).avgrets(i).vals(j))/weight_sum;
-        }
+    for(int i=0; i< navg_gen; i++) { 
+      for(int j=0; j< block_avg(current_block).avgrets(w,i).vals.GetDim(0); j++) { 
+        block_avg(current_block).avgrets(w,i).vals(j)=
+        parallel_sum(block_avg(current_block).avgrets(w,i).vals(j))/weight_sum;
       }
     }
     //cout << mpi_info.node << ":npoints" << npts << endl;
@@ -650,10 +645,7 @@ void Properties_manager::endBlock() {
   for(int step=0; step < nsteps; step++)
     for(int walker=0; walker < nwalkers; walker++) 
       trace(step, walker).reset();
-  
-  //cout << "average " << endl;
   final_avg.blockReduce(block_avg, 0, current_block,1);
-  //cout << "done" << endl;
 }
 
 
@@ -678,8 +670,8 @@ void Properties_manager::endBlock_per_step() {
   //the calling program isn't consistent with the ordering and 
   //number of Average_returns.  I can't think of any reason why someone
   //would want to do that other than spite, though.
-  int navg_gen=trace(0,0).avgrets.GetDim(0);
-  block_avg(current_block).avgrets.Resize(navg_gen);
+  int navg_gen=trace(0,0).avgrets.GetDim(1);
+  block_avg(current_block).avgrets.Resize(nwf,navg_gen);
   
   for(int w=0; w< nwf; w++) {
     doublevar totweight=0;
@@ -687,13 +679,12 @@ void Properties_manager::endBlock_per_step() {
     doublevar avgpot=0;
     doublevar avgnonloc=0;
     doublevar avgen=0;
-    if(w==0) { 
-      for(int i=0; i< navg_gen; i++) { 
-        block_avg(current_block).avgrets(i).vals.Resize(trace(0,0).avgrets(i).vals.GetDim(0));      
-        block_avg(current_block).avgrets(i).vals=0;
-        block_avg(current_block).avgrets(i).type=trace(0,0).avgrets(i).type;
-      }
+    for(int i=0; i< navg_gen; i++) { 
+      block_avg(current_block).avgrets(w,i).vals.Resize(trace(0,0).avgrets(w,i).vals.GetDim(0));      
+      block_avg(current_block).avgrets(w,i).vals=0;
+      block_avg(current_block).avgrets(w,i).type=trace(0,0).avgrets(w,i).type;
     }
+    
     Array1 <doublevar> weight_per_step(nsteps-start_avg_step,0.0);
     Array1 <int> npts_per_step(nsteps-start_avg_step,0);
     int npts=0;
@@ -729,7 +720,7 @@ void Properties_manager::endBlock_per_step() {
       if(w==0) { 
         avgrets_per_step(step-start_avg_step).Resize(navg_gen);
         for(int i=0; i< navg_gen; i++){
-          avgrets_per_step(step-start_avg_step)(i).Resize( block_avg(current_block).avgrets(i).vals.GetDim(0));
+          avgrets_per_step(step-start_avg_step)(i).Resize( block_avg(current_block).avgrets(w,i).vals.GetDim(0));
           avgrets_per_step(step-start_avg_step)(i)=0.0;
         }
       }
@@ -745,9 +736,9 @@ void Properties_manager::endBlock_per_step() {
                   +trace(step, walker).nonlocal(w))*wt;
           if(w==0) { 
             for(int i=0; i< navg_gen; i++) { 
-              for(int j=0; j< block_avg(current_block).avgrets(i).vals.GetDim(0); j++) { 
+              for(int j=0; j< block_avg(current_block).avgrets(w,i).vals.GetDim(0); j++) { 
                 //block_avg(current_block).avgrets(i).vals(j)+=wt*trace(step,walker).avgrets(i).vals(j);
-                avgrets_per_step(step-start_avg_step)(i)(j)+=wt*trace(step,walker).avgrets(i).vals(j);
+                avgrets_per_step(step-start_avg_step)(i)(j)+=wt*trace(step,walker).avgrets(w,i).vals(j);
               }
             }
           }
@@ -778,15 +769,15 @@ void Properties_manager::endBlock_per_step() {
     
     if(w==0) { 
       for(int i=0; i< navg_gen; i++) { 
-        for(int j=0; j< block_avg(current_block).avgrets(i).vals.GetDim(0); j++) { 
+        for(int j=0; j< block_avg(current_block).avgrets(w,i).vals.GetDim(0); j++) { 
           //block_avg(current_block).avgrets(i).vals(j)=
           //parallel_sum(block_avg(current_block).avgrets(i).vals(j))/weight_sum;
-	  block_avg(current_block).avgrets(i).vals(j)=0.0;
+	  block_avg(current_block).avgrets(w,i).vals(j)=0.0;
 	  for(int step=start_avg_step; step < nsteps; step++) {
 	    if(totnpts_per_step(step-start_avg_step))
-	      block_avg(current_block).avgrets(i).vals(j)+=parallel_sum(avgrets_per_step(step-start_avg_step)(i)(j))/totnpts_per_step(step-start_avg_step);
+	      block_avg(current_block).avgrets(w,i).vals(j)+=parallel_sum(avgrets_per_step(step-start_avg_step)(i)(j))/totnpts_per_step(step-start_avg_step);
 	  }
-	  block_avg(current_block).avgrets(i).vals(j)/=(nsteps-start_avg_step);
+	  block_avg(current_block).avgrets(w,i).vals(j)/=(nsteps-start_avg_step);
         }
       }
     }
@@ -869,8 +860,8 @@ void Properties_manager::endBlockSHDMC() {
   //the calling program isn't consistent with the ordering and 
   //number of Average_returns.  I can't think of any reason why someone
   //would want to do that other than spite, though.
-  int navg_gen=trace(0,0).avgrets.GetDim(0);
-  block_avg(current_block).avgrets.Resize(navg_gen);
+  int navg_gen=trace(0,0).avgrets.GetDim(1);
+  block_avg(current_block).avgrets.Resize(nwf,navg_gen);
   
   for(int w=0; w< nwf; w++) {
     doublevar totweight=0;
@@ -880,9 +871,9 @@ void Properties_manager::endBlockSHDMC() {
     doublevar avgen=0;
     if(w==0) { 
       for(int i=0; i< navg_gen; i++) { 
-        block_avg(current_block).avgrets(i).vals.Resize(trace(0,0).avgrets(i).vals.GetDim(0));      
-        block_avg(current_block).avgrets(i).vals=0;
-        block_avg(current_block).avgrets(i).type=trace(0,0).avgrets(i).type;
+        block_avg(current_block).avgrets(w,i).vals.Resize(trace(0,0).avgrets(w,i).vals.GetDim(0));      
+        block_avg(current_block).avgrets(w,i).vals=0;
+        block_avg(current_block).avgrets(w,i).type=trace(0,0).avgrets(w,i).type;
       }
     }
     int npts=0;
@@ -913,12 +904,12 @@ void Properties_manager::endBlockSHDMC() {
           if(w==0) { 
 	    //using the averaging with w-1 if avgrets(i).type=="linear_delta_der"
             for(int i=0; i< navg_gen; i++) { 
-              for(int j=0; j< block_avg(current_block).avgrets(i).vals.GetDim(0); j++) { 
-                if(j<block_avg(current_block).avgrets(i).vals.GetDim(0)-1 && block_avg(current_block).avgrets(i).type=="linear_delta_der"){
-		    block_avg(current_block).avgrets(i).vals(j)+=(wt-1.0)*trace(step,walker).avgrets(i).vals(j);
+              for(int j=0; j< block_avg(current_block).avgrets(w,i).vals.GetDim(0); j++) { 
+                if(j<block_avg(current_block).avgrets(w,i).vals.GetDim(0)-1 && block_avg(current_block).avgrets(w,i).type=="linear_delta_der"){
+		    block_avg(current_block).avgrets(w,i).vals(j)+=(wt-1.0)*trace(step,walker).avgrets(w,i).vals(j);
 		}
 		else 
-		  block_avg(current_block).avgrets(i).vals(j)+=wt*trace(step,walker).avgrets(i).vals(j);
+		  block_avg(current_block).avgrets(w,i).vals(j)+=wt*trace(step,walker).avgrets(w,i).vals(j);
               }
             }
           }
@@ -938,9 +929,9 @@ void Properties_manager::endBlockSHDMC() {
     
     if(w==0) { 
       for(int i=0; i< navg_gen; i++) { 
-        for(int j=0; j< block_avg(current_block).avgrets(i).vals.GetDim(0); j++) { 
-          block_avg(current_block).avgrets(i).vals(j)=
-          parallel_sum(block_avg(current_block).avgrets(i).vals(j))/weight_sum;
+        for(int j=0; j< block_avg(current_block).avgrets(w,i).vals.GetDim(0); j++) { 
+          block_avg(current_block).avgrets(w,i).vals(j)=
+          parallel_sum(block_avg(current_block).avgrets(w,i).vals(j))/weight_sum;
         }
       }
     }
@@ -1007,6 +998,24 @@ void Properties_manager::endBlockSHDMC() {
 
 //--------------------------------------------------
 
+void Properties_manager::initializeLog(Array2 <Average_generator*> & avg_gen) {
+  if(mpi_info.node==0 && log_file != ""){ 
+    ofstream os(log_file.c_str(), ios::app);
+    os << "init { \n";
+    string indent="   ";
+    os << indent << "label " << log_label << endl;
+    os << indent << "nsys " << avg_gen.GetDim(0) <<  " navg " << avg_gen.GetDim(1) << endl;
+    for(int i=0; i< avg_gen.GetDim(0); i++) { 
+      for(int j=0; j< avg_gen.GetDim(1); j++) { 
+        os << indent << "average_generator { \n";
+        avg_gen(i,j)->write_init(indent,os);
+        os << indent << "}\n";
+      }
+    }
+    os << "}\n";
+    os.close();
+  }
+}
 
 
 

@@ -166,20 +166,36 @@ void Rmc_corr_method::run(Program_options & options, ostream & output) {
   if(!have_allocated_variables) 
     error("Must generate variables to use Rmc_corr_method::run");
   string logfile=options.runid+".log";
-  
+  int nsys=mywfdata.GetDim(0);
+
   if(mpi_info.node==0 ) {
     ofstream logout(logfile.c_str(), ios::app);
     logout << "#-------------------------------------------------\n";
-    logout << "#DMC run: timestep " << timestep 
+    logout << "#RMC run: timestep " << timestep 
            << endl;
     logout << "#-------------------------------------------------\n\n\n";
     logout.close();
   }
   
+  //-------------Properties generators
+  int navg=avgwords.size();
+  avggen.Resize(nsys, navg);
+  for(int sys=0; sys < nsys; sys++) {
+    for(int i=0; i< navg; i++) 
+      allocate(avgwords[i],mysys(sys),mywfdata(sys),avggen(sys,i));
+  }
+  int ndens=denswords.size();
+  local_dens.Resize(nsys,ndens);
+  for(int sys=0; sys< nsys; sys++) { 
+    string runidsys=options.runid;
+    append_number(runidsys, sys);
+    for(int i=0; i< ndens; i++) 
+      allocate(denswords[i], mysys(sys), options.runid, local_dens(sys,i));
+  }
+  
+  
   myprop.setLog(logfile, log_label);
-  Array1 <Average_generator*> avg_gen;
-  myprop.initializeLog(avg_gen);
-  int nsys=mywfdata.GetDim(0);
+  myprop.initializeLog(avggen);
   assert(mysys.GetDim(0)==nsys);
   wf.Resize(nsys);
   sample.Resize(nsys);
@@ -201,21 +217,6 @@ void Rmc_corr_method::run(Program_options & options, ostream & output) {
   }
   myprop.setSize(nsys, nblock, nstep+1, nconfig, mysys(0), 
                  mywfdata(0));
-  //-------------Properties generators
-  int navg=avgwords.size();
-  avggen.Resize(nsys, navg);
-  for(int sys=0; sys < nsys; sys++) {
-    for(int i=0; i< navg; i++) 
-      allocate(avgwords[i],mysys(sys),mywfdata(sys),avggen(sys,i));
-  }
-  int ndens=denswords.size();
-  local_dens.Resize(nsys,ndens);
-  for(int sys=0; sys< nsys; sys++) { 
-    string runidsys=options.runid;
-    append_number(runidsys, sys);
-    for(int i=0; i< ndens; i++) 
-      allocate(denswords[i], mysys(sys), options.runid, local_dens(sys,i));
-  }
   
   
   ///-----------------Generate VMC configs if we don't have a checkfile
@@ -233,12 +234,11 @@ void Rmc_corr_method::run(Program_options & options, ostream & output) {
                          mywfdata(currsys), guidingwf, dinfo, timestep_vmc);
         }
       }
-      cout << "finished walker " << walker << " sysy " << currsys << endl;
       pts(walker).path.push_back(add_point(walker));
     }
     
     //Generate first reptile  
-    cout << mpi_info.node << ":generating reptile " << endl;
+    //cout << mpi_info.node << ":generating reptile " << endl;
     for(int walker=0; walker < nconfig; walker++) { 
       //cout << "size " << pts(walker).path.size() << endl;  
       int currsiz=pts(walker).path.size();
@@ -307,8 +307,8 @@ void Rmc_corr_method::run(Program_options & options, ostream & output) {
           pt.children(0)=walker;
           pt.count=1;
           pt.weight=pts(walker).weight;
-          
-          
+          cout.precision(15);
+          //cout << "adding point " << pt.avgrets(0,0).vals[2] << " " << pt.avgrets(1,0).vals[2] << endl;
           myprop.insertPoint(step, walker, pt);
           for(int sys=0; sys < nsys; sys++) { 
             for(int i=0; i< local_dens.GetDim(1); i++) { 
@@ -547,30 +547,22 @@ Rmc_corr_history Rmc_corr_method::add_point(int walker) {
   for(int i=0; i< nrandvar; i++) rand_num(i)=rng.ulec();
   Array1 <doublevar> jacobian_save(nsys);
   new_hist.prop.setSize(nsys);
-  //new_hist.prop.avgrets.Resize(avggen.GetDim(0)*avggen.GetDim(1));
+  new_hist.prop.avgrets.Resize(avggen.GetDim(0),avggen.GetDim(1));
   for(int i=0; i< nsys; i++) { 
     Array1 <doublevar> kinetic(wf(i)->nfunc());
     Array1 <doublevar> nonlocal(wf(i)->nfunc());
-    //cout << "sys " << i << endl;
     doublevar tot_jacobian=1;
     if(i!=currsys) {  //Warp the non-currsys systems
       doublevar jacobian=1;
-      //cout << "warping " << endl;
       for(int e=0; e< nelectrons; e++) { 
         Array1 <doublevar> ref_pos(3);
         Array1 <doublevar> warp_pos(3);
         sample(currsys)->getElectronPos(e,ref_pos);
-        //cout << "warping " << endl;
         warper.space_warp(sample(currsys), sample(i), e, ref_pos, warp_pos, jacobian);
         tot_jacobian*=jacobian;
         sample(i)->setElectronPos(e,warp_pos);
-        //cout << "ref pos " << ref_pos(0) << " " << ref_pos(1) << " " << ref_pos(2)
-        //<< " warp pos " << warp_pos(0) << " " << warp_pos(1) << " " << warp_pos(2)
-        //<< endl;
       }
-      //cout << "notifying and updating " << endl;
       wf(i)->notify(all_electrons_move,0);
-      //cout << "update " << endl;
     }
     //cout << "here2 " << endl;
     wf(i)->updateLap(mywfdata(i), sample(i));
@@ -579,14 +571,13 @@ Rmc_corr_history Rmc_corr_method::add_point(int walker) {
                           wf(i), kinetic);
 
     new_hist.prop.kinetic(i)=kinetic(0);
-    //cout << " blah " << pt.kinetic.GetDim(0) << " " << mysys.GetDim(0) 
-    //<< " " << sample.GetDim(0) << endl;
     new_hist.prop.potential(i)=mysys(i)->calcLoc(sample(i));
-    //cout <<  " nonloc " << endl;
     mypseudo->calcNonlocWithTest(mywfdata(i), mysys(i), sample(i), wf(i),rand_num,nonlocal);
     new_hist.prop.nonlocal(i)=nonlocal(0);
     jacobian_save(i)=tot_jacobian;
-    
+    for(int a=0; a < avggen.GetDim(1); a++) { 
+      avggen(i,a)->evaluate(mywfdata(i),wf(i),mysys(i),sample(i),new_hist.prop.avgrets(i,a));
+    }
   }
   //------------------------------Now store the information for the walker
   

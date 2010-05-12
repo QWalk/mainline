@@ -385,7 +385,7 @@ template <class ConfigType> void write_configurations(string & filename,
       MPI_Status status;
       MPI_Recv(&nconf_node, 1, MPI_INT,
                node, 0, MPI_Comm_grp, &status);
-      cout << mpi_info.node << ": receiving " << nconf_node << " from " << node << endl;
+      //cout << mpi_info.node << ": receiving " << nconf_node << " from " << node << endl;
       for(int i=0; i< nconf_node; i++) { 
         tmpconf.mpiReceive(node);
         os << "walker { \n";
@@ -410,7 +410,7 @@ template <class ConfigType> void write_configurations(string & filename,
 //for this 
 template <class ConfigType> void read_configurations(string & filename, 
                                                      Array1 <ConfigType> & configs) { 
-  cout << "read_configurations" << mpi_info.node << endl;
+  //cout << "read_configurations" << mpi_info.node << endl;
   vector <ConfigType> allconfigs; 
 
   if(mpi_info.node==0) { 
@@ -429,7 +429,7 @@ template <class ConfigType> void read_configurations(string & filename,
         //if(dummy!="}") error("expected } in read_configurations()");
       }
     }
-    cout << mpi_info.node << ": Done reading " << endl;
+    //cout << mpi_info.node << ": Done reading " << endl;
   }
   
   
@@ -440,14 +440,14 @@ template <class ConfigType> void read_configurations(string & filename,
       error("Non-even number of walkers/node.  Change the number of processors to something that divides ",totconfs);
     }
     int n_per_node=totconfs/mpi_info.nprocs;
-    cout << mpi_info.node << ": n_per_node " << n_per_node << endl;
+    //cout << mpi_info.node << ": n_per_node " << n_per_node << endl;
     configs.Resize(n_per_node);
     
     int count=0;
     for(int i=0; i< n_per_node; i++) { 
       configs(i)=allconfigs[count++];
     }
-    cout << mpi_info.node << ": ......" << endl;
+    //cout << mpi_info.node << ": ......" << endl;
     for(int node=1; node < mpi_info.nprocs; node++) { 
       MPI_Send(&n_per_node, 1, MPI_INT,node, 0, MPI_Comm_grp);
       for(int i=0; i< n_per_node; i++) { 
@@ -455,23 +455,23 @@ template <class ConfigType> void read_configurations(string & filename,
         allconfigs[count++].mpiSend(node);
       }
     }
-    cout << mpi_info.node << ": done sending "<< count << endl;
+    //cout << mpi_info.node << ": done sending "<< count << endl;
   }
   else { 
     int nconf_node;
     MPI_Status status;
     MPI_Recv(&nconf_node, 1, MPI_INT,
              0, 0, MPI_Comm_grp, &status);
-    cout << mpi_info.node << ": receiving " << nconf_node << "configurations " << endl;
+    //cout << mpi_info.node << ": receiving " << nconf_node << "configurations " << endl;
     configs.Resize(nconf_node);
     for(int i=0; i< nconf_node; i++) { 
       configs(i).mpiReceive(0);
     }
-    cout << mpi_info.node << ": done receiving " << endl;
+    //cout << mpi_info.node << ": done receiving " << endl;
   }
 #else
   int totconfs=allconfigs.size();
-  cout << mpi_info.node << ": totconfs " << totconfs << endl;
+  //cout << mpi_info.node << ": totconfs " << totconfs << endl;
   configs.Resize(totconfs);
   for(int i=0; i< totconfs; i++) {
     configs(i)=allconfigs[i];

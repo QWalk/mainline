@@ -331,7 +331,6 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
   restorecheckpoint(readconfig, sys, wfdata, pseudo);
   prop.initializeLog(average_var);
 
-
   //MB: new properties manager for forward walking (one per each length)
   Array1 <Properties_manager> prop_fw;
   prop_fw.Resize(fw_length.GetSize());
@@ -355,7 +354,6 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
     nhist=1;
   
   doublevar teff=timestep;
-
   for(int block=0; block < nblock; block++) {
 
     int totkilled=0;  
@@ -372,11 +370,8 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
       doublevar avg_acceptance=0;
       
       for(int walker=0; walker < nconfig; walker++) {
-
-        
         pts(walker).config_pos.restorePos(sample);
         wf->updateLap(wfdata, sample);
-
 	//------Do several steps without branching
         for(int p=0; p < npsteps; p++) {
           pseudo->randomize();
@@ -400,7 +395,6 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
             
             if(acc>0) acsum++;
           }
-          
           totpoints++;
           Properties_point pt;
           vector <Tmove> tmov;
@@ -446,7 +440,6 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
             mygather.gatherData(pt, pseudo, sys, wfdata, wf, 
                                 sample, guidingwf);
           }
-          
           Dmc_history new_hist;
           new_hist.main_en=pts(walker).prop.energy(0);
           pts(walker).past_energies.push_front(new_hist);
@@ -455,11 +448,11 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
             past.erase(past.begin()+nhist, past.end());
           
           pts(walker).prop=pt;
-	  if(!pure_dmc)
-	    pts(walker).weight*=getWeight(pts(walker),teff,etrial);
-	  else
-	    pts(walker).weight=getWeightPURE_DMC(pts(walker),teff,etrial);
-
+          if(!pure_dmc)
+            pts(walker).weight*=getWeight(pts(walker),teff,etrial);
+          else
+            pts(walker).weight=getWeightPURE_DMC(pts(walker),teff,etrial);
+          
           if(pts(walker).ignore_walker) {
             pts(walker).ignore_walker=0;
             pts(walker).weight=1;
@@ -472,19 +465,18 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
           pts(walker).prop.parent=walker;
           pts(walker).prop.nchildren=1;
           pts(walker).prop.children(0)=walker;
-          pts(walker).prop.avgrets.Resize(average_var.GetDim(0));
+          pts(walker).prop.avgrets.Resize(1,average_var.GetDim(0));
           for(int i=0; i< average_var.GetDim(0); i++) { 
-            average_var(i)->evaluate(wfdata, wf, sys, sample, pts(walker).prop.avgrets(i));
+            average_var(i)->evaluate(wfdata, wf, sys, sample, pts(walker).prop.avgrets(0,i));
           }
-          
           prop.insertPoint(step+p, walker, pts(walker).prop);
           for(int i=0; i< densplt.GetDim(0); i++)
             densplt(i)->accumulate(sample,pts(walker).prop.weight(0));
-	  for(int i=0; i< nldensplt.GetDim(0); i++)
-	    nldensplt(i)->accumulate(sample,pts(walker).prop.weight(0),
-				     wfdata,wf);
-
-
+          for(int i=0; i< nldensplt.GetDim(0); i++)
+            nldensplt(i)->accumulate(sample,pts(walker).prop.weight(0),
+                                     wfdata,wf);
+          
+          
 	  //MB: making the history of prop.avgrets for forward walking
 	  if(max_fw_length){
 	    //store the obeservables
@@ -649,7 +641,7 @@ void Dmc_method::savecheckpoint(string & filename,
   
   write_configurations(filename, pts);
   return;
-  
+  /*
   ofstream checkfile(filename.c_str());
   if(!checkfile) error("Couldn't open", filename );
   checkfile.precision(15);
@@ -679,6 +671,7 @@ void Dmc_method::savecheckpoint(string & filename,
   }
 
   checkfile.close();
+   */
 }
 
 
@@ -759,6 +752,8 @@ void Dmc_method::restorecheckpoint(string & filename, System * sys,
     mygather.gatherData(pts(walker).prop, pseudo, sys,
                         wfdata, wf, sample,
                         guidingwf);
+    pts(walker).age.Resize(sys->nelectrons(0)+sys->nelectrons(1));
+    pts(walker).age=0;
   }
   find_cutoffs();
 
@@ -1307,12 +1302,12 @@ void Dmc_history::mpiReceive(int node) {
 void Dmc_history_avgrets::mpiSend(int node) { 
 #ifdef USE_MPI
   MPI_Send(&weight,1,MPI_DOUBLE,node,0,MPI_Comm_grp);
-  int n1=avgrets.GetDim(0);
+  int n1=avgrets.GetDim(1);
   MPI_Send(&n1,1,MPI_INT,node,0,MPI_Comm_grp);
   for(int j=0;j<n1;j++){
-    int n2=avgrets(j).vals.GetDim(0);
+    int n2=avgrets(0,j).vals.GetDim(0);
     MPI_Send(&n2,1,MPI_INT,node,0,MPI_Comm_grp);
-    MPI_Send(avgrets(j).vals.v,n2,MPI_DOUBLE,node,0,MPI_Comm_grp);
+    MPI_Send(avgrets(0,j).vals.v,n2,MPI_DOUBLE,node,0,MPI_Comm_grp);
   }
 #endif
 }
@@ -1323,11 +1318,11 @@ void Dmc_history_avgrets::mpiReceive(int node) {
   int n1,n2;
   MPI_Recv(&weight,1,MPI_DOUBLE,node,0,MPI_Comm_grp,&status);
   MPI_Recv(&n1,1,MPI_INT,node,0,MPI_Comm_grp,&status);
-  avgrets.Resize(n1);
+  avgrets.Resize(1,n1);
   for(int j=0;j<n1;j++){
     MPI_Recv(&n2,1,MPI_INT,node,0,MPI_Comm_grp,&status);
-    avgrets(j).vals.Resize(n2);
-    MPI_Recv(avgrets(j).vals.v,n2,MPI_DOUBLE,node,0,MPI_Comm_grp,&status);  
+    avgrets(0,j).vals.Resize(n2);
+    MPI_Recv(avgrets(0,j).vals.v,n2,MPI_DOUBLE,node,0,MPI_Comm_grp,&status);  
   }
 #endif
 }

@@ -701,9 +701,9 @@ void Rndmc_method::runWithVariables(Properties_manager & prop,
           pts(walker).prop.parent=walker;
           pts(walker).prop.nchildren=1;
           pts(walker).prop.children(0)=walker;
-          pts(walker).prop.avgrets.Resize(average_var.GetDim(0));
+          pts(walker).prop.avgrets.Resize(1,average_var.GetDim(0));
           for(int i=0; i< average_var.GetDim(0); i++) { 
-            average_var(i)->evaluate(wfdata, wf, sys, sample, pts(walker).prop.avgrets(i));
+            average_var(i)->evaluate(wfdata, wf, sys, sample, pts(walker).prop.avgrets(0,i));
           }
           
 	  //MB: after evaluating the properties all are stored in the prop

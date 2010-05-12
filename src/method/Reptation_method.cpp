@@ -538,9 +538,9 @@ doublevar Reptation_method::slither(int direction,
     accept=0;
   }
   
-  pt.prop.avgrets.Resize(average_var.GetDim(0));
+  pt.prop.avgrets.Resize(1,average_var.GetDim(0));
   for(int i=0; i< average_var.GetDim(0); i++) { 
-    average_var(i)->evaluate(mywfdata, wf, sys, sample, pt.prop.avgrets(i));
+    average_var(i)->evaluate(mywfdata, wf, sys, sample, pt.prop.avgrets(0,i));
   }
   
   return accept;

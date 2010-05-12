@@ -67,7 +67,9 @@ struct Properties_point {
   Array1 <doublevar> nonlocal;
   Array1 <doublevar> weight; //!< averaging weight
   Wf_return wf_val; //!< wavefunction value  
-  Array1 <Average_return> avgrets; //general accumulations from Average_generators
+  Array2 <Average_return> avgrets; 
+  //general accumulations from Average_generators.  First index is the wf/sys number
+  // and the second one is the Average_generator number
   
   private:
   int maxchildren;

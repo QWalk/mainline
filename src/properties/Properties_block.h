@@ -94,7 +94,7 @@ struct Properties_block {
   
   doublevar aux_weight_correlation;
 
-  Array1 <Average_return > avgrets;
+  Array2 <Average_return > avgrets;
   
 };
 

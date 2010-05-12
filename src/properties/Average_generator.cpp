@@ -77,7 +77,6 @@ void Average_dipole::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
       avg.vals(d)+=charge*pos(d);
     }
   }
-  
 }
 
 void Average_dipole::write_init(string & indent, ostream & os) { 

@@ -83,10 +83,11 @@ void Properties_final_average::blockReduce(Array1 <Properties_block> & block_avg
   aux_size=block_avg(start_block).aux_size;
 
   int nblock=end_block-start_block;  
-  
   avgavg=block_avg(start_block).avgrets;
-  for(int i=0; i< avgavg.GetDim(0); i++) 
-    avgavg(i).vals=0;
+
+  for(int w=0; w< nwf; w++)
+    for(int i=0; i< avgavg.GetDim(1); i++) 
+      avgavg(w,i).vals=0;
   avgerr=avgavg;
   
   //Stealing Jeff's algorithm for finding the throw-away blocks:
@@ -119,9 +120,6 @@ void Properties_final_average::blockReduce(Array1 <Properties_block> & block_avg
     }
   }
 
-
-
-  //cout << "summing weights" << endl;
   totweight=0;
   for(int block=start_block; block < end_block; block++) {
     totweight+=block_avg(block).totweight;
@@ -135,22 +133,22 @@ void Properties_final_average::blockReduce(Array1 <Properties_block> & block_avg
         avg(i,w)+=block_avg(block).avg(i,w)*thisweight;
         avgvar(i,w)+=block_avg(block).var(i,w)*thisweight;
       }
-      
-      for(int i=0; i< autocorr_depth; i++) {
-        autocorr(w,i)+=block_avg(block).autocorr(w,i)*thisweight;
+      if(w==0) {
+        for(int i=0; i< autocorr_depth; i++) {
+          autocorr(w,i)+=block_avg(block).autocorr(w,i)*thisweight;
+        }
+      }
+      for(int i=0; i< avgavg.GetDim(1); i++) { 
+        for(int j=0; j< avgavg(w,i).vals.GetDim(0); j++) { 
+          avgavg(w,i).vals(j)+=block_avg(block).avgrets(w,i).vals(j)*thisweight;
+        }
       }
       if(w > 0) 
         diff_energy(w)+=(block_avg(block).avg(total_energy,w)
                          -block_avg(block).avg(total_energy,0))*thisweight;
       
-      
     }
     
-    for(int i=0; i< avgavg.GetDim(0); i++) { 
-      for(int j=0; j< avgavg(i).vals.GetDim(0); j++) { 
-        avgavg(i).vals(j)+=block_avg(block).avgrets(i).vals(j)*thisweight;
-      }
-    }
     
     for(int i=0; i< naux; i++) {
       for(int w=0; w< n_cvg; w++) {
@@ -160,7 +158,6 @@ void Properties_final_average::blockReduce(Array1 <Properties_block> & block_avg
       }
     }
   }
-  
   //int n2=nblock*nblock;
   for(int block=start_block; block < end_block; block++) {
     //doublevar wt=block_avg(block).totweight/totweight;
@@ -172,10 +169,19 @@ void Properties_final_average::blockReduce(Array1 <Properties_block> & block_avg
         *(block_avg(block).avg(i,w)-avg(i,w))*thisweight;
       }
       
-      for(int i=0; i< autocorr_depth; i++) {
-        autocorrerr(w,i)+=(block_avg(block).autocorr(w,i)-autocorr(w,i))
-        *(block_avg(block).autocorr(w,i)-autocorr(w,i))*thisweight;
+      if(w==0) { 
+        for(int i=0; i< autocorr_depth; i++) {
+          autocorrerr(w,i)+=(block_avg(block).autocorr(w,i)-autocorr(w,i))
+          *(block_avg(block).autocorr(w,i)-autocorr(w,i))*thisweight;
+        }
       }
+      for(int i=0; i< avgavg.GetDim(1); i++) { 
+        for(int j=0; j< avgavg(w,i).vals.GetDim(0); j++) { 
+          avgerr(w,i).vals(j)+=(block_avg(block).avgrets(w,i).vals(j)-avgavg(w,i).vals(j))
+          *(block_avg(block).avgrets(w,i).vals(j)-avgavg(w,i).vals(j))*thisweight;
+        }
+      }
+      
       if(w > 0) {
         doublevar ediff=block_avg(block).avg(total_energy,w)
         -block_avg(block).avg(total_energy,0);
@@ -183,12 +189,6 @@ void Properties_final_average::blockReduce(Array1 <Properties_block> & block_avg
       }
     }
     
-    for(int i=0; i< avgavg.GetDim(0); i++) { 
-      for(int j=0; j< avgavg(i).vals.GetDim(0); j++) { 
-        avgerr(i).vals(j)+=(block_avg(block).avgrets(i).vals(j)-avgavg(i).vals(j))
-          *(block_avg(block).avgrets(i).vals(j)-avgavg(i).vals(j))*thisweight;
-      }
-    }
     
     for(int i=0; i< naux; i++) {
       for(int w=0; w< n_cvg; w++) {
@@ -200,9 +200,11 @@ void Properties_final_average::blockReduce(Array1 <Properties_block> & block_avg
     }
   }
   
-  for(int i=0; i< avgavg.GetDim(0); i++) { 
-    for(int j=0; j< avgavg(i).vals.GetDim(0); j++) { 
-      avgerr(i).vals(j)=sqrt(avgerr(i).vals(j));
+  for(int w=0; w< nwf; w++) {
+    for(int i=0; i< avgavg.GetDim(1); i++) { 
+      for(int j=0; j< avgavg(w,i).vals.GetDim(0); j++) { 
+        avgerr(w,i).vals(j)=sqrt(avgerr(w,i).vals(j));
+      }
     }
   }
   
@@ -329,7 +331,20 @@ void complex_angle(dcomplex & val, dcomplex & err,
 
 //----------------------------------------------------------------------
 
-void Properties_final_average::showSummary(ostream & os, Array1 <Average_generator*>  avg_gen) {
+void Properties_final_average::showSummary(ostream & os, Array1 <Average_generator*> avg_gen) { 
+  int nwf=avg.GetDim(1);
+  if(avg_gen.GetDim(0)%nwf != 0 ) error("Something wrong in the showSummary translation");
+  int navg=avg_gen.GetDim(0)/nwf;
+  Array2 <Average_generator*> avg2(nwf,navg);
+  int count=0;
+  for(int w=0; w< nwf; w++) {
+    for(int i=0; i< navg; i++) avg2(w,i)=avg_gen(count++);
+  }
+  showSummary(os, avg2);
+}
+//----------------------------------------------------------------------
+
+void Properties_final_average::showSummary(ostream & os, Array2 <Average_generator*>  avg_gen) {
   int nwf=avg.GetDim(1);
   int naux=aux_energy.GetDim(0);
   int autocorr_depth=autocorr.GetDim(1);
@@ -386,11 +401,12 @@ void Properties_final_average::showSummary(ostream & os, Array1 <Average_generat
   os << endl;
   
  
-  assert(avg_gen.GetDim(0)==avgavg.GetDim(0) && avgavg.GetDim(0)==avgerr.GetDim(0));
-  for(int i=0; i< avg_gen.GetDim(0); i++) { 
-    avg_gen(i)->write_summary(avgavg(i),avgerr(i), os);
+  assert(avg_gen.GetDim(1)==avgavg.GetDim(1) && avgavg.GetDim(1)==avgerr.GetDim(1));
+  for(int w=0; w< nwf; w++) { 
+    for(int i=0; i< avg_gen.GetDim(1); i++) { 
+      avg_gen(w,i)->write_summary(avgavg(w,i),avgerr(w,i), os);
+    }
   }
-   
   
   doublevar totpoints=indep_points*indep_points;
   os << "approximate number of independent points: " 

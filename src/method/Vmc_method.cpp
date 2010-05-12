@@ -254,9 +254,7 @@ void Vmc_method::readcheck(string & filename) {
   }
    */
   if(filename!="") { 
-    cout << mpi_info.node << ": reading " << endl;
     read_configurations(filename, config_pos);
-    cout << mpi_info.node << " : done reading " << endl;
   }
   else { 
     config_pos.Resize(nconfig);
@@ -418,9 +416,9 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
         for(int i=0; i< nldensplt.GetDim(0); i++)
           nldensplt(i)->accumulate(sample,1.0,wfdata,wf);
         
-        pt.avgrets.Resize(average_var.GetDim(0));
+        pt.avgrets.Resize(1,average_var.GetDim(0));
         for(int i=0; i< average_var.GetDim(0); i++) { 
-          average_var(i)->evaluate(wfdata, wf, sys, sample, pt.avgrets(i));
+          average_var(i)->evaluate(wfdata, wf, sys, sample, pt.avgrets(0,i));
         }
         pt.parent=walker;
         pt.nchildren=1; pt.children(0)=1;
@@ -440,7 +438,6 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
     }   //walker
 
     prop.endBlock();
-    
     if(!low_io || block==nblock-1) { 
       storecheck(storeconfig);
       for(int i=0; i< densplt.GetDim(0); i++)
@@ -448,9 +445,6 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
       for(int i=0; i< nldensplt.GetDim(0); i++)
         nldensplt(i)->write(log_label);
     }
-
-
-
     //Output for the block
     if(output) {
       if(global_options::rappture ) { 

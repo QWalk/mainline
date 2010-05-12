@@ -51,7 +51,7 @@ struct Dmc_history {
 
 
 struct Dmc_history_avgrets { 
-  Array1 <Average_return> avgrets;
+  Array2 <Average_return> avgrets;
   doublevar weight;
   void mpiSend(int node);
   void mpiReceive(int node);
