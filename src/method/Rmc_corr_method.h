@@ -175,6 +175,7 @@ public:
   
   Space_warper warper;
   Properties_manager myprop;
+  Properties_manager centerprop;
   Properties_gather mygather;
   
 };

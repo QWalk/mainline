@@ -196,6 +196,9 @@ void Rmc_corr_method::run(Program_options & options, ostream & output) {
   
   myprop.setLog(logfile, log_label);
   myprop.initializeLog(avggen);
+  string center_label=log_label+"_center";
+  centerprop.setLog(logfile, center_label);
+  centerprop.initializeLog(avggen);
   assert(mysys.GetDim(0)==nsys);
   wf.Resize(nsys);
   sample.Resize(nsys);
@@ -215,9 +218,8 @@ void Rmc_corr_method::run(Program_options & options, ostream & output) {
   for(int i=0; i< nconfig; i++) { 
     pts(i).system= i%nsys;
   }
-  myprop.setSize(nsys, nblock, nstep+1, nconfig, mysys(0), 
-                 mywfdata(0));
-  
+  myprop.setSize(nsys, nblock, nstep+1, nconfig, mysys(0),mywfdata(0));
+  centerprop.setSize(nsys, nblock,nstep+1,nconfig, mysys(0),mywfdata(0));
   
   ///-----------------Generate VMC configs if we don't have a checkfile
   if(readconfig=="") { 
@@ -274,7 +276,10 @@ void Rmc_corr_method::run(Program_options & options, ostream & output) {
     }
     pts(walker).recalc_gf=0;
   }
-  
+  Array1 <Sample_point *> center_samp(nsys);
+  center_samp=NULL;
+  for(int i=0; i< nsys; i++) 
+    mysys(i)->generateSample(center_samp(i));
   
   //------------------------------------------
   npsteps=nstep;
@@ -310,9 +315,19 @@ void Rmc_corr_method::run(Program_options & options, ostream & output) {
           cout.precision(15);
           //cout << "adding point " << pt.avgrets(0,0).vals[2] << " " << pt.avgrets(1,0).vals[2] << endl;
           myprop.insertPoint(step, walker, pt);
-          for(int sys=0; sys < nsys; sys++) { 
-            for(int i=0; i< local_dens.GetDim(1); i++) { 
-              local_dens(sys,i)->accumulate(sample(sys), pts(walker).weight(sys));
+          //cout << "here " << endl;
+          int half=pts(walker).path.size()/2;
+          //cout << "half " << half << endl;
+          pt=pts(walker).path[half].prop;
+          pt.parent=walker; pt.children=1; pt.children(0)=walker;pt.count=1;
+          pt.weight=pts(walker).weight;
+          centerprop.insertPoint(step,walker,pt);
+          if(local_dens.GetDim(1) > 0) { 
+            for(int sys=0; sys < nsys; sys++) { 
+              pts(walker).path[half].configs(sys).restorePos(center_samp(sys));
+              for(int i=0; i< local_dens.GetDim(1); i++) { 
+                local_dens(sys,i)->accumulate(center_samp(sys), pts(walker).weight(sys));
+              }
             }
           }
                                            
@@ -326,8 +341,9 @@ void Rmc_corr_method::run(Program_options & options, ostream & output) {
     
       //step+=n_partial;
     
-    myprop.endBlock();
     storecheck();
+    myprop.endBlock();
+    centerprop.endBlock();
     doublevar acceptance=doublevar(parallel_sum(accept))/doublevar(parallel_sum(nconfig*nstep));
     Properties_final_average finavg;
     myprop.getFinal(finavg);
