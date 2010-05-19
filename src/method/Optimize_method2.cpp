@@ -101,7 +101,6 @@ void Optimize_method2::read(vector <string> words,
   string readconfig;
   if(!readvalue(words, pos=0, readconfig, "READCONFIG"))
     error("READCONFIG required for OPTIMIZE2 method!");
-  canonical_filename(readconfig);
 
 
   //--Set up variables
@@ -300,17 +299,17 @@ void Optimize_method2::run(Program_options & options, ostream & output)
       //generate random numbers for PP integration
       psp_test(walker).Resize(pseudo->nTest());
       for(int i=0; i< pseudo->nTest(); i++) { 
-	psp_test(walker)(i)=rng.ulec();
+        psp_test(walker)(i)=rng.ulec();
       }
     } 
     else{ //not dynamic_pp
       if(dynamic_wf){
-	pseudo->initializeStatic(wfdata, sample(0), wf(0), psp_buff);
-	//wf(0)->notify(sample_static,0);
+        pseudo->initializeStatic(wfdata, sample(0), wf(0), psp_buff);
+        //wf(0)->notify(sample_static,0);
       }
       else{
-	pseudo->initializeStatic(wfdata, sample(walker), wf(walker), psp_buff);
-	wf(walker)->notify(sample_static,0);
+        pseudo->initializeStatic(wfdata, sample(walker), wf(walker), psp_buff);
+        wf(walker)->notify(sample_static,0);
       }
     }
   }//walker
