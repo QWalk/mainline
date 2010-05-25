@@ -372,6 +372,7 @@ template <class ConfigType> void write_configurations(string & filename,
   string tmpfilename=filename+".qw_tomove";
   if(mpi_info.node==0) { 
     ofstream os;
+    os.precision(15);
     os.open(tmpfilename.c_str());
     for(int i=0; i< nconfigs; i++) { 
       os << "walker { \n";
