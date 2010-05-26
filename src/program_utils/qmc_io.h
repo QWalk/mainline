@@ -374,6 +374,7 @@ template <class ConfigType> void write_configurations(string & filename,
     ofstream os;
     os.precision(15);
     os.open(tmpfilename.c_str());
+    if(!os) { error("Could not open ", tmpfilename); } 
     for(int i=0; i< nconfigs; i++) { 
       os << "walker { \n";
       configs(i).write(os);
@@ -416,6 +417,7 @@ template <class ConfigType> void read_configurations(string & filename,
 
   if(mpi_info.node==0) { 
     ifstream is(filename.c_str());
+    if(!is) { error("Could not open ", filename); } 
     string dummy;
     //This may be rough on memory, but gets deleted quickly and is relatively
     //easy to implement
