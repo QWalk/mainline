@@ -369,6 +369,9 @@ template <class T> void read(string & s, T & t) {
 template <class ConfigType> void write_configurations(string & filename, 
                                                       Array1 <ConfigType> & configs) { 
   int nconfigs=configs.GetDim(0);
+  time_t starttime;
+  time(&starttime);
+  single_write(cout,"Writing configurations..\n");  
   string tmpfilename=filename+".qw_tomove";
   if(mpi_info.node==0) { 
     ofstream os;
@@ -380,11 +383,16 @@ template <class ConfigType> void write_configurations(string & filename,
       configs(i).write(os);
       os << "} \n";
     }
+    time_t midtime;
+    time(&midtime);
+    single_write(cout, "first write took ", difftime(midtime,starttime), " seconds \n");
 #ifdef USE_MPI
     ConfigType tmpconf;
     for(int node=1; node < mpi_info.nprocs; node++) { 
       int nconf_node;
       MPI_Status status;
+      int dummy=1;
+      MPI_Send(&dummy, 1,MPI_INT, node, 0, MPI_Comm_grp);
       MPI_Recv(&nconf_node, 1, MPI_INT,
                node, 0, MPI_Comm_grp, &status);
       //cout << mpi_info.node << ": receiving " << nconf_node << " from " << node << endl;
@@ -394,11 +402,19 @@ template <class ConfigType> void write_configurations(string & filename,
         tmpconf.write(os);
         os << "}\n";
       }
+      //time(&midtime);
+      //single_write(cout, "writing to ", node, " took ");
+      //single_write(cout, difftime(midtime, starttime), " seconds\n");
     }
 #endif
   }
   else { 
 #ifdef USE_MPI
+    int dummy=1;
+    MPI_Status status;
+    //Wait to send our configurations so the event queue doesn't get filled up for
+    //large numbers of processors.
+    MPI_Recv(&dummy,1,MPI_INT, 0, 0, MPI_Comm_grp, &status);
     MPI_Send(&nconfigs, 1, MPI_INT,0, 0, MPI_Comm_grp);
     for(int i=0; i< nconfigs; i++) {
       configs(i).mpiSend(0);
@@ -406,15 +422,18 @@ template <class ConfigType> void write_configurations(string & filename,
 #endif
   }
   rename(tmpfilename.c_str(), filename.c_str());
+  time_t endtime;
+  time(&endtime);
+  single_write(cout, "Write took ", difftime(endtime, starttime), " seconds\n");
 }
 
 //Reads configurations from the file and gives an array with the configurations 
 //for this 
 template <class ConfigType> void read_configurations(string & filename, 
                                                      Array1 <ConfigType> & configs) { 
-  //cout << "read_configurations" << mpi_info.node << endl;
+  cout << "read_configurations" << mpi_info.node << endl;
   vector <ConfigType> allconfigs; 
-
+  time_t starttime;  time(&starttime);
   if(mpi_info.node==0) { 
     ifstream is(filename.c_str());
     if(!is) { error("Could not open ", filename); } 
@@ -480,7 +499,10 @@ template <class ConfigType> void read_configurations(string & filename,
     configs(i)=allconfigs[i];
   }
 #endif //USE_MPI
-  
+
+  time_t endtime;
+  time(&endtime);
+  single_write(cout, "Read took ", difftime(endtime, starttime), " seconds\n");  
   
 }
 

@@ -49,7 +49,6 @@ void Optimize_method::read(vector <string> words,
   pos=0;
   if( ! readvalue(words, pos=0, pseudostore, "PSEUDOTEMP") )
     pseudostore=options.runid+".pseudo";
-  canonical_filename(pseudostore);
 
   if(! readvalue(words, pos=0, wfoutputfile, "WFOUTPUT") )
       wfoutputfile=options.runid+".wfout";
@@ -94,7 +93,6 @@ void Optimize_method::read(vector <string> words,
   string readconfig;
   if(!readvalue(words, pos=0, readconfig, "READCONFIG"))
     error("READCONFIG required for OPTIMIZE method!");
-  canonical_filename(readconfig);
 
   //--Set up variables
   allocate(options.systemtext[0],  sys);
