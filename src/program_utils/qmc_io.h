@@ -435,6 +435,9 @@ template <class ConfigType> void write_configurations(string & filename,
 #endif
   }
   */
+#ifdef USE_MPI
+  MPI_Barrier(MPI_Comm_grp);
+#endif
   if(mpi_info.node==0) 
     rename(tmpfilename.c_str(), filename.c_str());
   time_t endtime;
