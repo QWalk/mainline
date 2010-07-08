@@ -82,9 +82,6 @@ Pseudopotential::~Pseudopotential()  {
 
 
 
-
-
-
 int Pseudopotential::initializeStatic(Wavefunction_data *wfdata,
                                       Sample_point * sample, Wavefunction * wf,
                                       Pseudo_buffer & output)

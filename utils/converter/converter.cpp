@@ -198,7 +198,7 @@ void print_vmc_section( ostream & os, string & outputname, double eref) {
      << "  STORECONFIG  " << outputname << ".config\n\n"
      << "  #uncomment the following to read a configuration\n"
      << "  #READCONFIG  " << outputname << ".config\n"
-     << "  EREF " << eref << endl
+    //    << "  EREF " << eref << endl
      << "}\n\n";
 
 }
@@ -206,18 +206,37 @@ void print_vmc_section( ostream & os, string & outputname, double eref) {
 
 void print_opt_section( ostream & os, string & outputname, double eref) {
   os << "METHOD {\n"
-     << "  OPTIMIZE\n\n"
+     << "  OPTIMIZE2\n\n"
      << "  #Number of optimization steps to do.  Should be roughly \n"
         "  #30 times the number of variational parameters\n"
-     << "  ITERATIONS 1000\n"
+     << "  ITERATIONS 30\n"
      << "  READCONFIG " << outputname << ".config\n"
-     << "  NCONFIG  100\n"
-     << "  EREF " << eref << endl
-     << "  MINFUNCTION VARIANCE \n"
-     << "  PSEUDOTEMP " << outputname << ".pseudo\n"
+     << "  NCONFIG  1000\n"
+    //     << "  EREF " << eref << endl
+     << "  MINFUNCTION MIXED \n"
+    //<< "  PSEUDOTEMP " << outputname << ".pseudo\n"
      << "}\n\n";
 
 }
+
+void print_dmc_section( ostream & os, string & outputname, double eref) {
+  os << "METHOD {\n"
+     << "  DMC\n"
+     << "  NBLOCK   10\n"
+     << "  NSTEP    100\n"
+     << "  NDECORR   4\n"
+     << "  TIMESTEP 0.01\n"
+     << "  NCONFIG  100\n"
+     << "  STORECONFIG  " << outputname << ".config\n\n"
+     << "  READCONFIG  " << outputname << ".config\n"
+    //  << "  EREF " << eref << endl
+     << "}\n\n";
+
+}
+
+
+
+
 //######################################################################
 #include "vecmath.h"
 

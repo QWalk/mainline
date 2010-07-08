@@ -37,7 +37,7 @@ void Cubic_spline::calcVal(const Array1 <doublevar> & r,
   }
   else {
 
-    doublevar v, v2, v3, v4;
+    doublevar v, v1, v2, v3, v4, v5;
     doublevar temp;
 
     int totf=startfill;
@@ -192,6 +192,12 @@ void Cubic_spline::calcVal(const Array1 <doublevar> & r,
           v3=r(2)*(r(2)*r(2)+r(3)*r(3));
           symvals(totf)=v3*temp;
           break;
+
+	case isym_Fp3mod:
+          v3=r(2)*(r(2)*r(2)-3.0*r(3)*r(3));
+          symvals(totf)=v3*temp;
+          break;  
+
                   
         case isym_Gxxxx: //g xxxx (15)
           v4=r(2)*r(2)*r(2)*r(2);
@@ -268,6 +274,72 @@ void Cubic_spline::calcVal(const Array1 <doublevar> & r,
           symvals(totf)=v4*temp;
           break;
 
+
+	case isym_G0: //g0
+	  v1=r(2)*r(2);
+	  v2=r(3)*r(3);
+	  v3=r(4)*r(4);
+	  v5=v1+v2+v3;
+          v4=35.*v3*v3-30.*v3*v5+3.*v5*v5;
+          symvals(totf)=v4*temp;
+          break;
+	case isym_G1: //g1
+	  v1=r(2)*r(2);
+	  v2=r(3)*r(3);
+	  v3=r(4)*r(4);
+	  v5=v1+v2+v3;
+          v4=r(2)*r(4)*(7.*v3-3.*v5);
+          symvals(totf)=v4*temp;
+          break;
+	case isym_G2: //g2
+	  v1=r(2)*r(2);
+	  v2=r(3)*r(3);
+	  v3=r(4)*r(4);
+	  v5=v1+v2+v3;
+          v4=r(3)*r(4)*(7.*v3-3.*v5);
+          symvals(totf)=v4*temp;
+          break;
+	case isym_G3: //g3
+	  v1=r(2)*r(2);
+	  v2=r(3)*r(3);
+	  v3=r(4)*r(4);
+	  v5=v1+v2+v3;
+          v4=(v1-v2)*(7.*v3-v5);
+          symvals(totf)=v4*temp;
+          break;
+        case isym_G4: //g4
+	  v1=r(2)*r(2);
+	  v2=r(3)*r(3);
+	  v3=r(4)*r(4);
+	  v5=v1+v2+v3;
+          v4=r(2)*r(3)*(7.*v3-v5);
+          symvals(totf)=v4*temp;
+          break;
+	case isym_G5: //g5
+	  v1=r(2)*r(2);
+	  v2=r(3)*r(3);
+          v4=(v1-3.*v2)*r(2)*r(4);
+          symvals(totf)=v4*temp;
+          break;  
+	case isym_G6: //g6
+	  v1=r(2)*r(2);
+	  v2=r(3)*r(3);
+          v4=(3.*v1-v2)*r(3)*r(4);
+          symvals(totf)=v4*temp;
+          break; 
+	case isym_G7: //g7
+	  v1=r(2)*r(2);
+	  v2=r(3)*r(3);
+          v4=(v1-3.*v2)*v1-(3.*v1-v2)*v2;
+          symvals(totf)=v4*temp;
+          break;
+	case isym_G8: //g8
+	  v1=r(2)*r(2);
+	  v2=r(3)*r(3);
+          v4=(v1-v2)*r(2)*r(3);
+          symvals(totf)=v4*temp;
+          break;
+
         default:
           error("Bad symmetry in Cubic_spline::calcVal", indiv_symmetry(totf-startfill));
         }
@@ -306,7 +378,7 @@ void Cubic_spline::calcLap(
 
     //int interval=splines(0).getInterval(r(0));
 
-    register doublevar rdp, v, h, v2, v3, v4, u2, v2u2;
+    register doublevar rdp, v, h, x, y, z, v1, v2, v3, v4, v5, u2, v2u2, dfdx, dfdy, dfdz;
     register doublevar func, fdir, f2dir;
     //doublevar funct[3];
     int totf=startfill;
@@ -577,7 +649,7 @@ void Cubic_spline::calcLap(
           h=v3*fdir;
           v2=6.0*r(2)*r(3);
           v4=3.0*(r(2)*r(2)-r(3)*r(3));
-          symvals(totf, 1)=h*r(2)+v2*func;
+          symvals(totf,1)=h*r(2)+v2*func;
           symvals(totf,2)=h*r(3)+v4*func;
           symvals(totf,3)=h*r(4);
           symvals(totf,4)=v3*f2dir+8.*h;
@@ -611,6 +683,7 @@ void Cubic_spline::calcLap(
           symvals(totf,2)=h*r(3)-2.*r(2)*r(3)*func;
           symvals(totf,3)=h*r(4)+8*r(2)*r(4)*func;
           symvals(totf,4)=v3*f2dir+8.*h;
+
           break;
           
         case isym_Fp2:
@@ -632,7 +705,15 @@ void Cubic_spline::calcLap(
           symvals(totf,3)=h*r(4);
           symvals(totf,4)=v3*f2dir+8.*h+func*8.*r(2);
           break;
-          
+       case isym_Fp3mod:
+          v3=r(2)*(r(2)*r(2)-3.*r(3)*r(3));
+          symvals(totf,0)=v3*func;
+          h=v3*fdir;
+          symvals(totf,1)=h*r(2)+func*(3.*r(2)*r(2)-3.0*r(3)*r(3));
+          symvals(totf,2)=h*r(3)-6.0*r(2)*r(3)*func;
+          symvals(totf,3)=h*r(4);
+          symvals(totf,4)=v3*f2dir+8.*h;
+          break;   
           
           
           
@@ -807,6 +888,187 @@ void Cubic_spline::calcLap(
 	  symvals(totf,4)=u2*(2.*func+v2*(10.*fdir+f2dir));
           break;
 
+
+	case isym_G0: //g0
+	  x=r(2);
+	  y=r(3);
+	  z=r(4);
+	  v1=x*x;
+	  v2=y*y;
+	  v3=z*z;
+	  v5=v1+v2+v3;
+          v4=35.*v3*v3-30.*v3*v5+3.*v5*v5;
+	  dfdx=  12.0*(v1 + v2 - 4*v3)*x;
+	  dfdy=  12.0 *(v1 + v2 - 4*v3)*y;
+	  dfdz= -48.0*(v1 + v2 + v3)*z + 80*v3*z;
+	  h=fdir*v4;
+          symvals(totf,0)=v4*func;
+	  symvals(totf,1)=func*dfdx+h*x;
+	  symvals(totf,2)=func*dfdy+h*y;
+	  symvals(totf,3)=func*dfdz+h*z;
+	  symvals(totf,4)=2*h+2*fdir*(dfdx*x+dfdy*y+dfdz*z)+v4*f2dir;
+          break;
+
+	case isym_G1: //g1
+	  x=r(2);
+	  y=r(3);
+	  z=r(4);
+	  v1=x*x;
+	  v2=y*y;
+	  v3=z*z;
+	  v5=v1+v2+v3;
+          v4=x*z*(7.*v3-3.*v5);
+	  dfdx= (-9.*v1 - 3.*v2 + 4.*v3)*z;
+	  dfdy= -6.*x*y*z;
+	  dfdz= (-3.*v1 - 3.*v2 + 12.*v3)*x;
+	  h=fdir*v4;
+          symvals(totf,0)=v4*func;
+	  symvals(totf,1)=func*dfdx+h*x;
+	  symvals(totf,2)=func*dfdy+h*y;
+	  symvals(totf,3)=func*dfdz+h*z;
+	  symvals(totf,4)=2*h+2*fdir*(dfdx*x+dfdy*y+dfdz*z)+v4*f2dir;
+	  break;
+
+	case isym_G2: //g2
+	  x=r(2);
+	  y=r(3);
+	  z=r(4);
+	  v1=x*x;
+	  v2=y*y;
+	  v3=z*z;
+	  v5=v1+v2+v3;
+          v4=y*z*(7.*v3-3.*v5);
+	  dfdx= -6.*x*y*z;
+	  dfdy= (-3.*v1 - 9.*v2 + 4.*v3)*z;
+	  dfdz= (-3.*v1 - 3.*v2 + 12.*v3)*y;
+	  h=fdir*v4;
+          symvals(totf,0)=v4*func;
+	  symvals(totf,1)=func*dfdx+h*x;
+	  symvals(totf,2)=func*dfdy+h*y;
+	  symvals(totf,3)=func*dfdz+h*z;
+	  symvals(totf,4)=2*h+2*fdir*(dfdx*x+dfdy*y+dfdz*z)+v4*f2dir;
+	  break;
+
+	case isym_G3: //g3
+	  x=r(2);
+	  y=r(3);
+	  z=r(4);
+	  v1=x*x;
+	  v2=y*y;
+	  v3=z*z;
+	  v5=v1+v2+v3;
+          v4=(v1 - v2)*(-v5 + 7. *v3);
+	  dfdx= -4.*v1*x + 12.*v3*x;
+	  dfdy= 4.*v2*y - 12.*v3*y;
+	  dfdz= 12.*(v1 - 1.*v2)*z;
+	  h=fdir*v4;
+          symvals(totf,0)=v4*func;
+	  symvals(totf,1)=func*dfdx+h*x;
+	  symvals(totf,2)=func*dfdy+h*y;
+	  symvals(totf,3)=func*dfdz+h*z;
+	  symvals(totf,4)=2*h+2*fdir*(dfdx*x+dfdy*y+dfdz*z)+v4*f2dir;
+	  break;
+	  
+	case isym_G4: //g4
+	  x=r(2);
+	  y=r(3);
+	  z=r(4);
+	  v1=x*x;
+	  v2=y*y;
+	  v3=z*z;
+	  v5=v1+v2+v3;
+          v4=x*y*(-v5 + 7. *v3);
+	  dfdx= (-3.*v1 - 1.*v2 + 6.*v3)*y;
+	  dfdy= (-1.*v1 - 3.*v2 + 6.*v3)*x;
+	  dfdz= 12.*x*y*z;
+	  h=fdir*v4;
+          symvals(totf,0)=v4*func;
+	  symvals(totf,1)=func*dfdx+h*x;
+	  symvals(totf,2)=func*dfdy+h*y;
+	  symvals(totf,3)=func*dfdz+h*z;
+	  symvals(totf,4)=2*h+2*fdir*(dfdx*x+dfdy*y+dfdz*z)+v4*f2dir;
+	  break;
+
+       case isym_G5: //g5
+	  x=r(2);
+	  y=r(3);
+	  z=r(4);
+	  v1=x*x;
+	  v2=y*y;
+	  v3=z*z;
+	  v5=v1+v2+v3;
+          v4=x*z*(v1-3.*v2);
+	  dfdx= 3*(v1 - v2)*z;
+	  dfdy= -6*x*y*z;
+	  dfdz= (v1 - 3*v2)*x;
+	  h=fdir*v4;
+          symvals(totf,0)=v4*func;
+	  symvals(totf,1)=func*dfdx+h*x;
+	  symvals(totf,2)=func*dfdy+h*y;
+	  symvals(totf,3)=func*dfdz+h*z;
+	  symvals(totf,4)=2*h+2*fdir*(dfdx*x+dfdy*y+dfdz*z)+v4*f2dir;
+	  break;
+
+	case isym_G6: //g6
+	  x=r(2);
+	  y=r(3);
+	  z=r(4);
+	  v1=x*x;
+	  v2=y*y;
+	  v3=z*z;
+	  v5=v1+v2+v3;
+          v4=y*z*(3*v1-v2);
+	  dfdx= 6*x*y*z;
+	  dfdy= 3*(v1 - v2)*z;
+	  dfdz= (3*v1 - v2)*y;
+	  h=fdir*v4;
+          symvals(totf,0)=v4*func;
+	  symvals(totf,1)=func*dfdx+h*x;
+	  symvals(totf,2)=func*dfdy+h*y;
+	  symvals(totf,3)=func*dfdz+h*z;
+	  symvals(totf,4)=2*h+2*fdir*(dfdx*x+dfdy*y+dfdz*z)+v4*f2dir;
+	  break;
+
+	case isym_G7: //g7
+	  x=r(2);
+	  y=r(3);
+	  z=r(4);
+	  v1=x*x;
+	  v2=y*y;
+	  v3=z*z;
+	  v5=v1+v2+v3;
+          v4=(v1-3.*v2)*v1-(3.*v1-v2)*v2;
+	  dfdx= 2*x*(2.*v1 - 6*v2);
+	  dfdy= 2*y*(-6*v1 + 2*v2);
+	  h=fdir*v4;
+          symvals(totf,0)=v4*func;
+	  symvals(totf,1)=func*dfdx+h*x;
+	  symvals(totf,2)=func*dfdy+h*y;
+	  symvals(totf,3)=h*z;
+	  symvals(totf,4)=2*h+2*fdir*(dfdx*x+dfdy*y)+v4*f2dir;
+	  break;
+
+	case isym_G8: //g8
+	  x=r(2);
+	  y=r(3);
+	  z=r(4);
+	  v1=x*x;
+	  v2=y*y;
+	  v3=z*z;
+	  v5=v1+v2+v3;
+	  v4=x*y*(v1-v2);
+	  dfdx= (3*v1 - v2)*y;
+	  dfdy= (v1 - 3*v2)*x;
+	  h=fdir*v4;
+	  symvals(totf,0)=v4*func;
+	  symvals(totf,1)=func*dfdx+h*x;
+	  symvals(totf,2)=func*dfdy+h*y;
+	  symvals(totf,3)=h*z;
+	  symvals(totf,4)=2*h+2*fdir*(dfdx*x+dfdy*y)+v4*f2dir;
+	  break;
+
+
+
         default:
           error("Bad symmetry in Cubic_spline::calcLap.\n");
         }
@@ -844,7 +1106,8 @@ void Cubic_spline::calcHessian(const Array1 <doublevar> & r,
   }
   else
   {
-    register doublevar rdp, v, h, v2, v3, v4, u2;
+    register doublevar rdp, v, h, v1, v2, v3, v4, v5, u2;
+    register doublevar dgdx, dgdy, dgdz, d2gdxdx, d2gdydy, d2gdzdz, d2gdxdy, d2gdxdz, d2gdydz;
     register doublevar func, fdir, f2dir;
     int totf=startfill;
     doublevar ovr2=1.0/r(1);
@@ -1191,6 +1454,7 @@ void Cubic_spline::calcHessian(const Array1 <doublevar> & r,
           break;
 
         case isym_Fxyz://xyz
+	  
           v3=x*y*z;
           *(ptr++)=v3*func;
           *(ptr++)=v3*dfdx+y*z*func;
@@ -1202,18 +1466,243 @@ void Cubic_spline::calcHessian(const Array1 <doublevar> & r,
 	  *(ptr++)=v3*dfdxy+y*z*dfdy+z*x*dfdx+z*func;
 	  *(ptr++)=v3*dfdxz+dfdz*y*z+x*y*dfdx+y*func;
           *(ptr++)=v3*dfdyz+x*y*dfdy+x*z*dfdz+x*func;
+	  
+	  /*
+	  //new way does the same thing 
+	  v1=x*x;
+	  v2=y*y;
+	  v3=z*z;
+	  v5=v1+v2+v3;
 
+          v4=x*y*z;
+	  dgdx=y*z;
+	  dgdy=x*z;
+	  dgdz=x*y;
+	  d2gdxdx=0;
+	  d2gdydy=0;
+	  d2gdzdz=0;
+	  d2gdxdy=z;
+	  d2gdxdz=y;
+	  d2gdydz=x;
+	  
+	  h=fdir*v4;
+          *(ptr++)=v4*func;
+	  *(ptr++)=func*dgdx+h*x;
+	  *(ptr++)=func*dgdy+h*y;
+	  *(ptr++)=func*dgdz+h*z;
+	  *(ptr++)=func*d2gdxdx+2*fdir*dgdx*x+v4*fdir+v4*(v1/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydy+2*fdir*dgdy*y+v4*fdir+v4*(v2/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdzdz+2*fdir*dgdz*z+v4*fdir+v4*(v3/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdxdy+y*fdir*dgdx+x*fdir*dgdy+v4*(x*y/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdxdz+z*fdir*dgdx+x*fdir*dgdz+v4*(x*z/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydz+z*fdir*dgdy+y*fdir*dgdz+v4*(y*z/v5)*(f2dir-fdir);
+	  */
           break;
 
         case isym_Fm3:
+	  v1=x*x;
+	  v2=y*y;
+	  v3=z*z;
+	  v5=v1+v2+v3;
+
+          v4=(3*v1-v2)*y;
+	  dgdx=6*x*y;
+	  dgdy=3*(v1 - v2);
+	  dgdz=0;
+	  d2gdxdx=6*y;
+	  d2gdydy=-6*y;
+	  d2gdzdz=0;
+	  d2gdxdy=6*x;
+	  d2gdxdz=0;
+	  d2gdydz=0;
+	  
+	  h=fdir*v4;
+          *(ptr++)=v4*func;
+	  *(ptr++)=func*dgdx+h*x;
+	  *(ptr++)=func*dgdy+h*y;
+	  *(ptr++)=h*z;
+	  *(ptr++)=func*d2gdxdx+2*fdir*dgdx*x+v4*fdir+v4*(v1/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydy+2*fdir*dgdy*y+v4*fdir+v4*(v2/v5)*(f2dir-fdir);
+	  *(ptr++)=                           v4*fdir+v4*(v3/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdxdy+y*fdir*dgdx+x*fdir*dgdy+v4*(x*y/v5)*(f2dir-fdir);
+	  *(ptr++)=             z*fdir*dgdx+v4*(x*z/v5)*(f2dir-fdir);
+	  *(ptr++)=             z*fdir*dgdy+v4*(y*z/v5)*(f2dir-fdir);
+	  break;
         case isym_Fm1:
+	  v1=x*x;
+	  v2=y*y;
+	  v3=z*z;
+	  v5=v1+v2+v3;
+
+          v4=y*(4*v3-v1-v2);
+	  dgdx=-2*x*y;
+	  dgdy=-v1 - 3*v2 + 4*v3;
+	  dgdz=8*y*z;
+	  d2gdxdx=-2*y;
+	  d2gdydy=-6*y;
+	  d2gdzdz=8*y;
+	  d2gdxdy=-2*x;
+	  d2gdxdz=0.0;
+	  d2gdydz=8*z;
+	  
+	  h=fdir*v4;
+	  *(ptr++)=v4*func;
+	  *(ptr++)=func*dgdx+h*x;
+	  *(ptr++)=func*dgdy+h*y;
+	  *(ptr++)=func*dgdz+h*z;
+	  *(ptr++)=func*d2gdxdx+2*fdir*dgdx*x+v4*fdir+v4*(v1/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydy+2*fdir*dgdy*y+v4*fdir+v4*(v2/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdzdz+2*fdir*dgdz*z+v4*fdir+v4*(v3/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdxdy+y*fdir*dgdx+x*fdir*dgdy+v4*(x*y/v5)*(f2dir-fdir);
+	  *(ptr++)=             z*fdir*dgdx+x*fdir*dgdz+v4*(x*z/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydz+z*fdir*dgdy+y*fdir*dgdz+v4*(y*z/v5)*(f2dir-fdir);
+	  break;
         case isym_F0:
+	  v1=x*x;
+	  v2=y*y;
+	  v3=z*z;
+	  v5=v1+v2+v3;
+
+          v4=z*(2*v3-3*v1-3*v2);
+	  dgdx=-6*x*z;
+	  dgdy=-6*y*z;
+	  dgdz=-3*(v1 + v2 - 2*v3);
+	  d2gdxdx=-6*z;
+	  d2gdydy=-6*z;
+	  d2gdzdz=12*z;
+	  d2gdxdy=0;
+	  d2gdxdz=-6*x;
+	  d2gdydz=-6*y;
+	  
+	  h=fdir*v4;
+          *(ptr++)=v4*func;
+	  *(ptr++)=func*dgdx+h*x;
+	  *(ptr++)=func*dgdy+h*y;
+	  *(ptr++)=func*dgdz+h*z;
+	  *(ptr++)=func*d2gdxdx+2*fdir*dgdx*x+v4*fdir+v4*(v1/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydy+2*fdir*dgdy*y+v4*fdir+v4*(v2/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdzdz+2*fdir*dgdz*z+v4*fdir+v4*(v3/v5)*(f2dir-fdir);
+	  *(ptr++)=             y*fdir*dgdx+x*fdir*dgdy+v4*(x*y/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdxdz+z*fdir*dgdx+x*fdir*dgdz+v4*(x*z/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydz+z*fdir*dgdy+y*fdir*dgdz+v4*(y*z/v5)*(f2dir-fdir);
+	  break;
         case isym_Fp1:
+	  v1=x*x;
+	  v2=y*y;
+	  v3=z*z;
+	  v5=v1+v2+v3;
+
+          v4=x*(4*v3-v1-v2);
+	  dgdx=-3*v1 - v2 + 4*v3;
+	  dgdy=-2*x*y;
+	  dgdz=8*x*z;
+	  d2gdxdx=-6*x;
+	  d2gdydy=-2*x;
+	  d2gdzdz=8*x;
+	  d2gdxdy=-2*y;
+	  d2gdxdz=8*z;
+	  d2gdydz=0.0;
+	  
+	  h=fdir*v4;
+          *(ptr++)=v4*func;
+	  *(ptr++)=func*dgdx+h*x;
+	  *(ptr++)=func*dgdy+h*y;
+	  *(ptr++)=func*dgdz+h*z;
+	  *(ptr++)=func*d2gdxdx+2*fdir*dgdx*x+v4*fdir+v4*(v1/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydy+2*fdir*dgdy*y+v4*fdir+v4*(v2/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdzdz+2*fdir*dgdz*z+v4*fdir+v4*(v3/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdxdy+y*fdir*dgdx+x*fdir*dgdy+v4*(x*y/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdxdz+z*fdir*dgdx+x*fdir*dgdz+v4*(x*z/v5)*(f2dir-fdir);
+	  *(ptr++)=             z*fdir*dgdy+y*fdir*dgdz+v4*(y*z/v5)*(f2dir-fdir);
+	  break;
         case isym_Fp2:
+	  v1=x*x;
+	  v2=y*y;
+	  v3=z*z;
+	  v5=v1+v2+v3;
+
+          v4=(v1-v2)*z;
+	  dgdx=2*x*z;
+	  dgdy=-2*y*z;
+	  dgdz=v1 - v2;
+	  d2gdxdx=2*z;
+	  d2gdydy=-2*z;
+	  d2gdzdz=0;
+	  d2gdxdy=0;
+	  d2gdxdz=2*x;
+	  d2gdydz=-2*y;
+	  
+	  h=fdir*v4;
+          *(ptr++)=v4*func;
+	  *(ptr++)=func*dgdx+h*x;
+	  *(ptr++)=func*dgdy+h*y;
+	  *(ptr++)=func*dgdz+h*z;
+	  *(ptr++)=func*d2gdxdx+2*fdir*dgdx*x+v4*fdir+v4*(v1/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydy+2*fdir*dgdy*y+v4*fdir+v4*(v2/v5)*(f2dir-fdir);
+	  *(ptr++)=            2*fdir*dgdz*z+v4*fdir+v4*(v3/v5)*(f2dir-fdir);
+	  *(ptr++)=             y*fdir*dgdx+x*fdir*dgdy+v4*(x*y/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdxdz+z*fdir*dgdx+x*fdir*dgdz+v4*(x*z/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydz+z*fdir*dgdy+y*fdir*dgdz+v4*(y*z/v5)*(f2dir-fdir);
+	  break;
+	case isym_Fp3mod:
+	  v1=x*x;
+	  v2=y*y;
+	  v3=z*z;
+	  v5=v1+v2+v3;
+
+          v4=x*(v1-3.0*v2);
+	  dgdx=3*(v1 - v2);
+	  dgdy=-6*x*y;
+	  dgdz=0;
+	  d2gdxdx=6*x;
+	  d2gdydy=-6*x;
+	  d2gdzdz=0;
+	  d2gdxdy=-6*y;
+	  d2gdxdz=0;
+	  d2gdydz=0;
+	  
+	  h=fdir*v4;
+          *(ptr++)=v4*func;
+	  *(ptr++)=func*dgdx+h*x;
+	  *(ptr++)=func*dgdy+h*y;
+	  *(ptr++)=          h*z;
+	  *(ptr++)=func*d2gdxdx+2*fdir*dgdx*x+v4*fdir+v4*(v1/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydy+2*fdir*dgdy*y+v4*fdir+v4*(v2/v5)*(f2dir-fdir);
+	  *(ptr++)=                          +v4*fdir+v4*(v3/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdxdy+y*fdir*dgdx+x*fdir*dgdy+v4*(x*y/v5)*(f2dir-fdir);
+	  *(ptr++)=             z*fdir*dgdx            +v4*(x*z/v5)*(f2dir-fdir);
+	  *(ptr++)=             z*fdir*dgdy            +v4*(y*z/v5)*(f2dir-fdir);
+	  break;
         case isym_Fp3:
-          error("Need to code siesta F's in the Hessian");
-          break;
-          
+	  v1=x*x;
+	  v2=y*y;
+	  v3=z*z;
+	  v5=v1+v2+v3;
+
+          v4=x*(v1+v2);
+	  dgdx=3*v1 + v2;
+	  dgdy=2*x*y;
+	  dgdz=0.0;
+	  d2gdxdx=6*x;
+	  d2gdydy=2*x;
+	  d2gdzdz=0;
+	  d2gdxdy=2*y;
+	  d2gdxdz=0;
+	  d2gdydz=0;
+	  
+	  h=fdir*v4;
+          *(ptr++)=v4*func;
+	  *(ptr++)=func*dgdx+h*x;
+	  *(ptr++)=func*dgdy+h*y;
+	  *(ptr++)=          h*z;
+	  *(ptr++)=func*d2gdxdx+2*fdir*dgdx*x+v4*fdir+v4*(v1/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydy+2*fdir*dgdy*y+v4*fdir+v4*(v2/v5)*(f2dir-fdir);
+	  *(ptr++)=                          +v4*fdir+v4*(v3/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdxdy+y*fdir*dgdx+x*fdir*dgdy+v4*(x*y/v5)*(f2dir-fdir);
+	  *(ptr++)=             z*fdir*dgdx            +v4*(x*z/v5)*(f2dir-fdir);
+	  *(ptr++)=             z*fdir*dgdy            +v4*(y*z/v5)*(f2dir-fdir);
+	  break;
+
         case isym_Gxxxx: // g xxxx
 	  v2=x*x;
 	  v3=v2*x;
@@ -1466,6 +1955,268 @@ void Cubic_spline::calcHessian(const Array1 <doublevar> & r,
           *(ptr++)=v4*dfdyz+2*z*u2*dfdy+2*z*x*func+dfdz*v2*x;  
           break;
 
+
+	case isym_G0:
+	  v1=x*x;
+	  v2=y*y;
+	  v3=z*z;
+	  v5=v1+v2+v3;
+
+          v4=35.*v3*v3-30.*v3*v5+3.*v5*v5;
+	  dgdx=  12.0*(v1 + v2 - 4*v3)*x;
+	  dgdy=  12.0*(v1 + v2 - 4*v3)*y;
+	  dgdz= -48.0*(v1 + v2 + v3)*z + 80*v3*z;
+	  d2gdxdx=12*(3*v1 + v2 - 4*v3);
+	  d2gdydy=12*(v1 + 3*v2 - 4*v3);
+	  d2gdzdz=-48*(v1 + v2 - 2*v3);
+	  d2gdxdy=24*x*y;
+	  d2gdxdz=-96*x*z;
+	  d2gdydz=-96*y*z;
+	  
+	  h=fdir*v4;
+          *(ptr++)=v4*func;
+	  *(ptr++)=func*dgdx+h*x;
+	  *(ptr++)=func*dgdy+h*y;
+	  *(ptr++)=func*dgdz+h*z;
+	  *(ptr++)=func*d2gdxdx+2*fdir*dgdx*x+v4*fdir+v4*(v1/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydy+2*fdir*dgdy*y+v4*fdir+v4*(v2/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdzdz+2*fdir*dgdz*z+v4*fdir+v4*(v3/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdxdy+y*fdir*dgdx+x*fdir*dgdy+v4*(x*y/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdxdz+z*fdir*dgdx+x*fdir*dgdz+v4*(x*z/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydz+z*fdir*dgdy+y*fdir*dgdz+v4*(y*z/v5)*(f2dir-fdir);
+	  break;
+        case isym_G1:
+	  v1=x*x;
+	  v2=y*y;
+	  v3=z*z;
+	  v5=v1+v2+v3;
+
+	  v4=x*z*(7.*v3-3.*v5);
+	  dgdx= (-9.*v1 - 3.*v2 + 4.*v3)*z;
+	  dgdy= -6.*x*y*z;
+	  dgdz= (-3.*v1 - 3.*v2 + 12.*v3)*x;
+	  d2gdxdx=-18.*x*z;
+	  d2gdydy=-6.*x*z;
+	  d2gdzdz=24.*x*z;
+	  d2gdxdy=-6.*y*z;
+	  d2gdxdz=-9.*v1 - 3.*v2 + 12.*v3;
+	  d2gdydz=-6.*x*y;
+	  
+	  h=fdir*v4;
+          *(ptr++)=v4*func;
+	  *(ptr++)=func*dgdx+h*x;
+	  *(ptr++)=func*dgdy+h*y;
+	  *(ptr++)=func*dgdz+h*z;
+	  *(ptr++)=func*d2gdxdx+2*fdir*dgdx*x+v4*fdir+v4*(v1/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydy+2*fdir*dgdy*y+v4*fdir+v4*(v2/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdzdz+2*fdir*dgdz*z+v4*fdir+v4*(v3/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdxdy+y*fdir*dgdx+x*fdir*dgdy+v4*(x*y/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdxdz+z*fdir*dgdx+x*fdir*dgdz+v4*(x*z/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydz+z*fdir*dgdy+y*fdir*dgdz+v4*(y*z/v5)*(f2dir-fdir);
+	  break;
+        case isym_G2:
+	  v1=x*x;
+	  v2=y*y;
+	  v3=z*z;
+	  v5=v1+v2+v3;
+
+	  v4=y*z*(7.*v3-3.*v5);
+	  dgdx= -6.*x*y*z;
+	  dgdy= (-3.*v1 - 9.*v2 + 4.*v3)*z;
+	  dgdz= (-3.*v1 - 3.*v2 + 12.*v3)*y;
+	  d2gdxdx=-6.*y*z;
+	  d2gdydy=-18.*y*z;
+	  d2gdzdz=24.*y*z;
+	  d2gdxdy=-6.*x*z;
+	  d2gdxdz=-6.*x*y;
+	  d2gdydz=-3.*v1 - 9.*v2 + 12.*v3;
+	  
+	  h=fdir*v4;
+          *(ptr++)=v4*func;
+	  *(ptr++)=func*dgdx+h*x;
+	  *(ptr++)=func*dgdy+h*y;
+	  *(ptr++)=func*dgdz+h*z;
+	  *(ptr++)=func*d2gdxdx+2*fdir*dgdx*x+v4*fdir+v4*(v1/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydy+2*fdir*dgdy*y+v4*fdir+v4*(v2/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdzdz+2*fdir*dgdz*z+v4*fdir+v4*(v3/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdxdy+y*fdir*dgdx+x*fdir*dgdy+v4*(x*y/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdxdz+z*fdir*dgdx+x*fdir*dgdz+v4*(x*z/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydz+z*fdir*dgdy+y*fdir*dgdz+v4*(y*z/v5)*(f2dir-fdir);
+	  break;
+        case isym_G3:
+	  v1=x*x;
+	  v2=y*y;
+	  v3=z*z;
+	  v5=v1+v2+v3;
+
+	  v4=(v1 - v2)*(-v5 + 7. *v3);
+	  dgdx= -4.*v1*x + 12.*v3*x;
+	  dgdy= 4.*v2*y - 12.*v3*y;
+	  dgdz= 12.*(v1 - 1.*v2)*z;
+	  d2gdxdx=-12.*v1 + 12.*v3;
+	  d2gdydy=12.*v2 - 12.*v3;
+	  d2gdzdz=12.*v1 - 12.*v2;
+	  d2gdxdy=0;
+	  d2gdxdz=24.*x*z;
+	  d2gdydz=-24.*y*z;
+	  
+	  h=fdir*v4;
+          *(ptr++)=v4*func;
+	  *(ptr++)=func*dgdx+h*x;
+	  *(ptr++)=func*dgdy+h*y;
+	  *(ptr++)=func*dgdz+h*z;
+	  *(ptr++)=func*d2gdxdx+2*fdir*dgdx*x+v4*fdir+v4*(v1/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydy+2*fdir*dgdy*y+v4*fdir+v4*(v2/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdzdz+2*fdir*dgdz*z+v4*fdir+v4*(v3/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdxdy+y*fdir*dgdx+x*fdir*dgdy+v4*(x*y/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdxdz+z*fdir*dgdx+x*fdir*dgdz+v4*(x*z/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydz+z*fdir*dgdy+y*fdir*dgdz+v4*(y*z/v5)*(f2dir-fdir);
+	  break;
+        case isym_G4:
+	  v1=x*x;
+	  v2=y*y;
+	  v3=z*z;
+	  v5=v1+v2+v3;
+	  
+	  v4=x*y*(-v5 + 7. *v3);
+	  dgdx= (-3.*v1 - 1.*v2 + 6.*v3)*y;
+	  dgdy= (-1.*v1 - 3.*v2 + 6.*v3)*x;
+	  dgdz= 12.*x*y*z;
+	  d2gdxdx=-6*x*y;
+	  d2gdydy=-6*x*y;
+	  d2gdzdz=12.*x*y;
+	  d2gdxdy=-3*v1 - 3*v2 + 6.*v3;
+	  d2gdxdz=12.*y*z;
+	  d2gdydz=12.*x*z;
+	  
+	  h=fdir*v4;
+          *(ptr++)=v4*func;
+	  *(ptr++)=func*dgdx+h*x;
+	  *(ptr++)=func*dgdy+h*y;
+	  *(ptr++)=func*dgdz+h*z;
+	  *(ptr++)=func*d2gdxdx+2*fdir*dgdx*x+v4*fdir+v4*(v1/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydy+2*fdir*dgdy*y+v4*fdir+v4*(v2/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdzdz+2*fdir*dgdz*z+v4*fdir+v4*(v3/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdxdy+y*fdir*dgdx+x*fdir*dgdy+v4*(x*y/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdxdz+z*fdir*dgdx+x*fdir*dgdz+v4*(x*z/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydz+z*fdir*dgdy+y*fdir*dgdz+v4*(y*z/v5)*(f2dir-fdir);
+	  break;
+	case isym_G5:
+	  v1=x*x;
+	  v2=y*y;
+	  v3=z*z;
+	  v5=v1+v2+v3;
+
+	  v4=x*z*(v1-3.*v2);
+	  dgdx= 3*(v1 - v2)*z;
+	  dgdy= -6*x*y*z;
+	  dgdz= (v1 - 3*v2)*x;
+	  d2gdxdx=6*x*z;
+	  d2gdydy=-6*x*z;
+	  d2gdzdz=0;
+	  d2gdxdy=-6*y*z;
+	  d2gdxdz=3*(v1 - v2);
+	  d2gdydz=-6*x*y;
+	  
+	  h=fdir*v4;
+          *(ptr++)=v4*func;
+	  *(ptr++)=func*dgdx+h*x;
+	  *(ptr++)=func*dgdy+h*y;
+	  *(ptr++)=func*dgdz+h*z;
+	  *(ptr++)=func*d2gdxdx+2*fdir*dgdx*x+v4*fdir+v4*(v1/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydy+2*fdir*dgdy*y+v4*fdir+v4*(v2/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdzdz+2*fdir*dgdz*z+v4*fdir+v4*(v3/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdxdy+y*fdir*dgdx+x*fdir*dgdy+v4*(x*y/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdxdz+z*fdir*dgdx+x*fdir*dgdz+v4*(x*z/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydz+z*fdir*dgdy+y*fdir*dgdz+v4*(y*z/v5)*(f2dir-fdir);
+	  break;
+        case isym_G6:
+	  v1=x*x;
+	  v2=y*y;
+	  v3=z*z;
+	  v5=v1+v2+v3;
+
+	  v4=y*z*(3*v1-v2);
+	  dgdx= 6*x*y*z;
+	  dgdy= 3*(v1 - v2)*z;
+	  dgdz= (3*v1 - v2)*y;
+	  d2gdxdx=6*y*z;
+	  d2gdydy=-6*y*z;
+	  d2gdzdz=0;
+	  d2gdxdy=6*x*z;
+	  d2gdxdz=6*x*y;
+	  d2gdydz=3*(v1 - v2);
+	  
+	  h=fdir*v4;
+          *(ptr++)=v4*func;
+	  *(ptr++)=func*dgdx+h*x;
+	  *(ptr++)=func*dgdy+h*y;
+	  *(ptr++)=func*dgdz+h*z;
+	  *(ptr++)=func*d2gdxdx+2*fdir*dgdx*x+v4*fdir+v4*(v1/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydy+2*fdir*dgdy*y+v4*fdir+v4*(v2/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdzdz+2*fdir*dgdz*z+v4*fdir+v4*(v3/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdxdy+y*fdir*dgdx+x*fdir*dgdy+v4*(x*y/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdxdz+z*fdir*dgdx+x*fdir*dgdz+v4*(x*z/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydz+z*fdir*dgdy+y*fdir*dgdz+v4*(y*z/v5)*(f2dir-fdir);
+	  break;
+	case isym_G7:
+	  v1=x*x;
+	  v2=y*y;
+	  v3=z*z;
+	  v5=v1+v2+v3;
+
+	  v4=(v1-3.*v2)*v1-(3.*v1-v2)*v2;
+	  dgdx= 2*x*(2.*v1 - 6*v2);
+	  dgdy= 2*y*(-6*v1 + 2*v2);
+	  dgdz=0.0;
+	  d2gdxdx=12*(v1 - v2);
+	  d2gdydy=-12*(v1 - v2);
+	  d2gdzdz=0;
+	  d2gdxdy=-24*x*y;
+	  d2gdxdz=0;
+	  d2gdydz=0;
+	  
+	  h=fdir*v4;
+          *(ptr++)=v4*func;
+	  *(ptr++)=func*dgdx+h*x;
+	  *(ptr++)=func*dgdy+h*y;
+	  *(ptr++)=func*dgdz+h*z;
+	  *(ptr++)=func*d2gdxdx+2*fdir*dgdx*x+v4*fdir+v4*(v1/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydy+2*fdir*dgdy*y+v4*fdir+v4*(v2/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdzdz+2*fdir*dgdz*z+v4*fdir+v4*(v3/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdxdy+y*fdir*dgdx+x*fdir*dgdy+v4*(x*y/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdxdz+z*fdir*dgdx+x*fdir*dgdz+v4*(x*z/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydz+z*fdir*dgdy+y*fdir*dgdz+v4*(y*z/v5)*(f2dir-fdir);
+	  break;
+	case isym_G8:
+	  v1=x*x;
+	  v2=y*y;
+	  v3=z*z;
+	  v5=v1+v2+v3;
+
+	  v4=x*y*(v1-v2);
+	  dgdx= (3*v1 - v2)*y;
+	  dgdy= (v1 - 3*v2)*x;
+	  dgdz= 0.0;
+	  d2gdxdx=6*x*y;
+	  d2gdydy=-6*x*y;
+	  d2gdzdz=0;
+	  d2gdxdy=3*(v1 - v2);
+	  d2gdxdz=0;
+	  d2gdydz=0;
+	  
+	  h=fdir*v4;
+          *(ptr++)=v4*func;
+	  *(ptr++)=func*dgdx+h*x;
+	  *(ptr++)=func*dgdy+h*y;
+	  *(ptr++)=func*dgdz+h*z;
+	  *(ptr++)=func*d2gdxdx+2*fdir*dgdx*x+v4*fdir+v4*(v1/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydy+2*fdir*dgdy*y+v4*fdir+v4*(v2/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdzdz+2*fdir*dgdz*z+v4*fdir+v4*(v3/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdxdy+y*fdir*dgdx+x*fdir*dgdy+v4*(x*y/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdxdz+z*fdir*dgdx+x*fdir*dgdz+v4*(x*z/v5)*(f2dir-fdir);
+	  *(ptr++)=func*d2gdydz+z*fdir*dgdy+y*fdir*dgdz+v4*(y*z/v5)*(f2dir-fdir);
+          break;
         default:
           error("Bad symmetry in Cubic_spline::calcHessian.\n");
         }

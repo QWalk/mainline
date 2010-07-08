@@ -154,6 +154,7 @@ doublevar Spline_fitter::findCutoff() {
   const doublevar step=0.5;
   doublevar cutoff_threshold=1e-10;
 
+  
   int n=coeff.GetDim(0);
   doublevar max=0;
   for(int i=0; i< n; i++) {
@@ -215,7 +216,11 @@ void Spline_fitter::splinefit(Array1 <doublevar>& x, Array1 <doublevar>& y,
   coeff.Resize(n,4);
 
   spacing=x(1)-x(0);
-  threshold=x(n-1)+spacing;
+  //M.B. I think tha the right threshold
+  //should be the last point of the supplied grid, not 
+  //not + extra point.
+  threshold=x(n-1); //+spacing; 
+
   invspacing=1.0/spacing;
   Array1 <doublevar> y2(n), u(n);
   doublevar sig, p, qn, un, hi;

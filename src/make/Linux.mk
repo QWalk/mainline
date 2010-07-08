@@ -2,11 +2,24 @@
 # Compiler definitions for Linux systems
 #  all compiler specific information should be declared here
 
+
 CXX:=g++
+F77:=gfortran
 
 CXXFLAGS := -O3  \
    -funroll-loops -ffast-math \
   $(INCLUDEPATH) -fomit-frame-pointer
+
+#XML_LIBS :=-lxml2 -lz -lm
+#XML_INCLUDE :=-I/usr/include/libxml2
+
+
+BLAS_LIBS += $(XML_LIBS)
+BLAS_INCLUDE += $(XML_INCLUDE)
+
+
+
+
 DEBUG:= -Wall -DNO_RANGE_CHECKING -DNDEBUG   -D__USE_GNU -DDEBUG_WRITE
 LDFLAGS:= 
 

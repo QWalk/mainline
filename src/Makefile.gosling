@@ -18,6 +18,25 @@ DEPENDFILE:=$(OBJPATH)/depend.gosling
 include make.include
 
 SOURCES:=properties/Average_generator.cpp \
+         basis_function/Basis_function.cpp \
+         basis_function/Cubic_spline_build.cpp \
+         basis_function/Cubic_spline_calc.cpp \
+         basis_function/Cutoff_cusp.cpp \
+         basis_function/Exponent_cusp.cpp \
+         basis_function/Gaussian_function.cpp \
+         basis_function/Gen_pade_function.cpp \
+         basis_function/Pade_function.cpp \
+         basis_function/Planewave_function.cpp \
+         basis_function/Poly_pade_function.cpp \
+         basis_function/Rgaussian_function.cpp \
+         basis_function/Spline_fitter.cpp \
+         basis_function/Step_function.cpp \
+         basis_function/CBasis_function.cpp \
+         basis_function/CPlanewave_function.cpp\
+         basis_function/Blochwave_function.cpp \
+         basis_function/Group_function.cpp \
+         basis_function/Cosine_function.cpp \
+         basis_function/Spherical_bessel_function.cpp \
 	 properties/Properties_average.cpp \
          properties/Properties_block.cpp \
          program_utils/Qmc_std.cpp \
