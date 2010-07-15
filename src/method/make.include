@@ -1,6 +1,7 @@
 
 MY_SOURCES:= \
 	Dmc_method.cpp \
+        Rmc_corr_method.cpp \
 	Rndmc_method.cpp \
 	Force_fitter.cpp \
 	Levenberg_Marquardt.cpp \

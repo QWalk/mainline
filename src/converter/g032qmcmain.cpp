@@ -831,11 +831,11 @@ int main_print_qwalk(
   ofstream basisout(basisoutname.c_str());
   int nbas=basis.size();
   for(int bas=0; bas < nbas; bas++) {
-    if ( basis_uniq_id(bas,atoms)==bas ) {
+    //if ( basis_uniq_id(bas,atoms)==bas ) {
     basisout << "BASIS { \n";
     basis[bas].print_basis(basisout);
     basisout << "}\n\n\n";
-    }
+    //}
   }
   basisout.close();
 
@@ -1196,6 +1196,7 @@ int main(int argc, char ** argv)
   g03_orbital_reorder(/* input */ // basisset,
 		  atomsfchk, gbasissetfchk, dtype, ftype, 
 		  /* input and output */ alphamo, betamo);
+
 
   // ------------------------------------------------------------------
   //  output

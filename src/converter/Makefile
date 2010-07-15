@@ -1,7 +1,7 @@
 PLATFORM = $(shell uname -s)
-DVLPATH = .
+DVLPATH = $(shell pwd)
 ##########################using the make files of qwalk########################
-MAKEPATH:=$(DVLPATH)/../../src/make
+MAKEPATH:=$(DVLPATH)/../make
 OBJPATH:=$(DVLPATH)/obj/$(PLATFORM)
 
 ALLOBJS:=$(OBJPATH)/converter.o $(OBJPATH)/Pseudo_writer.o $(OBJPATH)/wf_writer.o $(OBJPATH)/basis_writer.o
@@ -18,17 +18,17 @@ HEG2QMCOBJS := $(OBJPATH)/heg2qmc.o $(OBJPATH)/indexx.o
 HEG2QMCCOBJS := $(OBJPATH)/heg2qmcc.o $(OBJPATH)/indexx.o $(OBJPATH)/setk01.o
 SQD2QMCOBJS:=$(OBJPATH)/sqd2qmc.o $(ALLOBJS)
 
-ifeq ($(PLATFORM), Linux)
-	SUFFIX :=  
-else
+#ifeq ($(PLATFORM), Linux)
+#	SUFFIX :=  
+#else
 	SUFFIX := -$(PLATFORM) 
-endif
+#endif
 
 
 
 
 
-all: gamess2qmc$(SUFFIX) gamessci2qmc$(SUFFIX) crystal2qmc$(SUFFIX) siesta2qmc$(SUFFIX) g032qmc$(SUFFIX) heg2qmc$(SUFFIX) heg2qmcc$(SUFFIX) abinit2qmc$(SUFFIX) sqd2qmc$(SUFFIX)
+all: gamess2qmc$(SUFFIX) gamessci2qmc$(SUFFIX) crystal2qmc$(SUFFIX) siesta2qmc$(SUFFIX) g032qmc$(SUFFIX) heg2qmc$(SUFFIX) abinit2qmc$(SUFFIX) sqd2qmc$(SUFFIX)
 .PHONY: clean 
 
 gamess2qmc$(SUFFIX): $(GAMESS2QMCOBJS)

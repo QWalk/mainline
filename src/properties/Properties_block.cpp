@@ -85,18 +85,17 @@ void Properties_block::storeToLog(string & indent, ostream & os,
   print_array_sec(os, indent, "nonlocal_energy", avg(nonlocal));
   print_array_sec(os, indent, "nonlocal_energyvar", var(nonlocal));
   
-  int navg_vals=avgrets.GetDim(0);
-  for(int i=0; i< navg_vals; i++) { 
-    os << indent <<  "average_generator { " << avgrets(i).type << " ";
-    for(int j=0; j< avgrets(i).vals.GetDim(0); j++) { 
-      os << avgrets(i).vals(j) << " ";
+  int navg_vals=avgrets.GetDim(1);
+  for(int w=0; w< nwf; w++) { 
+    for(int i=0; i< navg_vals; i++) { 
+      os << indent <<  "average_generator { " << avgrets(w,i).type << " ";
+      for(int j=0; j< avgrets(w,i).vals.GetDim(0); j++) { 
+        os << avgrets(w,i).vals(j) << " ";
+      }
+      os << " } " << endl;
     }
-    os << " } " << endl;
   }
   
-  os << "z_pol { ";
-  for(int d=0; d< 3; d++) os <<  z_pol(d).real() << "  " << z_pol(d).imag() << "  ";
-  os << " } \n";
   
   string indent2=indent+"  ";
   for(int i=0; i< naux; i++) {
@@ -120,10 +119,6 @@ void Properties_block::storeToLog(string & indent, ostream & os,
     print_array_sec(os, indent2, "aux_weight", aux_weight(i));
     print_array_sec(os, indent2, "aux_weightvar", aux_weightvar(i));
     print_array_sec(os, indent2, "aux_autocorr", aux_autocorr(i));
-    os << "aux_z_pol { ";
-    for(int d=0; d< 3; d++) os << aux_z_pol(i,d).real() <<  "  "
-			       << aux_z_pol(i,d).imag() << "  " ;
-    os << " } \n";
 
     os << indent << "}" << endl;
   }
@@ -176,15 +171,6 @@ void Properties_block::restoreFromLog(vector <string> & words) {
   read_into_array(words, pos=0, avg, "nonlocal_energy", nonlocal);
   read_into_array(words, pos=0, var, "nonlocal_energyvar", nonlocal);
 
-  vector <string> zwords;
-  if(readsection(words, pos=0, zwords, "z_pol")) {
-    int count=0;
-    int max=zwords.size()/2;
-    for(int d=0; d< max; d++) {
-      z_pol(d)=dcomplex(atof(zwords[count].c_str()), atof(zwords[count+1].c_str()));
-      count+=2;
-    }
-  }
   
   pos=0;
   vector <vector < string> > avgsecs;
@@ -192,14 +178,20 @@ void Properties_block::restoreFromLog(vector <string> & words) {
   while(readsection(words, pos, avgwords, "average_generator")) { 
     avgsecs.push_back(avgwords);
   }
-  avgrets.Resize(avgsecs.size());
-  for(int i=0; i< avgrets.GetDim(0); i++) { 
-    int n=avgsecs[i].size()-1;
-    assert(n>=1);
-    avgrets(i).vals.Resize(n);
-    avgrets(i).type=avgsecs[i][0];
-    for(int j=0; j< n; j++) { 
-      avgrets(i).vals(j)=atof(avgsecs[i][j+1].c_str());
+  if(avgsecs.size()%nwf !=0) { error("need average sections to equal a multiple of the number of wave functions"); }
+  int navg=avgsecs.size()/nwf;
+  avgrets.Resize(nwf, navg);
+  int count=0;
+  for(int w=0; w< nwf; w++) { 
+    for(int i=0; i< avgrets.GetDim(1); i++) { 
+      int n=avgsecs[i].size()-1;
+      assert(n>=1);
+      avgrets(w,i).vals.Resize(n);
+      avgrets(w,i).type=avgsecs[count][0];
+      for(int j=0; j< n; j++) { 
+        avgrets(w,i).vals(j)=atof(avgsecs[count][j+1].c_str());
+      }
+      count++;
     }
   }
   
@@ -233,16 +225,6 @@ void Properties_block::restoreFromLog(vector <string> & words) {
     read_into_array(auxtext[i], pos=0, aux_weightvar, "aux_weightvar", i);
     read_into_array(auxtext[i], pos=0, aux_autocorr, "aux_autocorr", i);
 
-    vector <string> zwords;
-    if(readsection(auxtext[i], pos=0, zwords, "aux_z_pol")) { 
-      int count=0;
-      int max=zwords.size()/2;
-      for(int d=0; d< max; d++) {
-	aux_z_pol(i,d)=dcomplex(atof(zwords[count].c_str()), 
-				atof(zwords[count+1].c_str()));
-	count+=2;
-      }
-    }
   }  
 
   
@@ -331,8 +313,10 @@ void Properties_block::reduceBlocks(Array1 <Properties_block> & blocks,
   autocorr=0.0;
   totweight=0.0;
   avgrets=blocks(start).avgrets;
-  for(int i=0; i< avgrets.GetDim(0); i++) { 
-    avgrets(i).vals=0;
+  for(int w=0;w < nwf; w++) {
+    for(int i=0; i< avgrets.GetDim(1); i++) { 
+      avgrets(w,i).vals=0;
+    }
   }
   
   for(int a=0; a< naux; a++) {
@@ -345,8 +329,6 @@ void Properties_block::reduceBlocks(Array1 <Properties_block> & blocks,
     for(int a=0; a< nautocorr; a++) {
       autocorr(0,a)+=blocks(b).autocorr(0,a)/nblocks;
     }
-    for(int d=0; d< 3;d++)
-      z_pol(d)+=blocks(b).z_pol(d)/doublevar(nblocks);
     
     for(int p=0; p < NUM_QUANTITIES; p++) {
       for(int w=0; w< nwf; w++) {
@@ -354,16 +336,15 @@ void Properties_block::reduceBlocks(Array1 <Properties_block> & blocks,
         var(p,w)+=blocks(b).var(p,w)*blocks(b).var(p,w);
       }
     }
-    for(int i=0; i< avgrets.GetDim(0); i++) { 
-      for(int j=0; j< avgrets(i).vals.GetDim(0); j++) { 
-        avgrets(i).vals(j)+=blocks(b).avgrets(i).vals(j)/doublevar(nblocks);
+    for(int w=0; w< nwf; w++) { 
+      for(int i=0; i< avgrets.GetDim(1); i++) { 
+        for(int j=0; j< avgrets(w,i).vals.GetDim(0); j++) { 
+          avgrets(w,i).vals(j)+=blocks(b).avgrets(w,i).vals(j)/doublevar(nblocks);
+        }
       }
     }
 
     for(int a=0; a< naux; a++) {
-      for(int d=0; d< 3; d++) {
-        aux_z_pol(a,d)+=blocks(b).aux_z_pol(a,d)/doublevar(nblocks);
-      }
       for(int w=0; w< n_cvg; w++) {
         aux_energy(a,w)+=blocks(b).aux_energy(a,w)/nblocks;
         aux_weight(a,w)+=blocks(b).aux_weight(a,w)/nblocks;

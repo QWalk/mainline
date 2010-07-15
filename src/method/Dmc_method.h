@@ -38,19 +38,25 @@ class Program_options;
 
 struct Dmc_history { 
   doublevar main_en;
-  Array2 <doublevar> aux_en;
-  void mpiSend(int node);
-  
+  void mpiSend(int node);  
   void mpiReceive(int node);
-
+  void read(istream & is) { 
+    string dummy;
+    is >> dummy >> main_en;
+  }
+  void write(ostream & os) { 
+    os << "hist_en " << main_en << endl;
+  }
 };
 
 
 struct Dmc_history_avgrets { 
-  Array1 <Average_return> avgrets;
+  Array2 <Average_return> avgrets;
   doublevar weight;
   void mpiSend(int node);
   void mpiReceive(int node);
+  void read(istream & is);
+  void write(ostream & os);
 };
 
 struct Dmc_point { 
@@ -65,11 +71,13 @@ struct Dmc_point {
   Dmc_point() { 
     weight=1;
     ignore_walker=0;
-    //MB: keeping track of the sign 
     sign=1;
   }
   void mpiSend(int node);
   void mpiReceive(int node);
+  void read(istream & is);
+  void write(ostream & os);
+  
   
 };
 
@@ -155,10 +163,6 @@ public:
   doublevar getWeightPURE_DMC(Dmc_point & pt,
 			   doublevar teff, doublevar etr);
 
-  void getAuxWeight(Dmc_point & pt,
-                    doublevar teff, 
-                    Array1 <doublevar>&  aux_teff, 
-                    Array2 <doublevar> & aux_weight);
   
   int calcBranch();
   void find_cutoffs();
@@ -170,7 +174,6 @@ public:
   int have_read_options;
   int do_cdmc;
   int low_io; //!< write out configs and densities only at the end.
-  int aux_converge; //!< Number of projection lengths at which to evaluate correlated sampling
   int tmoves; //!< whether to do Casula's t-moves
 
   int nblock, nstep;
@@ -221,10 +224,10 @@ public:
   Array1 < Average_generator * > average_var;
   vector <vector <string> > avg_words;
 
-  Array1 <int> fw_lenght; //!<array of lenghts for forward walking times 
-  int max_fw_lenght; //!maximum lenght for forward walking time
+  Array1 <int> fw_length; //!<array of lengths for forward walking times 
+  int max_fw_length; //!maximum length for forward walking time
  
-  int pure_dmc; //turn on SHDMC mode (pure diffusion for the lenght of nhist)
+  int pure_dmc; //turn on SHDMC mode (pure diffusion for the length of nhist)
 };
 
 

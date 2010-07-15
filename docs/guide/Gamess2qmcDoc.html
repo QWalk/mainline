@@ -4,6 +4,9 @@
 \section description Description
 
 Basic usage: gamess2qmc -o [outputroot]  [gamess output root] <br>
+By default, gamess2qmc will take the last geometry in the .out file and the last set of
+molecular orbitals in the .dat file.  This is usually the right
+behavior.  GVB wavefunctions are automatically read in.  For CI, see \ref ci
 Additional options: <br>
 <table>
 <tr> <td> Option <td> Description 
@@ -16,4 +19,60 @@ mapped back between the two wavefunctions.
 </table>
 
 
+\subsection ci  Reading a CI determinant
+
+For CI, one has to be careful that the orbitals used by GAMESS to do
+the CI expansion are the same ones that QWalk reads in.  This is not
+easy for the converter to detect, so you have to take some care
+yourself.  The thing to remember is that gamess2qmc always reads the
+last set of orbitals in the punch file.  This is almost always the
+wrong thing to do during a CI calculation.  Here is a recipe that
+generally works, however:
+<ul>
+<li> Do a Hartree-Fock/DFT/whatever calculation as normal
+<li> Use $GUESS to read in the HF orbitals.  For the CI calculation,
+  you need to set at least:
+  <pre>
+ $CONTRL CITYP=GUGA $END
+ $CIDRT NPRT=2 NFZC=0 NDOC=1 NALP=2 NVAL=15 IEXCIT=2 $END
+ $GUGDIA PRTTOL=0.00001 $END 
+</pre>
+  NFZC, NDOC, NALP, IEXCIT, and NVAL should all be set according to
+  your system.  PRTTOL is the minimum weight that will be available to
+  QWalk; you can set the actual cutoff for the determinants in the
+  conversion stage.
+  <li> Use gamess2qmc to convert the Hartree-Fock calculation and
+  gamessci2qmc to read the determinants and their weights from the CI
+  calculation.
+  <li> Replace the single determinant in the slater file with the
+  determinants read from the CI.  Make sure to replace NMO with
+  NFZC+NDOC+NALP+NVAL.
+  </ul>
+An example command sequence could be:
+  <pre>
+rungms hf >& hf.out
+rungms ci >& ci.out
+gamess2qmc -virtual 15 -o qwalk hf
+gamessci2qmc -wthresh 0.0001 -o qwalk.cidet ci.out
+</pre>
+  Then construct the ci file as follows
+  <pre>
+  SLATER 
+  ORBITALS {
+  CUTOFF_MO
+    MAGNIFY 1
+    INCLUDE c.basis
+    NMO 18
+    ORBFILE c.orb
+    CENTERS { USEGLOBAL } 
+  }
+  include qwalk.cidet
+</pre>
+
+For small enough cutoff of the determinantal weights, the energy with
+  this wave function will match the CI energy.  Often, the QMC energy
+  does not need as many determinants to converge, and using
+  OPTIMIZE_DET along with a jastrow will improve the convergence in
+  determinants within QMC.
+  
 */

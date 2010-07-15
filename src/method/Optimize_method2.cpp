@@ -72,18 +72,18 @@ void Optimize_method2::read(vector <string> words,
   
   string functiontype_str;
   if(readvalue(words, pos=0, functiontype_str, "MINFUNCTION")) {
-    if(functiontype_str== "VARIANCE") {
+    if(caseless_eq(functiontype_str, "VARIANCE")) {
       min_function=min_variance;
       //cout <<"Are you sure you want to use weights for variance optimization?"<<endl;
     }
-    else if(functiontype_str=="ENERGY") {
+    else if(caseless_eq(functiontype_str,"ENERGY")) {
       if(!use_weights) { 
         single_write(cout, "Turning on USE_WEIGHTS for energy optimization \n");
         use_weights=1;
       }
       min_function=min_energy;
     }
-    else if(functiontype_str=="MIXED") {
+    else if(caseless_eq(functiontype_str,"MIXED")) {
       if(!use_weights) { 
 	single_write(cout, "Turning on USE_WEIGHTS for mixed optimization \n");
 	use_weights=1;
@@ -101,13 +101,7 @@ void Optimize_method2::read(vector <string> words,
   string readconfig;
   if(!readvalue(words, pos=0, readconfig, "READCONFIG"))
     error("READCONFIG required for OPTIMIZE2 method!");
-  canonical_filename(readconfig);
 
-  /*
-  string oldreadconfig;
-  if(readvalue(words, pos=0, oldreadconfig, "OLDREADCONFIG"))
-    canonical_filename(oldreadconfig);
-  */
 
   //--Set up variables
   sysprop=NULL;
@@ -169,77 +163,32 @@ void Optimize_method2::read(vector <string> words,
   debug_out=0;
 }
 
+//-------------------------------------------------------------------
+
 void Optimize_method2::readcheck(string & readconfig) {
-  int configsread=0;
-  int nwread=0;
-  if(dynamic_wf)
-    config_pos.Resize(nconfig);
-  else
-    config_pos.Resize(1);
+  //This can be modified to get DMC weights; we just need to make a 
+  //new structure that contains config_pos and the weights. 
+  //If someone actually uses this, they may reimplement it.
   dmc_weight.Resize(nconfig);
   dmc_weight=1.0;
-  if(readconfig !="") {
-    ifstream checkfile(readconfig.c_str());
-    if(!checkfile) 
-      error("Couldn't open ", readconfig);
-    
-    long int is1, is2;
-    string dummy;
-    checkfile >> dummy;
-    if(dummy != "RANDNUM") error("Expected RANDNUM in checkfile");
-    checkfile >> is1 >> is2;
-
-    while(checkfile >>dummy && configsread < nconfig && nwread < nconfig) {
-      
-      if(dynamic_wf){
-	if(read_config(dummy, checkfile, sample(0))) {
-	  config_pos(configsread++).savePos(sample(0));
-	}
-      }
-      else{
-	if(read_config(dummy, checkfile, sample(configsread))) {
-	  // config_pos(configsread++).savePos(sample(configsread));
-	  configsread++;
-	}
-      }
-      if(dummy=="DMC") {
-	checkfile >> dummy;
-	if(dummy != "{") error("Need a { after DMC");
-	checkfile >> dummy >> dmc_weight(nwread);
-	if(dummy != "DMCWEIGHT") {
-	  error("expected DMCWEIGHT, got ", dummy);
-	}
-	int nwf_temp;
-	checkfile >> dummy >> nwf_temp;
-	if(dummy != "VALEN") {
-	  error("expected VALEN, got ", dummy);
-	}
-	//if(nwf_temp != nwf) {
-	// error("Wrong number of wavefunctions in the checkpoint file");
-	nwread++;
-      }
-    }
-    checkfile.close();    
-  }
-
+  
   if(readconfig ==""){
     error("No file name given for READCONFIG ", readconfig);
   }
-
-  if(configsread < nconfig)
-  {
-    nconfig=configsread;
-    cout << "processor " << mpi_info.node << " : "
-    << "WARNING: Didn't find enough configurations in the "
-    << "file.  Running optimization with only " << nconfig
-    << " sample points." << endl;
+  read_configurations(readconfig, config_pos);
+  if(config_pos.GetDim(0) < nconfig) { 
+    error("Not enough configurations in ", readconfig);
   }
+  
+  if(!dynamic_wf) { 
+    for(int i=0; i< nconfig; i++) { 
+      config_pos(i).restorePos(sample(i));
+    }
+  }
+  else { config_pos(0).restorePos(sample(0)); } 
 }
 
-
-
-
-
+//-------------------------------------------------------------------
 
 int Optimize_method2::showinfo(ostream & os)
 {
@@ -350,17 +299,17 @@ void Optimize_method2::run(Program_options & options, ostream & output)
       //generate random numbers for PP integration
       psp_test(walker).Resize(pseudo->nTest());
       for(int i=0; i< pseudo->nTest(); i++) { 
-	psp_test(walker)(i)=rng.ulec();
+        psp_test(walker)(i)=rng.ulec();
       }
     } 
     else{ //not dynamic_pp
       if(dynamic_wf){
-	pseudo->initializeStatic(wfdata, sample(0), wf(0), psp_buff);
-	//wf(0)->notify(sample_static,0);
+        pseudo->initializeStatic(wfdata, sample(0), wf(0), psp_buff);
+        //wf(0)->notify(sample_static,0);
       }
       else{
-	pseudo->initializeStatic(wfdata, sample(walker), wf(walker), psp_buff);
-	wf(walker)->notify(sample_static,0);
+        pseudo->initializeStatic(wfdata, sample(walker), wf(walker), psp_buff);
+        wf(walker)->notify(sample_static,0);
       }
     }
   }//walker
@@ -491,17 +440,17 @@ void Optimize_method2::func_val(int n, const Array1 <double> & parms, double & v
     doublevar coulpot=local_energy(walker);
     if(dynamic_pp){
       if(dynamic_wf)
-	pseudo->calcNonlocWithTest(wfdata, sample(0), wf(0), psp_test(walker), nonloc );    
+	pseudo->calcNonlocWithTest(wfdata, sysprop,sample(0), wf(0), psp_test(walker), nonloc );    
       else{
-	pseudo->calcNonlocWithTest(wfdata, sample(walker), wf(walker), psp_test(walker), nonloc );  
+	pseudo->calcNonlocWithTest(wfdata, sysprop,sample(walker), wf(walker), psp_test(walker), nonloc );  
       }
     }
     else{
       if(dynamic_wf)
-	pseudo->calcNonlocWithFile(wfdata, sample(0), wf(0),
+	pseudo->calcNonlocWithFile(wfdata,sysprop, sample(0), wf(0),
 				   nonloc, psp_buff);
       else
-	pseudo->calcNonlocWithFile(wfdata, sample(walker), wf(walker),
+	pseudo->calcNonlocWithFile(wfdata, sysprop, sample(walker), wf(walker),
 				   nonloc, psp_buff);
     }
 
@@ -621,19 +570,19 @@ void Optimize_method2::energy_grad(Array1 <double> & parms, int nparms_start, in
 
       if(dynamic_pp){
 	if(dynamic_wf){
-	  pseudo->calcNonlocWithTest(wfdata, sample(0), wf(0), psp_test(walker),nonloc );
+	  pseudo->calcNonlocWithTest(wfdata, sysprop, sample(0), wf(0), psp_test(walker),nonloc );
 	}
 	else{
-	  pseudo->calcNonlocWithTest(wfdata, sample(walker), wf(walker), psp_test(walker),nonloc );
+	  pseudo->calcNonlocWithTest(wfdata, sysprop, sample(walker), wf(walker), psp_test(walker),nonloc );
 	}
       }
       else{
 	if(dynamic_wf){
-	  pseudo->calcNonlocWithFile(wfdata, sample(0), wf(0),
+	  pseudo->calcNonlocWithFile(wfdata, sysprop, sample(0), wf(0),
 				     nonloc, psp_buff);
 	}
 	else{  
-	  pseudo->calcNonlocWithFile(wfdata, sample(walker), wf(walker),
+	  pseudo->calcNonlocWithFile(wfdata, sysprop,sample(walker), wf(walker),
 				     nonloc, psp_buff);
 	}
       }
@@ -778,17 +727,17 @@ void Optimize_method2::func_hessian(Array1 <double> & parms, int nparms_start, i
 	  doublevar coulpot=local_energy(walker);
 	  if(dynamic_pp){
 	    if(dynamic_wf)
-	      pseudo->calcNonlocWithTest(wfdata, sample(0), wf(0), psp_test(walker),nonloc );
+	      pseudo->calcNonlocWithTest(wfdata,sysprop, sample(0), wf(0), psp_test(walker),nonloc );
 	    else
-	      pseudo->calcNonlocWithTest(wfdata, sample(walker), wf(walker), psp_test(walker),nonloc );
+	      pseudo->calcNonlocWithTest(wfdata,sysprop, sample(walker), wf(walker), psp_test(walker),nonloc );
 	  }
 	  else{
 	    if(dynamic_wf){
-	      pseudo->calcNonlocWithFile(wfdata, sample(0), wf(0),
+	      pseudo->calcNonlocWithFile(wfdata,sysprop, sample(0), wf(0),
 					 nonloc, psp_buff);
 	    }
 	    else{
-	      pseudo->calcNonlocWithFile(wfdata, sample(walker), wf(walker),
+	      pseudo->calcNonlocWithFile(wfdata,sysprop, sample(walker), wf(walker),
 					 nonloc, psp_buff);
 	    }
 	  }
@@ -1065,16 +1014,16 @@ void Optimize_method2::energy_grad_analytical(Array1 <double> & parms, int nparm
     doublevar coulpot=local_energy(walker);
     if(dynamic_pp){
       if(dynamic_wf)
-	pseudo->calcNonlocWithTest(wfdata, sample(0), wf(0), psp_test(walker),nonloc );    
+	pseudo->calcNonlocWithTest(wfdata,sysprop, sample(0), wf(0), psp_test(walker),nonloc );    
       else{
-	pseudo->calcNonlocWithTest(wfdata, sample(walker), wf(walker), psp_test(walker),nonloc );
+	pseudo->calcNonlocWithTest(wfdata, sysprop, sample(walker), wf(walker), psp_test(walker),nonloc );
       }
     }
     else { //not dynamic_pp
       if(dynamic_wf)
-	pseudo->calcNonlocWithFile(wfdata, sample(0), wf(0),nonloc, psp_buff);
+	pseudo->calcNonlocWithFile(wfdata,sysprop, sample(0), wf(0),nonloc, psp_buff);
       else
-	pseudo->calcNonlocWithFile(wfdata, sample(walker), wf(walker),nonloc, psp_buff);
+	pseudo->calcNonlocWithFile(wfdata, sysprop,sample(walker), wf(walker),nonloc, psp_buff);
     }
     
     E_local(walker)=kinetic(0) + coulpot+ nonloc(0);
@@ -1195,19 +1144,19 @@ void Optimize_method2::func_hessian_analytical(Array1 <double> & parms, int npar
     if(dynamic_pp){
       nonloc_deriv(walker).Resize(nparms);
       if(dynamic_wf)
-	pseudo->calcNonlocParmDeriv(wfdata, sample(0), wf(0),
+	pseudo->calcNonlocParmDeriv(wfdata, sysprop, sample(0), wf(0),
 				    psp_test(walker), nonloc, nonloc_deriv(walker));
       else{
-	pseudo->calcNonlocParmDeriv(wfdata, sample(walker), wf(walker),
+	pseudo->calcNonlocParmDeriv(wfdata, sysprop, sample(walker), wf(walker),
 				    psp_test(walker), nonloc, nonloc_deriv(walker));
       }
     }
     else{ //not dynamic_pp
       if(dynamic_wf){
-	pseudo->calcNonlocWithFile(wfdata, sample(0), wf(0),nonloc, psp_buff);
+	pseudo->calcNonlocWithFile(wfdata, sysprop, sample(0), wf(0),nonloc, psp_buff);
       }
       else{
-	pseudo->calcNonlocWithFile(wfdata, sample(walker), wf(walker),nonloc, psp_buff);
+	pseudo->calcNonlocWithFile(wfdata,sysprop, sample(walker), wf(walker),nonloc, psp_buff);
       }
       nonloc_old(walker)=nonloc(0);
     }
@@ -1241,12 +1190,12 @@ void Optimize_method2::func_hessian_analytical(Array1 <double> & parms, int npar
 	  config_pos(walker).restorePos(sample(0)); 
 	  wf(0)->updateLap(wfdata, sample(0));
 	  sysprop->calcKinetic(wfdata, sample(0), wf(0), kinetic);
-	  pseudo->calcNonlocWithFile(wfdata, sample(0), wf(0),nonloc, psp_buff);
+	  pseudo->calcNonlocWithFile(wfdata,sysprop, sample(0), wf(0),nonloc, psp_buff);
 	}
 	else{
 	  wf(walker)->updateLap(wfdata, sample(walker));
 	  sysprop->calcKinetic(wfdata, sample(walker), wf(walker), kinetic);
-	  pseudo->calcNonlocWithFile(wfdata, sample(walker), wf(walker),nonloc, psp_buff);
+	  pseudo->calcNonlocWithFile(wfdata, sysprop, sample(walker), wf(walker),nonloc, psp_buff);
 	}
 	e_local_gradient(i)(walker)=(kinetic(0)+nonloc(0)-kinetic_old(walker)-nonloc_old(walker))/ddelta(i);
       }

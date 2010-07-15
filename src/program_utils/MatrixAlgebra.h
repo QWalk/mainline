@@ -97,7 +97,9 @@ extern "C" {
   double dlamch_(char *CMACHp);
   void dsygv_(int *itype, char *jobz, char *uplo, int *n, double *a, int *lda, 
               double *b, int *ldb, double *w, double *WORK, int *IWORK, int *info);
-
+  void dgetrf_(int * m, int * n, double * A, int * lda, int * ipiv, int *info);
+  void dgetrs_(char * trans, int *n, int * nrhs, double * A, int * lda, 
+               int *ipiv, double * B, int * ldb, int * info);
 };
 #endif
 

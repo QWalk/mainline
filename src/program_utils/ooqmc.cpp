@@ -120,8 +120,7 @@ int main(int argc, char* argv[])
   if(output)
   {
     output << "------------------------------------------------\n";
-    output << "Quantum Walk, NCSU version\n";
-    //output << "Solving Schroedinger's equation using our feet!\n";
+    output << "Quantum Walk development version\n";
     output << "Primary author     : Lucas K Wagner\n";
     output << "Contributions from : Michal Bajdich, Jindrich Kolorenc,\n"
            <<  "Shuming Hu, Kino Hiori, Zack Helms and others\n";

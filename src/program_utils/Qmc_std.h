@@ -39,6 +39,11 @@ extern "C" {
 
 using namespace std;
 
+typedef double doublevar;
+typedef complex <doublevar> dcomplex;
+const doublevar zero_exp=-1e3; //!< effective zero for an exponent
+
+
 
 class mpi_info_struct
 {
@@ -57,16 +62,17 @@ extern mpi_info_struct mpi_info;
 extern MPI_Comm MPI_Comm_grp;  // communicator for each independent process
 #endif
 
-typedef double doublevar;
-typedef complex <doublevar> dcomplex;
 int parallel_sum(int inp);
 doublevar parallel_sum(doublevar inp);
 dcomplex parallel_sum(dcomplex inp);
-  
+
 int MPI_Send_complex(dcomplex & , int node);
 int MPI_Recv_complex(dcomplex &, int node);
+int MPI_Send(double &, int node);
+int MPI_Recv(double &, int node);
+int MPI_Send(int &, int node);
+int MPI_Recv(int &, int node);
 
-const doublevar zero_exp=-1e3; //!< effective zero for an exponent
 
 
 namespace global_options {
@@ -206,8 +212,8 @@ void recast(T * & baseptr, U * & derivedptr)
           "is getting generated correctly.");
   }
 }
-
 #include "Array.h"
+
 
 
 #endif //QMC_STD_INCLUDED

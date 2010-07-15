@@ -53,9 +53,7 @@ void Dmc_method::read(vector <string> words,
   if(!readvalue(words, pos=0, timestep, "TIMESTEP"))
     error("Need TIMESTEP in METHOD section");
 
-  if(readvalue(words, pos=0, readconfig, "READCONFIG"))
-    canonical_filename(readconfig);
-  else
+  if(!readvalue(words, pos=0, readconfig, "READCONFIG"))
     error("Must give READCONFIG for DMC");
 
   //optional options
@@ -78,8 +76,7 @@ void Dmc_method::read(vector <string> words,
   }
   else pure_dmc=0;
 
-  if(readvalue(words, pos=0, storeconfig, "STORECONFIG"))
-    canonical_filename(storeconfig);
+  readvalue(words, pos=0, storeconfig, "STORECONFIG");
 
   if(!readvalue(words, pos=0, log_label, "LABEL"))
     log_label="dmc";
@@ -105,7 +102,6 @@ void Dmc_method::read(vector <string> words,
   
   vector <string> proptxt;
   if(readsection(words, pos=0, proptxt, "PROPERTIES")) 
-    //    myprop.read(proptxt, options.systemtext[0], options.twftext[0]);
     mygather.read(proptxt);
 
   vector<string> tmp_dens;
@@ -134,20 +130,20 @@ void Dmc_method::read(vector <string> words,
   allocate(dynamics_words, dyngen);
   dyngen->enforceNodes(1);
 
-  //MB: forwark walking lenghts 
-  fw_lenght.Resize(0);
-  fw_lenght=0;
+  //MB: forwark walking lengths 
+  fw_length.Resize(0);
+  fw_length=0;
   vector <string> fw_words;
-  max_fw_lenght=0;
-  if(readsection(words, pos=0, fw_words, "FW_LENGHTS")){
-    fw_lenght.Resize(fw_words.size());
+  max_fw_length=0;
+  if(readsection(words, pos=0, fw_words, "fw_length")){
+    fw_length.Resize(fw_words.size());
     for(int i=0;i<fw_words.size();i++){
-      fw_lenght(i)=atoi(fw_words[i].c_str());
-      if(fw_lenght(i) > max_fw_lenght)
-	max_fw_lenght=fw_lenght(i);
+      fw_length(i)=atoi(fw_words[i].c_str());
+      if(fw_length(i) > max_fw_length)
+        max_fw_length=fw_length(i);
     }
   }
-  //cout <<" Maximum forward walking history is "<<max_fw_lenght<<" steps"<<endl;
+  //cout <<" Maximum forward walking history is "<<max_fw_length<<" steps"<<endl;
 
 }
 
@@ -234,10 +230,10 @@ int Dmc_method::showinfo(ostream & os)
     os << "T-moves turned on" << endl;
   string indent="  ";
 
-  if(max_fw_lenght){
-    os << "Forward walking averaging over lenghts "; 
-    for(int s=0;s<fw_lenght.GetSize();s++)
-      os<<fw_lenght(s)<<"  ";
+  if(max_fw_length){
+    os << "Forward walking averaging over lengths "; 
+    for(int s=0;s<fw_length.GetSize();s++)
+      os<<fw_length(s)<<"  ";
     os<< endl;
   }
   dyngen->showinfo(indent, os);
@@ -328,45 +324,36 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
   cout.precision(15);
   output.precision(10);
 
-  aux_converge=1;
   
   prop.setSize(wf->nfunc(), nblock, nstep, nconfig, sys, 
-	       wfdata, mygather.nAux(), aux_converge);
+	       wfdata);
 
   restorecheckpoint(readconfig, sys, wfdata, pseudo);
   prop.initializeLog(average_var);
 
-
-  //MB: new properties manager for forward walking (one per each lenght)
+  //MB: new properties manager for forward walking (one per each length)
   Array1 <Properties_manager> prop_fw;
-  prop_fw.Resize(fw_lenght.GetSize());
-  if(max_fw_lenght){
-    for(int s=0;s<fw_lenght.GetSize();s++){
+  prop_fw.Resize(fw_length.GetSize());
+  if(max_fw_length){
+    for(int s=0;s<fw_length.GetSize();s++){
       string logfile, label_temp;
       prop.getLog(logfile, label_temp);
       char strbuff[40];
-      sprintf(strbuff, "%d", fw_lenght(s));
+      sprintf(strbuff, "%d", fw_length(s));
       label_temp+="_fw";
       label_temp+=strbuff;
       prop_fw(s).setLog(logfile, label_temp);
       prop_fw(s).setSize(wf->nfunc(), nblock, nstep, nconfig, sys, 
-		    wfdata, mygather.nAux(), aux_converge);
+		    wfdata);
       prop_fw(s).initializeLog(average_var);
     }
   }
 
-  int naux=mygather.nAux();
 
   if(nhist==-1)
     nhist=1;
-  //setting the projection time for auxillary walkers to 1 a.u.
-  if(naux >0) nhist=max(nhist,int(1.0/timestep)+1);
-  if(naux > 0 && tmoves) error("Can't do t-moves and auxillary walks yet");
-  //if(tmoves) pseudo->setDeterministic(1); //this may not be necessary..not sure yet.
   
   doublevar teff=timestep;
-  Array1 <doublevar> aux_timestep(naux,teff);
-
   for(int block=0; block < nblock; block++) {
 
     int totkilled=0;  
@@ -378,20 +365,13 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
       Dynamics_info dinfo;
       doublevar acsum=0;
       doublevar deltar2=0;
-      Array1 <doublevar> aux_rf_diffusion(naux,0.0);
       Array1 <doublevar> epos(3);
       
       doublevar avg_acceptance=0;
       
-      doublevar rf_diffusion=0; //diffusion rate without rejection
-
-      
       for(int walker=0; walker < nconfig; walker++) {
-
-        
         pts(walker).config_pos.restorePos(sample);
         wf->updateLap(wfdata, sample);
-
 	//------Do several steps without branching
         for(int p=0; p < npsteps; p++) {
           pseudo->randomize();
@@ -404,16 +384,8 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
             if(dinfo.accepted) 
               deltar2+=dinfo.diffusion_rate/(nconfig*nelectrons*npsteps);
             
-            Array1 <Dynamics_info> aux_dinfo(naux);
-            mygather.getGreensFunctions(dyngen, dinfo, e,sample, guidingwf,
-                                        timestep, aux_dinfo, 0);
             
-            if(dinfo.accepted) { 
-              rf_diffusion+=dinfo.diffusion_rate/(nconfig*nelectrons*npsteps);
-              for(int i=0; i< naux; i++) 
-                aux_rf_diffusion(i)+=
-                  aux_dinfo(i).diffusion_rate/(nconfig*nelectrons*npsteps);
-              
+            if(dinfo.accepted) {               
               pts(walker).age(e)=0;
             }
             else { 
@@ -423,20 +395,18 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
             
             if(acc>0) acsum++;
           }
-          
           totpoints++;
           Properties_point pt;
           vector <Tmove> tmov;
           doublevar subtract_out_enwt=0;
           if(tmoves) {  //------------------T-moves
-            pt.setSize(nwf,0,0);
+            pt.setSize(nwf);
             wf->getVal(wfdata,0,pt.wf_val);
             sys->calcKinetic(wfdata,sample,wf,pt.kinetic);
             pt.potential=sys->calcLoc(sample);
             pt.weight=1.0; //this gets set later anyway
             pt.count=1;
-            pseudo->calcNonlocTmove(wfdata,sample,wf,pt.nonlocal,tmov);
-            getZpol(sys, sample, pt.z_pol,1); //always do the many-body zpol, because it's correct
+            pseudo->calcNonlocTmove(wfdata,sys,sample,wf,pt.nonlocal,tmov);
             //cout << "choosing among " <<  tmov.size() << " tmoves " << endl;
             //Now we do the t-move
             doublevar sum=1; 
@@ -468,81 +438,47 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
           } ///---------------------------------done with the T-moves
           else { 
             mygather.gatherData(pt, pseudo, sys, wfdata, wf, 
-                                sample, guidingwf, aux_converge,0);
-	    
-	    // ***
-	    // This extra gradient term is already contained in the
-	    // kinetic energy!
-	    // ***
-	    // gradient of phase added to potential in the case of fixed
-	    // phase method. Cannot be inside gatherData, since that one
-	    // is called also in VMC. However, this way we calculate the
-	    // wf value & derivative twice, which is quite silly (getLap
-	    // recalculates things on every call)
-	    /*
-	    Wf_return wf_val(nwf,5);
-	    wf->getVal(wfdata, 0, wf_val);
-	    if ( wf_val.is_complex == 1 ) {
-	      for(int w=0; w< nwf; w++) {
-		for(int e=0; e< nelectrons; e++) {
-		  wf->getLap(wfdata,e,wf_val);
-		  pt.potential(w)+=
-		    0.5*( wf_val.phase(w,1)*wf_val.phase(w,1)
-			  +wf_val.phase(w,2)*wf_val.phase(w,2)
-			  +wf_val.phase(w,3)*wf_val.phase(w,3) );
-		}
-	      }
-	    }
-	    */
-	    // ***
-
-	  }
-          
+                                sample, guidingwf);
+          }
           Dmc_history new_hist;
           new_hist.main_en=pts(walker).prop.energy(0);
-          new_hist.aux_en=pts(walker).prop.aux_energy;
-          //cout << " main en " << pts(walker).prop.energy(0) << endl;
-          //cout << " aux en " << pts(walker).prop.aux_energy(0,0) << endl;
           pts(walker).past_energies.push_front(new_hist);
           deque<Dmc_history> & past(pts(walker).past_energies);
           if(past.size() > nhist) 
             past.erase(past.begin()+nhist, past.end());
           
           pts(walker).prop=pt;
-	  if(!pure_dmc)
-	    pts(walker).weight*=getWeight(pts(walker),teff,etrial);
-	  else
-	    pts(walker).weight=getWeightPURE_DMC(pts(walker),teff,etrial);
-
+          if(!pure_dmc)
+            pts(walker).weight*=getWeight(pts(walker),teff,etrial);
+          else
+            pts(walker).weight=getWeightPURE_DMC(pts(walker),teff,etrial);
+          
           if(pts(walker).ignore_walker) {
             pts(walker).ignore_walker=0;
             pts(walker).weight=1;
             pts(walker).prop.count=0;
           }
           pts(walker).prop.weight=pts(walker).weight;
-          getAuxWeight(pts(walker), teff, aux_timestep,pts(walker).prop.aux_weight);
-          for(int a=0; a< naux; a++) pts(walker).prop.aux_weight(a,0)*=pts(walker).weight;
           //This is somewhat inaccurate..will need to change it later
           //For the moment, the autocorrelation will be slightly
           //underestimated
           pts(walker).prop.parent=walker;
           pts(walker).prop.nchildren=1;
           pts(walker).prop.children(0)=walker;
-          pts(walker).prop.avgrets.Resize(average_var.GetDim(0));
+          pts(walker).prop.avgrets.Resize(1,average_var.GetDim(0));
           for(int i=0; i< average_var.GetDim(0); i++) { 
-            average_var(i)->evaluate(wfdata, wf, sys, sample, pts(walker).prop.avgrets(i));
+            average_var(i)->evaluate(wfdata, wf, sys, sample, pts(walker).prop.avgrets(0,i));
           }
-          
           prop.insertPoint(step+p, walker, pts(walker).prop);
           for(int i=0; i< densplt.GetDim(0); i++)
             densplt(i)->accumulate(sample,pts(walker).prop.weight(0));
-	  for(int i=0; i< nldensplt.GetDim(0); i++)
-	    nldensplt(i)->accumulate(sample,pts(walker).prop.weight(0),
-				     wfdata,wf);
-
-
+          for(int i=0; i< nldensplt.GetDim(0); i++)
+            nldensplt(i)->accumulate(sample,pts(walker).prop.weight(0),
+                                     wfdata,wf);
+          
+          
 	  //MB: making the history of prop.avgrets for forward walking
-	  if(max_fw_lenght){
+	  if(max_fw_length){
 	    //store the obeservables
 	    Dmc_history_avgrets new_avgrets;
 	    new_avgrets.avgrets=pts(walker).prop.avgrets;
@@ -554,25 +490,25 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
 	    
 	    pts(walker).past_properties.push_front(new_avgrets);
 
-	    //tailor the array if larger than max_fw_lenght
+	    //tailor the array if larger than max_fw_length
 	    deque<Dmc_history_avgrets> & past_avgrets(pts(walker).past_properties);
-	    if(past_avgrets.size() > max_fw_lenght) 
-	      past_avgrets.erase(past_avgrets.begin()+max_fw_lenght, past_avgrets.end());
+	    if(past_avgrets.size() > max_fw_length) 
+	      past_avgrets.erase(past_avgrets.begin()+max_fw_length, past_avgrets.end());
 
 	    int size=pts(walker).past_properties.size();
 	    //	    cout <<"size of the queqe "<<size<<endl;
 
 	    //find the element from the past
 	    doublevar oldweight;
-	    for(int s=0;s<fw_lenght.GetSize();s++){
-	      if(fw_lenght(s)>size){
+	    for(int s=0;s<fw_length.GetSize();s++){
+	      if(fw_length(s)>size){
 		pts(walker).prop.avgrets=pts(walker).past_properties[size-1].avgrets;
 		oldweight=pts(walker).past_properties[size-1].weight;
 	      }
 	      else{
-		//call the prop.avgrets from fw_lenght(s) steps a go
-		pts(walker).prop.avgrets=pts(walker).past_properties[fw_lenght(s)-1].avgrets;
-		oldweight=pts(walker).past_properties[fw_lenght(s)-1].weight;
+		//call the prop.avgrets from fw_length(s) steps a go
+		pts(walker).prop.avgrets=pts(walker).past_properties[fw_length(s)-1].avgrets;
+		oldweight=pts(walker).past_properties[fw_length(s)-1].weight;
 	      }
 
 	      //for(int i=0; i< pts(walker).prop.avgrets.GetDim(0); i++)
@@ -591,12 +527,8 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
       }
       //---Finished moving all walkers
 
-      //-----------Find the effective timesteps(of main and aux walks)
       doublevar accept_ratio=acsum/(nconfig*nelectrons*npsteps);
       teff=timestep*accept_ratio; //deltar2/rf_diffusion; 
-      for(int i=0; i< naux; i++)  {
-        aux_timestep(i)=teff*(aux_rf_diffusion(i)/rf_diffusion);
-      }
 
       updateEtrial(feedback);
 
@@ -604,9 +536,9 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
 
       int nkilled;
       if(!pure_dmc)
-	nkilled=calcBranch();
+        nkilled=calcBranch();
       else
-	nkilled=0;
+        nkilled=0;
       
       totkilled+=nkilled;
       totbranch+=nkilled;
@@ -627,8 +559,8 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
     else
       prop.endBlockSHDMC();
     
-    if(max_fw_lenght){
-      for(int s=0;s<fw_lenght.GetSize();s++){
+    if(max_fw_length){
+      for(int s=0;s<fw_length.GetSize();s++){
 	//prop_fw(s).endBlock();
 	prop_fw(s).endBlock_per_step();
       }
@@ -689,8 +621,8 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
     prop.printSummary(output,average_var);  
     
     //MB: final printout for FW
-    if(max_fw_lenght){
-      for(int s=0;s<fw_lenght.GetSize();s++)
+    if(max_fw_length){
+      for(int s=0;s<fw_length.GetSize();s++)
 	prop_fw(s).printSummary(output,average_var);
     }
 
@@ -706,6 +638,10 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
 void Dmc_method::savecheckpoint(string & filename,                     
                                  Sample_point * config) {
   if(filename=="") return;
+  
+  write_configurations(filename, pts);
+  return;
+  /*
   ofstream checkfile(filename.c_str());
   if(!checkfile) error("Couldn't open", filename );
   checkfile.precision(15);
@@ -735,6 +671,7 @@ void Dmc_method::savecheckpoint(string & filename,
   }
 
   checkfile.close();
+   */
 }
 
 
@@ -746,7 +683,7 @@ void Dmc_method::restorecheckpoint(string & filename, System * sys,
                                     Wavefunction_data * wfdata,
                                     Pseudopotential * pseudo) {
 
-
+/*
   ifstream checkfile(filename.c_str());
   if(!checkfile) 
     error("Couldn't open ", filename);
@@ -801,10 +738,18 @@ void Dmc_method::restorecheckpoint(string & filename, System * sys,
     }
 
   }
-
+ */
+  read_configurations(filename, pts);
+  int ncread=pts.GetDim(0);
+  
   //cout << "ncread " << ncread << "  nwread " << nwread << endl;
-  if(nconfig!=ncread) { 
-    error("nconfig doesn't match the number of walkers in the config file");
+  if(nconfig < ncread) { 
+    Array1 <Dmc_point> tmp_pts(nconfig);
+    for(int i=0; i< nconfig; i++) tmp_pts(i)=pts(i);
+    pts=tmp_pts;
+  }
+  else if(nconfig > ncread) { 
+    error("Not enough configurations in ", filename);
   }
 
   for(int walker=0; walker < nconfig; walker++) {
@@ -812,18 +757,20 @@ void Dmc_method::restorecheckpoint(string & filename, System * sys,
     mygather.gatherData(pts(walker).prop, pseudo, sys,
                         wfdata, wf, sample,
                         guidingwf);
+    pts(walker).age.Resize(sys->nelectrons(0)+sys->nelectrons(1));
+    pts(walker).age=0;
   }
   find_cutoffs();
 
   updateEtrial(start_feedback);
-
+/*
   if(do_cdmc) { 
     if(ncread!=nwread) {
       cout << "WARNING! do_cdmc and ncread!=nwread " << endl;
     }
     cdmcReWeight(energy_temp, value_temp);
   }
-
+*/
     
 }
 
@@ -1009,8 +956,6 @@ doublevar Dmc_method::getWeightPURE_DMC(Dmc_point & pt,
                                 doublevar teff, doublevar etr) {
   doublevar teffac=teff;
 
-  doublevar effenergy=0, effoldenergy=0;
-
   int history=pt.past_energies.size();
   assert(history>0);
   doublevar sum=0;
@@ -1028,42 +973,6 @@ doublevar Dmc_method::getWeightPURE_DMC(Dmc_point & pt,
 } 
 //----------------------------------------------------------------------
 
-
-void Dmc_method::getAuxWeight(Dmc_point & pt, 
-                              doublevar teff, 
-                              Array1 <doublevar>&  aux_teff, 
-			      Array2 <doublevar> & aux_weight) {
-
-
-  int naux=pt.prop.aux_energy.GetDim(0);
-  doublevar etr=eref;
-  aux_weight.Resize(naux,1);
-  for(int a=0; a< naux; a++) { 
-    doublevar w=1;
-    w*=pt.prop.aux_jacobian(a);
-    doublevar ratio=guidingwf->getTrialRatio(pt.prop.aux_wf_val(a), 
-					     pt.prop.wf_val);
-    w*= ratio*ratio;
-
-    doublevar fbet=max(etr-pt.prop.aux_energy(a,0), etr-pt.prop.energy(0));
-    if(fbet > branchcut_stop) w=0;
-    w*=exp(-.5*(aux_teff(a)*pt.prop.aux_energy(a,0)-teff*pt.prop.energy(0)));
-    for(deque<Dmc_history>::iterator i=pt.past_energies.begin();
-        i!=pt.past_energies.end()-1; i++) {
-      doublevar fbet=max(etr-i->main_en, etr-i->aux_en(a,0));
-      if(fbet < branchcut_stop) 
-        w*=exp(-(aux_teff(a)*i->aux_en(a,0)-teff*i->main_en));
-    }
-    Dmc_history & last(*(pt.past_energies.end()-1));
-     fbet=max(etr-last.main_en, etr-last.aux_en(a,0));
-    if(fbet< branchcut_stop) 
-      w*=exp(-(aux_teff(a)*last.aux_en(a,0)-teff*last.main_en));
-    aux_weight(a,0)=w; 
-  }
-  
-}
-
-//----------------------------------------------------------------------
 
 struct Queue_element { 
   int from_node;
@@ -1254,89 +1163,6 @@ int Dmc_method::calcBranch() {
 }
 //----------------------------------------------------------------------
 
-/*
-#include <algorithm>
-struct procwt {
-  doublevar totwt;
-  int procnum;
-};
-bool operator<(const procwt & p1,const procwt & p2) {
-  return p1.totwt < p2.totwt;
-}
-
-void Dmc_method::loadbalance() {
-#ifdef USE_MPI
-  //string ldout="load";
-  //canonical_filename(ldout);
-  //ofstream loadout(ldout.c_str(),ios::app);
-  //ostream & loadout(cout);
-
-  doublevar totwt=0;
-  for(int i=0; i< nconfig; i++) 
-    totwt+=pts(i).weight;
-
-  double * weights=new double[mpi_info.nprocs];
-  MPI_Allgather(&totwt, 1, MPI_DOUBLE, weights, 1, MPI_DOUBLE,
-                MPI_Comm_grp);
-
-  vector <procwt> procs(mpi_info.nprocs);
-  int nprocs=mpi_info.nprocs;
-  for(int i=0; i< nprocs; i++) {
-    procs[i].totwt=weights[i];
-    procs[i].procnum=i;
-  }
-  sort(procs.begin(), procs.end());
-  
-  int myplace=-1;
-  for(int i=0; i< nprocs; i++) 
-    if(procs[i].procnum==mpi_info.node) {
-      myplace=i;
-      break;
-    }
-  assert(myplace != -1);
-
-  //Find the biggest and smallest weights
-  //on this processor
-  int big=-1, small=-1;
-  doublevar bigw=-1, smallw=1000;
-  for(int i=0; i< nconfig; i++) {
-    if(pts(i).weight > bigw) {
-      bigw=pts(i).weight;
-      big=i;
-    }
-    if(pts(i).weight < smallw) {
-      smallw=pts(i).weight;
-      small=i;
-    }
-  }
-      
-  //loadout << mpi_info.node << " here " << myplace << endl;
-//MPI_Barrier(MPI_Comm_grp);
-
-  int mate=0;
-  if(myplace > nprocs/2) {
-    mate=procs[nprocs-myplace-1].procnum;
-    pts[big].mpiSend(mate);
-    //loadout << "sent " << endl;
-    pts(big).mpiReceive(mate);
-  }
-  else if(nprocs-myplace-1 > nprocs/2) {
-    mate=procs[nprocs-myplace-1].procnum;
-    Dmc_point tmp_pt;
-    tmp_pt.mpiReceive(mate);
-    pts(small).mpiSend(mate);
-    pts(small)=tmp_pt;
-
-  }
-  
-
-  delete [] weights;
-
-
-#endif
-}
-*/
-
 //----------------------------------------------------------------------
 
 
@@ -1367,6 +1193,8 @@ void Dmc_point::mpiSend(int node) {
   MPI_Send(age.v,nelectrons, MPI_DOUBLE, node,0,MPI_Comm_grp);
 #endif
 }
+
+//----------------------------------------------------------------------
 
 void Dmc_point::mpiReceive(int node) {
 #ifdef USE_MPI
@@ -1402,27 +1230,76 @@ void Dmc_point::mpiReceive(int node) {
   MPI_Recv(age.v,nelectrons,MPI_DOUBLE, node,0,MPI_Comm_grp,&status);
 #endif
 }
+//----------------------------------------------------------------------
+
+void Dmc_point::write(ostream & os) { 
+  string indent="";
+  config_pos.write(os);
+  os << "DMC { \n";
+  //prop.write(indent,os);
+  os << "weight " << weight<< endl;
+  os << "sign " << sign << endl;
+  /*
+  for(deque<Dmc_history>::iterator i=past_energies.begin(); 
+      i!=past_energies.end(); i++) { 
+    os << "past_energies { ";
+    i->write(os);
+    os << "}\n";    
+  }
+  for(deque<Dmc_history_avgrets>::iterator i=past_properties.begin(); 
+      i!=past_properties.end(); i++) {
+    os << "past_properties { ";
+    i->write(os);
+    os << "}\n";
+  }
+   */
+  os << "}\n";
+}
+
+void Dmc_point::read(istream & is) { 
+  config_pos.read(is);
+  int filepos=is.tellg();
+  string dum;
+  is >> dum;
+  if(!caseless_eq(dum, "DMC")) {
+    is.seekg(filepos);
+    return;
+  }
+  
+  is >> dum; //the {
+  //prop.read(is);
+  is >> dum >> weight;
+  is >> dum >> sign;
+  //ignoring the past stuff for the moment..
+}
+
+
+//----------------------------------------------------------------------
+void Dmc_history_avgrets::write(ostream & os) { 
+  os << "weight " << weight << endl;
+  for(int i=0; i< avgrets.GetDim(0); i++) { 
+    os << "avgret { ";
+  }
+    
+}
+
+void Dmc_history_avgrets::read(istream & is) { 
+}
+
+//----------------------------------------------------------------------
 
 void Dmc_history::mpiSend(int node) { 
 #ifdef USE_MPI
   MPI_Send(&main_en,1,MPI_DOUBLE,node,0,MPI_Comm_grp);
-  int n1=aux_en.GetDim(0);
-  int n2=aux_en.GetDim(1);
-  MPI_Send(&n1,1,MPI_INT,node,0,MPI_Comm_grp);
-  MPI_Send(&n2,1,MPI_INT,node,0,MPI_Comm_grp);
-  MPI_Send(aux_en.v,n1*n2,MPI_DOUBLE,node,0,MPI_Comm_grp);
 #endif
 }
+
 
 void Dmc_history::mpiReceive(int node) { 
 #ifdef USE_MPI
   MPI_Status status;
   int n1,n2;
   MPI_Recv(&main_en,1,MPI_DOUBLE,node,0,MPI_Comm_grp,&status);
-  MPI_Recv(&n1,1,MPI_INT,node,0,MPI_Comm_grp,&status);
-  MPI_Recv(&n2,1,MPI_INT,node,0,MPI_Comm_grp,&status);
-  aux_en.Resize(n1,n2);
-  MPI_Recv(aux_en.v,n1*n2,MPI_DOUBLE,node,0,MPI_Comm_grp,&status);  
 #endif
 }
 
@@ -1430,12 +1307,12 @@ void Dmc_history::mpiReceive(int node) {
 void Dmc_history_avgrets::mpiSend(int node) { 
 #ifdef USE_MPI
   MPI_Send(&weight,1,MPI_DOUBLE,node,0,MPI_Comm_grp);
-  int n1=avgrets.GetDim(0);
+  int n1=avgrets.GetDim(1);
   MPI_Send(&n1,1,MPI_INT,node,0,MPI_Comm_grp);
   for(int j=0;j<n1;j++){
-    int n2=avgrets(j).vals.GetDim(0);
+    int n2=avgrets(0,j).vals.GetDim(0);
     MPI_Send(&n2,1,MPI_INT,node,0,MPI_Comm_grp);
-    MPI_Send(avgrets(j).vals.v,n2,MPI_DOUBLE,node,0,MPI_Comm_grp);
+    MPI_Send(avgrets(0,j).vals.v,n2,MPI_DOUBLE,node,0,MPI_Comm_grp);
   }
 #endif
 }
@@ -1446,11 +1323,11 @@ void Dmc_history_avgrets::mpiReceive(int node) {
   int n1,n2;
   MPI_Recv(&weight,1,MPI_DOUBLE,node,0,MPI_Comm_grp,&status);
   MPI_Recv(&n1,1,MPI_INT,node,0,MPI_Comm_grp,&status);
-  avgrets.Resize(n1);
+  avgrets.Resize(1,n1);
   for(int j=0;j<n1;j++){
     MPI_Recv(&n2,1,MPI_INT,node,0,MPI_Comm_grp,&status);
-    avgrets(j).vals.Resize(n2);
-    MPI_Recv(avgrets(j).vals.v,n2,MPI_DOUBLE,node,0,MPI_Comm_grp,&status);  
+    avgrets(0,j).vals.Resize(n2);
+    MPI_Recv(avgrets(0,j).vals.v,n2,MPI_DOUBLE,node,0,MPI_Comm_grp,&status);  
   }
 #endif
 }

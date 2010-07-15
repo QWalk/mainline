@@ -390,7 +390,7 @@ void Cubic_spline::calcLap(
     for(int i=0; i<nsplines; i++) {
 
       int interval=splines(i).getInterval(r(0));
-
+      //cout << "interval " << interval << " r " << r(0) << endl;
       //func=coeff(i,interval,0)+height*(coeff(i,interval,1)
       //                                 +height*(coeff(i,interval,2)
       //                                          +height*coeff(i,interval,3)));

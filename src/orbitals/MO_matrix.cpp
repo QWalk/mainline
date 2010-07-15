@@ -36,15 +36,15 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 int allocate(vector <string> & words, System * sys, MO_matrix *& moptr) {
   assert(moptr==NULL);
 
-  if(words[0]=="CUTOFF_MO")
+  if(caseless_eq(words[0],"CUTOFF_MO"))
     moptr=new MO_matrix_cutoff;
-  else if(words[0] =="STANDARD_MO")
+  else if(caseless_eq(words[0],"STANDARD_MO"))
     moptr=new MO_matrix_standard;
-  else if(words[0]=="BLAS_MO")
+  else if(caseless_eq(words[0],"BLAS_MO"))
     moptr=new MO_matrix_blas;
-  else if(words[0]=="BASFUNC_MO")
+  else if(caseless_eq(words[0],"BASFUNC_MO"))
     moptr=new MO_matrix_basfunc;
-  else if(words[0]=="BSPLINE_MO")
+  else if(caseless_eq(words[0],"BSPLINE_MO"))
     moptr=new MO_matrix_bspline;
   else {
     cout << "****WARNING*****  Assuming you want a cutoff MO."
@@ -59,13 +59,13 @@ int allocate(vector <string> & words, System * sys, MO_matrix *& moptr) {
 
 int allocate(vector <string> & words, System * sys, 
              Complex_MO_matrix *& moptr) {
-  if(words[0]=="MO_1D")
+  if(caseless_eq(words[0],"MO_1D"))
     moptr=new MO_1d;
-  else if(words[0]=="CBASFUNC_MO")
+  else if(caseless_eq(words[0],"CBASFUNC_MO"))
     moptr=new MO_matrix_Cbasfunc;
-  else if(words[0]=="CCUTOFF_MO")
+  else if(caseless_eq(words[0],"CCUTOFF_MO"))
     moptr=new MO_matrix_Ccutoff;
-  else if(words[0]=="CBSPLINE_MO")
+  else if(caseless_eq(words[0],"CBSPLINE_MO"))
     moptr=new MO_matrix_Cbspline;
   else 
     error("Unknown complex MO: ", words[0]);

@@ -52,11 +52,8 @@ void Vmc_method::read(vector <string> words,
   if(!readvalue(words, pos=0, ndecorr, "NDECORR"))
     ndecorr=2;
 
-  if(readvalue(words, pos=0, storeconfig, "STORECONFIG"))
-    canonical_filename(storeconfig);
-
-  if(readvalue(words, pos=0, readconfig, "READCONFIG"))
-    canonical_filename(readconfig);
+  readvalue(words, pos=0, storeconfig, "STORECONFIG");
+  readvalue(words, pos=0, readconfig, "READCONFIG");
   
 
   if(!readvalue(words, pos=0, log_label, "LABEL"))
@@ -97,22 +94,14 @@ void Vmc_method::read(vector <string> words,
 
 
   pos=0;
-  if(readvalue(words, pos, guidetype, "GUIDETYPE"))
-  {
-    if(guidetype=="SUMSQUARES")
-    {
+  if(readvalue(words, pos, guidetype, "GUIDETYPE")) {
+    if(guidetype=="SUMSQUARES") 
       guidewf=new Vmc_sum_squares;
-    }
-    else if(guidetype=="FIRST") {
+    else if(guidetype=="FIRST") 
       guidewf=new Primary;
-    }
-    else
-    {
-      error("I don't understand ", guidetype, " after GUIDETYPE.");
-    }
+    else error("I don't understand ", guidetype, " after GUIDETYPE.");
   }
-  else
-  {
+  else {
     guidetype="SUMSQUARES";
     guidewf=new Vmc_sum_squares;
   }
@@ -236,6 +225,7 @@ int Vmc_method::showinfo(ostream & os)
 //----------------------------------------------------------------------
 
 void Vmc_method::readcheck(string & filename) {
+  /*
   int configsread=0;
 
   config_pos.Resize(nconfig);
@@ -251,12 +241,10 @@ void Vmc_method::readcheck(string & filename) {
     checkfile >> dummy;
     if(dummy != "RANDNUM") error("Expected RANDNUM in checkfile");
     checkfile >> is1 >> is2;
-    //rng.seed(is1, is2);  
+    rng.seed(is1, is2);  
 
 
     while(checkfile >>dummy && configsread < nconfig) {
-    //if(read_config(dummy, checkfile, electrons(configsread)))
-    //  configsread++;
       if(read_config(dummy, checkfile, sample)) {
         config_pos(configsread++).savePos(sample);
       }
@@ -264,21 +252,28 @@ void Vmc_method::readcheck(string & filename) {
     }
     checkfile.close();
   }
-
-  for(int i=configsread; i< nconfig; i++) {
-    //electrons(i)->randomGuess();
-    sample->randomGuess();
-    config_pos(i).savePos(sample);
+   */
+  config_pos.Resize(0);
+  if(filename!="") { 
+    read_configurations(filename, config_pos);
   }
-  debug_write(cout, configsread, " configs read ", nconfig-configsread,
-              " configs randomly generated \n");
+  if(config_pos.GetDim(0) < nconfig) { 
+    Array1 <Config_save_point> tmpconfig=config_pos;
+    config_pos.Resize(nconfig);
+    for(int i=0; i< tmpconfig.GetDim(0); i++) { config_pos(i)=tmpconfig(i);} 
+    for(int i=tmpconfig.GetDim(0); i< nconfig; i++) {
+      sample->randomGuess();
+      config_pos(i).savePos(sample);
+    }
+  }   
 }
 
 //----------------------------------------------------------------------
 
 void Vmc_method::storecheck(string & filename, int append) {
+  
   if(filename=="") return;
-
+/*
   ofstream checkfile;
   if(append) checkfile.open(filename.c_str(), ios::app);
   else checkfile.open(filename.c_str());
@@ -290,7 +285,6 @@ void Vmc_method::storecheck(string & filename, int append) {
   checkfile << "RANDNUM " << is1 << "  " << is2 << endl;
   for(int i=0; i< nconfig; i++) {
     checkfile << "SAMPLE_POINT { \n";
-    //write_config(checkfile, electrons(i));
     config_pos(i).restorePos(sample);
     write_config(checkfile, sample);
     checkfile << "}\n\n";
@@ -298,6 +292,9 @@ void Vmc_method::storecheck(string & filename, int append) {
 
   checkfile.close();  
 
+  string tmpfilename="tmp.config";
+   */
+  write_configurations(filename, config_pos);
 }
 
 
@@ -344,15 +341,7 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
 
   if(output) output << "Entering VMC" << endl;
 
-  prop.setSize(wf->nfunc(), nblock, nstep, nconfig, sys, wfdata,
-	       mygather.nAux());
-  mygather.squareWeight(1);
-
-  
-  //Properties_point pt;
-  //mygather.gatherData(pt, psp, sys, wfdata, wf, 
-  //                    sample, guidewf);
-  //cout << "energy test " << pt.energy(0) << endl;
+  prop.setSize(wf->nfunc(), nblock, nstep, nconfig, sys, wfdata);
   output.precision(10);
   prop.initializeLog(average_var);
   //our averaging variables
@@ -403,8 +392,12 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
                 diffusion_rate(block)+=(newpos(d)-oldpos(d))                  
                   *(newpos(d)-oldpos(d));
               }
-
-
+              if(print_wf_vals) { 
+                Wf_return wfval(nwf_guide, 2);
+                wf->getVal(wfdata,0,wfval);
+                cout << "step " << e << " amp " << wfval.amp(0,0) << endl;
+              }
+              
               if(acc>0) {
                 age(walker, e)=0;
               }
@@ -423,12 +416,12 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
         
         for(int i=0; i< densplt.GetDim(0); i++)
           densplt(i)->accumulate(sample,1.0);
-	for(int i=0; i< nldensplt.GetDim(0); i++)
+        for(int i=0; i< nldensplt.GetDim(0); i++)
           nldensplt(i)->accumulate(sample,1.0,wfdata,wf);
-
-        pt.avgrets.Resize(average_var.GetDim(0));
+        
+        pt.avgrets.Resize(1,average_var.GetDim(0));
         for(int i=0; i< average_var.GetDim(0); i++) { 
-          average_var(i)->evaluate(wfdata, wf, sys, sample, pt.avgrets(i));
+          average_var(i)->evaluate(wfdata, wf, sys, sample, pt.avgrets(0,i));
         }
         pt.parent=walker;
         pt.nchildren=1; pt.children(0)=1;
@@ -448,7 +441,6 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
     }   //walker
 
     prop.endBlock();
-    
     if(!low_io || block==nblock-1) { 
       storecheck(storeconfig);
       for(int i=0; i< densplt.GetDim(0); i++)
@@ -456,9 +448,6 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
       for(int i=0; i< nldensplt.GetDim(0); i++)
         nldensplt(i)->write(log_label);
     }
-
-
-
     //Output for the block
     if(output) {
       if(global_options::rappture ) { 
@@ -492,7 +481,7 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
            << " steps "<<  endl;
     doublevar avglife=0;
     for(int b=0; b< nblock; b++) {
-      avglife+=avglifetime(b)/(nblock*nstep*nconfig*ndecorr*ndecorr*nelectrons);
+      avglife+=avglifetime(b)/(nblock*nstep*nconfig*ndecorr*nelectrons);
     }
 
     output << "Average lifetime : " << avglife << " steps " << endl;

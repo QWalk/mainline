@@ -32,6 +32,50 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Qmc_std.h"
 #include "MatrixAlgebra.h"
 
+#ifdef USE_LAPACK
+//C++ wrappwr of Lapack routines
+doublevar dlamch(char CMACH)
+{
+  return dlamch_(&CMACH);
+}
+
+int dsyevr(char JOBZ, char RANGE, char UPLO, int N,
+           double *A, int LDA, double VL, double VU,
+           int IL, int IU, double ABSTOL, int *M,
+           double *W, double *Z, int LDZ, int *ISUPPZ,
+           double *WORK, int LWORK, int *IWORK, int LIWORK){
+  
+  int INFO;
+  dsyevr_(&JOBZ, &RANGE, &UPLO, &N, A, &LDA, &VL, &VU,
+          &IL, &IU, &ABSTOL, M, W, Z, &LDZ, ISUPPZ,
+          WORK, &LWORK, IWORK, &LIWORK, &INFO);
+  return INFO;
+}
+
+int dsygv(int itype, char jobz, char uplo,  int  n,  
+          double *a,  int  lda,  double *b, int ldb, double *w, 
+          double *WORK, int IWORK){
+  int INFO;
+  dsygv_(&itype, &jobz, &uplo, &n, a, &lda, b, &ldb, w, WORK, &IWORK, &INFO);
+  return INFO;
+}
+
+
+int dgetrf(int m, int n, double * A, int lda, int * ipiv) { 
+  int info;
+  dgetrf_(&m, &n, A, &lda, ipiv, &info);
+  return info;
+}
+
+int dgetrs(char trans, int n, int nrhs, double * A, int lda, int * ipiv, 
+           double * B, int ldb) { 
+  int info;
+  dgetrs_(&trans, &n, &nrhs, A, &lda, ipiv, B, &ldb, &info);
+  return info;
+}
+#endif
+
+
 const doublevar TINY=1.0e-20;
 
 Array2 <doublevar> tmp2;
@@ -167,7 +211,6 @@ void InvertMatrix(const Array2 <doublevar> & a, Array2 <doublevar> & a1, const i
   Array1 <int>& indx(itmp1);
   indx.Resize(n);
   doublevar d;
-
   // a(i,j) first index i is row index (convention)
   // elements of column vectors are stored contiguous in memory in C style arrays
   // a(i) refers to a column vector
@@ -185,9 +228,12 @@ void InvertMatrix(const Array2 <doublevar> & a, Array2 <doublevar> & a1, const i
     }
     a1(i,i)=1.0;
   }
+  
 
   if(!ludcmp(temp,n,indx,d)) error("singular matrix in inversion");
 
+  
+  
   for(int j=0;j<n;++j)
   {
     // get column vector
@@ -195,6 +241,9 @@ void InvertMatrix(const Array2 <doublevar> & a, Array2 <doublevar> & a1, const i
     yy.refer(a1(j));
     lubksb(temp,n,indx,yy);
   }
+
+  
+  
 }
 
 
@@ -249,8 +298,57 @@ doublevar TransposeInverseMatrix(const Array2 <doublevar> & a, Array2 <doublevar
   temp.Resize(n,n);
   Array1 <int>& indx(itmp1);
   indx.Resize(n);
-  doublevar d;
+  doublevar d=1;
+  
+  //for(int i=0; i< n; i++) { 
+  //  cout << "matrix ";
+  //  for(int j=0; j< n; j++) cout << a(i,j) << " ";
+  //  cout << endl;
+  //}
+  
+#ifdef USE_LAPACK
+  //LAPACK routines don't handle n==1 case??
+  if(n==1) { 
+    a1(0,0)=1.0/a(0,0);
+    return a(0,0);
+  }
+  else { 
+  
+    for(int i=0; i < n;++i) {
+      for(int j=0; j< n; ++j) { 
+        temp(j,i)=a(i,j);
+        a1(i,j)=0.0;
+      }
+      a1(i,i)=1.0;
+    }
+    dgetrf(n, n, temp.v, n, indx.v);
+    for(int j=0; j< n; ++j) { 
+      dgetrs('N',n,1,temp.v,n,indx.v,a1.v+j*n,n);
+    }
+  }
+  
+  //for(int i=0; i< n; i++) { 
+  //  cout << "ipiv " << indx[i] << endl;
+  //}
+  
+  double det=1;
+  for(int i=0; i< n; i++) { 
+    //cout << "lapack ";
+    //for(int j=0; j< n; j++) { 
+    //  cout << temp(i,j) << " ";
+    //}
+    //cout << endl;
+    if(indx(i) != i+1)
+      det*= -temp(i,i);
+    else det*=temp(i,i);
+  }
+  //cout << "lapack: " << det <<  " determinant " << Determinant(a,n) 
+  //<< " should be " << a(0,0)*a(1,1)-a(0,1)*a(1,0) << endl;
 
+  return det;
+//#endif  
+#else 
+  
   // a(i,j) first index i is row index (convention)
   // elements of column vectors are stored contiguous in memory in C style arrays
   // a(i) refers to a column vector
@@ -272,6 +370,7 @@ doublevar TransposeInverseMatrix(const Array2 <doublevar> & a, Array2 <doublevar
 
   //cout << "ludcmp" << endl;
   //if the matrix is singular, the determinant is zero.
+  d=1;
   if(ludcmp(temp,n,indx,d)==0)
     return 0;
 
@@ -284,14 +383,26 @@ doublevar TransposeInverseMatrix(const Array2 <doublevar> & a, Array2 <doublevar
     yy.refer(a1(j));
     lubksb(temp,n,indx,yy);
   }
-
-  //cout << "determinant" << endl;
-  // return the determinante as well
-  for(int j=0;j<n;++j)
-  {
+//#endif
+  //for(int i=0; i< n; i++) { 
+   // cout << "crummy ";
+   // for(int j=0; j< n; j++) { 
+   //   cout << temp(i,j) << " ";
+   // }
+  //  cout << endl;
+  //}
+  
+  // return the determinant as well since it's easy
+  
+  for(int j=0;j<n;++j) {
     d *= temp(j,j);
   }
+  //cout << "crummy " << d << endl;
+  //cout << "determinant: " << d <<  " determinant " << Determinant(a,n) 
+  //<< " should be " << a(0,0)*a(1,1)-a(0,1)*a(1,0) << endl;
+
   return d;
+#endif
 }
 
 // Return det|a| and leave matrix a constant
@@ -1251,35 +1362,6 @@ InverseUpdateColumn(Array2 <complex <doublevar> > & a1,
 
 //----------------------------------------------------------------------
 
-#ifdef USE_LAPACK
-//C++ wrappwr of Lapack routines
-doublevar dlamch(char CMACH)
-{
-  return dlamch_(&CMACH);
-}
-
-int dsyevr(char JOBZ, char RANGE, char UPLO, int N,
-       double *A, int LDA, double VL, double VU,
-       int IL, int IU, double ABSTOL, int *M,
-       double *W, double *Z, int LDZ, int *ISUPPZ,
-       double *WORK, int LWORK, int *IWORK, int LIWORK){
- 
-  int INFO;
-  dsyevr_(&JOBZ, &RANGE, &UPLO, &N, A, &LDA, &VL, &VU,
-          &IL, &IU, &ABSTOL, M, W, Z, &LDZ, ISUPPZ,
-          WORK, &LWORK, IWORK, &LIWORK, &INFO);
-  return INFO;
-}
-
-int dsygv(int itype, char jobz, char uplo,  int  n,  
-           double *a,  int  lda,  double *b, int ldb, double *w, 
-           double *WORK, int IWORK){
-  int INFO;
-  dsygv_(&itype, &jobz, &uplo, &n, a, &lda, b, &ldb, w, WORK, &IWORK, &INFO);
-  return INFO;
-}
-
-#endif
 //----------------------------------------------------------------------
 
 

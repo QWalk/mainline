@@ -37,7 +37,8 @@ class Cubic_spline: public Basis_function
 private:
 
   //Overall symmetry type of a spline
-  enum symmetry_type { sym_S, sym_P, sym_6D, sym_10F, sym_5D, sym_7F, sym_15G, sym_9G, sym_P_siesta,sym_D_siesta, sym_F_siesta };
+  enum symmetry_type { sym_S, sym_P, sym_6D, sym_10F, sym_5D, sym_7F, sym_15G,
+		       sym_9G, sym_P_siesta, sym_D_siesta, sym_F_siesta };
   
   string symmetry_lookup(symmetry_type );
   symmetry_type symmetry_lookup(string &);
@@ -97,6 +98,7 @@ private:
   bool enforce_cusp; //!< whether or not to force the spline to have a cusp (only works for SPLINE inputs for now)
   bool zero_derivative; //!< whether or not force zero derivative at the nucleus (strictly no cusp), if we want to treat the cusp in Jastrow
   double cusp;
+  double cusp_matching; //!< the radius at which the cusp should take over from the rest of the basis function
   doublevar customspacing;
 
   Array1 <Spline_fitter> splines;
@@ -104,9 +106,7 @@ private:
   void findCutoffs();
 
   /*!
-    Read the spline fit points.  Only supports S type functions for the moment.
-    \todo
-    Make this work for all symmetries.  This requires an input spec change
+    Read the spline fit points.  
   */
   int readspline(vector <string> & words);
 

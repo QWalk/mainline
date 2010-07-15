@@ -21,6 +21,7 @@
 #include "converter.h"
 #include <iostream>
 #include <string>
+#include <sstream>
 #include <fstream>
 #include <cmath>
 #include <cstdlib>
@@ -28,6 +29,8 @@
 #include "basis_writer.h"
 #include "Pseudo_writer.h"
 #include "wf_writer.h"
+#include "vecmath.h"
+
 using namespace std;
 enum coord_t { bohr, ang, scaled, fractional };
 
@@ -35,14 +38,24 @@ void read_lattice_vector(istream & is, vector <string> & currline,
                          vector <vector <double> > & latvec);
 void read_atoms(istream & is, vector <string> & currline, 
                          vector <Atom> & atoms,coord_t & coord_type);
+
 void read_mo_coefficients(istream & is, vector <string> & currline,
-                          Slat_wf_writer & slwriter, vector <vector <double> > & moCoeff);
+                          Slat_wf_writer & slwriter, vector < vector <vector <dcomplex> > > & moCoeff,
+			  vector < vector <double > > &kpoints);
+
 //reads in the basis for each type of atom
 void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis );
 void read_psp(vector <Atom> & atoms, vector <Spline_pseudo_writer> & pseudo);
-void fix_basis_norm(vector <Atom> & atoms, vector <Spline_basis_writer> & basis,
-                    vector < vector < double> > & moCoeff);
 
+void fix_basis_norm(vector <Atom> & atoms, vector <Spline_basis_writer> & basis,
+                    vector < vector <dcomplex> > & moCoeff);
+
+void orbital_split(string line, vector <string> & currline);
+void reciprocal_lattice_vectors(vector < vector <double > > &latvec,
+				vector < vector <double > > &recip_latvec);
+void kpoint_to_frac_coords(vector < vector <double> > &recip_latvec,
+			   vector < vector <double> > &kpoints,
+			   vector < vector <double> > &kpoints_frac);
 //###########################################################################
 
 
@@ -52,10 +65,12 @@ int main(int argc, char ** argv) {
     cout << "  -o          use basename as the prefix for QWalk.  Defaults to qwalk\n";
     exit(1);
   }
+  
+  int result = 0;
+
   string outputname="qwalk";
   int fold_dir=-1;
   int nfold=0;
-  
   
   for(int i=1; i< argc-1; i++) { 
     if(!strcmp(argv[i],"-o") && i+1 < argc) { 
@@ -65,15 +80,26 @@ int main(int argc, char ** argv) {
       fold_dir=atoi(argv[++i]);
       nfold=atoi(argv[++i]);
     }
-    
   }
   string infilename=argv[argc-1];
   
   //------------------------------read in the variables from the output file
   vector <Atom> atoms;
   vector <vector < double> > latvec;
+  vector <vector < double > > recip_latvec;
+  coord_t lattice_const_type;
+  double lattice_constant;
+
   Slat_wf_writer slwriter;
-  vector <vector <double> >  moCoeff;
+  
+  //Default Magnification
+  slwriter.magnification=50.0;
+ 
+
+  //Assume complex, if imaginary part happens to be 0 later, copy to a real
+  //set of orbitals and proceed
+  vector < vector <vector <dcomplex> > > moCoeff;
+
   int spin_pol=0;
   vector <Spline_pseudo_writer> pseudo;
   
@@ -87,13 +113,16 @@ int main(int argc, char ** argv) {
   string space=" ";
   vector <string> currline;
   int netCharge=0;
+  vector < vector < double > > kpoints;
+  vector < vector < double > > kpoints_frac;
   coord_t coord_type;
   while(getline(is,line)) { 
     currline.clear();
     split(line, space, currline);
     read_atoms(is,currline,atoms, coord_type);
     read_lattice_vector(is,currline,latvec);
-    read_mo_coefficients(is, currline, slwriter, moCoeff);
+    read_mo_coefficients(is, currline, slwriter, moCoeff, kpoints);
+
     if(currline.size()> 6 && currline[2]=="spin" && currline[3]=="polarization") { 
       spin_pol=atoi(currline[6].c_str());
       double tmp=atof(currline[6].c_str());
@@ -111,12 +140,19 @@ int main(int argc, char ** argv) {
     }
   }
   is.close();
-  slwriter.orbname=outputname+".orb";
-  slwriter.basisname=outputname+".basis";
-  slwriter.mo_matrix_type="CUTOFF_MO";
- 
+
+  if(slwriter.calctype=="") { 
+    cout << "Couldn't find wave function coefficients.  You may want to make sure that \n"
+    << "LongOutput and WaveFuncKPoints are set.\n";
+    exit(1);
+  }
+  
+  int num_kpoints = kpoints.size();
+  reciprocal_lattice_vectors(latvec, recip_latvec);
+  kpoint_to_frac_coords(recip_latvec, kpoints, kpoints_frac);
+
   cout << " coord_type " << coord_type << endl;
-  if(coord_type==scaled || coord_type==fractional) { 
+  if(coord_type==fractional) { 
     cout << "rescaling " << endl;
     vector <Atom> tmpatoms=atoms;
     int natoms=atoms.size();
@@ -128,20 +164,24 @@ int main(int argc, char ** argv) {
         }
       }
     }
+  } else if (coord_type==scaled) {
+    cout << "BROKEN" << endl;
+    for (int n=0; n<atoms.size(); ++n)
+      for (int i=0; i<3; ++i)
+	atoms[n].pos[i] *= lattice_constant;
   }
-  
-  //this seems to work well no matter the system size, at least so 
-  //far
-  slwriter.magnification=10.0;
-  
+
+ 
   vector <Spline_basis_writer> basis;
   read_basis(atoms, basis);
   read_psp(atoms, pseudo);
-  fix_basis_norm(atoms,basis, moCoeff);
-
-  for(int i=0; i< nfold; i++) { 
-    fold_kpoint(slwriter, latvec,fold_dir,moCoeff,atoms);
-  }
+  
+  for (int i = 0; i < num_kpoints; ++i)
+    {
+      fix_basis_norm(atoms, basis, moCoeff[i]);
+      for(int j=0; j< nfold; j++) 
+	fold_kpoint(slwriter, latvec,fold_dir,moCoeff[i],atoms);
+    }
   
   int nelectrons=0;
   for(vector<Atom>::iterator at=atoms.begin(); 
@@ -153,13 +193,82 @@ int main(int argc, char ** argv) {
   assert((nelectrons-spin_pol)%2==0);
   slwriter.nup=int(nelectrons-spin_pol)/2+spin_pol;
   slwriter.ndown=int(nelectrons-spin_pol)/2;
+
+
+
+
+  Shifter shiftobj;
+  vector <double> origin(3);
+  for(int i=0; i< 3; i++) origin[i]=0;
+  shiftobj.origin=origin;
+
+  //Correct phase shift for atoms not at the origin in complex wfns
+  //Easiest to use k-points in siesta format which are reciprocal of
+  //normal bohr coordinates
+  int f = 0; //index for the correct basis functions to shift
+  
+  for(unsigned int at=0; at< atoms.size(); at++) {
+    int bas=atoms[at].basis;
+    int nfunc=basis[bas].nfunc();
+    int temp_f = f;
+    for (int n = 0; n < num_kpoints; ++n) {
+      f = temp_f;
+      dcomplex kdotr=0;
+      for(int d=0; d< 3; d++) 
+	kdotr += kpoints[n][d] * (atoms[at].pos[d] - origin[d]);
+      kdotr = exp(kdotr*dcomplex(0.0,1.0));
+      for(int i=0; i< nfunc; i++) {
+	for(int mo=0; mo < moCoeff[n].size(); mo++) {
+	  moCoeff[n][mo][f] *= kdotr;
+	}
+	f++;
+      }
+    }
+  }
+  
+  //Make sure all the atoms are inside the simulation cell
+  //Taking care of phase factors for general k-points
+  //This is problem if left to qwalk for complex k-points
+  
+  f = 0;
+  
+  for(unsigned int at=0; at< atoms.size(); at++) {
+    vector <int> nshift;
+    int bas=atoms[at].basis;
+    int nfunc=basis[bas].nfunc();
+    if(shiftobj.enforcepbc(atoms[at].pos, latvec, nshift)) {
+      cout << "at " << at << "  shifted " << nshift[0] << "  " << nshift[1] 
+	   << "   " << nshift[2] << endl;
+      int temp_f = f;
+      for (int n = 0; n < num_kpoints; ++n) {
+	f = temp_f;
+	dcomplex kdots=0;
+	for(int d=0; d< 3; d++) 
+	  kdots+=kpoints_frac[n][d]*nshift[d];
+	//kdots=cos(pi*kdots);
+	kdots=exp(pi*kdots*dcomplex(0.0,1.0));
+	//cout << "kdots " << kdots << endl;
+	for(int i=0; i< nfunc; i++) {
+	  for(int mo=0; mo < moCoeff[n].size(); mo++) {
+	    moCoeff[n][mo][f]*=kdots;
+	  }
+	  f++;
+	}
+      }
+    }
+    else f+=nfunc;
+  }
+  
+  
+  
   
   //---------------------------------------------
   //--Write out all the collected data
   //---------------------------------------------
   
-  
+
   //---------------------Basis file
+  slwriter.basisname=outputname+".basis";
   ofstream os (slwriter.basisname.c_str());
   os.precision(15);
   for(vector<Spline_basis_writer>::iterator i=basis.begin();
@@ -169,70 +278,11 @@ int main(int argc, char ** argv) {
     os << "}\n\n";
   }
   os.close(); os.clear();
-  
-  //-----------------ORB file
-  
-  os.open(slwriter.orbname.c_str());
-  //this is really redundant with gamess2qmc.cpp..should probably be refactored 
-  vector < Center> centers;
-  vector <int> nbasis;
-  centers.resize(atoms.size());
-  int natoms=atoms.size();
-  nbasis.resize(natoms);
-  for(int at=0; at < natoms; at++) {
-    for(int i=0; i< 3; i++) centers[at].pos[i]=atoms[at].pos[i];
-    centers[at].equiv_atom=at;
-    centers[at].name=atoms[at].name;
-    nbasis[at]=basis[atoms[at].basis].nfunc();
-  }
-  print_orbitals(os,centers,nbasis, moCoeff);
-  os.close(); os.clear();
-  
-  //--------------------Slater determinant file
-  
-  string slateroutname=outputname+".slater";
-  os.open(slateroutname.c_str());
-  slwriter.print_wavefunction(os);
-  os.close(); os.clear();
-  
-  
-  //---------------------sys file
-  //May want to add a command-line switch to print out a molecule
-  string sysoutname=outputname+".sys";
-  ofstream sysout(sysoutname.c_str());
-  sysout << "SYSTEM { PERIODIC \n";
-  sysout << "  NSPIN { " << slwriter.nup << "  "
-    << slwriter.ndown << " } \n";
-  for(int at=0; at <natoms; at++) {
-    atoms[at].print_atom(sysout);
-  }
-  
-  sysout << "LATTICEVEC { \n";
-  double min_latsize=1e8;
-  for(int i=0; i< 3; i++) { 
-    double length=0;
-    for(int j=0; j< 3; j++) {
-      sysout << latvec[i][j] << " ";
-      length+=latvec[i][j]*latvec[i][j];
-    }
-    sysout << endl;
-    if(min_latsize > length) min_latsize=length;
-  }
-  sysout << "  }\n";
-  //Here we assume that nothing has a larger cutoff than 10.0 bohr..is that a good guess?
-  sysout << "  cutoff_divider " << sqrt(min_latsize)/10.0 << endl;
-  sysout << "}\n\n\n";
-  
-  int npsp=pseudo.size();
-  for(int psp=0; psp < npsp; psp++) {
-    pseudo[psp].print_pseudo(sysout);
-  }
-  sysout.close();
-  
-  //--------------------------Jastrow 2 output
 
-  double basis_cutoff=find_basis_cutoff(latvec);
+
+  //--------------------------Jastrow 2 output
   string jast2outname=outputname+".jast2";
+  double basis_cutoff=find_basis_cutoff(latvec);
   Jastrow2_wf_writer jast2writer;
   jast2writer.set_atoms(atoms);
   
@@ -240,9 +290,133 @@ int main(int argc, char ** argv) {
   ofstream jast2out(jast2outname.c_str());
   print_std_jastrow2(jast2writer, jast2out, basis_cutoff);
   jast2out.close();
-  
-}
 
+
+
+
+  //Loop over all kpoints and create appropriate input files for each
+  for (int n = 0; n < num_kpoints; ++n)
+    {
+      stringstream buffer;
+      vector < vector < double > > realMo;
+      buffer << n;
+      string tag("_" + buffer.str());
+      if (num_kpoints == 1) tag = "";
+
+      slwriter.orbname=outputname + tag + ".orb";
+      string slateroutname=outputname + tag +".slater";
+      string sysoutname=outputname + tag +".sys";
+
+      //Check if the kpoint is complex
+      int is_complex = 0;
+      for (int i = 0; i < moCoeff[n].size(); ++i)
+	{
+	  for (int j = 0; j < moCoeff[n][i].size(); ++j)
+	    {
+	      if (fabs(moCoeff[n][i][j].imag()) > 0)
+		{
+		  is_complex = 1;
+		  break;
+		}
+	    }
+	}
+
+      //Set the labels, and if it is real, copy to a real equivalent
+      if (is_complex)
+	{
+	    slwriter.orbtype = "CORBITALS";
+	    slwriter.mo_matrix_type = "CCUTOFF_MO";
+	}
+      else
+	{
+	  slwriter.orbtype = "ORBITALS";
+	  slwriter.mo_matrix_type = "CUTOFF_MO";
+
+	  //Copy real part of orbital, to real orbitals
+	  realMo.resize(moCoeff[n].size());
+	  for (int i = 0; i < moCoeff[n].size(); ++i)
+	    {
+	      realMo[i].resize(moCoeff[n][i].size());
+	      for (int j = 0; j < moCoeff[n][i].size(); ++j)
+		realMo[i][j] = moCoeff[n][i][j].real();
+	    }
+			       
+	}
+
+
+  
+      //-----------------ORB file
+      
+      os.open(slwriter.orbname.c_str());
+      //this is really redundant with gamess2qmc.cpp..should probably be refactored 
+      vector < Center> centers;
+      vector <int> nbasis;
+      centers.resize(atoms.size());
+      int natoms=atoms.size();
+      nbasis.resize(natoms);
+      for(int at=0; at < natoms; at++) {
+	for(int i=0; i< 3; i++) centers[at].pos[i]=atoms[at].pos[i];
+	centers[at].equiv_atom=at;
+	centers[at].name=atoms[at].name;
+	nbasis[at]=basis[atoms[at].basis].nfunc();
+      }
+      
+      if (is_complex)
+	print_orbitals(os, centers, nbasis, moCoeff[n]);
+      else
+	print_orbitals(os, centers, nbasis, realMo);
+      
+      os.close(); os.clear();
+      
+      //--------------------Slater determinant file
+      
+      
+      os.open(slateroutname.c_str());
+      slwriter.print_wavefunction(os);
+      os.close(); os.clear();
+      
+      
+      //---------------------sys file
+      //May want to add a command-line switch to print out a molecule
+      
+      ofstream sysout(sysoutname.c_str());
+      sysout << "SYSTEM { PERIODIC \n";
+      sysout << "  NSPIN { " << slwriter.nup << "  "
+	     << slwriter.ndown << " } \n";
+      for(int at=0; at <natoms; at++) {
+	atoms[at].print_atom(sysout);
+      }
+      
+      sysout << "LATTICEVEC { \n";
+      double min_latsize=1e8;
+      for(int i=0; i< 3; i++) { 
+	double length=0;
+	for(int j=0; j< 3; j++) {
+	  sysout << latvec[i][j] << " ";
+	  length+=latvec[i][j]*latvec[i][j];
+	}
+	sysout << endl;
+	if(min_latsize > length) min_latsize=length;
+      }
+      sysout << "  }\n";
+      //Here we assume that nothing has a larger cutoff than 12.0 bohr..is that a good guess?
+      sysout << "  cutoff_divider " << sqrt(min_latsize)/12.0 << endl;
+      
+      //Print out the k-point to the sys file
+      sysout << "  kpoint { " << kpoints_frac[n][0] 
+	     << "   " << kpoints_frac[n][1] 
+	     << "   " << kpoints_frac[n][2] << " } " << endl;
+      
+      sysout << "}\n\n\n";
+      
+      int npsp=pseudo.size();
+      for(int psp=0; psp < npsp; psp++) {
+	pseudo[psp].print_pseudo(sysout);
+      }
+      sysout.close();
+      
+    }
+}
 //###########################################################################
 
 void read_atoms(istream & is, vector <string> & currline, 
@@ -261,12 +435,12 @@ void read_atoms(istream & is, vector <string> & currline,
       coord_type=ang;
     }
     else if(currline[3]=="(scaled):") { 
-      cout << "scaled coordinates: WARNING: if you have non-orthogonal unit cells, the conversion may be incorrect.  Check atomic coordinates!!" << endl;
+      cout << "scaled coordinates" << endl;
       fac=1.0;
       coord_type=scaled;
     }
     else if(currline[3]=="(fractional):") { 
-      cout << "fractional coordinates" << endl;
+      cout << "fractional coordinates: WARNING: if you have non-orthogonal unit cells, the conversion may be incorrect.  Check atomic coordinates!!" << endl;
       fac=1.0;
       coord_type=fractional;
     }
@@ -296,7 +470,7 @@ void read_atoms(istream & is, vector <string> & currline,
   }
 }
 
-//###########################################################################
+//##########################################################################
 void read_lattice_vector(istream & is, vector <string> & currline, 
                          vector <vector <double> > & latvec) {
   string space=" ";
@@ -317,22 +491,129 @@ void read_lattice_vector(istream & is, vector <string> & currline,
       currline.clear();
       getline(is,line); split(line, space,currline);
       for(int j=0; j< 3; j++) { 
-        latvec[i][j]=atof(currline[j].c_str())*fac;
+	latvec[i][j]=atof(currline[j].c_str())*fac;
       }
     }
   }
 }
+//##########################################################################
+//Need reciprocal lattice vectors to properly normalize k-points under certain
+//input conditions
+void reciprocal_lattice_vectors(vector < vector <double > > &latvec,
+				vector < vector <double > > &recip_latvec)
+{
+  //Allocate vectors
+  vector <double> temp_vec;
+  temp_vec.resize(3);
+
+  recip_latvec.resize(3);
+  for (int i = 0; i < 3; ++i)
+    recip_latvec[i].resize(3);
+  
+  //Compute vectors
+  recip_latvec[0] = cross(latvec[1], latvec[2]);
+  temp_vec = cross(latvec[1], latvec[2]);
+  recip_latvec[0] /= dot(latvec[0], temp_vec);
+
+  recip_latvec[1] = cross(latvec[2], latvec[0]);
+  temp_vec = cross(latvec[2], latvec[0]);
+  recip_latvec[1] /= dot(latvec[1],temp_vec);
+
+  recip_latvec[2] = cross(latvec[0], latvec[1]);
+  temp_vec = cross(latvec[0], latvec[1]);
+  recip_latvec[2] /= dot(latvec[2],temp_vec);
+
+  for (int i = 0; i < 3; ++i)
+    recip_latvec[i] *= 2.0 * pi;
+}
+//#################################################################
+//Compute to qwalk-friendly fractional coordinates in the reciprocal
+//lattice basis
+void kpoint_to_frac_coords(vector < vector <double> > &recip_latvec,
+			   vector < vector <double> > &kpoints,
+			   vector < vector <double> > &kpoints_frac)
+{
+  //K-points are stored in the standard basis in reciprocal lattice space
+  //so to convert, simply need to invert the matrix of reciprocal lattice
+  //vectors and apply the resulting matrix to the k-point vectors...
+
+  vector <double> temp_vec;
+  temp_vec.resize(3);
+
+  kpoints_frac.resize(kpoints.size());
+  for (int n = 0; n < kpoints.size(); ++n)
+    kpoints_frac[n].resize(3);
+
+  vector < vector <double> > change_matrix;
+  matrix_inverse(recip_latvec, change_matrix);
+  
+
+  for (int n = 0; n < kpoints.size(); ++n)
+    {
+      temp_vec[0] = change_matrix[0][0] * kpoints[n][0] +
+	change_matrix[0][1] * kpoints[n][1] +
+	change_matrix[0][2] * kpoints[n][2];
+      temp_vec[1] = change_matrix[1][0] * kpoints[n][0] +
+	change_matrix[1][1] * kpoints[n][1] +
+	change_matrix[1][2] * kpoints[n][2];
+      temp_vec[2] = change_matrix[2][0] * kpoints[n][0] +
+	change_matrix[2][1] * kpoints[n][1] +
+	change_matrix[2][2] * kpoints[n][2];
+
+
+      //This factor of two is a little bit mysterious to me,
+      //but it matches the qwalk convention and everything works out...
+      for (int i = 0; i < 3; ++i)
+	kpoints_frac[n][i] = 2.0 * temp_vec[i];
+    }
+     
+}
+
+//###########################################################################
+//It turns out, that when there are imaginary coeff's that are both double,
+//digit and negative, that the real and imaginary coeff's are not bridged by
+//a space, but rather by the - sign.  Thus the more general split() function
+//needs a modification
+void orbital_split(string line, vector <string> & currline)
+{
+  string space = " ";
+  split(line, space, currline);
+  if (currline.size() < 7) //If last two were joined by a -...
+    {
+      int loc = currline[5].rfind("-", currline[5].size());
+      string temp_1 = currline[5].substr(0, loc - 1);
+      string temp_2 = currline[5].substr(loc, currline[5].size());
+      currline[5] = temp_1;
+      currline.push_back(temp_2);
+    }
+}
+
 
 //###########################################################################
 void read_mo_coefficients(istream & is, vector <string> & currline,
-                          Slat_wf_writer & slwriter, vector <vector <double> > & moCoeff) { 
+                          Slat_wf_writer & slwriter, vector <vector <vector <dcomplex> > > & moCoeff,
+			  vector < vector <double> > &kpoints) { 
   slwriter.use_global_centers=true;
   slwriter.write_centers=false;
   string space=" ";
+  int num_kpoints = 0;
+
+  //Temp value for storing kpoints
+  vector <double> temp_kpoint;
+  temp_kpoint.resize(3);
+
   if(currline.size() > 3 && currline[0]=="writewave:" && currline[2]=="Functions") { 
     string line;
     getline(is, line); //empty line;
-    getline(is, line); //k-points
+
+    //Read number of kpoints
+    getline(is, line); //number of k-points
+    currline.clear(); split(line, space, currline);
+    num_kpoints = atof(currline[4].c_str());
+    moCoeff.resize(num_kpoints);
+    kpoints.resize(num_kpoints);
+    cout << "Detected " << num_kpoints << " k-points in Siesta output file." << endl;
+
     getline(is, line); //nspin
     currline.clear(); split(line, space, currline);
     //cout << line << endl;
@@ -352,32 +633,42 @@ void read_mo_coefficients(istream & is, vector <string> & currline,
 
     getline(is,line); 
     
-    for(int spin=0; spin < nspin; spin++) { 
-      getline(is, line); getline(is,line); //one blank line and *'s
-      getline(is,line); //k-point line, ignore for now
-      getline(is,line); //spin component
-      getline(is,line); //Num. wavefunctions
-      currline.clear(); split(line, space, currline);
-      int norb=atoi(currline[3].c_str());
-      //cout << "norb " << norb << endl;
-      //Now start with reading the ****orbitals*** (KS wave functions)
-      for(int orb=0; orb < norb; orb++) { 
-        for(int i=0; i< 5; i++) getline(is,line); //blank, wf#, energy, ---'s, header
-        vector <double> orb(nbasis);
-        for(int b=0; b< nbasis; b++) { 
-          getline(is, line);
-          currline.clear(); split(line, space,currline);
-          orb[b]=atof(currline[5].c_str());
-        }
-        moCoeff.push_back(orb);
-        getline(is, line); //a line of --'s
+    for (int i=0; i < num_kpoints; ++i)
+      {
+	for(int spin=0; spin < nspin; spin++) { 
+	  getline(is, line); getline(is,line); //one blank line and *'s
+	  
+	  //Load k-point value into vector for printing in sys file
+	  getline(is,line); //k-point line
+	  currline.clear(); split(line, space, currline);
+	  for (int j = 0; j < 3; ++j)
+	    temp_kpoint[j] = atof(currline[j+3].c_str());
+	  kpoints[i] = temp_kpoint;
+	  
+	  getline(is,line); //spin component
+	  getline(is,line); //Num. wavefunctions
+	  currline.clear(); split(line, space, currline);
+	  int norb=atoi(currline[3].c_str());
+	  //cout << "norb " << norb << endl;
+	  //Now start with reading the ****orbitals*** (KS wave functions)
+	  for(int orb_num=0; orb_num < norb; orb_num++) { 
+	    for(int j=0; j< 5; j++) getline(is,line); //blank, wf#, energy, ---'s, header
+	    vector <dcomplex> orb(nbasis);
+	    for(int b=0; b< nbasis; b++) { 
+	      getline(is, line);
+	      currline.clear(); 
+	      orbital_split(line, currline);
+	      orb[b] = complex<double>(atof(currline[5].c_str()), atof(currline[6].c_str()));
+	    }
+	    moCoeff[i].push_back(orb);
+	    getline(is, line); //a line of --'s
+	  }
+	  if(spin==0 && nspin==2) { 
+	    slwriter.spin_dwn_start=moCoeff[i].size();
+	  }
+	} //spin loop
+	//cout << "total norbs " << moCoeff.size() << endl;
       }
-      if(spin==0 && nspin==2) { 
-        slwriter.spin_dwn_start=moCoeff.size();
-      }
-    } //spin loop
-    //cout << "total norbs " << moCoeff.size() << endl;
-
   }
   
   
@@ -533,9 +824,9 @@ void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis ) {
     Spline_basis_writer tmp_basis;
     tmp_basis.label=*nm;
     //do S orbitals..
-    for(int el=1; el < 5; el++) { //search over possible l-values
+    for(int st=1; st < 20; st++) { //search over possible states
       string prefix="ORB.S";
-      append_number(prefix, el);
+      append_number(prefix, st);
       prefix+=".";
       string postfix="."+*nm;
       int n=1;
@@ -545,18 +836,27 @@ void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis ) {
         file+=postfix;
         ifstream is(file.c_str());
         if(!is) break;
-        cout << "found " << file << endl;
+        string dummy;
+        is >> dummy >> dummy; 
+        if(dummy != *nm) { 
+          cout << "file " << file << " doesn't match name in file " << dummy << endl;
+          exit(1);
+        }
+        int el;
+        is >> el;
+        is.ignore(180,'\n');
+        cout << "found " << file << " l-value " << el <<  endl;
         switch(el) { 
-          case 1:
+          case 0:
             tmp_basis.types.push_back("S");
             break;
-          case 2:
+          case 1:
             tmp_basis.types.push_back("P_siesta");
             break;
-          case 3:
+          case 2:
             tmp_basis.types.push_back("5D_siesta");
             break;
-          case 4:
+          case 3:
             tmp_basis.types.push_back("7F_siesta");
             break;
           default:
@@ -564,7 +864,7 @@ void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis ) {
             exit(1);
         }
         //Read in the file..
-        is.ignore(180,'\n'); is.ignore(180,'\n');
+        is.ignore(180,'\n');
         double rad, val;
         vector <double> rads, vals;
         while(is >> rad && is >> val) {
@@ -591,7 +891,7 @@ void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis ) {
     int nbasis=basis.size();
     for(int i=0; i< nbasis; i++) { 
       if(basis[i].label==at->name) { 
-        at->basis=i;
+	at->basis=i;
       }
     }
   }
@@ -632,9 +932,13 @@ void read_psp(vector <Atom> & atoms, vector <Spline_pseudo_writer> & pseudo) {
     int npoints=atoi(spl[2].c_str());
     int nl=atoi(spl[0].c_str());
     int nl_up=atoi(spl[1].c_str());
+    int nl_down=nl;
     if(nl_up > 0) { 
-      cout << "Can't deal with spin-polarized pseudopotentials..sorry\n";
-      exit(1);
+      tmp_pseudo.spin_dep=true;
+      cout << "Spin-dependent pseudopotential found for " << *at << endl;
+      nl+=nl_up;
+      //cout << "Can't deal with spin-polarized pseudopotentials..sorry\n";
+      //exit(1);
     }
     //cout << "npoints " << npoints <<  " nl " << nl << endl;
     is.ignore(180,'\n'); //Radial grid..
@@ -645,16 +949,18 @@ void read_psp(vector <Atom> & atoms, vector <Spline_pseudo_writer> & pseudo) {
       rad.push_back(dum);
     }
 
+    vector <int> lvalue;
+    vector <vector <double> > up_rad(nl_down), up_val(nl_down);
+    vector <vector <double> > down_rad(nl_down), down_val(nl_down);
     for(int l=0; l< nl; l++) { 
       vector <double> val;
       is.ignore(180,'\n');
       getline(is, line);
       //cout << line << endl;
       int currl; is >> currl;
-      //cout << "l " << l << " "  << currl << endl;
-      assert(l==currl);
-      
-
+      cout << "l " << l << " "  << currl << endl;
+      lvalue.push_back(currl);
+     // assert(l==currl || l==currl-nl_down);
       for(int i=0; i< npoints; i++) { 
         double dum; is >> dum; 
         val.push_back(dum);
@@ -663,35 +969,83 @@ void read_psp(vector <Atom> & atoms, vector <Spline_pseudo_writer> & pseudo) {
       vector <double> urad, uval;
       make_uniform(rad,val,urad,uval);
       
-      //string outname="psp";
-      //append_number(outname,l);
-      //ofstream out(outname.c_str());
-      //int n=urad.size();
-      //for(int i=0; i< n; i++) {
-      //  out << urad[i] << "  " << uval[i] << endl;
-      //}
-      
-      tmp_pseudo.psp_pos.push_back(urad);
-      tmp_pseudo.psp_val.push_back(uval);
-      
+      if(l < nl_down) { 
+        down_rad[currl]=urad;
+        down_val[currl]=uval;
+      }
+      else { 
+        up_rad[currl]=urad;
+        up_val[currl]=uval;
+      }
+      //tmp_pseudo.psp_pos.push_back(urad);
+      //tmp_pseudo.psp_val.push_back(uval);
     }
     tmp_pseudo.label=*at;
+    int npts=down_val[0].size();
+
+    for(int i=0; i < nl_down; i++) { 
+      assert(down_rad[i].size() > 0);
+      cout << i << " : " << up_rad[i].size() << "  " << down_rad[i].size() << endl;
+      if(up_rad[i].size()==0) {
+        cout << "setting up channel " << i << " to down channel "<< endl;
+        up_rad[i]=down_rad[i];
+        up_val[i]=down_val[i];
+      }
+      else { 
+        for(int j=0; j< npts; j++) { 
+          assert(fabs(up_rad[i][j]-down_rad[i][j]) < 1e-9);
+          up_val[i][j]+=down_val[i][j];
+        }
+      }
+    }
+
+    
+    for(int l=0; l < nl_down-1; l++) { 
+      for(int i=0; i< npts; i++) { 
+        up_val[l][i]-=up_val[nl_down-1][i];
+        down_val[l][i]-=down_val[nl_down-1][i];
+      }
+    }
+     
+    
+    for(int l=0; l < nl_down; l++) { 
+      tmp_pseudo.psp_pos.push_back(down_rad[l]);
+      tmp_pseudo.psp_val.push_back(down_val[l]);
+    }
+    if(tmp_pseudo.spin_dep) { 
+      for(int l=0; l < nl_down; l++) { 
+        tmp_pseudo.psp_pos.push_back(up_rad[l]);
+        tmp_pseudo.psp_val.push_back(up_val[l]);
+      }
+    }
+    
+    /*
     int npts=tmp_pseudo.psp_val[0].size();
+        
+    if(nl_up > 0) { 
+      //Add the local part onto the up spin channel, too..
+      tmp_pseudo.psp_pos.push_back(tmp_pseudo.psp_pos[nl_down-1]);
+      tmp_pseudo.psp_val.push_back(tmp_pseudo.psp_val[nl_down-1]);
+    }
+        
     for(int i=0; i< npts; i++) { 
-      for(int l=0; l< nl-1; l++) { 
+      for(int l=0; l< nl_down-1; l++) { 
+        tmp_pseudo.psp_val[l][i]-=tmp_pseudo.psp_val[nl_down-1][i];
+      }
+      for(int l=nl_down; l< nl-1; l++) { 
         tmp_pseudo.psp_val[l][i]-=tmp_pseudo.psp_val[nl-1][i];
       }
     }
+         */
     pseudo.push_back(tmp_pseudo);
   }
 }
 
 
 //###########################################################################
-
 void fix_basis_norm(vector <Atom> & atoms, 
                     vector <Spline_basis_writer> & basis,
-                    vector < vector < double> > & moCoeff) {
+                    vector < vector <dcomplex> > & moCoeff) {
   
   int nmo=moCoeff.size();
   int funcnum=0;
@@ -711,7 +1065,7 @@ void fix_basis_norm(vector <Atom> & atoms,
       else if(*type=="P_siesta") L=1;
       else if(*type=="5D_siesta") L=2;
       else if(*type=="7F_siesta") L=3;
-      else { cout << "unkown type! " << *type << endl; exit(3); }
+      else { cout << "unknown type! " << *type << endl; exit(3); }
       double norm=(2.0*L+1)/(4*pi);
       for(int m=-L; m< L+1; m++) { 
         int absm=abs(m);

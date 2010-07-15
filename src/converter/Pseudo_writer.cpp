@@ -24,6 +24,7 @@ using namespace std;
 
 void Gaussian_pseudo_writer::print_pseudo(ostream & os) {
     string indent="";
+  os.precision(32);
     int numL=exponents.size();
     int naip=6;
     if(numL > 2) naip=12;
@@ -57,26 +58,29 @@ void Gaussian_pseudo_writer::print_pseudo(ostream & os) {
 
 void Spline_pseudo_writer::print_pseudo(ostream & os) {
 
-    string indent = "    ";
-    int numL=psp_pos.size();
-    int naip=6;
-    if(numL > 2) naip=12;
+  string indent = "    ";
+  int numL=psp_pos.size();
+  int naip=6;
+  if(numL > 2) naip=12;
+  if(spin_dep) numL/=2;
+  
+  os << indent << "PSEUDO { \n";
+  os << indent << "  " << label << endl;
+  os << indent << "  AIP "<< naip << " \n";
+  os << indent << "  ADD_ZEFF  #add zeff over r to the local function\n";
+  string filename_base=label+".qmcpseudo";
 
-    os << indent << "PSEUDO { \n";
-    os << indent << "  " << label << endl;
-    os << indent << "  AIP "<< naip << " \n";
-    os << indent << "  ADD_ZEFF  #add zeff over r to the local function\n";
-    os << indent << "  BASIS { \n";
-    os << indent << "  " << label << endl;
+  if(spin_dep) { 
+    os << indent << " SPIN_DEP \n";
+    os << indent << " BASIS_DN { \n";
+    os << indent << " " << label << endl;
+
     os << indent << "  AOSPLINE \n";
     os << indent << "  NORENORMALIZE \n";
-    string pseudofilename=label + ".qmcpseudo";
-    os << indent << "  INCLUDE " << pseudofilename << "\n";
+    string filename=filename_base+"_dn";
+    os << indent << "  INCLUDE " << filename << "\n";
     os << indent << "  }\n";
-    os << indent << "}\n\n";
-
-
-    ofstream pseudofile(pseudofilename.c_str());
+    ofstream pseudofile(filename.c_str());
     pseudofile.precision(15);
     
     for(int i=0; i< numL; i++) {
@@ -88,7 +92,59 @@ void Spline_pseudo_writer::print_pseudo(ostream & os) {
         << psp_val[i][p] << endl;
       }
       pseudofile << "} \n";
-   }
+      //pseudofile << endl;
+    }
+    pseudofile.close();
+    
+    filename=filename_base+"_up";
+    os << indent << " BASIS_UP  { \n";
+    os << indent << " " << label << endl;
+    os << indent << "  AOSPLINE \n";
+    os << indent << "  NORENORMALIZE \n";
+    os << indent << "  INCLUDE " << filename << "\n";
+    os << indent << "  }\n";
+    pseudofile.open(filename.c_str());
+    pseudofile.precision(15);
+    
+    for(int i=numL; i< 2*numL; i++) {
+      pseudofile << "SPLINE { \n";
+      int npoints=psp_pos[i].size();
+      pseudofile << "S"  << endl;
+      for(int p=0; p < npoints; p++) {
+        pseudofile << "     " << psp_pos[i][p] << "  "
+        << psp_val[i][p] << endl;
+      }
+      pseudofile << "} \n";
+      //pseudofile << endl;
+    }
+    pseudofile.close();
+    
+  }
+  else { 
+    os << indent << "  BASIS { \n";
+    os << indent << "  " << label << endl;
+    os << indent << "  AOSPLINE \n";
+    os << indent << "  NORENORMALIZE \n";
+    os << indent << "  INCLUDE " << filename_base << "\n";
+    os << indent << "  }\n";
+    ofstream pseudofile(filename_base.c_str());
+    pseudofile.precision(15);
+    
+    for(int i=0; i< numL; i++) {
+      pseudofile << "SPLINE { \n";
+      int npoints=psp_pos[i].size();
+      pseudofile << "S"  << endl;
+      for(int p=0; p < npoints; p++) {
+        pseudofile << "     " << psp_pos[i][p] << "  "
+        << psp_val[i][p] << endl;
+      }
+      pseudofile << "} \n";
+    }
+    
+  }
+  os << indent << "}\n\n";
+  
+  
 }
 
 //----------------------------------------------------------------------

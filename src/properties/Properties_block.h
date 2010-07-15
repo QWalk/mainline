@@ -64,8 +64,6 @@ struct Properties_block {
     
     aux_size.Resize(naux);
     aux_size=1;
-    z_pol.Resize(3);
-    aux_z_pol.Resize(naux, 3);
     aux_weight_correlation=0;
   }
 
@@ -94,13 +92,9 @@ struct Properties_block {
 
   Array2 <doublevar> aux_autocorr;
   
-  Array1 <dcomplex> z_pol;
-
-  Array2 <dcomplex> aux_z_pol;
-
   doublevar aux_weight_correlation;
 
-  Array1 <Average_return > avgrets;
+  Array2 <Average_return > avgrets;
   
 };
 

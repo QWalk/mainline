@@ -501,17 +501,16 @@ void Rndmc_method::runWithVariables(Properties_manager & prop,
   cout.precision(15);
   output.precision(10);
 
-  aux_converge=1;
   
   prop.setSize(wf->nfunc(), nblock, nstep, nconfig, sys, 
-	       wfdata, mygather.nAux(), aux_converge);
+	       wfdata);
 
   //MB: setting things for the myprop_unbiased and myprop_absolute
   myprop_unbiased.setSize(wf->nfunc(), nblock, nstep, nconfig, sys, 
-	       wfdata, mygather.nAux(), aux_converge);
+	       wfdata);
   
   myprop_absolute.setSize(wf->nfunc(), nblock, nstep, nconfig, sys, 
-	       wfdata, mygather.nAux(), aux_converge);
+	       wfdata);
   restorecheckpoint(readconfig, sys, wfdata, pseudo);
 
   prop.initializeLog(average_var);
@@ -547,16 +546,11 @@ void Rndmc_method::runWithVariables(Properties_manager & prop,
   
 
 
-  int naux=mygather.nAux();
 
   nhist=1;
   //setting the projection time for auxillary walkers to 1 a.u.
-  if(naux >0 && nhist <0) nhist=int(1.0/timestep)+1;
-  if(naux > 0 && tmoves) error("Can't do t-moves and auxillary walks yet");
-  //if(tmoves) pseudo->setDeterministic(1); //this may not be necessary..not sure yet.
   
   doublevar teff=timestep;
-  Array1 <doublevar> aux_timestep(naux,teff);
 
   for(int block=0; block < nblock; block++) {
 
@@ -570,7 +564,6 @@ void Rndmc_method::runWithVariables(Properties_manager & prop,
       Dynamics_info dinfo;
       doublevar acsum=0;
       doublevar deltar2=0;
-      Array1 <doublevar> aux_rf_diffusion(naux,0.0);
       Array1 <doublevar> epos(3);
       
       doublevar avg_acceptance=0;
@@ -594,15 +587,9 @@ void Rndmc_method::runWithVariables(Properties_manager & prop,
             if(dinfo.accepted) 
               deltar2+=dinfo.diffusion_rate/(nconfig*nelectrons*npsteps);
             
-            Array1 <Dynamics_info> aux_dinfo(naux);
-            mygather.getGreensFunctions(dyngen, dinfo, e,sample, guidingwf,
-                                        timestep, aux_dinfo, 0);
             
             if(dinfo.accepted) { 
               rf_diffusion+=dinfo.diffusion_rate/(nconfig*nelectrons*npsteps);
-              for(int i=0; i< naux; i++) 
-                aux_rf_diffusion(i)+=
-                  aux_dinfo(i).diffusion_rate/(nconfig*nelectrons*npsteps);
               
               pts(walker).age(e)=0;
             }
@@ -619,14 +606,13 @@ void Rndmc_method::runWithVariables(Properties_manager & prop,
           vector <Tmove> tmov;
           doublevar subtract_out_enwt=0;
           if(tmoves) {  //------------------T-moves
-            pt.setSize(nwf,0,0);
+            pt.setSize(nwf);
             wf->getVal(wfdata,0,pt.wf_val);
             sys->calcKinetic(wfdata,sample,wf,pt.kinetic);
             pt.potential=sys->calcLoc(sample);
             pt.weight=1.0; //this gets set later anyway
             pt.count=1;
-            pseudo->calcNonlocTmove(wfdata,sample,wf,pt.nonlocal,tmov);
-            getZpol(sys, sample, pt.z_pol,1); //always do the many-body zpol, because it's correct
+            pseudo->calcNonlocTmove(wfdata,sys,sample,wf,pt.nonlocal,tmov);
             //cout << "choosing among " <<  tmov.size() << " tmoves " << endl;
             //Now we do the t-move
             doublevar sum=1; 
@@ -659,41 +645,12 @@ void Rndmc_method::runWithVariables(Properties_manager & prop,
           else { 
 	    //MB: this is where all the properties at the new step are evaluated
             mygather.gatherData(pt, pseudo, sys, wfdata, wf, 
-                                sample, guidingwf, aux_converge,0);
+                                sample, guidingwf);
 	    	    
-	    // ***
-	    // This extra gradient term is already contained in the
-	    // kinetic energy!
-	    // ***
-	    // gradient of phase added to potential in the case of fixed
-	    // phase method. Cannot be inside gatherData, since that one
-	    // is called also in VMC. However, this way we calculate the
-	    // wf value & derivative twice, which is quite silly (getLap
-	    // recalculates things on every call)
-	    /*
-	    Wf_return wf_val(nwf,5);
-	    wf->getVal(wfdata, 0, wf_val);
-	    if ( wf_val.is_complex == 1 ) {
-	      for(int w=0; w< nwf; w++) {
-		for(int e=0; e< nelectrons; e++) {
-		  wf->getLap(wfdata,e,wf_val);
-		  pt.potential(w)+=
-		    0.5*( wf_val.phase(w,1)*wf_val.phase(w,1)
-			  +wf_val.phase(w,2)*wf_val.phase(w,2)
-			  +wf_val.phase(w,3)*wf_val.phase(w,3) );
-		}
-	      }
-	    }
-	    */
-	    // ***
-
 	  }
           
           Dmc_history new_hist;
           new_hist.main_en=pts(walker).prop.energy(0);
-          new_hist.aux_en=pts(walker).prop.aux_energy;
-          //cout << " main en " << pts(walker).prop.energy(0) << endl;
-          //cout << " aux en " << pts(walker).prop.aux_energy(0,0) << endl;
           pts(walker).past_energies.push_front(new_hist);
           deque<Dmc_history> & past(pts(walker).past_energies);
           if(past.size() > nhist) 
@@ -705,7 +662,7 @@ void Rndmc_method::runWithVariables(Properties_manager & prop,
 	  //MB: this is how we track the sign
           //MB: pts(walker).sign is before the step and the pts(walker).prop.sign(0) is after
           //MB: if they change weight will change the sign as well
-	  if(pts(walker).sign!=pts(walker).prop.sign(0)){
+	  if(pts(walker).sign!=pts(walker).prop.wf_val.sign(0)){
 	    cout <<"node: "<<mpi_info.node <<" walker "<<walker<<" changed the sign "<<endl;
 	    //cout <<" pts(walker).weight "<<pts(walker).weight<<" pts(walker).prop.weight(0) "<<pts(walker).prop.weight(0)<<
 	    // " pts(walker).sign "<<pts(walker).sign<<" pts(walker).prop.sign "<<pts(walker).prop.sign<<endl;
@@ -732,21 +689,21 @@ void Rndmc_method::runWithVariables(Properties_manager & prop,
 
 	  //MB: finnaly everything is put to pts(walker).prop for averaging
           pts(walker).prop.weight=pts(walker).weight;
-	  pts(walker).prop.sign=pts(walker).sign;
+    //LKW: prop.sign() is redundant information..either the sign should be in 
+          //the weight or in wf_val.
+	  //pts(walker).prop.sign=pts(walker).sign;
 	  
 	  //cout <<"final weight is "<<pts(walker).prop.weight(0)<<endl;
 
-          getAuxWeight(pts(walker), teff, aux_timestep,pts(walker).prop.aux_weight);
-          for(int a=0; a< naux; a++) pts(walker).prop.aux_weight(a,0)*=pts(walker).weight;
           //This is somewhat inaccurate..will need to change it later
           //For the moment, the autocorrelation will be slightly
           //underestimated
           pts(walker).prop.parent=walker;
           pts(walker).prop.nchildren=1;
           pts(walker).prop.children(0)=walker;
-          pts(walker).prop.avgrets.Resize(average_var.GetDim(0));
+          pts(walker).prop.avgrets.Resize(1,average_var.GetDim(0));
           for(int i=0; i< average_var.GetDim(0); i++) { 
-            average_var(i)->evaluate(wfdata, wf, sys, sample, pts(walker).prop.avgrets(i));
+            average_var(i)->evaluate(wfdata, wf, sys, sample, pts(walker).prop.avgrets(0,i));
           }
           
 	  //MB: after evaluating the properties all are stored in the prop
@@ -798,13 +755,8 @@ void Rndmc_method::runWithVariables(Properties_manager & prop,
 	//cout <<endl;
        }
       
-
-      //-----------Find the effective timesteps(of main and aux walks)
       doublevar accept_ratio=acsum/(nconfig*nelectrons*npsteps);
       teff=timestep*accept_ratio; //deltar2/rf_diffusion; 
-      for(int i=0; i< naux; i++)  {
-        aux_timestep(i)=teff*(aux_rf_diffusion(i)/rf_diffusion);
-      }
 
       updateEtrial(feedback);
 
@@ -1244,40 +1196,6 @@ doublevar Rndmc_method::getWeight(Dmc_point & pt,
                                 
 //----------------------------------------------------------------------
 
-
-void Rndmc_method::getAuxWeight(Dmc_point & pt, 
-                              doublevar teff, 
-                              Array1 <doublevar>&  aux_teff, 
-			      Array2 <doublevar> & aux_weight) {
-
-
-  int naux=pt.prop.aux_energy.GetDim(0);
-  doublevar etr=eref;
-  aux_weight.Resize(naux,1);
-  for(int a=0; a< naux; a++) { 
-    doublevar w=1;
-    w*=pt.prop.aux_jacobian(a);
-    doublevar ratio=guidingwf->getTrialRatio(pt.prop.aux_wf_val(a), 
-					     pt.prop.wf_val);
-    w*= ratio*ratio;
-
-    doublevar fbet=max(etr-pt.prop.aux_energy(a,0), etr-pt.prop.energy(0));
-    if(fbet > branchcut_stop) w=0;
-    w*=exp(-.5*(aux_teff(a)*pt.prop.aux_energy(a,0)-teff*pt.prop.energy(0)));
-    for(deque<Dmc_history>::iterator i=pt.past_energies.begin();
-        i!=pt.past_energies.end()-1; i++) {
-      doublevar fbet=max(etr-i->main_en, etr-i->aux_en(a,0));
-      if(fbet < branchcut_stop) 
-        w*=exp(-(aux_teff(a)*i->aux_en(a,0)-teff*i->main_en));
-    }
-    Dmc_history & last(*(pt.past_energies.end()-1));
-     fbet=max(etr-last.main_en, etr-last.aux_en(a,0));
-    if(fbet< branchcut_stop) 
-      w*=exp(-(aux_teff(a)*last.aux_en(a,0)-teff*last.main_en));
-    aux_weight(a,0)=w; 
-  }
-  
-}
 
 //----------------------------------------------------------------------
 struct Queue_element { 

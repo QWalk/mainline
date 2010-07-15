@@ -373,12 +373,12 @@ void Shdmc_method::get_averages(Array1 <doublevar> & parms,
     int navg_vals=finavg.avgavg.GetDim(0);
     for(int i=0; i< navg_vals; i++) { 
       //output << "      "<<  "average_generator { " << finavg2.avgavg(i).type << " ";
-      if(finavg.avgavg(i).type=="linear_der"){
-	int ndimm=finavg.avgavg(i).vals.GetDim(0)-1;
+      if(finavg.avgavg(0,i).type=="linear_der"){
+	int ndimm=finavg.avgavg(0,i).vals.GetDim(0)-1;
 	assert(ndim==ndimm);
 	for(int j=0; j< ndim; j++) { 
-	  doublevar value=finavg.avgavg(i).vals(j)/finavg.avgavg(i).vals(ndim);
-	  doublevar error=finavg.avgerr(i).vals(j)/finavg.avgavg(i).vals(ndim);
+	  doublevar value=finavg.avgavg(0,i).vals(j)/finavg.avgavg(0,i).vals(ndim);
+	  doublevar error=finavg.avgerr(0,i).vals(j)/finavg.avgavg(0,i).vals(ndim);
 	  //output << value << " +/- "<<error<<endl;
 	    if(abs(value)>2*error)
 	      new_parms(j)=value;
@@ -387,16 +387,16 @@ void Shdmc_method::get_averages(Array1 <doublevar> & parms,
 	}
 	  //output << " } " << endl;
       }//end if 
-      else if(finavg.avgavg(i).type=="linear_delta_der"){
-	int ndimm=finavg.avgavg(i).vals.GetDim(0)-1;
+      else if(finavg.avgavg(0,i).type=="linear_delta_der"){
+	int ndimm=finavg.avgavg(0,i).vals.GetDim(0)-1;
 	assert(ndim==ndimm);
 	for(int j=0; j< ndim; j++) { 
-	  doublevar value=parms(j)+scale_step*finavg.avgavg(i).vals(j)/finavg.avgavg(i).vals(ndim);
+	  doublevar value=parms(j)+scale_step*finavg.avgavg(0,i).vals(j)/finavg.avgavg(0,i).vals(ndim);
 	  if(fabs(parms(j))>0)
-	    delta_parms(j)=scale_step*finavg.avgavg(i).vals(j)/finavg.avgavg(i).vals(ndim); 
+	    delta_parms(j)=scale_step*finavg.avgavg(0,i).vals(j)/finavg.avgavg(0,i).vals(ndim); 
 	  else
 	    delta_parms(j)=0.0; 
-	  doublevar error=finavg.avgerr(i).vals(j)/finavg.avgavg(i).vals(ndim);
+	  doublevar error=finavg.avgerr(0,i).vals(j)/finavg.avgavg(0,i).vals(ndim);
 	  //output << value << " +/- "<<error<<endl;
 	  if(abs(value)>2*error){
 	    new_parms(j)=value;

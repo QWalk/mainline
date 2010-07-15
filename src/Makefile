@@ -3,7 +3,8 @@
 #   any of these can be overridden by environment variables of the
 #   same name, or by command line options "make target PLATFORM=foo"
 PLATFORM = $(shell uname -s)
-DVLPATH = .
+DVLPATH = $(shell pwd)
+INSTALLPATH = $(DVLPATH)/../bin/
 
 ####################################################################
 # Derived paths, all relative to the base path.  These shouldn't
@@ -31,8 +32,8 @@ NODEPENDGOALS = depend clean totalclean cleanhtml html all
 
 ####################################################################
 # Special rules
-all: $(PROJECT) gosling  
-.PHONY: clean totalclean depend  gosling pw2lcao
+all: $(PROJECT) gosling converter
+.PHONY: clean totalclean depend  gosling pw2lcao converter install
 #.SILENT:
 ####################################################################
 # Included files for dependency and platform specific defines
@@ -53,10 +54,19 @@ gosling:
 pw2lcao:
 	$(MAKE) -f Makefile.pw2lcao
 
+converter:
+	cd converter; $(MAKE) ; cd ..
+
 clean:
 	@echo ________________________________________________________________
 	@echo Cleaning object files...
 	rm -f $(OBJS) core $(PROJECT)
-	make -f Makefile.gosling clean
+	$(MAKE) -f Makefile.gosling clean
+	cd converter; $(MAKE) clean 
+
+install: 
+	@echo ________________________________________________________________
+	@echo Installing to $(INSTALLPATH)
+	perl install.pl $(INSTALLPATH) $(PLATFORM)
 
 include make.rules

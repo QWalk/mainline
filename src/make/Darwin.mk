@@ -4,13 +4,11 @@ CXX:=g++
 
 CXXFLAGS := -O3   \
    -funroll-loops -ffast-math  \
-  $(INCLUDEPATH) -fomit-frame-pointer
+  $(INCLUDEPATH) # -fomit-frame-pointer
+ #not omitting the frame pointer so we get instrumentation
 
-#CXXFLAGS := -O1 -g  $(INCLUDEPATH)
-#CXXFLAGS := -O0 -g  $(INCLUDEPATH)
-
-# uncomment here if you've installed ATLAS through Fink
-#CXXFLAGS+= -DUSE_LAPACK -DUSE_BLAS
+CXXFLAGS+= -DUSE_LAPACK -DUSE_BLAS 
+# uncomment here if you've installed ATLAS through Fink, otherwise use the accelerate framework
 #LAPACK_LIBS := -L/sw/lib/ -llapack -lf77blas -lcblas -latlas
 #LAPACK_INCLUDE := -I/sw/include/
 
@@ -18,9 +16,8 @@ BLAS_LIBS := $(LAPACK_LIBS)
 BLAS_INCLUDE := $(LAPACK_INCLUDE)
 
 DEBUG:= -Wall -DNO_RANGE_CHECKING -DNDEBUG    -DDEBUG_WRITE
-#DEBUG:= -Wall -DRANGE_CHECKING -DDEBUG    -DDEBUG_WRITE
-#DEBUG:= -Wall -DNO_RANGE_CHECKING -DDEBUG    -DDEBUG_WRITE
-LDFLAGS:= 
+#DEBUG := -Wall -DRANGE_CHECKING  -DDEBUG_WRITE
+LDFLAGS:=  -framework Accelerate
 
 ######################################################################
 # This is the invokation to generate dependencies

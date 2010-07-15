@@ -41,15 +41,11 @@ struct Reptile_point {
   Properties_point prop;
 
   Array1 < Array1 <doublevar> > electronpos;
-  Array2 <doublevar>  deriv;
 
   doublevar age;
   doublevar branching; //!< branching weight
-  Array1 <doublevar> aux_branching;
 
   Array2 <doublevar> drift;
-  Array1 < Array2 <doublevar> > aux_drift;
-  Array1 < Array2 <doublevar> > aux_positions;
 
 
   //--------------------------------------------------
@@ -73,14 +69,8 @@ struct Reptile_point {
   //--------------------------------------------------
   void write(string & indent, ostream & os) {
     int nelectrons=electronpos.GetDim(0);
-    int naux=aux_branching.GetDim(0);
-    os << "naux " << naux << endl;
     os << indent <<  "age " << age << endl;
     os << indent << "branching " << branching << endl;
-    os << indent << "aux_branching ";
-    for(int a=0; a< naux; a++) 
-      os << aux_branching(a) << "   ";
-    os << endl;
 	
 
     os << indent << "numElectrons " << nelectrons <<  endl;
@@ -98,27 +88,6 @@ struct Reptile_point {
       os << endl;
     }
 
-    for(int a=0; a< naux; a++) {
-      os << indent << "aux_position" << endl;
-      for(int e=0; e< nelectrons; e++) {
-	os << indent;
-	for(int d=0; d< 3; d++) 
-	  os << aux_positions(a)(e,d) << "   ";
-	os << endl;
-      }   
-      os << indent << "aux_drift" << endl;
-      for(int e=0; e< nelectrons; e++) {
-	os << indent;
-	for(int d=0; d< 3; d++) 
-	  os << aux_drift(a)(e,d) << "   ";
-	os << endl;
-      }    
-    }
-
-    
-    if(deriv.GetDim(0) > 0) {
-      error("don't support derivative saving");
-    }
     string indent2=indent+"  ";
     os << indent << "Properties_point  {" << endl;
     prop.write(indent2,os);
@@ -129,9 +98,6 @@ struct Reptile_point {
   void read(istream & is) { 
     string dummy; int nelectrons;
     const char *errmsg="misformatting in checkpoint read";
-    int naux;
-    is >> dummy >> naux;
-    if(dummy != "naux") error(errmsg);
     
     is >> dummy >> age;
     if(dummy != "age") error(errmsg);
@@ -139,13 +105,6 @@ struct Reptile_point {
     if(dummy != "branching") 
       error("expected branching, got ", dummy, " This probably means that your"
             " config files are too old.  Sorry!");
-    is >> dummy;
-    if(dummy!="aux_branching")
-      error(errmsg);
-    aux_branching.Resize(naux);
-    for(int a=0; a< naux; a++) {
-      is >> aux_branching(a);
-    }
     is >> dummy >> nelectrons;
     if(dummy!="numElectrons") error(errmsg);
     
@@ -163,25 +122,6 @@ struct Reptile_point {
       }
     }
 
-    aux_positions.Resize(naux);
-    aux_drift.Resize(naux);
-    for(int a=0; a< naux; a++) {
-      is >> dummy;
-      if(dummy != "aux_position") error(errmsg);
-      aux_positions(a).Resize(nelectrons,3);
-      aux_drift(a).Resize(nelectrons,3);
-      for(int e=0; e< nelectrons; e++) {
-	for(int d=0; d< 3; d++) 
-	  is >> aux_positions(a)(e,d);
-      } 
-      is >> dummy;
-      if(dummy != "aux_drift") error(errmsg);
-      for(int e=0; e< nelectrons; e++) {
-	for(int d=0; d< 3; d++) 
-	  is >> aux_drift(a)(e,d) ;
-      } 
-
-    }
     
     is >> dummy; 
     if(dummy!="Properties_point") error(errmsg);
@@ -192,36 +132,6 @@ struct Reptile_point {
   //--------------------------------------------------
 
 };
-
-//---------------------------------------------------------------------
-/*
- *Removing this because it doesn't really work very well.
-#include "Force_fitter.h"
-
-void getDerivative(Pseudopotential * psp, System *sys , 
-                   Wavefunction_data *wfdata,
-                   Wavefunction * wf, Sample_point * sample, 
-                   Array2 <doublevar> & deriv) {
-  
-  Force_fitter f_fit;
-  f_fit.setup(1.0,15);
-
-  
-  deriv=0;
-  //psp->getLocalDerivative(sample,f_fit, deriv);
-  Array1 <doublevar> totalv(wf->nfunc());
-  psp->calcNonloc(wfdata,sample, wf, f_fit, totalv,deriv);
-  Array1 <doublevar> locder(3);
-
-  int nions=sys->nIons();
-  for(int  at=0; at < nions; at++) {
-    sys->locDerivative(at, sample,f_fit, locder);
-    for(int d=0; d< 3;d++)
-      deriv(at,d)+=locder(d);
-  }
-
-}
-*/
 
 //----------------------------------------------------------------------
 
@@ -290,9 +200,6 @@ void Reptation_method::read(vector <string> words,
   }
   
 
-  //EXPERIMENTAL stuff!
-  calc_full_gf=haskeyword(words,pos=0,"FULL_GF");
-  calc_hf_derivatives=haskeyword(words,pos=0,"HF_DERIVATIVES");
   sampler->enforceNodes(1);
 
   guidewf=new Primary;
@@ -532,13 +439,9 @@ void Reptation_method::get_avg(deque <Reptile_point> & reptile,
 			       Properties_point & pt) {
   int size=reptile.size();
   int nwf=reptile[0].prop.kinetic.GetDim(0);
-  int naux=reptile[0].prop.aux_energy.GetDim(0);
   if(nwf >1) error("nwf > 0 not supported yet");
 
-  pt.setSize(nwf, naux,2);
-  
-  
-
+  pt.setSize(nwf);
   
   Reptile_point & last(reptile[size-1]);
 
@@ -552,33 +455,7 @@ void Reptation_method::get_avg(deque <Reptile_point> & reptile,
   //pt.potential(0)=.5*(first.prop.potential(0) + last.prop.potential(0));
   pt.count=1;
   pt.weight=1;
-
-  //for(int a=0; a< naux; a++) {
-  //  for(int i=0; i< 2; i++) 
-  //    pt.aux_energy(a,i)=.5*(first.prop.aux_energy(a,i)
-  //			     +last.prop.aux_energy(a,i));
-  //}
   
-  pt.aux_weight.Resize(naux,2);
-  pt.aux_weight=1.0;
-  for(deque<Reptile_point>::iterator r=reptile.begin()+1;
-      r!=reptile.end(); r++) {
-    for(int a=0; a< naux; a++) {
-      doublevar branch_part=exp(r->aux_branching(a)-r->branching);
-      pt.aux_weight(a,0)*=branch_part;
-      doublevar dyn_part=exp(r->prop.aux_gf_weight(a)-r->prop.gf_weight);
-      pt.aux_weight(a,1)*=branch_part*dyn_part*r->prop.aux_jacobian(a);
-    }
-  }
-  for(int a=0; a< naux; a++) {
-    doublevar first_ratio=guidewf->getTrialRatio(first.prop.aux_wf_val(a),
-        first.prop.wf_val);
-    doublevar last_ratio=guidewf->getTrialRatio(last.prop.aux_wf_val(a),
-        last.prop.wf_val);
-    pt.aux_weight(a,0)*=last_ratio*last_ratio*last.prop.aux_jacobian(a);
-
-    pt.aux_weight(a,1)*=first_ratio*last_ratio*first.prop.aux_jacobian(a);
-  } 
 }
 
 
@@ -588,10 +465,9 @@ void Reptation_method::get_center_avg(deque <Reptile_point> & reptile,
 				      Properties_point & pt) { 
   int nwf=reptile[0].prop.kinetic.GetDim(0);
   int size=reptile.size();
-  //if(naux >0) error("naux > 0 not supported yet.");
   if(nwf >1) error("nwf > 0 not supported yet");
 
-  pt.setSize(nwf, 0);
+  pt.setSize(nwf);
   int num=size/2+1;
   pt=reptile[num].prop;
 
@@ -607,18 +483,10 @@ doublevar Reptation_method::slither(int direction,
                                     deque <Reptile_point> & reptile,
                                     Properties_gather & mygather, 
                                     Reptile_point & pt, 
-                                    doublevar & main_diffusion, 
-                                    Array1 <doublevar> & aux_diffusion) {
+                                    doublevar & main_diffusion) {
   
   Dynamics_info dinfo;
   int nelectrons=sample->electronSize();
-  int naux=mygather.nAux();
-  Array1 <Dynamics_info> aux_dinfo(naux);
-  main_diffusion=0;
-  aux_diffusion.Resize(naux); aux_diffusion=0;
-  pt.prop.gf_weight=1;
-  pt.prop.aux_gf_weight.Resize(naux);
-  pt.prop.aux_gf_weight=1;
   
   for(int e=0; e<nelectrons; e++) {
     sampler->sample(e,sample, wf, 
@@ -626,25 +494,8 @@ doublevar Reptation_method::slither(int direction,
 
   }
   //Update all the quantities we want
-  mygather.extendedGather(pt.prop, pseudo, sys, mywfdata, wf,
-                        sample, guidewf, n_aux_cvg,0,pt.drift,
-			  pt.aux_drift, pt.aux_positions);
+  mygather.gatherData(pt.prop, pseudo, sys, mywfdata, wf, sample, guidewf);
 
-  Array1 <doublevar> tmpdft(3);
-  for(int e=0;e < nelectrons; e++) {
-    for(int d=0;d < 3; d++) tmpdft(d)=pt.drift(e,d);
-    limDrift(tmpdft,timestep, drift_cyrus);
-    for(int d=0;d < 3; d++) pt.drift(e,d)=tmpdft(d);
-    for(int a=0; a< naux; a++) {
-      for(int d=0; d< 3; d++) tmpdft(d)=pt.aux_drift(a)(e,d);
-      limDrift(tmpdft,timestep, drift_cyrus);
-      for(int d=0; d< 3; d++) pt.aux_drift(a)(e,d)=tmpdft(d);
-    }
-  }
-
-  //let's not worry about H-F derivatives at the moment
-  //if(calc_hf_derivatives) 
-  //  getDerivative(pseudo, sys, mywfdata, wf, sample, pt.deriv);
 
   pt.savePos(sample);
 
@@ -657,43 +508,9 @@ doublevar Reptation_method::slither(int direction,
       last_point=(reptile.end()-1);
     else 
       last_point=reptile.begin();
-    olden=last_point->prop.energy(0);
-
-    for(int e=0; e< nelectrons; e++) {
-      for(int d=0;d < 3; d++) {
-	doublevar y=pt.electronpos(e)(d);
-	doublevar x=last_point->electronpos(e)(d);
-	if(fabs(y-x) > 1e-15) { 
-	  doublevar dry=pt.drift(e,d);
-	  doublevar drx=last_point->drift(e,d);
-
-	  pt.prop.gf_weight+=(x-y)*(x-y)
-	    +(x-y)*(drx-dry)
-	    +.5*(drx*drx+dry*dry);
-	    
-	  main_diffusion+=(y-x-drx)*(y-x-drx);
-	}
-      }
-    }
-    pt.prop.gf_weight=-pt.prop.gf_weight/(2*timestep);
-    for(int a=0; a< naux; a++) { 
-      for(int e=0; e< nelectrons; e++) {
-	for(int d=0;d < 3; d++) {
-	  doublevar y=pt.aux_positions(a)(e,d);
-	  doublevar x=last_point->aux_positions(a)(e,d);
-	  if(fabs(y-x)> 1e-15) { 
-	    doublevar dry=pt.aux_drift(a)(e,d);
-	    doublevar drx=last_point->aux_drift(a)(e,d);
-	    pt.prop.aux_gf_weight(a)+=(x-y)*(x-y)
-	      +(x-y)*(drx-dry)
-	      +.5*(drx*drx+dry*dry);
-	    aux_diffusion(a)+=(y-x-drx)*(y-x-drx);
-	  }
-	}
-      } 
-      pt.prop.aux_gf_weight(a)*= -1.0/(2*aux_timestep(a));
-    }
+      olden=last_point->prop.energy(0);
   }
+
   //Cutting off the energy
   doublevar fbet=max(eref-nen,eref-olden);
   doublevar cutoff=1;
@@ -704,13 +521,6 @@ doublevar Reptation_method::slither(int direction,
 
   pt.branching=-0.5*timestep*cutoff*(olden+nen);
 
-  pt.aux_branching.Resize(naux);
-  pt.aux_branching=0.0;
-  if(reptile.size()>0) { 
-    for(int a=0; a< naux; a++) 
-      pt.aux_branching(a)=-0.5*aux_timestep(a)*cutoff
-        *(pt.prop.aux_energy(a,0)+last_point->prop.aux_energy(a,0));
-  }
   
   
   //Acceptance..
@@ -728,10 +538,9 @@ doublevar Reptation_method::slither(int direction,
     accept=0;
   }
   
-  
-  pt.prop.avgrets.Resize(average_var.GetDim(0));
+  pt.prop.avgrets.Resize(1,average_var.GetDim(0));
   for(int i=0; i< average_var.GetDim(0); i++) { 
-    average_var(i)->evaluate(mywfdata, wf, sys, sample, pt.prop.avgrets(i));
+    average_var(i)->evaluate(mywfdata, wf, sys, sample, pt.prop.avgrets(0,i));
   }
   
   return accept;
@@ -755,17 +564,12 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
   int nelectrons=sys->nelectrons(0)+sys->nelectrons(1);
   allocateIntermediateVariables(sys, wfdata);
   
-  n_aux_cvg=1; 
-  if(calc_full_gf) 
-    n_aux_cvg=2;//0 is cyrus reweighting and 1 is full green's function
 
   
   prop.setSize(wf->nfunc(), nblock, nstep, 1, 
-               sys, wfdata, mygather.nAux(),n_aux_cvg);
+               sys, wfdata);
   prop.initializeLog(average_var);
 
-  aux_timestep.Resize(mygather.nAux());
-  aux_timestep=timestep;
   Properties_manager prop_center;
   string logfile, label_temp;
   prop.getLog(logfile, label_temp);
@@ -773,7 +577,7 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
   prop_center.setLog(logfile, label_temp);
   
   prop_center.setSize(wf->nfunc(), nblock, nstep, 1, sys, 
-                      wfdata,0);
+                      wfdata);
   prop_center.initializeLog(average_var);
 
 
@@ -787,20 +591,16 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
   int direction=1;
   Reptile_point pt;
   Dynamics_info dinfo;
-  int naux=mygather.nAux();
   //Generate a new reptile if we're starting from 
   // a single VMC point.
   if(!readcheck(readconfig, direction, reptile)) {
     
     wf->notify(all_electrons_move, 0);
     wf->updateLap(wfdata, sample);
-    mygather.updateAuxFunctions(sample);
     
     for(int i=0; i< reptile_length; i++) {
       doublevar main_diffusion;
-      Array1 <doublevar> aux_diffusion;
-      slither(direction,reptile, mygather,pt,main_diffusion,
-              aux_diffusion);
+      slither(direction,reptile, mygather,pt,main_diffusion);
       reptile.push_back(pt);
     }
   }
@@ -826,10 +626,8 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
     doublevar max_age=0;
 
     doublevar main_diff=0;
-    Array1 <doublevar> aux_diff(naux, 0.0);
     double ntry=0, naccept=0;
     double nbounce=0;
-    Array2 <doublevar> derivatives_step(sys->nIons(), 3,0.0);
 
     //Control variable that will be set to one when 
     //we change direction, which signals to recalculate
@@ -844,15 +642,13 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
         if(direction==1) 
           reptile[reptile_length-1].restorePos(sample);
         else
-          reptile[0].restorePos(sample);
-          
-        mygather.updateAuxFunctions(sample);
+          reptile[0].restorePos(sample);          
       }
 
       
-      doublevar main_diffusion; Array1 <doublevar> aux_diffusion;
+      doublevar main_diffusion;
       doublevar accept=slither(direction, reptile,mygather, pt,
-                               main_diffusion, aux_diffusion);
+                               main_diffusion);
 
       ntry++;
       if(accept+rng.ulec() > 1.0) {
@@ -862,18 +658,13 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
         
         
         main_diff+=main_diffusion;
-        for(int a=0; a< naux; a++)
-          aux_diff(a)+=aux_diffusion(a);
         if(direction==1) {
           reptile.pop_front();
           reptile.push_back(pt);
         }
         else {
           reptile.pop_back();
-          reptile[0].prop.aux_gf_weight=pt.prop.aux_gf_weight;
-          reptile[0].prop.gf_weight=pt.prop.gf_weight;
           reptile[0].branching=pt.branching;
-          reptile[0].aux_branching=pt.aux_branching;
           reptile.push_front(pt);
         }
       }
@@ -920,28 +711,12 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
         checkfile << "}\n\n";
       }
       
-      if(calc_hf_derivatives) {
-
-        for(int i=0; i< sys->nIons(); i++) {
-          for(int d=0; d< 3; d++) {
-            derivatives_step(i,d)+=reptile[cpt].deriv(i,d);
-          }
-        }
-      }
       
     }   //step
 
     prop.endBlock();
     prop_center.endBlock();
     double ntot=parallel_sum(nstep);
-    if(calc_hf_derivatives) {    
-      for(int i=0; i< sys->nIons(); i++) {
-        for(int d=0; d< 3; d++) {
-          derivatives_block(block, i,d)
-          =parallel_sum(derivatives_step(i,d))/ntot;
-        }
-      }
-    }
 
     Properties_block lastblock;
     prop.getLastBlock(lastblock);
@@ -959,10 +734,6 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
 
     storecheck(direction, reptile, storeconfig);
     main_diff=parallel_sum(main_diff);
-    for(int a=0; a< naux; a++) {
-      aux_diff(a)=parallel_sum(aux_diff(a));
-      aux_timestep(a)=timestep*main_diff/aux_diff(a);
-    }
     if(output) {
       output << "****Block " << block 
              << " acceptance " << naccept/ntry 
@@ -974,15 +745,6 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
       output << "Green's function sampler:" << endl;
       sampler->showStats(output);
       prop.printBlockSummary(output);
-      if(calc_hf_derivatives) {
-        for(int i=0; i< sys->nIons(); i++) {
-          output << "derivative" << i << " : ";
-          for(int d=0; d < 3; d++) {
-            output << derivatives_block(block,i,d) << "  ";
-          }
-          output << endl;
-        }
-      }
       output << "Center averaging: " << endl;
       prop_center.printBlockSummary(output);
     }
@@ -1004,38 +766,6 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
     output << "Center averages " << endl;
     prop_center.printSummary(output,average_var);
 
-    if(calc_hf_derivatives) {
-      Array2 <doublevar> derivative_avg(sys->nIons(), 3, 0.0);
-      Array2 <doublevar> derivative_err(sys->nIons(), 3, 0.0);
-      for(int block=0; block < nblock; block++) {
-        for(int i=0; i< sys->nIons(); i++) {
-          for(int d=0; d< 3; d++) {
-          derivative_avg(i,d)+=derivatives_block(block, i,d)/nblock;
-          }
-        }
-      }
-      for(int block=0; block < nblock; block++) {
-        for(int i=0; i< sys->nIons(); i++) {
-          for(int d=0; d< 3; d++) {
-            derivative_err(i,d)+=(derivative_avg(i,d)-derivatives_block(block,i,d))
-              *(derivative_avg(i,d)-derivatives_block(block,i,d))/(nblock*(nblock-1));
-          }
-        }
-      }
-      
-      output << "derivatives " << endl;
-      for(int i=0; i < sys->nIons(); i++) {
-        output << "atom" << setw(4) << i << " : ";
-        for(int d=0; d< 3; d++)
-        output << derivative_avg(i,d) << "  ";
-        output << endl;
-        output << "err       ";
-        for(int d=0; d< 3; d++) 
-        output << sqrt(derivative_err(i,d)) << "   ";
-        output << endl;
-      }
-
-    }
   }
 
 

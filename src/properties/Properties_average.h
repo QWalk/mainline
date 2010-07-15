@@ -41,7 +41,9 @@ struct Properties_final_average {
   void twoPointForces(Array2 <doublevar> & forces);
 
   void showSummary(ostream & os, Array1 <Average_generator*> avg_gen);
+  void showSummary(ostream & os, Array2 <Average_generator*> avg_gen);
 
+  
   void showAutocorr(int i) {
     assert(i==0 || i==1);
     show_autocorr=i;
@@ -57,14 +59,11 @@ struct Properties_final_average {
   Array2 <doublevar> avgvar; //!< average variances
 
 
-  Array1 <Average_return> avgavg;
-  Array1 <Average_return> avgerr;
+  Array2 <Average_return> avgavg;
+  Array2 <Average_return> avgerr;
   
   Array1 <doublevar> diff_energy;
   Array1 <doublevar> diff_energyerr;
-
-  Array1 <dcomplex> z_pol;
-  Array1 <dcomplex> z_pol_err;
 
   Array2 <doublevar> autocorr; //autocorrelation of energy
   Array2 <doublevar> autocorrerr; 
@@ -79,9 +78,6 @@ struct Properties_final_average {
   Array2 <doublevar> aux_autocorr; 
   Array2 <doublevar> aux_autocorrerr; 
   
-  Array2 <dcomplex> aux_z_poldiff;
-  Array2 <dcomplex> aux_z_poldiff_err;
-
   Array1 <doublevar> aux_size;
 
   private:

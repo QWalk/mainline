@@ -24,7 +24,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Wavefunction.h"
 #include "Average_generator.h"
 /*!
-  All relevant quantities at one point
+  Universal quantities at one point.  This includes the wave function value,
+  any averaging variables, and the various energy components of the configuration.
  */
 struct Properties_point {
 
@@ -38,69 +39,40 @@ struct Properties_point {
     children.Resize(maxchildren);
     reset();
   }
-  void setSize(int nwf, int n_aux, int n_aux_cvg=1 //Number of convergence steps
-              );
-
+  
+  void setSize(int nwf);
   void reset() {
     nchildren=0;
     parent=-1;
-    sign=1;
-    moved=0;
     weight=0;
     count=0;
-    
   }
-
-
   void mpiSend(int node);
-
   void mpiReceive(int node);
-
   void write(string & indent, ostream & os);
   void read(istream & is);
-
 
   doublevar energy(int w) {
     return kinetic(w)+potential(w)+nonlocal(w);
   }
-
  
   int nchildren;
   int parent;
   Array1 <int> children;
-  int moved; //whether we moved or not from this point
-
   int count; //whether to count this point or not
 
-  Array1 <int> sign; //track the sign of walker's wavefunction
-  
   //Properties to track
   Array1 <doublevar> kinetic;
   Array1 <doublevar> potential;
   Array1 <doublevar> nonlocal;
-
   Array1 <doublevar> weight; //!< averaging weight
-  Wf_return wf_val; //!< wavefunction value
-
-  Array1 <dcomplex> z_pol; //!< =exp(i G dot sum x_j)
-
-  Array2 <doublevar> aux_energy;
-  Array2 <doublevar> aux_weight;
-
-  Array1 <doublevar> aux_jacobian;
-  Array1 <Wf_return> aux_wf_val;
-  Array2 <dcomplex> aux_z_pol;
-
-
-  doublevar gf_weight; //weight of green's function between this and the last point(used in DMC)
-  Array1 <doublevar> aux_gf_weight;
-
+  Wf_return wf_val; //!< wavefunction value  
+  Array2 <Average_return> avgrets; 
+  //general accumulations from Average_generators.  First index is the wf/sys number
+  // and the second one is the Average_generator number
   
-  Array1 <Average_return> avgrets; //general accumulations from Average_generators
   private:
   int maxchildren;
-  
-
 };
 
 
