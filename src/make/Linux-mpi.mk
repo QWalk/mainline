@@ -1,7 +1,7 @@
 ######################################################################
 # Compiler definitions for Linux systems
 #  all compiler specific information should be declared here
-CXX:=mpic++
+CXX:=mpicxx
 
 
 CXXFLAGS:= -O3 -fomit-frame-pointer -funroll-loops -ffast-math 
