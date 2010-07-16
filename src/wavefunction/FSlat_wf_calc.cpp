@@ -850,7 +850,7 @@ void FSlat_wf::updateInverse(Slat_wf_data * dataptr, int e) {
   for(int f=0; f< nfunc_; f++)  { 
 
     // If initial determinant is zero attempt rebuild
-    if (fabs(fabs(detVal(f,0,s))==0)) {
+    if ( fabs(fabs(detVal(f,0,s))) == 0 ) {
         Array2 <doublevar> allmos(nelectrons(s), nelectrons(s));
         for(int e=0; e< nelectrons(s); e++) {
           int curre=s*nelectrons(0)+e;
