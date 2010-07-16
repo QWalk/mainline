@@ -28,7 +28,7 @@ SQD2QMCOBJS:=$(OBJPATH)/sqd2qmc.o $(ALLOBJS)
 
 
 
-all: gamess2qmc$(SUFFIX) gamessci2qmc$(SUFFIX) crystal2qmc$(SUFFIX) siesta2qmc$(SUFFIX) g032qmc$(SUFFIX) heg2qmc$(SUFFIX) abinit2qmc$(SUFFIX) sqd2qmc$(SUFFIX)
+all: gamess2qmc$(SUFFIX) gamessci2qmc$(SUFFIX) crystal2qmc$(SUFFIX) siesta2qmc$(SUFFIX) g032qmc$(SUFFIX) heg2qmc$(SUFFIX) abinit2qmc$(SUFFIX) 
 .PHONY: clean 
 
 gamess2qmc$(SUFFIX): $(GAMESS2QMCOBJS)
@@ -80,7 +80,7 @@ heg2qmcc$(SUFFIX) : $(HEG2QMCCOBJS)
 sqd2qmc$(SUFFIX) : $(SQD2QMCOBJS)
 	@echo ________________________________________________________________
 	@echo Linking $@
-	$(CXX) $(DEBUG) $(CXXFLAGS) -o sqd2qmc$(SUFFIX) $(LDFLAGS) $(BLAS_LIBS) $(SQD2QMCOBJS) `xml2-config --libs` -L/opt/cluster/hdf5/1.8.4/gcc_4.1.2/lib -lhdf5 
+	$(CXX) $(DEBUG) $(CXXFLAGS) -o sqd2qmc$(SUFFIX) $(LDFLAGS) $(BLAS_LIBS) $(SQD2QMCOBJS) $(XML_LIBS) $(HDF_LIBS) 
 
 clean: 
 	@echo ________________________________________________________________
@@ -92,7 +92,7 @@ $(OBJPATH)/%.o:$(DVLPATH)/%.cpp
 	@echo Compiling $<
 	[ -e $(DVLPATH)/obj ] || mkdir $(DVLPATH)/obj
 	[ -e $(OBJPATH) ] || mkdir $(OBJPATH)
-	$(CXX) -c $(CXXFLAGS) $(BLAS_INCLUDE) $(CPPFLAGS) -o $@ $< `xml2-config --cflags` -I/usr/include/ -I/opt/cluster/hdf5/1.8.4/gcc_4.1.2/include
+	$(CXX) -c $(CXXFLAGS) $(BLAS_INCLUDE) $(CPPFLAGS) -o $@ $< $(XML_INCLUDE) $(HDF_INCLUDE)
         
 
 $(OBJPATH)/%.o:$(DVLPATH)/%.f
