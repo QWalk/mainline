@@ -93,6 +93,8 @@ void Optimize_method::read(vector <string> words,
   string readconfig;
   if(!readvalue(words, pos=0, readconfig, "READCONFIG"))
     error("READCONFIG required for OPTIMIZE method!");
+  update_psp=0;
+  if(haskeyword(words, pos=0, "UPDATE_PSP")) update_psp=1;
 
   //--Set up variables
   allocate(options.systemtext[0],  sys);
@@ -209,6 +211,12 @@ void Optimize_method::run(Program_options & options, ostream & output)
       psp_test(walker)(i)=rng.ulec();
     }
     local_energy(walker)=sys->calcLoc(sample);
+    if(!update_psp) {
+      Array1 <doublevar> nonloc(wf->nfunc());
+      pseudo->calcNonlocWithTest(wfdata,sys, sample, wf,psp_test(walker),nonloc );    
+      local_energy(walker)+=nonloc(0);
+    }
+    
   }
   nfunctions=wf->nfunc();
     
@@ -297,7 +305,9 @@ doublevar Optimize_method::variance(int n, Array1 <double> & parms, double & val
     wf->updateLap(wfdata, sample);
     sys->calcKinetic(wfdata, sample, wf, kinetic);
     doublevar coulpot=local_energy(walker);
-    pseudo->calcNonlocWithTest(wfdata,sys, sample, wf,psp_test(walker),nonloc );    
+    nonloc=0;
+    if(update_psp) 
+      pseudo->calcNonlocWithTest(wfdata,sys, sample, wf,psp_test(walker),nonloc );    
     wf->getVal(wfdata, 0, wfval);
     for(int w=0; w< nfunctions; w++) {
       doublevar energy=kinetic(w) + coulpot+ nonloc(w);
@@ -390,13 +400,15 @@ doublevar Optimize_method::derivatives(int n, Array1 <double> & parms, Array1 <d
     sys->calcKinetic(wfdata, sample, wf, kinetic);
     
     Array1 <doublevar> nonloc_deriv(nparms);
-    
-    if(wfdata->supports(parameter_derivatives)) { 
-      pseudo->calcNonlocParmDeriv(wfdata, sys,sample, wf,
-                                  psp_test(walker),nonloc,nonloc_deriv );    
-    }
-    else { 
-      pseudo->calcNonlocWithTest(wfdata, sys, sample, wf,psp_test(walker),nonloc );    
+    nonloc_deriv=0;
+    if(update_psp) { 
+      if(wfdata->supports(parameter_derivatives)) { 
+        pseudo->calcNonlocParmDeriv(wfdata, sys,sample, wf,
+            psp_test(walker),nonloc,nonloc_deriv );    
+      }
+      else { 
+        pseudo->calcNonlocWithTest(wfdata, sys, sample, wf,psp_test(walker),nonloc );    
+      }
     }
     
     //Take the derivative of the kinetic energy by finite difference
@@ -408,9 +420,9 @@ doublevar Optimize_method::derivatives(int n, Array1 <double> & parms, Array1 <d
       wfdata->setVarParms(tparms);
       wf->updateLap(wfdata,sample);
       sys->calcKinetic(wfdata, sample,wf,kin_tmp);
-      if(!wfdata->supports(parameter_derivatives)) { 
+      if(!wfdata->supports(parameter_derivatives) && update_psp) { 
         //cout << "calculating pseudo non-analytically! " << endl;
-        Array1<doublevar> tnon(nfunctions);
+        Array1<doublevar> tnon(nfunctions); 
         pseudo->calcNonlocWithTest(wfdata, sys, sample, wf,psp_test(walker),tnon );    
         nonloc_deriv(p)=(tnon(0)-nonloc(0))/del;
       }

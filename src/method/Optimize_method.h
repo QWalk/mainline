@@ -75,13 +75,13 @@ private:
   enum min_function_type { min_variance, min_abs, min_lorentz, min_energy, min_mixed } min_function;
   int use_weights; //!< Whether to use weights in the correlated sampling
   int guess_eref; //!< whether to guess eref from the incoming walker distribution
-  
+  int update_psp; //!< Whether to update the pseudopotential every iteration or not
   Array1 <Wf_return > orig_vals; //!< Original wave function values before opt
   string pseudostore; //!< Where to put the temporary pseudo file
   Pseudo_buffer psp_buff;
   string wfoutputfile;//!< Where to put the wavefunction output
   Primary guide_wf; //!< Guiding function
-  Array1 <doublevar> local_energy; //!< local energy(that doesn't change when we optimize
+  Array1 <doublevar> local_energy; //!< local energy(that doesn't change when we optimize.  Includes the pseudopotential when update_psp is off.
   Array1 < Array1 <doublevar> >psp_test; //!< For random evaluation of the psp--we want to use the same random numbers
   Array1 <doublevar> lastparms;
   doublevar mixing; //!< mixing weight for energy component in mixed minimization (0.95 default)
