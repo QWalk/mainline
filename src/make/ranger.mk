@@ -21,7 +21,7 @@ CXX:=mpicxx
 CXXFLAGS := -O2 -xW 
 CXXFLAGS += -DUSE_MPI
 CXXFLAGS += -DUSE_BLAS -DUSE_LAPACK
-CXXFLAGS += -DUSE_EINSPLINE -DUSE_RESTRICT
+#CXXFLAGS += -DUSE_EINSPLINE -DUSE_RESTRICT
 CXXFLAGS += $(INCLUDEPATH)
 
 #BLAS_LIBS :=
@@ -30,8 +30,8 @@ CXXFLAGS += $(INCLUDEPATH)
 BLAS_LIBS := -Wl,-rpath,$(TACC_MKL_LIB) -L$(TACC_MKL_LIB) -lmkl_em64t -lguide
 BLAS_INCLUDE := -I$(TACC_MKL_INC)
 
-EINSPLINE_LIBS := -Wl,-rpath,$(HOME)/einspline/lib -L$(HOME)/einspline/lib -leinspline
-EINSPLINE_INCLUDE :=-I$(HOME)/einspline/include/einspline
+#EINSPLINE_LIBS := -Wl,-rpath,$(HOME)/einspline/lib -L$(HOME)/einspline/lib -leinspline
+#EINSPLINE_INCLUDE :=-I$(HOME)/einspline/include/einspline
 
 DEBUG:= -DNO_RANGE_CHECKING   -DNDEBUG 
 ######################################################################

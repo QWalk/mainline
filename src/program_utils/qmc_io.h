@@ -375,27 +375,6 @@ template <class ConfigType> void write_configurations(string & filename,
   string tmpfilename=filename; //+".qw_tomove";
   string backfilename=filename+".backup";
   if(mpi_info.node==0) { rename(tmpfilename.c_str(),backfilename.c_str()); }
-/*
-  wait_turn();
-  cout << mpi_info.node << " writing " << nconfigs << endl;
-
-  ofstream os(tmpfilename.c_str(),ios::app);
-  os.precision(15);
-  if(!os) { error("Could not open ", tmpfilename); } 
-  for(int i=0; i< nconfigs; i++) {
-    os << " walker { \n";
-    configs(i).write(os);
-    os << "} \n";
-    os << "written by " << mpi_info.node << endl;
-  }
-  os.flush();
-  os.close();
-  finish_turn();
-
-#ifdef USE_MPI
-  MPI_Barrier(MPI_Comm_grp);
-#endif
-*/
 #ifdef USE_MPI
   stringstream os;
   os.precision(15);
@@ -412,17 +391,19 @@ template <class ConfigType> void write_configurations(string & filename,
      MPI_Status status;
      for(int i=1; i< mpi_info.nprocs; i++) { 
         MPI_Recv(nthis_string,i);
-        char * buf=new char[nthis_string];
+        char * buf=new char[nthis_string+1];
 	MPI_Recv(buf,nthis_string,MPI_CHAR, i, 0, MPI_Comm_grp, & status);
+        buf[nthis_string]='\0';
         os << buf; 
         delete [] buf;
     }
   }
   else { 
      MPI_Send(nthis_string,0);
+     cout << mpi_info.node << " : sending " << nthis_string << endl;
     //we know that MPI_Send obeys const-ness, but the interfaces are not clean 
     // and so...casting!
-     MPI_Send((char *) walkstr.c_str(),nthis_string, MPI_CHAR, 0,0,MPI_Comm_grp);
+     MPI_Send((void *) walkstr.c_str(), nthis_string,MPI_CHAR, 0,0,MPI_Comm_grp);
   }
 #else
   ofstream os(tmpfilename.c_str());
