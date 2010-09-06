@@ -121,11 +121,13 @@ int main(int argc, char* argv[])
   {
     output << "------------------------------------------------\n";
     output << "Quantum Walk development version\n";
-    output << "Primary author     : Lucas K Wagner\n";
-    output << "Contributions from : Michal Bajdich, Jindrich Kolorenc,\n"
-           <<  "Shuming Hu, Kino Hiori, Zack Helms and others\n";
-    output << "Mental Magic from  : Lubos Mitas \n";
-    output << "Written at North Carolina State University \n";
+    output << "Contributions from: (in no particular order) \n";
+    output << "Michal Bajdich, Shuming Hu, Jindrich Kolorenc, Kevin Rasch, \n";
+    output << "Pavel Vagner, Rene Derian, Paul Kent, Jarrod McClean, \n";
+    output << "Fernando Reboredo, Lucas Wagner, Hiori Kino, ";
+    output << "and Lubos Mitas.\n";
+    output << "Originated at North Carolina State University \n";
+    output << "Please cite J. Comp. Phys. v 228 pp 3390-3404 (2009) \n when publishing results from this program.\n";
     output << "------------------------------------------------\n";
     output << "Running on " << hostname
            << endl << ctime(&starttime) << endl;
