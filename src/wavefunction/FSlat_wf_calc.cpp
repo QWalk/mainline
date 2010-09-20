@@ -859,7 +859,7 @@ void FSlat_wf::updateInverse(Slat_wf_data * dataptr, int e) {
           }
         }
         detVal(f,0,s)=
-          TransposeInverseMatrix(allmos,inverse(f,0,s), nelectrons(s));
+          TransposeInverseMatrix(allmos,inverse(f,0,s), nelectrons(s)).val();
     }
 
 
@@ -1277,7 +1277,7 @@ void FSlat_wf::calcLap(Slat_wf_data * dataptr, Sample_point * sample)
 	  }
 	}
 	detVal(f,det,s)=
-	  TransposeInverseMatrix(modet,inverse(f,det,s), nelectrons(s));
+	  TransposeInverseMatrix(modet,inverse(f,det,s), nelectrons(s)).val();
 	    
 	for(int idx=1; idx< ndet; idx++)
         {

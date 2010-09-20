@@ -25,6 +25,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Qmc_std.h"
 #include "Array.h"
 #include "Wavefunction.h"
+#include "MatrixAlgebra.h"
 class Wavefunction_data;
 class Slat_wf_data;
 class System;
@@ -45,7 +46,7 @@ private:
   Array2 <doublevar>  moVal_temp_2;
  
   Array3 < Array2 <doublevar> > inverse_temp;
-  Array3 <doublevar> detVal_temp;
+  Array3 <log_real_value> detVal_temp;
 
 };
 
@@ -135,7 +136,7 @@ private:
   //lazy updates of the determinant(which saves a lot of time in pseudopotentials, etc)
   int inverseStale;
   int lastValUpdate;
-  Array3<doublevar> lastDetVal;
+  Array3<log_real_value> lastDetVal;
   
   //Saved variables for electron updates
   Array3 <doublevar>  moVal;
@@ -145,7 +146,7 @@ private:
   Array3 < Array2 <doublevar> > inverse;
   //!<inverse of the value part of the mo_values array transposed
 
-  Array3 <doublevar> detVal;
+  Array3 <log_real_value> detVal;
 
   //Variables for a static(electrons not moving) calculation
   int staticSample;

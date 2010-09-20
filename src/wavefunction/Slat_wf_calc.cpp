@@ -47,7 +47,7 @@ void Slat_wf::generateStorage(Wavefunction_storage * & wfstore)
       {
         store->inverse_temp(i,det,s).Resize(nelectrons(s), nelectrons(s));
         store->inverse_temp(i,det,s)=0;
-        store->detVal_temp(i,det,s)=1;
+        //store->detVal_temp(i,det,s)=1;
       }
     }
   }
@@ -428,8 +428,8 @@ void Slat_wf::storeParmIndVal(Wavefunction_data * wfdata, Sample_point * sample,
     updateVal(wfdata, sample);
     int count=0;
     for(int det=0; det < ndet; det++) {
-      vals(count++)=detVal(0,det,0);
-      vals(count++)=detVal(0,det,1);
+      vals(count++)=detVal(0,det,0).val();
+      vals(count++)=detVal(0,det,1).val();
     }
   }
   else {
@@ -534,34 +534,34 @@ int Slat_wf::getParmDeriv(Wavefunction_data *  wfdata,
     Array3 <int> dfuncdet(nfunc_,ndet,2);
     for(int f=0; f< nfunc_; f++)  
       for(int det=0; det< ndet; det++)
-	for(int s=0; s< 2; s++) {
-	  dfuncdet(f,det,s)=0;
-	  vector <int> orbitals_tmp;
-	  vector <int> occupation_tmp;
-	  for(int i=totmo_start; i<totmo_end; i++) //because only these will be used
-	    for(int ii = 0; ii < nelectrons(s); ii++) 
-	      if (parent->occupation(f,det,s)(ii)==parent->orbitals_for_optimize_mo(i)){
-		dfuncdet(f,det,s)=1;
-		orbitals_tmp.push_back(i-totmo_start); //so this one starts from 0
-		occupation_tmp.push_back(ii);
-	      }
-	  which_orbitals(f,det,s).Resize(orbitals_tmp.size());
-	  which_occupation(f,det,s).Resize(orbitals_tmp.size());
-	  for(int k=0;k<which_orbitals(f,det,s).GetSize();k++){
-	    which_orbitals(f,det,s)(k)=orbitals_tmp[k];
-	    which_occupation(f,det,s)(k)=occupation_tmp[k];
-	    //cout <<det<<"  "<<s<<"  "<<k<<" which_orbitals(f,det,s)(k) "<<which_orbitals(f,det,s)(k)
-	    //	 <<" which_occupation(f,det,s)(k) " <<which_occupation(f,det,s)(k)<<endl;
-	  }
-	}
+        for(int s=0; s< 2; s++) {
+          dfuncdet(f,det,s)=0;
+          vector <int> orbitals_tmp;
+          vector <int> occupation_tmp;
+          for(int i=totmo_start; i<totmo_end; i++) //because only these will be used
+            for(int ii = 0; ii < nelectrons(s); ii++) 
+              if (parent->occupation(f,det,s)(ii)==parent->orbitals_for_optimize_mo(i)){
+                dfuncdet(f,det,s)=1;
+                orbitals_tmp.push_back(i-totmo_start); //so this one starts from 0
+                occupation_tmp.push_back(ii);
+              }
+          which_orbitals(f,det,s).Resize(orbitals_tmp.size());
+          which_occupation(f,det,s).Resize(orbitals_tmp.size());
+          for(int k=0;k<which_orbitals(f,det,s).GetSize();k++){
+            which_orbitals(f,det,s)(k)=orbitals_tmp[k];
+            which_occupation(f,det,s)(k)=occupation_tmp[k];
+            //cout <<det<<"  "<<s<<"  "<<k<<" which_orbitals(f,det,s)(k) "<<which_orbitals(f,det,s)(k)
+            //	 <<" which_occupation(f,det,s)(k) " <<which_occupation(f,det,s)(k)<<endl;
+          }
+        }
      
     //cout <<"setting up temp arrays"<<endl;
     for(int f=0; f< nfunc_; f++)  
       for(int det=0; det< ndet; det++)  
-	for(int s=0;s<2;s++){
-	  detGrad(f,det,s).Resize(totmo_diff,nmocoeff);
-	  detGrad(f,det,s)=0.0;
-	}
+        for(int s=0;s<2;s++){
+          detGrad(f,det,s).Resize(totmo_diff,nmocoeff);
+          detGrad(f,det,s)=0.0;
+        }
          
     
     //cout <<"getting BasisVal for all electrons"<<endl;
@@ -576,20 +576,21 @@ int Slat_wf::getParmDeriv(Wavefunction_data *  wfdata,
     //cout <<"getting gradients (single trace)"<<endl;
     for(int f=0; f< nfunc_; f++)  
       for(int det=0; det< ndet; det++) 
-	for(int s=0; s< 2; s++)
-	  if(dfuncdet(f,det,s))
-	    for(int orb=0;orb<which_orbitals(f,det,s).GetSize();orb++){
-	      //cout <<" orb "<<orb<<endl;
-	      for(int j=0;j<nmocoeff;j++)
-		for(int ee = 0; ee < nelectrons(s); ee++) {
-		  detGrad(f,det,s)(which_orbitals(f,det,s)(orb),j)+=inverse(f,det,s)(ee,which_occupation(f,det,s)(orb))*BasisVal(s,ee)(j);
-		}   
-	    }
+        for(int s=0; s< 2; s++)
+          if(dfuncdet(f,det,s))
+            for(int orb=0;orb<which_orbitals(f,det,s).GetSize();orb++){
+              //cout <<" orb "<<orb<<endl;
+              for(int j=0;j<nmocoeff;j++)
+                for(int ee = 0; ee < nelectrons(s); ee++) {
+                  detGrad(f,det,s)(which_orbitals(f,det,s)(orb),j)+=
+                    inverse(f,det,s)(ee,which_occupation(f,det,s)(orb))*BasisVal(s,ee)(j);
+                }   
+            }
     
     //get the wf's val
     doublevar sum=0;
     for(int det=0; det < ndet; det++) {
-      sum+=parent->detwt(det)*detVal(0,det,0)*detVal(0,det,1);
+      sum+=parent->detwt(det)*(detVal(0,det,0)*detVal(0,det,1)).val();
     }
     
     //calculate the actual gradient and hessian
@@ -597,83 +598,83 @@ int Slat_wf::getParmDeriv(Wavefunction_data *  wfdata,
     derivatives.gradient=0.0;
     for(int orb=0;orb<totmo_diff;orb++)
       for(int coef=0;coef<nmocoeff;coef++){
-	int i=orb*nmocoeff+coef;
-	derivatives.gradient(i)=0.0;
-	for(int f=0; f< nfunc_; f++)  
-	  for(int det=0; det< ndet; det++){ 
-	    doublevar temp=0;
-	    for(int s=0; s< 2; s++)
-	      //if(dfuncdet(f,det,s))
-	      temp+=detGrad(f,det,s)(orb,coef);
-	    derivatives.gradient(i)+=parent->detwt(det)*detVal(0,det,0)*detVal(0,det,1)*temp;
-	  }
-	derivatives.gradient(i)/=sum;
+        int i=orb*nmocoeff+coef;
+        derivatives.gradient(i)=0.0;
+        for(int f=0; f< nfunc_; f++)  
+          for(int det=0; det< ndet; det++){ 
+            doublevar temp=0;
+            for(int s=0; s< 2; s++)
+              //if(dfuncdet(f,det,s))
+              temp+=detGrad(f,det,s)(orb,coef);
+            derivatives.gradient(i)+=(parent->detwt(det)*detVal(0,det,0)*detVal(0,det,1)*temp).val();
+          }
+        derivatives.gradient(i)/=sum;
       }
     
     derivatives.hessian=0.0;
     if(derivatives.need_hessian){
       for(int orbi=0;orbi<totmo_diff;orbi++)
-	for(int coefi=0;coefi<nmocoeff;coefi++){
-	  int i=orbi*nmocoeff+coefi;
-	  for(int orbj=0;orbj<totmo_diff;orbj++)
-	    for(int coefj=0;coefj<nmocoeff;coefj++){
-	      int j=orbj*nmocoeff+coefj;
-	      derivatives.hessian(i,j)=0.0;
-	      for(int f=0; f< nfunc_; f++)  
-		for(int det=0; det< ndet; det++){
-		  doublevar temp=0;
-		  for(int s=0; s< 2; s++)
-		    if(dfuncdet(f,det,s) && orbi!=orbj){
-		      temp+=detGrad(f,det,s)(orbi,coefi)*detGrad(f,det,s)(orbj,coefj)
-			   -detGrad(f,det,s)(orbi,coefj)*detGrad(f,det,s)(orbj,coefi);
-		    }
-		  temp+=detGrad(0,det,0)(orbi,coefi)*detGrad(0,det,1)(orbj,coefj)
-		       +detGrad(0,det,0)(orbj,coefj)*detGrad(0,det,1)(orbi,coefi);
-		  derivatives.hessian(i,j)+=parent->detwt(det)*detVal(0,det,0)*detVal(0,det,1)*temp;
-		}
-	      //cout <<"derivatives.hessian(i,j) "<<derivatives.hessian(i,j)<<endl;
-	      derivatives.hessian(i,j)/=sum;
-	      derivatives.hessian(j,i)=derivatives.hessian(i,j);
-	    }
-	}
+        for(int coefi=0;coefi<nmocoeff;coefi++){
+          int i=orbi*nmocoeff+coefi;
+          for(int orbj=0;orbj<totmo_diff;orbj++)
+            for(int coefj=0;coefj<nmocoeff;coefj++){
+              int j=orbj*nmocoeff+coefj;
+              derivatives.hessian(i,j)=0.0;
+              for(int f=0; f< nfunc_; f++)  
+                for(int det=0; det< ndet; det++){
+                  doublevar temp=0;
+                  for(int s=0; s< 2; s++)
+                    if(dfuncdet(f,det,s) && orbi!=orbj){
+                      temp+=detGrad(f,det,s)(orbi,coefi)*detGrad(f,det,s)(orbj,coefj)
+                        -detGrad(f,det,s)(orbi,coefj)*detGrad(f,det,s)(orbj,coefi);
+                    }
+                  temp+=detGrad(0,det,0)(orbi,coefi)*detGrad(0,det,1)(orbj,coefj)
+                    +detGrad(0,det,0)(orbj,coefj)*detGrad(0,det,1)(orbi,coefi);
+                  derivatives.hessian(i,j)+=(parent->detwt(det)*detVal(0,det,0)*detVal(0,det,1)).val()*temp;
+                }
+              //cout <<"derivatives.hessian(i,j) "<<derivatives.hessian(i,j)<<endl;
+              derivatives.hessian(i,j)/=sum;
+              derivatives.hessian(j,i)=derivatives.hessian(i,j);
+            }
+        }
       return 1;
     }
   }
   else if(parent->optimize_det) {
     doublevar sum=0;
     for(int det=0; det < ndet; det++) {
-      sum+=parent->detwt(det)*detVal(0,det,0)*detVal(0,det,1);
+      sum+=(parent->detwt(det)*detVal(0,det,0)*detVal(0,det,1)).val();
     }
     if(parent->use_csf){
       if(parent->all_weights)
-	assert(nparms<parent->ncsf+1);
+        assert(nparms<parent->ncsf+1);
       else
-	assert(nparms<parent->ncsf);
+        assert(nparms<parent->ncsf);
       int counter=0;
       derivatives.gradient=0.0;
       for(int csf=0; csf< parent->ncsf; csf++) {
-	if(parent->all_weights){
-	  if(csf >= nparms_start && csf <= nparms_end ){
-	    for(int j=1;j<parent->CSF(csf).GetDim(0);j++){
-	      derivatives.gradient(csf-nparms_start)+=parent->CSF(csf)(j)*detVal(0,counter,0)*detVal(0,counter,1);
-	      counter++;
-	    }
-	  }
-	  else{
-	    counter+=parent->CSF(csf).GetDim(0)-1;
-	  }
-	}
-	else{
-	  if(csf > nparms_start && csf <= nparms_end ){
-	    for(int j=1;j<parent->CSF(csf).GetDim(0);j++){
-	      derivatives.gradient(csf-1-nparms_start)+=parent->CSF(csf)(j)*detVal(0,counter,0)*detVal(0,counter,1);
-	      counter++;
-	    }
-	  }
-	  else{
-	    counter+=parent->CSF(csf).GetDim(0)-1;
-	  }
-	}
+        if(parent->all_weights){
+          if(csf >= nparms_start && csf <= nparms_end ){
+            for(int j=1;j<parent->CSF(csf).GetDim(0);j++){
+              derivatives.gradient(csf-nparms_start)+=parent->CSF(csf)(j)*(detVal(0,counter,0)*detVal(0,counter,1)).val();
+              counter++;
+            }
+          }
+          else{
+            counter+=parent->CSF(csf).GetDim(0)-1;
+          }
+        }
+        else{
+          if(csf > nparms_start && csf <= nparms_end ){
+            for(int j=1;j<parent->CSF(csf).GetDim(0);j++){
+              derivatives.gradient(csf-1-nparms_start)+=parent->CSF(csf)(j)*(detVal(0,counter,0)*detVal(0,counter,1)).val();
+              counter++;
+            }
+          }
+          else{
+            counter+=parent->CSF(csf).GetDim(0)-1;
+          }
+        }
       }
       for(int csf=0; csf< nparms; csf++) {
         derivatives.gradient(csf)/=sum; 
@@ -683,14 +684,14 @@ int Slat_wf::getParmDeriv(Wavefunction_data *  wfdata,
     }
     else{
       for(int det=0; det < ndet; det++) {
-	if(parent->all_weights){
-	  if(det >= nparms_start && det <= nparms_end )
-	    derivatives.gradient(det-nparms_start)=detVal(0,det,0)*detVal(0,det,1);
-	}
-	else{
-	  if(det > nparms_start && det <= nparms_end )
-	    derivatives.gradient(det-1-nparms_start)=detVal(0,det,0)*detVal(0,det,1);
-	}
+        if(parent->all_weights){
+          if(det >= nparms_start && det <= nparms_end )
+            derivatives.gradient(det-nparms_start)=(detVal(0,det,0)*detVal(0,det,1)).val();
+        }
+        else{
+          if(det > nparms_start && det <= nparms_end )
+            derivatives.gradient(det-1-nparms_start)=(detVal(0,det,0)*detVal(0,det,1)).val();
+        }
       }
       
       for(int det=0; det < nparms; det++) {
@@ -732,20 +733,10 @@ void Slat_wf::updateInverse(Slat_wf_data * dataptr, int e) {
     for(int det=0; det< ndet; det++)  {
       //fill the molecular orbitals for this
       //determinant
-      if(fabs(detVal(f,det,s)) > 0) { 
-        //ofstream matout("matrix_out", ios::app);
-        //matout.precision(15);
-        //if(f==0 && det==0 && s==0)
-        //  matout << "updating " << e << " : ";
+      if(detVal(f,det,s).logval > -1e200) { 
         for(int i = 0; i < nelectrons(s); i++) {
           modet(i)=moVal(0,e,dataptr->occupation(f,det,s)(i));
-          //if(f==0 && det==0 && s==0)
-          //  matout << modet(i) << " ";
         }
-        //if(f==0 && det==0 && s==0)
-        //  matout << endl;
-        
-        
         doublevar ratio=1./InverseUpdateColumn(inverse(f,det,s),
                                      modet, dataptr->rede(e),
                                      nelectrons(s));
@@ -781,7 +772,7 @@ int Slat_wf::updateValNoInverse(Slat_wf_data * dataptr, int e) {
     for(int det=0; det< ndet; det++)  {
       //fill the molecular orbitals for this
       //determinant
-      if(!(fabs(detVal(f,det,s)) > 0)) return 0;
+      if(detVal(f,det,s).logval < -1e200) return 0;
     }
   }
   
@@ -874,15 +865,13 @@ void Slat_wf::getVal(Wavefunction_data * wfdata, int e,
     int opp=dataptr->opspin(e);
 
     for(int f=0; f< nfunc_; f++) {
-      doublevar funcval=0;
-
+      Array1 <log_real_value> detvals(ndet);
       for(int det=0; det < ndet; det++) {
-        funcval += dataptr->detwt(det)*detVal(f,det,s)*detVal(f,det,opp);
+        detvals(det) = dataptr->detwt(det)*detVal(f,det,s)*detVal(f,det,opp);
       }
-      if(fabs(funcval) > 0) 
-        vals(f,0)=log(fabs(funcval));
-      else vals(f,0)=-1e3;
-      si(f)=sign(funcval);
+      log_real_value totval=sum(detvals);
+      vals(f,0)=totval.logval;
+      si(f)=totval.sign;
     }
   }
 
@@ -990,18 +979,6 @@ void Slat_wf::calcLap(Slat_wf_data * dataptr, Sample_point * sample)
 
 
 /*!
-\todo
-Add a lazy evaluation to this, so it only evaluates the
-derivatives if something has really changed.
-
-\bug
-When the system is sufficiently large, the wavefunction
-is either too small when we begin sampling, or too large
-when we actually equilibrate, so we get under/overflows.
-Solution:
-Put the logarithms further up the chain, since in some
-cases, we overflow on the value
-
 */
 
 void Slat_wf::getLap(Wavefunction_data * wfdata,
@@ -1010,9 +987,6 @@ void Slat_wf::getLap(Wavefunction_data * wfdata,
 
   Array1 <doublevar> si(nfunc_, 0.0);
   Array2 <doublevar> vals(nfunc_,5,0.0);
-
-
-
 
   if(staticSample==1 && parent->optimize_mo==0 && parent->optimize_det==0) {
     //lap.phase=0;
@@ -1031,44 +1005,61 @@ void Slat_wf::getLap(Wavefunction_data * wfdata,
     int opp=dataptr->opspin(e);
 
     for(int f=0; f< nfunc_; f++) {
-      doublevar funcval=0;
-
+      Array1 <log_real_value> detvals(ndet);
       for(int det=0; det < ndet; det++) {
-        funcval += dataptr->detwt(det)*detVal(f,det,s)*detVal(f,det,opp);
+        detvals(det) = dataptr->detwt(det)*detVal(f,det,s)*detVal(f,det,opp);
       }
+      log_real_value totval=sum(detvals);
+      vals(f,0)=totval.logval;
+      si(f)=totval.sign;
+      //doublevar funcval=0;
+
+      //for(int det=0; det < ndet; det++) {
+      //  funcval += dataptr->detwt(det)*detVal(f,det,s)*detVal(f,det,opp);
+      //}
 
 
-      if(fabs(funcval) > 0) 
-        vals(f,0)=log(fabs(funcval));
-      else vals(f,0)=-1e3;
-      si(f)=sign(funcval);
+      //if(fabs(funcval) > 0) 
+      //  vals(f,0)=log(fabs(funcval));
+      //else vals(f,0)=-1e3;
+      //si(f)=sign(funcval);
 
+      log_real_value invtotval=totval;
+      invtotval.logval*=-1;
       for(int i=1; i< 5; i++) {
         lap.amp(f,i)=0;
+        Array1 <log_real_value> detgrads(ndet);
         for(int det=0; det < ndet; det++) {
           doublevar temp=0;
           for(int j=0; j<nelectrons(s); j++) {
             temp+=moVal(i , e, dataptr->occupation(f,det,s)(j) )
                  *inverse(f,det,s)(dataptr->rede(e), j);
           }
+          detgrads(det)=temp*dataptr->detwt(det)*detVal(f,det,s)*detVal(f,det,opp)*invtotval;
 
           //Prevent catastrophe with a singular matrix.
           //Shouldn't happen much.
+          /*
           if(detVal(f,det,s)*detVal(f,det,opp)==0)
             temp=0;
           
           if(ndet >1) 
             temp*=dataptr->detwt(det)*detVal(f,det, s)*detVal(f,det, opp);
           vals(f,i)+=temp;
-          
+          */
           //vals(f,i)+=dataptr->detwt(det)*temp
           //          *detVal(f,det, s)*detVal(f,det, opp);
         }
-        
+
+        log_real_value totgrad=sum(detgrads);
+
+        vals(f,i)=totgrad.val();
+        /*
         if(funcval==0)
           vals(f,i)=0;  //Prevent division by zero
         else if(ndet > 1) 
           vals(f,i)/=funcval;
+          */
       }
       
     }

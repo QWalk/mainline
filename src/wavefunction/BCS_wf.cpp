@@ -572,7 +572,7 @@ void BCS_wf::calcLap(Sample_point * sample)
       
       
     detVal(det)=
-	TransposeInverseMatrix(modet,inverse(det), nelectrons(0));
+	TransposeInverseMatrix(modet,inverse(det), nelectrons(0)).val();
 
   }
 

@@ -25,6 +25,54 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Array.h"
 #include "Qmc_std.h"
 
+
+/*!
+  This is basically a replacement for doubles, but always with a logarithmic representation.
+  I've tried to make it so it automatically does the right thing with standard 
+  multiplication. Automatic downconversion to double is possible, but I've excluded it to 
+  prevent accidental loss of precision.
+  Note also that there may be performance problems with using these automatic conversions..
+  */
+struct log_real_value { 
+  doublevar logval;
+  int sign;
+  doublevar val() { return sign*exp(logval); } 
+  log_real_value() { logval=0; sign=1; }  //initializing to 1..
+  //operator double() const { return sign*exp(logval); } 
+  log_real_value(doublevar t) { logval=log(fabs(t)); sign=t<0?-1:1; }
+};
+
+inline log_real_value operator*(double t, log_real_value u) { 
+  log_real_value v;
+  v=u;
+  v.logval+=log(fabs(t));
+  v.sign*=t<0?-1:1;
+  return v;
+}
+
+inline log_real_value  operator*(log_real_value u,double t) { return t*u; }
+inline log_real_value operator*(log_real_value t, log_real_value u) { 
+  log_real_value v;
+  v.logval=t.logval+u.logval;
+  v.sign=t.sign*u.sign;
+  return v;
+}
+
+//Try to safely sum a series of log_real_values
+inline log_real_value sum(const Array1 <log_real_value> & vec) { 
+  double s=0; 
+  //for now, pivot on the first one
+  //A more advanced way might be to check for underflows
+  int n=vec.GetDim(0);
+  int piv=0;
+  for(int i=0; i< n; i++) { 
+    s+=vec(i).sign*vec(piv).sign*exp(vec(i).logval-vec(piv).logval);
+  }
+  return s*vec(piv);
+}
+
+//--------------------------------------------------------------
+
 doublevar dot(const Array1 <doublevar> & a,  const Array1 <doublevar> & b);
 dcomplex  dot(const Array1 <doublevar> & a,  const Array1 <dcomplex> & b);
 dcomplex  dot(const Array1 <dcomplex> & a,  const Array1 <doublevar> & b);
@@ -52,7 +100,7 @@ doublevar InverseUpdateColumn(Array2 <doublevar> & a1, const Array1 <doublevar> 
                               const int lCol, const int n);
 
 void TransposeMatrix(Array2 <doublevar> & a, const int n);
-doublevar TransposeInverseMatrix(const Array2 <doublevar> & a, Array2 <doublevar> & a1, const int n);
+log_real_value TransposeInverseMatrix(const Array2 <doublevar> & a, Array2 <doublevar> & a1, const int n);
 doublevar TransposeInverseUpdateRow(Array2 <doublevar> & a1, const Array2 <doublevar> & a,
                                     const int lCol, const int n);
 doublevar TransposeInverseUpdateColumn(Array2 <doublevar> & a1, const Array2 <doublevar> & a,

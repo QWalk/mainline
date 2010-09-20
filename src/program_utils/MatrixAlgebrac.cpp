@@ -292,14 +292,16 @@ int InvertPfaffianMatrix(const Array2 <doublevar> & a, Array2 <doublevar> & a1, 
 
 // Calculate the transpose inverse of matrix a
 // and return the determinant
-doublevar TransposeInverseMatrix(const Array2 <doublevar> & a, Array2 <doublevar> & a1, const int n)
+log_real_value TransposeInverseMatrix(const Array2 <doublevar> & a, Array2 <doublevar> & a1, const int n)
 {
   Array2 <doublevar> &temp(tmp2);
   temp.Resize(n,n);
   Array1 <int>& indx(itmp1);
   indx.Resize(n);
   doublevar d=1;
-  
+ 
+  log_real_value logdet;
+  logdet.logval=0; logdet.sign=1;
   //for(int i=0; i< n; i++) { 
   //  cout << "matrix ";
   //  for(int j=0; j< n; j++) cout << a(i,j) << " ";
@@ -310,7 +312,9 @@ doublevar TransposeInverseMatrix(const Array2 <doublevar> & a, Array2 <doublevar
   //LAPACK routines don't handle n==1 case??
   if(n==1) { 
     a1(0,0)=1.0/a(0,0);
-    return a(0,0);
+    logdet.logval=log(fabs(a(0,0)));
+    logdet.sign=a(0,0)<0?-1:1;
+    return logdet;
   }
   else { 
   
@@ -326,26 +330,24 @@ doublevar TransposeInverseMatrix(const Array2 <doublevar> & a, Array2 <doublevar
       dgetrs('N',n,1,temp.v,n,indx.v,a1.v+j*n,n);
     }
   }
-  
-  //for(int i=0; i< n; i++) { 
-  //  cout << "ipiv " << indx[i] << endl;
-  //}
-  
+ /* 
   double det=1;
   for(int i=0; i< n; i++) { 
-    //cout << "lapack ";
-    //for(int j=0; j< n; j++) { 
-    //  cout << temp(i,j) << " ";
-    //}
-    //cout << endl;
     if(indx(i) != i+1)
       det*= -temp(i,i);
     else det*=temp(i,i);
   }
-  //cout << "lapack: " << det <<  " determinant " << Determinant(a,n) 
-  //<< " should be " << a(0,0)*a(1,1)-a(0,1)*a(1,0) << endl;
+  */
 
-  return det;
+  for(int i=0; i< n; i++) { 
+    if(indx(i)!=i+1) logdet.sign*=-1;
+    logdet.logval+=log(fabs(temp(i,i)));
+    if(temp(i,i) <0) logdet.sign*=-1;
+  }
+
+  //cout << " det " << det << " logval " << logdet.val() << endl;
+  //return det;
+  return logdet;
 //#endif  
 #else 
   
@@ -383,25 +385,23 @@ doublevar TransposeInverseMatrix(const Array2 <doublevar> & a, Array2 <doublevar
     yy.refer(a1(j));
     lubksb(temp,n,indx,yy);
   }
-//#endif
-  //for(int i=0; i< n; i++) { 
-   // cout << "crummy ";
-   // for(int j=0; j< n; j++) { 
-   //   cout << temp(i,j) << " ";
-   // }
-  //  cout << endl;
-  //}
-  
-  // return the determinant as well since it's easy
-  
+ /* 
   for(int j=0;j<n;++j) {
     d *= temp(j,j);
   }
-  //cout << "crummy " << d << endl;
-  //cout << "determinant: " << d <<  " determinant " << Determinant(a,n) 
-  //<< " should be " << a(0,0)*a(1,1)-a(0,1)*a(1,0) << endl;
+*/
+  logdet.logval=0;
+  logdet.sign=1;
+  for(int i=0; i< n; i++) { 
+    if(indx(i)!=i) logdet.sign*=-1;
+    logdet.logval+=log(fabs(temp(i,i)));
+    if(temp(i,i) <0) logdet.sign*=-1;
+  }
 
-  return d;
+  cout << " det " << d << " logval " << logdet.val() << endl;
+  
+
+  return logdet;
 #endif
 }
 

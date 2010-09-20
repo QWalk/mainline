@@ -358,8 +358,8 @@ void Backflow_wf::calcVal(Sample_point * sample)
 	  modet(e,i)=moVal(curre, parent->occupation(det,s)(i),0);
 	}
       }
-      detVal(det,s)=
-	TransposeInverseMatrix(modet,inverse(det,s), nelectrons(s));
+      log_real_value tmp=TransposeInverseMatrix(modet,inverse(det,s), nelectrons(s));
+      detVal(det,s)=tmp.val();
     }
   }
 }
@@ -470,12 +470,10 @@ void Backflow_wf::calcLap(Sample_point * sample)
 	  modet(e,i)=moVal(curre, parent->occupation(det,s)(i),0);
 	}
       }
-      detVal(det,s)=
-	TransposeInverseMatrix(modet,inverse(det,s), nelectrons(s));
-      //cout << "det " << detVal(det,s) << endl;
+      log_real_value tmp=TransposeInverseMatrix(modet,inverse(det,s), nelectrons(s));
+      detVal(det,s)=tmp.val();
     }
   }
-  //cout << "done determinant" << endl;
 
 
   gradlap=0;
