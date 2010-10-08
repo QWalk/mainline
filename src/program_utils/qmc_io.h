@@ -372,9 +372,13 @@ template <class ConfigType> void write_configurations(string & filename,
   time_t starttime;
   time(&starttime);
   single_write(cout,"Writing configurations..\n");  
-  string tmpfilename=filename+".qw_tomove";
+  string tmpfilename=filename; //+".qw_tomove";
+  string backfilename=filename+".backup";
+  if(mpi_info.node==0) { rename(tmpfilename.c_str(),backfilename.c_str()); }
+/*
   wait_turn();
-  if(mpi_info.node==0) { remove(tmpfilename.c_str()); } 
+  cout << mpi_info.node << " writing " << nconfigs << endl;
+
   ofstream os(tmpfilename.c_str(),ios::app);
   os.precision(15);
   if(!os) { error("Could not open ", tmpfilename); } 
@@ -382,64 +386,55 @@ template <class ConfigType> void write_configurations(string & filename,
     os << " walker { \n";
     configs(i).write(os);
     os << "} \n";
+    os << "written by " << mpi_info.node << endl;
   }
+  os.flush();
   os.close();
   finish_turn();
-  /*
-  if(mpi_info.node==0) { 
-    ofstream os;
-    os.precision(15);
-    os.open(tmpfilename.c_str());
-    if(!os) { error("Could not open ", tmpfilename); } 
-    for(int i=0; i< nconfigs; i++) { 
-      os << "walker { \n";
-      configs(i).write(os);
-      os << "} \n";
-    }
-    time_t midtime;
-    time(&midtime);
-    single_write(cout, "first write took ", difftime(midtime,starttime), " seconds \n");
-#ifdef USE_MPI
-    ConfigType tmpconf;
-    for(int node=1; node < mpi_info.nprocs; node++) { 
-      int nconf_node;
-      MPI_Status status;
-      int dummy=1;
-      MPI_Send(&dummy, 1,MPI_INT, node, 0, MPI_Comm_grp);
-      MPI_Recv(&nconf_node, 1, MPI_INT,
-               node, 0, MPI_Comm_grp, &status);
-      //cout << mpi_info.node << ": receiving " << nconf_node << " from " << node << endl;
-      for(int i=0; i< nconf_node; i++) { 
-        tmpconf.mpiReceive(node);
-        os << "walker { \n";
-        tmpconf.write(os);
-        os << "}\n";
-      }
-      //time(&midtime);
-      //single_write(cout, "writing to ", node, " took ");
-      //single_write(cout, difftime(midtime, starttime), " seconds\n");
-    }
-#endif
-  }
-  else { 
-#ifdef USE_MPI
-    int dummy=1;
-    MPI_Status status;
-    //Wait to send our configurations so the event queue doesn't get filled up for
-    //large numbers of processors.
-    MPI_Recv(&dummy,1,MPI_INT, 0, 0, MPI_Comm_grp, &status);
-    MPI_Send(&nconfigs, 1, MPI_INT,0, 0, MPI_Comm_grp);
-    for(int i=0; i< nconfigs; i++) {
-      configs(i).mpiSend(0);
-    }
-#endif
-  }
-  */
+
 #ifdef USE_MPI
   MPI_Barrier(MPI_Comm_grp);
 #endif
-  if(mpi_info.node==0) 
-    rename(tmpfilename.c_str(), filename.c_str());
+*/
+#ifdef USE_MPI
+  stringstream os;
+  os.precision(15);
+  for(int i=0; i< nconfigs; i++) { 
+     os << " walker { \n";
+     configs(i).write(os);
+     os << " } \n";
+  }
+  string walkstr=os.str();
+  int nthis_string=walkstr.size();
+  if(mpi_info.node==0) { 
+     ofstream os(tmpfilename.c_str());
+     os << walkstr;
+     MPI_Status status;
+     for(int i=1; i< mpi_info.nprocs; i++) { 
+        MPI_Recv(nthis_string,i);
+        char * buf=new char[nthis_string];
+        MPI_Recv(buf,nthis_string,MPI_CHAR, i, 0, MPI_Comm_grp, & status);
+        os << buf; 
+        delete [] buf;
+    }
+  }
+  else { 
+     MPI_Send(nthis_string,0);
+    //we know that MPI_Send obeys const-ness, but the interfaces are not clean 
+    // and so...casting!
+     MPI_Send((char *) walkstr.c_str(),nthis_string, MPI_CHAR, 0,0,MPI_Comm_grp);
+  }
+#else
+  ofstream os(tmpfilename.c_str());
+  os.precision(15);
+  for(int i=0; i< nconfigs; i++) { 
+    os << " walker { \n";
+    configs(i).write(os);
+    os << " } \n";
+  }
+  os.close();
+#endif
+  
   time_t endtime;
   time(&endtime);
   single_write(cout, "Write took ", difftime(endtime, starttime), " seconds\n");
