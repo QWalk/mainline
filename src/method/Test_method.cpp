@@ -145,6 +145,7 @@ void Test_method::run(Program_options & options, ostream & output)
   wfdata->generateWavefunction(mywf);
   sysprop->generateSample(sample);
 
+  /*
   if(readconfig!="") {
     ifstream checkfile(readconfig.c_str());
     if(!checkfile) 
@@ -154,6 +155,19 @@ void Test_method::run(Program_options & options, ostream & output)
       if(read_config(dummy, checkfile, sample)) break;
     }
   }
+  */
+
+  Array1 <Config_save_point> config_pos;
+  config_pos.Resize(0);
+  if(readconfig!="") { 
+    read_configurations(readconfig, config_pos);
+  }
+  if(config_pos.GetDim(0)<1)
+    error("Could not read a single walker from config file");
+
+  //take a first one
+  config_pos(0).restorePos(sample);
+
   
   sample->attachObserver(mywf);
   Array1 <Wf_return> first_calc(nelectrons);
@@ -178,6 +192,7 @@ void Test_method::run(Program_options & options, ostream & output)
     cout << "####electron " << e << " #####" << endl;
     cout << "#######################\n";
     sample->getElectronPos(e,epos);
+    //cout <<" position "<<epos(0)<<" "<<epos(1)<<" "<<epos(2)<<endl;
     doublevar lap=0;
     for(int d=0;d < 3; d++) {
       new_epos=epos;
