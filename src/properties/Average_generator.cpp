@@ -26,6 +26,10 @@ int decide_averager(string & label, Average_generator *& avg) {
     avg=new Average_linear_derivative;
   else if(caseless_eq(label, "LINEAR_DELTA_DER"))
     avg=new Average_linear_delta_derivative;
+   else if(caseless_eq(label, "SPHERICAL_DENSITY"))
+    avg=new Average_spherical_density;
+  else if(caseless_eq(label, "SPHERICAL_DENSITY_GRID"))
+    avg=new Average_spherical_density_grid;
   else 
     error("Didn't understand ", label, " in Average_generator.");
   
@@ -1129,6 +1133,404 @@ void Average_linear_delta_derivative::write_summary(Average_return & avg, Averag
   }
   os <<" normalization "<<avg.vals(ndim)<<" +/- " << err.vals(ndim) << endl;
       
+}
+
+//############################################################################
+void Average_spherical_density::read(System * sys, Wavefunction_data * wfdata,
+			vector <string> & words) {
+
+  single_write(cout, "Spherically averaged density  will be calculated.\n");
+
+  unsigned int pos=0;
+  if(!readvalue(words, pos=0, npoints, "NGRID")) 
+    npoints=5;     
+
+  pos=0;
+  //doublevar cutoff;
+  if(!readvalue(words, pos=0, cutoff, "CUTOFF")) {
+    Array2 <doublevar> latVec(3,3);
+    if(!sys->getBounds(latVec))
+      error("In non-periodic systems, CUTOFF has to be given in the OBDM section.");
+    cutoff=smallest_height(latVec)/2;
+  }
+  dR=cutoff/npoints;
+
+  nup=sys->nelectrons(0);
+  ndown=sys->nelectrons(1);
+
+  if(!readvalue(words, pos=0, nfunc, "NFUNC")) 
+    error ("need nfunc in the the Average_spherical_density");
+    
+  //vector <string> basistext;
+  
+  if(!readsection(words, pos=0, basistext, "BASIS"))
+     error ("need BASIS in the the Average_spherical_density");
+
+  allocate(basistext, basis);
+  string indent="  ";
+  basis->showinfo(indent, cout);
+  single_write(cout, "Spherically averaged density: done read \n");
+
+}  
+
+//-----------------------------------------------------------------------------
+
+void Average_spherical_density::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+			    System * sys, Sample_point * sample,
+			    Average_return & avg) {
+
+  //single_write(cout, "Spherically averaged density: start evaluate \n");
+  avg.type="spherical_density";
+  //avg.vals.Resize(npoints);
+  avg.vals.Resize(2*nfunc);
+  avg.vals=0;
+
+  int nwf=wf->nfunc();
+  Wf_return wfval_new(nwf,2);   // this structure I just don't understand
+  Wf_return wfval_old(nwf,2);
+
+  //  Storage_container wfStore;
+  Array1 <doublevar> oldpos(3), newpos(3), transl(3);
+  Array1 <doublevar> x(3), y(3), z(3);
+  for(int e=0; e < nup+ndown; e++){
+    sample->getElectronPos(e,oldpos);
+    doublevar distance2=oldpos(0)*oldpos(0)+oldpos(1)*oldpos(1)+oldpos(2)*oldpos(2);
+    doublevar distance=sqrt(distance2);
+    //for( int i=0; i<npoints; i++) {
+    //  if(distance > i*dR && distance< (i+1)*dR)
+    //	avg.vals(i)+= 1/distance2;
+    //}
+    Array1 <doublevar> R(5);
+    R(0)=distance;
+    Array1 <doublevar> basisvals(nfunc);
+    int currfunc=0;
+    basis->calcVal(R, basisvals, currfunc);
+    for( int i=0; i<nfunc; i++) {
+      if(e<nup)
+	avg.vals(i)+=basisvals(i)/(4.0*pi);
+      //avg.vals(i)+=distance2*basisvals(i);
+      else
+	avg.vals(i+nfunc)+=basisvals(i)/(4.0*pi);
+      //avg.vals(i+nfunc)+=distance2*basisvals(i);
+    }
+  }
+}
+
+//-----------------------------------------------------------------------------
+
+void Average_spherical_density::write_init(string & indent, ostream & os) { 
+  os << indent << "spherical_density" << endl;
+  os << indent << "ngrid " << npoints << endl;
+  os << indent << "cutoff " << dR*npoints << endl;
+  os << indent << "nfunc " <<  nfunc << endl;
+  os << indent << "BASIS { ";
+  for(int i=0; i<basistext.size();i++)
+    os << basistext[i]<<" ";
+  os <<" } "<<endl;
+}
+
+//-----------------------------------------------------------------------------
+
+void Average_spherical_density::read(vector <string> & words) { 
+  unsigned int pos=0;
+  readvalue(words, pos, npoints, "ngrid");
+  //doublevar cutoff;
+  readvalue(words, pos=0, cutoff, "cutoff");
+  dR=cutoff/npoints;
+  readvalue(words, pos=0, nfunc, "nfunc");
+  //vector <string> basistext;
+  readsection(words, pos=0, basistext, "BASIS");
+  allocate(basistext, basis);
+}
+
+//-----------------------------------------------------------------------------
+
+void Average_spherical_density::write_summary(Average_return & avg, Average_return & err,
+				 ostream & os) { 
+  os << "Spherically averaged density "<< endl;
+  
+  /*
+  assert(avg.vals.GetDim(0) >=npoints);
+  assert(err.vals.GetDim(0) >=npoints);
+
+  doublevar integral=0.0;
+  for(int i=0; i< npoints; i++) {		
+    doublevar r=(i+0.5)*dR;
+    doublevar rho=avg.vals(i);
+    integral+=rho*r*r*dR;
+  }
+  cout <<" integral "<<integral<<" nelectrons "<<nelectrons<<endl;
+  
+  for(int i=0; i< npoints; i++) {
+    avg.vals(i)*=1/integral;
+    err.vals(i)*=1/integral;
+    doublevar rho=avg.vals(i);
+    doublevar rhoerr=err.vals(i);
+    doublevar r=(i+0.5)*dR;
+    os << "density_out " <<  r << "   " << rho << "   " << rhoerr << endl;
+  }
+  
+  
+  doublevar summ1=0;
+  doublevar summ2=0;
+  for(int i=0; i< npoints; i++) {
+    doublevar rho=0.0;
+    avg.vals(i);
+    
+    doublevar r=(i+0.5)*dR;
+    os << "density_out " <<  r << "   " << rho << "   " << rhoerr << endl;
+  }
+  */
+  
+  
+  os.setf(ios::scientific);
+  os <<"Used basis info :"<<endl;
+  string indent="  ";
+  basis->showinfo(indent, os);
+  os <<"Spin-up and spin-down density in above basis"<<endl;
+  doublevar summ1=0;
+  doublevar summ2=0;
+  for(int i=0; i< nfunc; i++) {
+    os << i+1 <<setw(20)<<setprecision(10)<< avg.vals(i) <<setw(20)<<setprecision(10)<<  err.vals(i);
+    os <<setw(20)<<setprecision(10)<< avg.vals(i+nfunc) <<setw(20)<<setprecision(10)<<  err.vals(i+nfunc) << endl;
+  }
+  
+  
+  Array1 <doublevar> R(5);
+  Array1 <doublevar> basisvals(nfunc); 
+  os << "densities on the grid"<<endl;
+  os << "r  rho(r) rho(r)err  rho(r) rho(r)err"  << endl;
+  doublevar  norm1=0.0;
+  doublevar  norm2=0.0;
+  //for(int i=0;i<npoints;i++){
+  //R(0)=(i+0.5)*dR;
+  R(0)=1.000000000000e-06;
+  doublevar lastR=0.0;
+  doublevar rf=100.0;
+  doublevar ri=1e-6;
+  int npts=5001;
+  doublevar ratio=exp(log(rf/ri)/(npts-1)); //1.003690930920;
+  
+  while (R(0)<cutoff) {
+    int currfunc=0;
+    basis->calcVal(R, basisvals, currfunc);
+    Array1 <doublevar> sum(6);
+    sum=0;				
+    Array1 <doublevar> sum_error(6);
+    sum_error=0;
+    for(int k=0;k<nfunc;k++){
+      sum(0)+=basisvals(k)*avg.vals(k);
+      sum_error(0)+=basisvals(k)*err.vals(k)*basisvals(k)*err.vals(k);
+      /*
+      if(abs(avg.vals(k))>2.0*err.vals(k)){
+	sum(1)+=basisvals(k)*avg.vals(k);
+	sum_error(1)+=basisvals(k)*err.vals(k)*basisvals(k)*err.vals(k);
+      }
+      if(abs(avg.vals(k))>4.0*err.vals(k)){
+	sum(2)+=basisvals(k)*avg.vals(k);
+	sum_error(2)+=basisvals(k)*err.vals(k)*basisvals(k)*err.vals(k);
+      }
+      */
+
+      sum(3)+=basisvals(k)*avg.vals(k+nfunc);
+      sum_error(3)+=basisvals(k)*err.vals(k+nfunc)*basisvals(k)*err.vals(k+nfunc);
+	
+      /*
+      if(abs(avg.vals(k+nfunc))>2.0*err.vals(k+nfunc)){
+	sum(4)+=basisvals(k)*avg.vals(k+nfunc);
+	sum_error(4)+=basisvals(k)*err.vals(k+nfunc)*basisvals(k)*err.vals(k+nfunc);
+      }
+      if(abs(avg.vals(k+nfunc))>4.0*err.vals(k+nfunc)){
+	sum(5)+=basisvals(k)*avg.vals(k+nfunc);
+	sum_error(5)+=basisvals(k)*err.vals(k+nfunc)*basisvals(k)*err.vals(k+nfunc);
+      }
+      */
+      
+    }//k
+    
+    norm1+=4.0*pi*R(0)*R(0)*sum(0)*(R(0)-lastR);
+    //norm1+=sum(0)*dR;
+    norm2+=4.0*pi*R(0)*R(0)*sum(3)*(R(0)-lastR);
+    //norm2+=sum(3)*dR;
+    os <<R(0)<<setw(20)<<setprecision(10)<<sum(0)<<setw(20)<<setprecision(10)<<sqrt(sum_error(0))
+      //<<setw(20)<<setprecision(10)<<sum(1)<<setw(20)<<setprecision(10)<<sqrt(sum_error(1))
+      //<<setw(20)<<setprecision(10)<<sum(2)<<setw(20)<<setprecision(10)<<sqrt(sum_error(2))
+      <<setw(20)<<setprecision(10)<<sum(3)<<setw(20)<<setprecision(10)<<sqrt(sum_error(3))
+      //<<setw(20)<<setprecision(10)<<sum(4)<<setw(20)<<setprecision(10)<<sqrt(sum_error(4))
+      //<<setw(20)<<setprecision(10)<<sum(5)<<setw(20)<<setprecision(10)<<sqrt(sum_error(5))
+       <<endl;
+    lastR=R(0);
+    R(0)*=ratio;
+    
+  }//i
+  os <<"integrated  spin-up density "<<norm1<<" and spin-up density "<<norm2<<endl;
+  os << endl;
+  os.unsetf(ios::scientific);
+  os<<setprecision(6);
+}
+
+
+
+
+
+
+
+//-----------------------------------------------------------------------------
+
+void Average_spherical_density_grid::read(System * sys, Wavefunction_data * wfdata,
+			vector <string> & words) {
+
+  single_write(cout, "Spherically averaged density  on the grid will be calculated.\n");
+
+  unsigned int pos=0;
+  if(!readvalue(words, pos=0, npoints, "NGRID")) 
+    npoints=5;     
+
+  pos=0;
+  doublevar cutoff;
+  if(!readvalue(words, pos=0, cutoff, "CUTOFF")) {
+    Array2 <doublevar> latVec(3,3);
+    if(!sys->getBounds(latVec))
+      error("In non-periodic systems, CUTOFF has to be given in the OBDM section.");
+    cutoff=smallest_height(latVec)/2;
+  }
+  dR=cutoff/npoints;
+
+  nup=sys->nelectrons(0);
+  ndown=sys->nelectrons(1);
+}  
+
+//-----------------------------------------------------------------------------
+
+void Average_spherical_density_grid::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+			    System * sys, Sample_point * sample,
+			    Average_return & avg) {
+
+  //single_write(cout, "Spherically averaged density on grid : start evaluate \n");
+  avg.type="spherical_density_grid";
+  avg.vals.Resize(2*npoints);
+  avg.vals=0;
+
+  //  Storage_container wfStore;
+  Array1 <doublevar> oldpos(3), newpos(3), transl(3);
+  Array1 <doublevar> x(3), y(3), z(3);
+  for(int e=0; e < nup+ndown; e++){
+    sample->getElectronPos(e,oldpos);
+    doublevar distance2=oldpos(0)*oldpos(0)+oldpos(1)*oldpos(1)+oldpos(2)*oldpos(2);
+    doublevar distance=sqrt(distance2);
+    if(distance2 < 1.0e-6){
+      cout <<"electron # "<<e+1<< "very close to origin: R= "<<distance<<endl;
+    }
+    for( int i=0; i<npoints; i++) {
+      if(distance > i*dR && distance< (i+1)*dR){
+	doublevar r=(i+0.5)*dR;
+	if(e<nup){
+	  // if(i==0){
+	  //  cout <<"electron # "<<e+1<< "very close to origin: R= "<<distance<<" value "<<1.0/(distance2*4.0*pi*dR)<<endl;
+	  //  if(distance > 0.5*dR)
+	  //    avg.vals(i)+= 1.0/(distance2*4.0*pi*dR*0.5);
+	  // }
+	  //else{
+	  //avg.vals(i)+= 1.0/(distance2*4.0*pi*dR);
+	  avg.vals(i)+= 1.0/(4.0*pi*dR);
+	  
+	  //}
+	}
+	else{
+	  //if(i==0){
+	  // cout <<"electron # "<<e+1<< "very close to origin: R= "<<distance<<" value "<<1.0/(distance2*4.0*pi*dR)<<endl;
+	  //  if(distance > 0.5*dR)
+	  //    avg.vals(i+npoints)+= 1.0/(distance2*4.0*pi*dR*0.5);
+	  //}
+	  //else{
+	  //avg.vals(i+npoints)+= 1.0/(distance2*4.0*pi*dR);
+	  avg.vals(i+npoints)+= 1.0/(4.0*pi*dR);
+	    //}
+	}
+      }
+    }
+  }
+  
+  // for( int i=0; i<npoints; i++)
+  //  cout <<avg.vals(i)<<" "<<avg.vals(i+npoints)<<endl;
+
+
+}
+
+//-----------------------------------------------------------------------------
+
+void Average_spherical_density_grid::write_init(string & indent, ostream & os) { 
+  os << indent << "spherical_density_grid" << endl;
+  os << indent << "ngrid " << npoints << endl;
+  os << indent << "cutoff " << dR*npoints << endl;
+  os << indent << "nup " << nup << endl;
+  os << indent << "ndown " << ndown << endl;
+}
+
+//-----------------------------------------------------------------------------
+
+void Average_spherical_density_grid::read(vector <string> & words) { 
+  unsigned int pos=0;
+  readvalue(words, pos, npoints, "ngrid");
+  doublevar cutoff;
+  readvalue(words, pos=0, cutoff, "cutoff");
+  dR=cutoff/npoints;
+  readvalue(words, pos=0, nup, "nup");
+  readvalue(words, pos=0, ndown, "ndown");
+}
+
+//-----------------------------------------------------------------------------
+
+void Average_spherical_density_grid::write_summary(Average_return & avg, Average_return & err,
+				 ostream & os) { 
+  os << "Spherically averaged density on grid"<< endl;
+  
+  
+  assert(avg.vals.GetDim(0) >=2*npoints);
+  assert(err.vals.GetDim(0) >=2*npoints);
+
+  doublevar integral1=0.0;
+  doublevar integral2=0.0;
+  doublevar alpha=10.0/(npoints*dR*npoints*dR);
+  doublevar check_intg=0.0;
+  doublevar C=sqrt(pi)/(4.0*pow(alpha,1.5));
+  
+  for(int i=0; i< npoints; i++) {		
+    doublevar r=(i+0.5)*dR;
+    doublevar rho1=avg.vals(i);
+    doublevar rho2=avg.vals(i+npoints);
+    //integral1+=4*pi*rho1*r*r*dR;
+    integral1+=4*pi*rho1*dR;
+    //integral2+=4*pi*rho2*r*r*dR;
+    integral2+=4*pi*rho2*dR;
+    check_intg+=dR*r*r*exp(-alpha*r*r)/C;
+    
+  }
+  //os.setf(ios::scientific);
+
+  //os <<" alpha "<<alpha<<" C "<<C<<" integration error "<<setw(20)<<abs(1.0-check_intg)<<endl;
+  os <<"spin-up integtated density "<<integral1<<" # electrons "<<nup<<"  spin-down integtated density "<<integral2<<" # electrons "<<ndown
+     <<" integration error "<<setw(20)<<abs(1.0-check_intg)<<endl;
+  
+  os.setf(ios::scientific);
+  for(int i=0; i< npoints; i++) {
+    //avg.vals(i)*=nup/integral1;
+    //err.vals(i)*=nup/integral1;
+    
+    //avg.vals(i+npoints)*=ndown/integral2;
+    //err.vals(i+npoints)*=ndown/integral2;
+    doublevar r=(i+0.5)*dR; //plot in the middle of the interval
+    //doublevar r2=r*r;
+    doublevar rho1=avg.vals(i);
+    doublevar rhoerr1=err.vals(i);
+    doublevar rho2=avg.vals(i+npoints);
+    doublevar rhoerr2=err.vals(i+npoints);
+
+    
+    os << "density_out " <<setw(20)<<  r<< setw(20)<<"  "<<setw(20)<< rho1 <<"  "<<setw(20)<<rhoerr1<<setw(20)<< rho2 <<"  "<<setw(20)<<rhoerr2<< endl;
+  }
+  os.unsetf(ios::scientific);
+  os<<setprecision(6);
 }
 
 //############################################################################

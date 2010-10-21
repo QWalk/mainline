@@ -335,7 +335,7 @@ void print_std_jastrow2(Jastrow2_wf_writer & jast2writer, ostream & os,
     tbas.label=jast2writer.atomnames[i];
     tbas.cutoff=basis_cutoff;
     tbas.beta0=.2;
-    tbas.nfunc_=2;
+    tbas.nfunc_=3;
     eibas.push_back(tbas);
 
   }
@@ -345,7 +345,7 @@ void print_std_jastrow2(Jastrow2_wf_writer & jast2writer, ostream & os,
   Poly_pade_basis eebas;
   eebas.cutoff=basis_cutoff;
   eebas.beta0=.5;
-  eebas.nfunc_=1;
+  eebas.nfunc_=3;
   jast2writer.add_ee_basis(eebas,1);
   jast2writer.print_wavefunction(os);
 }

@@ -125,13 +125,13 @@ void Shdmc_method::read(vector <string> words,
 
   if(!readvalue(words, pos=0, readconfig, "READCONFIG"))
     error("Need READCONFIG file in method section");
-  readconfig_non_cannonical=readconfig;
-  canonical_filename(readconfig);
+  //readconfig_non_cannonical=readconfig;
+  //canonical_filename(readconfig);
   
   if(!readvalue(words, pos=0, storeconfig, "STORECONFIG"))
-    storeconfig=readconfig_non_cannonical;
-  storeconfig_non_cannonical=storeconfig;
-  canonical_filename(storeconfig);
+    storeconfig=readconfig;
+  //storeconfig_non_cannonical=storeconfig;
+  //canonical_filename(storeconfig);
 
   //read input stuff for MC run inside optimization
   pos=0;
@@ -172,7 +172,7 @@ void Shdmc_method::read(vector <string> words,
   //--Read configurations
   readcheck(readconfig);
 }
-
+/*
 void Shdmc_method::readcheck(string & readconfig) {
   int configsread=0;
   int nwread=0;
@@ -227,6 +227,24 @@ void Shdmc_method::readcheck(string & readconfig) {
     << " sample points." << endl;
   }
 }
+*/
+
+void Shdmc_method::readcheck(string & filename) {
+  config_pos.Resize(0);
+  if(filename!="") { 
+    read_configurations(filename, config_pos);
+  }
+  if(config_pos.GetDim(0) < nconfig) { 
+    Array1 <Config_save_point> tmpconfig=config_pos;
+    config_pos.Resize(nconfig);
+    for(int i=0; i< tmpconfig.GetDim(0); i++) { config_pos(i)=tmpconfig(i);} 
+    for(int i=tmpconfig.GetDim(0); i< nconfig; i++) {
+      sample->randomGuess();
+      config_pos(i).savePos(sample);
+    }
+  } 
+}
+
 
 void write_wf(Array1 <doublevar> & parms, string & wfoutputfile, Wavefunction_data * wfdata){
   if( mpi_info.node==0 ){
@@ -328,11 +346,11 @@ void Shdmc_method::get_averages(Array1 <doublevar> & parms,
     run_words.push_back(strbuff);
     run_words.push_back("READCONFIG");
     if(iter<1)
-      run_words.push_back(readconfig_non_cannonical);
+      run_words.push_back(readconfig);
     else
-      run_words.push_back(storeconfig_non_cannonical);
+      run_words.push_back(storeconfig);
     run_words.push_back("STORECONFIG");
-    run_words.push_back(storeconfig_non_cannonical);
+    run_words.push_back(storeconfig);
 
     
     for(int s=1;s<mc_words[mc_size].size();s++)

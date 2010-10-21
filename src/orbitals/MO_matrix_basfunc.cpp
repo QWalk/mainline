@@ -353,7 +353,7 @@ void MO_matrix_basfunc::updateHessian(
 	int b=centers.basis(cen2,n);
 	tempbasis=basis(b);
 	if(R(0)< obj_cutoff(b)) {
-	  tempbasis->calcLap(R, basisvals, currfunc);
+	  tempbasis->calcHessian(R, basisvals, currfunc);
 	}
 	currfunc+=tempbasis->nfunc();
       }
@@ -364,7 +364,7 @@ void MO_matrix_basfunc::updateHessian(
 	  if(R(0) < cutoff(basfunc)){
 	    for (int d=0; d < 10; d++) {
 	      newvals(m,d)+=magnification_factor*basisvals(basfunc,d)*kptfac(cen2);
-	    } 
+	    }
 	  }
 	}
       }

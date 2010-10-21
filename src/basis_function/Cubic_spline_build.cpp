@@ -44,6 +44,9 @@ string Cubic_spline::symmetry_lookup(symmetry_type s) {
      case sym_10F:
        return string("10F");
        break;
+     case sym_9G:
+       return string("9G");
+       break;
      case sym_15G:
        return string("15G");
        break;
@@ -82,6 +85,7 @@ int Cubic_spline::symmetry_lvalue(symmetry_type s) {
     case sym_F_siesta:
       return 3;
       break;
+    case sym_9G:
     case sym_15G:
       return 4;
       break;
@@ -107,6 +111,8 @@ Cubic_spline::symmetry_type Cubic_spline::symmetry_lookup(string & s) {
     return sym_5D;
   if(caseless_eq(s,"7F"))
     return sym_7F;
+  if(caseless_eq(s,"9G"))
+    return sym_9G;
   if(caseless_eq(s,"P_siesta"))
     return sym_P_siesta;
   if(caseless_eq(s,"5D_siesta"))
@@ -284,6 +290,9 @@ int Cubic_spline::nfunc()
     case sym_15G:
       totf+=15;
       break;
+    case sym_9G:
+      totf+=9;
+      break;
     default:
       cout << "Bad symmetry in Cubic_spline::nfunc()\n";
       cout << symmetry(i) << endl;
@@ -329,6 +338,9 @@ void Cubic_spline::findCutoffs()
       break;
     case sym_10F:
       nrep=10;
+      break;
+    case sym_9G:
+      nrep=9;
       break;
     case sym_15G:
       nrep=15;
@@ -443,6 +455,7 @@ int Cubic_spline::readbasis(vector <string> & words,unsigned int & pos,
         case sym_10F:
           norm=sqrt(2.*feg2*feg2*fac/105.);
           break;
+	case sym_9G:
         case sym_15G:
           norm=sqrt(2.*feg2*feg2*feg*fac/945.); //Lubos-done
           break;
@@ -471,6 +484,7 @@ int Cubic_spline::readbasis(vector <string> & words,unsigned int & pos,
         case sym_10F:
           norm=1/sqrt(7.0);
           break;
+	case sym_9G:
         case sym_15G:
           norm=1/sqrt(9.0);
           break;
@@ -516,6 +530,7 @@ int Cubic_spline::readbasis(vector <string> & words,unsigned int & pos,
           case sym_10F:
             p=4;
             break;
+	  case sym_9G:
           case sym_15G:
             p=5;
             break;
@@ -653,8 +668,15 @@ void Cubic_spline::assign_indiv_symmetries() {
         indiv_symmetry(totfunc++)=isym_Dyz;
         break;
       case sym_7F:
-        error("Need to write an ordering for 7F functions"
-              " in Cubic_spline::assign_indiv_symmetries");
+	nfuncspline(funcNum)=7;
+	indiv_symmetry(totfunc++)=isym_F0;
+        indiv_symmetry(totfunc++)=isym_Fm3;
+	indiv_symmetry(totfunc++)=isym_Fp3mod;
+	indiv_symmetry(totfunc++)=isym_Fp2;
+        indiv_symmetry(totfunc++)=isym_Fxyz;
+        indiv_symmetry(totfunc++)=isym_Fm1;
+        indiv_symmetry(totfunc++)=isym_Fp1;
+	 break;
       case sym_10F:
         nfuncspline(funcNum)=10;
         indiv_symmetry(totfunc++)=isym_Fxxx;
@@ -667,6 +689,18 @@ void Cubic_spline::assign_indiv_symmetries() {
         indiv_symmetry(totfunc++)=isym_Fzzx;
         indiv_symmetry(totfunc++)=isym_Fzzy;
         indiv_symmetry(totfunc++)=isym_Fxyz;
+        break;
+      case sym_9G:
+        nfuncspline(funcNum)=9;
+        indiv_symmetry(totfunc++)=isym_G0;
+        indiv_symmetry(totfunc++)=isym_G1;
+        indiv_symmetry(totfunc++)=isym_G2;
+        indiv_symmetry(totfunc++)=isym_G3;
+        indiv_symmetry(totfunc++)=isym_G4;
+        indiv_symmetry(totfunc++)=isym_G5;
+        indiv_symmetry(totfunc++)=isym_G6;
+        indiv_symmetry(totfunc++)=isym_G7;
+        indiv_symmetry(totfunc++)=isym_G8;
         break;
       case sym_15G:
         nfuncspline(funcNum)=15;

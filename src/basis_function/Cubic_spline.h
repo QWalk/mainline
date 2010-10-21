@@ -37,8 +37,8 @@ class Cubic_spline: public Basis_function
 private:
 
   //Overall symmetry type of a spline
-  enum symmetry_type { sym_S, sym_P, sym_6D, sym_10F, sym_5D, sym_7F, sym_15G, 
-                       sym_P_siesta,sym_D_siesta, sym_F_siesta };
+  enum symmetry_type { sym_S, sym_P, sym_6D, sym_10F, sym_5D, sym_7F, sym_15G,
+		       sym_9G, sym_P_siesta, sym_D_siesta, sym_F_siesta };
   
   string symmetry_lookup(symmetry_type );
   symmetry_type symmetry_lookup(string &);
@@ -54,10 +54,11 @@ private:
     isym_Fyyx, isym_Fyyz, isym_Fzzx, isym_Fzzy, isym_Fxyz,
     //these are linear combinations of spherical harmonics.  m2 is the imaginary part of m=2, 
     //p2 is the real part, etc.
-    isym_Fm3, isym_Fm1, isym_F0, isym_Fp1, isym_Fp2, isym_Fp3,
+    isym_Fm3, isym_Fm1, isym_F0, isym_Fp1, isym_Fp2, isym_Fp3, isym_Fp3mod,
     isym_Gxxxx, isym_Gyyyy, isym_Gzzzz, isym_Gxxxy, isym_Gxxxz,
     isym_Gyyyx, isym_Gyyyz, isym_Gzzzx, isym_Gzzzy, isym_Gxxyy,
-    isym_Gxxzz, isym_Gyyzz, isym_Gxxyz, isym_Gyyxz, isym_Gzzxy
+    isym_Gxxzz, isym_Gyyzz, isym_Gxxyz, isym_Gyyxz, isym_Gzzxy,
+    isym_G0,isym_G1,isym_G2,isym_G3,isym_G4,isym_G5,isym_G6,isym_G7,isym_G8         
 };
 
   Array1 <symmetry_type> symmetry;

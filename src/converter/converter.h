@@ -97,6 +97,9 @@ void print_vmc_section(std::ostream & os,
 void print_opt_section(std::ostream & os,
                        std::string & outputname, double eref);
 
+void print_dmc_section(std::ostream & os,
+                       std::string & outputname, double eref);
+
 
 double find_centers(std::vector <double> & origin,
                     std::vector <std::vector <double> > & latvec,

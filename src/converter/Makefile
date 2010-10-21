@@ -16,6 +16,7 @@ ABINIT2QMCOBJS := $(OBJPATH)/abinit2qmc.o $(OBJPATH)/Blochwave_function.o $(ALLO
 G032QMCOBJS := $(OBJPATH)/g032qmcmain.o $(OBJPATH)/g03tools.o $(ALLOBJS)
 HEG2QMCOBJS := $(OBJPATH)/heg2qmc.o $(OBJPATH)/indexx.o
 HEG2QMCCOBJS := $(OBJPATH)/heg2qmcc.o $(OBJPATH)/indexx.o $(OBJPATH)/setk01.o
+SQD2QMCOBJS:=$(OBJPATH)/sqd2qmc.o $(ALLOBJS)
 
 #ifeq ($(PLATFORM), Linux)
 #	SUFFIX :=  
@@ -27,7 +28,7 @@ HEG2QMCCOBJS := $(OBJPATH)/heg2qmcc.o $(OBJPATH)/indexx.o $(OBJPATH)/setk01.o
 
 
 
-all: gamess2qmc$(SUFFIX) gamessci2qmc$(SUFFIX) crystal2qmc$(SUFFIX) siesta2qmc$(SUFFIX) g032qmc$(SUFFIX) heg2qmc$(SUFFIX) abinit2qmc$(SUFFIX)
+all: gamess2qmc$(SUFFIX) gamessci2qmc$(SUFFIX) crystal2qmc$(SUFFIX) siesta2qmc$(SUFFIX) g032qmc$(SUFFIX) heg2qmc$(SUFFIX) abinit2qmc$(SUFFIX) 
 .PHONY: clean 
 
 gamess2qmc$(SUFFIX): $(GAMESS2QMCOBJS)
@@ -73,19 +74,25 @@ heg2qmc$(SUFFIX) : $(HEG2QMCOBJS)
 heg2qmcc$(SUFFIX) : $(HEG2QMCCOBJS)
 	@echo ________________________________________________________________
 	@echo Linking $@
-	$(CXX) $(DEBUG) $(CXXFLAGS) -o heg2qmcc$(SUFFIX) $(LDFLAGS) $(BLAS_LIBS) $(HEG2QMCCOBJS) -lg2c
+	$(CXX) $(DEBUG) $(CXXFLAGS) -o heg2qmcc$(SUFFIX) $(LDFLAGS) $(BLAS_LIBS) $(HEG2QMCCOBJS) -lgfortran #-lg2c
+
+
+sqd2qmc$(SUFFIX) : $(SQD2QMCOBJS)
+	@echo ________________________________________________________________
+	@echo Linking $@
+	$(CXX) $(DEBUG) $(CXXFLAGS) -o sqd2qmc$(SUFFIX) $(LDFLAGS) $(BLAS_LIBS) $(SQD2QMCOBJS) $(XML_LIBS) $(HDF_LIBS) 
 
 clean: 
 	@echo ________________________________________________________________
 	@echo Cleaning object files... 
-	rm -f $(GAMESS2QMCOBJS) $(GAMESSCI2QMCOBJS) $(CRYSTAL2QMCOBJS) $(JEEP2QMCOBJS) $(SIESTA2QMCOBJS) $(G032QMCOBJS) $(HEG2QMCOBJS) $(HEG2QMCCOBJS) $(ABINIT2QMCOBJS)  siesta2qmc$(SUFFIX) g032qmc$(SUFFIX) gamess2qmc$(SUFFIX) gamessci2qmc$(SUFFIX) jeep2qmc$(SUFFIX) crystal2qmc$(SUFFIX) heg2qmc$(SUFFIX) heg2qmcc$(SUFFIX) abinit2qmc$(SUFFIX)
+	rm -f $(GAMESS2QMCOBJS) $(GAMESSCI2QMCOBJS) $(CRYSTAL2QMCOBJS) $(JEEP2QMCOBJS) $(SIESTA2QMCOBJS) $(G032QMCOBJS) $(HEG2QMCOBJS) $(HEG2QMCCOBJS) $(ABINIT2QMCOBJS)$(SQD2QMCOBJS) siesta2qmc$(SUFFIX) g032qmc$(SUFFIX) gamess2qmc$(SUFFIX) gamessci2qmc$(SUFFIX) jeep2qmc$(SUFFIX) crystal2qmc$(SUFFIX) heg2qmc$(SUFFIX) heg2qmcc$(SUFFIX) abinit2qmc$(SUFFIX) sqd2qmc$(SUFFIX)
 
 $(OBJPATH)/%.o:$(DVLPATH)/%.cpp
 	@echo ________________________________________________________________
 	@echo Compiling $<
 	[ -e $(DVLPATH)/obj ] || mkdir $(DVLPATH)/obj
 	[ -e $(OBJPATH) ] || mkdir $(OBJPATH)
-	$(CXX) -c $(CXXFLAGS) $(BLAS_INCLUDE) $(CPPFLAGS) -o $@ $<
+	$(CXX) -c $(CXXFLAGS) $(BLAS_INCLUDE) $(CPPFLAGS) -o $@ $< $(XML_INCLUDE) $(HDF_INCLUDE)
         
 
 $(OBJPATH)/%.o:$(DVLPATH)/%.f

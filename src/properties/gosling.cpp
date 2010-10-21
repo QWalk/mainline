@@ -24,6 +24,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <algorithm>
 #include <deque>
 #include <cstring>
+#include "Basis_function.h"
 
 using namespace Properties_types;
 //----------------------------------------------------------------------
