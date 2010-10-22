@@ -385,11 +385,11 @@ log_real_value TransposeInverseMatrix(const Array2 <doublevar> & a, Array2 <doub
     yy.refer(a1(j));
     lubksb(temp,n,indx,yy);
   }
- /* 
-  for(int j=0;j<n;++j) {
-    d *= temp(j,j);
-  }
-*/
+  
+  //for(int j=0;j<n;++j) {
+  //  d *= temp(j,j);
+  //}
+
   logdet.logval=0;
   logdet.sign=1;
   for(int i=0; i< n; i++) { 
@@ -398,7 +398,7 @@ log_real_value TransposeInverseMatrix(const Array2 <doublevar> & a, Array2 <doub
     if(temp(i,i) <0) logdet.sign*=-1;
   }
 
-  cout << " det " << d << " logval " << logdet.val() << endl;
+  //cout << " det " << d << " logval " << logdet.val() << endl;
   
 
   return logdet;
