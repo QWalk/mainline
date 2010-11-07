@@ -412,8 +412,9 @@ template <class ConfigType> void write_configurations(string & filename,
      MPI_Status status;
      for(int i=1; i< mpi_info.nprocs; i++) { 
         MPI_Recv(nthis_string,i);
-        char * buf=new char[nthis_string];
+        char * buf=new char[nthis_string+1];
         MPI_Recv(buf,nthis_string,MPI_CHAR, i, 0, MPI_Comm_grp, & status);
+        buf[nthis_string]='\0';
         os << buf; 
         delete [] buf;
     }
