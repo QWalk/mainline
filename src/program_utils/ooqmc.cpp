@@ -116,7 +116,7 @@ int main(int argc, char* argv[])
   const size_t buflen=80;
   char hostname[buflen];
   qmcgethostname(hostname, buflen);
-  cout << "node " << mpi_info.node << " alive on " << hostname << endl;
+//cout << "node " << mpi_info.node << " alive on " << hostname << endl;
   if(output)
   {
     output << "------------------------------------------------\n";
