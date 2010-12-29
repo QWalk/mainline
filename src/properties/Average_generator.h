@@ -324,5 +324,27 @@ private:
 };  
 
 //----------------------------------------------------------------------------
+
+/*!
+Density along a line.
+  */
+class Average_line_density:public Average_generator { 
+public:
+  virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+                        System * sys, Sample_point * sample, Average_return & );
+  virtual void read(System * sys, Wavefunction_data * wfdata, vector
+                    <string> & words);
+  virtual void write_init(string & indent, ostream & os);
+  virtual void read(vector <string> & words);
+  virtual void write_summary(Average_return &,Average_return &, ostream & os);
+ private:
+   Array1 <doublevar> vec;     //!< Line goes in this direction
+   Array1 <doublevar> origin;  //!< Line starts here
+   doublevar resolution;  //!< Bin size
+   int npoints; //Number of points on the line
+};
+
+
+
 #endif //AVERAGE_GENERATOR_H_INCLUDED
 

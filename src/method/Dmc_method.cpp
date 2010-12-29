@@ -943,8 +943,6 @@ doublevar Dmc_method::getWeight(Dmc_point & pt,
   }
 
   doublevar return_weight;
-  //if(tmoves) return_weight=exp(teffac*2.0*(etr-effenergy));
-  //else 
   return_weight=exp(teffac*(etr*2-effenergy-effoldenergy));
 
   return return_weight;

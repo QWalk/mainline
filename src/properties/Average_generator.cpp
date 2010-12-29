@@ -30,6 +30,8 @@ int decide_averager(string & label, Average_generator *& avg) {
     avg=new Average_spherical_density;
   else if(caseless_eq(label, "SPHERICAL_DENSITY_GRID"))
     avg=new Average_spherical_density_grid;
+  else if(caseless_eq(label, "LINE_DENSITY"))
+    avg=new Average_line_density;
   else 
     error("Didn't understand ", label, " in Average_generator.");
   
@@ -1534,3 +1536,116 @@ void Average_spherical_density_grid::write_summary(Average_return & avg, Average
 }
 
 //############################################################################
+void Average_line_density::read(System * sys, Wavefunction_data * wfdata, 
+                                       vector <string> & words) { 
+  unsigned int pos=0;
+  doublevar length=10.0;
+  vec.Resize(3);
+  origin.Resize(3);
+  vec=0; vec(2)=1.0;
+  origin=0;
+  if(!readvalue(words,pos=0,resolution, "RESOLUTION"))
+    resolution=0.1;
+  readvalue(words,pos=0,length,"LENGTH");
+  vector<string> dirwords;
+  if(readsection(words, pos=0, dirwords, "DIRECTION")) { 
+    if(dirwords.size()==3) { 
+      for(int i=0; i< 3; i++) { 
+        vec(i)=atof(dirwords[i].c_str());
+      }
+    }
+    else { error("Wrong number of elements in DIRECTION"); } 
+  }
+  vector <string> originwords;
+  if(readsection(words,pos=0,originwords, "ORIGIN" )) { 
+    if(originwords.size()!=3) error("Wrong number of elements in ORIGIN");
+    for(int i=0; i<3; i++) { 
+      origin(i)=atof(originwords[i].c_str());
+    }
+  }
+
+  double norm=0;
+  for(int d=0; d< 3; d++) { 
+    norm+=vec(d);
+  }
+  for(int d=0; d< 3; d++) vec(d)/=sqrt(norm);
+  
+  npoints=int(length/resolution)+1;  
+  
+}
+
+//-----------------------------------------------------------------------------
+
+void Average_line_density::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+                                        System * sys, Sample_point * sample, Average_return & avg) {
+  avg.type="line_density";
+  int nelectrons=sample->electronSize();
+  avg.vals.Resize(2*npoints); //for up and down
+  avg.vals=0;
+  int nup=sys->nelectrons(0);
+  int ndown=nelectrons-nup;
+  Array1 <doublevar> epos(3);
+  for(int e=0; e< nelectrons; e++) {
+    sample->getElectronPos(e,epos);
+    for(int d=0; d< 3; d++) 
+      epos(d)-=origin(d);
+    double scalar=0;
+    for(int d=0; d< 3; d++) 
+      scalar+=epos(d)*vec(d);
+
+    int place=int(fabs(scalar)/resolution);
+    if(place < npoints && place > 0) { 
+      if(e< nup)
+        avg.vals(place)+=1;
+      else
+        avg.vals(npoints+place)+=1;
+    }
+  } 
+  
+}
+
+//-----------------------------------------------------------------------------
+
+void Average_line_density::write_init(string & indent, ostream & os) { 
+  os << indent << "line_density\n";
+  os << indent << "npoints " << npoints << endl;
+  os << indent << "resolution " << resolution << endl;
+  os << indent << "direction { ";
+  for(int d=0; d< 3; d++) os << vec(d) << " ";
+  os << " } " << endl;
+  os << indent << "origin { ";
+  for(int d=0; d< 3; d++) os << vec(d) << " ";
+  os << " } " <<  endl;
+}
+//-----------------------------------------------------------------------------
+
+void Average_line_density::read(vector <string> & words) { 
+  unsigned int pos=0;
+  readvalue(words, pos=0, resolution, "resolution");
+  readvalue(words, pos=0, npoints, "npoints");
+  vector <string> sec;
+  readsection(words, pos=0,sec, "direction");
+  vec.Resize(sec.size());
+  for(int i=0; i< sec.size(); i++) vec(i)=atof(sec[i].c_str());
+  sec.clear();
+  readsection(words,pos=0, sec, "origin");
+  origin.Resize(sec.size());
+  for(int i=0; i< sec.size(); i++) origin(i)=atof(sec[i].c_str());
+
+}
+//-----------------------------------------------------------------------------
+
+void Average_line_density::write_summary(Average_return & avg, Average_return & err, ostream & os) { 
+  os << "Electron Density along a line. \n";
+  os << "    r  p(r) sigma(p(r))   p(r)  sigma(p(r))" << endl;
+  assert(avg.vals.GetDim(0) >=2*npoints);
+  assert(err.vals.GetDim(0) >=2*npoints);
+  
+  for(int i=0; i< npoints; i++) {
+    os << "line_out " << i*resolution << " " << avg.vals(i) << " " << err.vals(i) 
+    << "  " << avg.vals(i+npoints) << "  " << err.vals(i+npoints) << endl;
+  }
+  
+}
+
+
