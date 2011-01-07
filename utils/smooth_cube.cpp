@@ -3,6 +3,7 @@
 #include <cstring>
 #include <fstream>
 #include <cmath>
+#include <cassert>
 
 using namespace std;
 
@@ -58,6 +59,8 @@ void usage() {
   cout << "-fold  [integer]         Fold the density back onto itself.  Useful for supercells of nxnxn\n";
   cout << "                         Currently only works for orthorhombic cells\n";
   cout << "-proj  [x y z]           Project on the line given by [x,y,z].  \n";
+  cout << "-noenhance               Don't change the norm to make it easier to visualize. \n";
+  cout << "-normalize               Normalize the cube file to have sum 1\n"; 
   cout << "\nIn all cases, the cube file will be 'enhanced' to make the largest value equal to one.\n"
        << "This presumably makes the field easier to deal with in a visualization program\n";
   cout << "\nThe options are interpreted in order, so one can do several smooths by putting \n"
@@ -75,9 +78,10 @@ int main(int argc, char ** argv) {
   }
   Cube_info cube;
   cube.read_cube(cin);
-  cube.normalize();
-
+  //cube.normalize();
+  int enhance=1;
   for(int i=1; i < argc; i++) {
+    if(!strcmp(argv[i],"-noenhance")) enhance=0;
     if(!strcmp(argv[i],"-add") && i<argc+1) {
       cerr << "adding " << argv[i+1] << endl;
       ifstream is(argv[++i]);
@@ -123,7 +127,8 @@ int main(int argc, char ** argv) {
 
     if(!strcmp(argv[i], "-smooth"))
       cube.smooth();
-
+    if(!strcmp(argv[i], "-normalize"))
+      cube.normalize();
     if(!strcmp(argv[i], "-proj")) { 
       if(i >= argc+4) {
 	cerr << "proj needs 4 arguments" << endl;
@@ -139,9 +144,10 @@ int main(int argc, char ** argv) {
 
   }
 
-  cerr << "enhancing " << endl;
-
-  cube.enhance();
+  if(enhance) { 
+    cerr << "enhancing " << endl;
+    cube.enhance();
+  }
   cube.write_cube(cout);
 
 }
@@ -247,7 +253,7 @@ void Cube_info::smooth() {
   int npoints=n[0]*n[1]*n[2];
   vector <double> newdens(npoints);
   int count=0;
-  double wt=1/9.0;
+  double wt=1/7.0;
   for(int x=0; x< n[0]; x++) { 
     for(int y=0; y < n[1]; y++) { 
       for(int z=0; z < n[2]; z++) {

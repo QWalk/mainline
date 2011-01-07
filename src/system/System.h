@@ -48,6 +48,15 @@ public:
   virtual void generatePseudo(vector < vector < string > > &,
                               Pseudopotential * & pseudo);
   virtual doublevar calcLoc(Sample_point *)=0;
+  /*!
+    Return the local potential separated into onebody and twobody 
+    terms.  Onebody is per quantum particle, and twobody is a nxn upper
+    triangular matrix (i.e., filled in (i,j) for i < j)
+    */
+  virtual void separatedLocal(Sample_point *,Array1 <doublevar> & onebody,
+                     Array2 <doublevar> & twobody) { 
+    error("separatedLocal not available for this system");
+  }
   virtual void locDerivative(int ion, Sample_point *, Force_fitter &,
                              Array1 <doublevar> & der) {
     error("this system doesn't support locDerivative");

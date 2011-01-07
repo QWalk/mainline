@@ -163,6 +163,11 @@ class One_particle_density:public Local_density_accumulator {
   void accumulate(Sample_point *, doublevar weight);
 
   /*!
+    Add a single point..  Be careful when mixing this one and the 
+    accumulate function, they may not have the expected behavior
+    */
+  void add_single(Array1 <doublevar> & pos,doublevar val, doublevar weight);
+  /*!
     Write out the density.  Note that when running in parallel, this
     must be called by all processes!
    */
@@ -184,6 +189,16 @@ class One_particle_density:public Local_density_accumulator {
   int end_electron; 
 };
 
+class Local_potential_density:public Local_density_accumulator { 
+  public:
+    void init(vector <string> &, System *, string & runid);
+    void accumulate(Sample_point *, doublevar weight);
+    void write();
+  private:
+    One_particle_density density_2b;
+    One_particle_density density_1b;
+    System * sys;
+};
 
 
 

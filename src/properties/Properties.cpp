@@ -30,6 +30,8 @@ void allocate(vector<string> & words, System * sys, string & runid,
   if(words.size() < 1) error("empty density section");
   if(caseless_eq(words[0], "DENSITY"))
     denspt=new One_particle_density;
+  if(caseless_eq(words[0], "POTENTIAL"))
+    denspt=new Local_potential_density;
   else
     error("Didn't understand density keyword",words[0]);
   denspt->init(words, sys, runid);
@@ -53,7 +55,7 @@ void allocate(vector<string> & words, System * sys, string & runid,
 void One_particle_density::init(vector<string> & words, System * sys,
                                 string & runid) {
   int ndim=sys->ndim();
-  norm=50;
+  norm=1;
   outputfile=runid+".cube";
   nup=sys->nelectrons(0);
   unsigned int pos=0;
@@ -215,6 +217,23 @@ void One_particle_density::accumulate(Sample_point * sample, double weight) {
   }
 }
 
+//----------------------------------------------------------------------
+
+void One_particle_density::add_single(Array1 <doublevar> & pos, doublevar val, 
+    doublevar weight) { 
+  int nelec=end_electron-start_electron;
+  Array1 <int> place(3);
+  int use=1;
+  for(int d=0; d< 3; d++) {
+    place(d)=int((pos(d)-min_(d))/resolution+0.5);
+    if(place(d)<0 ||place(d) >=npoints(d)) use=0;
+  }
+  //cout << "use: " << use << " place " << place(0) << " " << place(1) << " " << place(2) << endl;
+  if(use) { 
+    nsample+=weight;
+    bin(place(0),place(1),place(2))+=val*weight;
+  }
+}
 
 
 //----------------------------------------------------------------------
@@ -230,7 +249,6 @@ void One_particle_density::write() {
   //to some large value, but it's really annoying to do that, and there's no
   //huge performance benefit.
 
-  
   int n=npoints(0)*npoints(1)*npoints(2);
   double * ptr=bin.v;
   double * ptr2=bin_tmp.v;
@@ -279,68 +297,6 @@ void One_particle_density::write() {
     }
     os << endl;
     os.close();
-    /*  This isn't really used by anyone, is it?  It takes up a lot of space to write the density twice..
-    string outputfile2 = outputfile+".dx";
-    os.clear();
-    os.open(outputfile2.c_str());
-    
-    /////////////######### DX FILE WRITING ###########
-    
-    /////##### DX FILE - Probabilities ##########
-    //
-    //    os << "  " << nions << "   " << min_(0) << "   "
-    //       << min_(1) << "   " << min_(2) << endl;
-    
-    
-    os << "object 1 class gridpositions counts " << npoints(0) << " "
-      << npoints(1) << " " << npoints(2) << "\n";
-    os << "origin " << min_(0) << " "
-      << min_(1) << " " << min_(2) << " " << endl;
-    
-    os << "delta " << resolution << "   0.0   0.0" << endl;
-    os << "delta 0.0   " << resolution << "   0.0" << endl;
-    os << "delta 0.0   0.0   " << resolution << endl;
-    
-    os << endl;
-    os << "object 2 class gridconnections counts " << npoints(0) << " "
-      << npoints(1) << " " << npoints(2) << "\n";
-    os << "attribute \"element type\" string \"cubes\" " << endl;
-    os << "attribute \"ref\" string \"positions\" " << endl;
-    
-    
-    os << endl;
-    os << "object 3 class array type float rank 0 items " << (npoints(0) * npoints(1) * npoints(2)) <<
-      " data follows" << endl;
-    os << endl;
-    
-    
-    counter=0;
-    for(int x=0; x < npoints(0); x++) {
-      for(int y=0; y < npoints(1); y++) {
-        for(int z=0; z< npoints(2); z++) {
-          os << norm*bin_tmp(x,y,z)/nsample_tmp << "   ";
-          if((counter++)%6==5) os << endl;
-        }
-      }
-    }
-    os << endl;
-    
-    os << "#attribute \"dep\" string \"positions\" " << endl;
-    os << "object \"regular positions regular connections\" class field" << endl;
-    os << "component \"positions\" value 1" << endl;
-    os << "component \"connections\" value 2" << endl;
-    os << "component \"data\" value 3" << endl;
-    os << "end" << endl;
-    
-    
-    os.close();
-    */
-    //////// ######### ion .dx write #############
-    /* This needs to utilize the format for .dx code which specifies
-      * the attributes of each point based on a non-uniform grid.
-      */
-    ///////////// ############## end .dx write ########    
-    
   }
         
   
@@ -348,6 +304,45 @@ void One_particle_density::write() {
 
 //######################################################################
 
+void Local_potential_density::init(vector <string> & words, 
+    System * sys_, string & runid) { 
+  sys=sys_;
+  string runid2b=runid+"2b";
+  density_2b.init(words,sys,runid2b);
+  string runid1b=runid+"1b";
+  density_1b.init(words,sys,runid1b);
+}
+
+void Local_potential_density::accumulate(Sample_point *sample,doublevar weight) { 
+  Array1 <doublevar> onebody;
+  Array2 <doublevar> twobody;
+  sys->separatedLocal(sample,onebody, twobody);
+  int nelec=twobody.GetDim(0);
+  Array1<doublevar> two_sum(twobody.GetDim(0));
+  two_sum=0.0;
+  for(int i=0; i < nelec; i++) {
+    for(int j=i+1; j< nelec; j++) { 
+      two_sum(i)+=twobody(i,j);
+      two_sum(j)+=twobody(i,j);
+    }
+  }
+  Array1 <doublevar> pos(3);
+  //cout << "adding points\n";
+  for(int i=0; i< nelec; i++) { 
+    sample->getElectronPos(i,pos);
+    //cout << pos(0) <<"  " << pos(1) << " " << pos(2) << "  : " << weight << " : " << two_sum(i) << endl;
+    density_2b.add_single(pos,two_sum(i),weight);
+    density_1b.add_single(pos,onebody(i), weight);
+  }
+}
+
+
+void Local_potential_density::write() { 
+  density_2b.write();
+  density_1b.write();
+}
+
+//######################################################################
 //--------------------------------------------------
 
 Properties_manager::Properties_manager() {

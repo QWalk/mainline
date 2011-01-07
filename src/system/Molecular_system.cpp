@@ -227,6 +227,43 @@ doublevar Molecular_system::calcLoc(Sample_point * sample)
 
   return pot;
 }
+//----------------------------------------------------------------------
+//Keeping this separate from calcLoc for efficiency reasons..
+//It's most likely faster to add to a double than fill matrices..
+//We also don't need to calculate the ion-ion interaction for this
+void Molecular_system::separatedLocal(Sample_point * sample,Array1 <doublevar> & onebody,
+    Array2 <doublevar> & twobody)
+{
+  int nions=sample->ionSize();
+  int nelectrons=sample->electronSize();
+  onebody.Resize(nelectrons);
+  twobody.Resize(nelectrons,nelectrons);
+  onebody=0.0; twobody=0.0;
+  Array1 <doublevar> R(5);
+  sample->updateEIDist();
+  sample->updateEEDist();
+
+  for(int e=0; e< nelectrons; e++) {
+    for(int i=0; i < nions; i++) {
+      sample->getEIDist(e,i, R);
+      onebody(e)-=sample->getIonCharge(i)/R(0);
+    }
+  }
+  Array1 <doublevar> R2(5);
+  for(int i=0; i< nelectrons; i++) {
+    for(int j=i+1; j<nelectrons; j++) {
+      sample->getEEDist(i,j,R2);
+      twobody(i,j)+= 1/R2(0);
+    }
+  }
+
+  Array1 <doublevar> pos(3);
+  for(int e=0; e< nelectrons; e++) {
+    sample->getElectronPos(e,pos);
+    for(int d=0; d< 3; d++) 
+      onebody(e)-=electric_field(d)*pos(d);
+  }
+}
 
 //----------------------------------------------------------------------
 

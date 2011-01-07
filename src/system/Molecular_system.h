@@ -54,6 +54,9 @@ public:
   doublevar calcLoc(Sample_point *);
   void locDerivative(int ion, Sample_point * sample, 
                      Force_fitter &,Array1 <doublevar> & der);
+  virtual void separatedLocal(Sample_point *,Array1 <doublevar> & onebody,
+                     Array2 <doublevar> & twobody); 
+  
   virtual int nelectrons(int s) {
     assert(s==0 || s==1);
     return nspin(s);
