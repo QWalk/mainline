@@ -30,7 +30,7 @@ void allocate(vector<string> & words, System * sys, string & runid,
   if(words.size() < 1) error("empty density section");
   if(caseless_eq(words[0], "DENSITY"))
     denspt=new One_particle_density;
-  if(caseless_eq(words[0], "POTENTIAL"))
+  else if(caseless_eq(words[0], "POTENTIAL"))
     denspt=new Local_potential_density;
   else
     error("Didn't understand density keyword",words[0]);
