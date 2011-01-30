@@ -1012,54 +1012,27 @@ void Slat_wf::getLap(Wavefunction_data * wfdata,
       log_real_value totval=sum(detvals);
       vals(f,0)=totval.logval;
       si(f)=totval.sign;
-      //doublevar funcval=0;
-
-      //for(int det=0; det < ndet; det++) {
-      //  funcval += dataptr->detwt(det)*detVal(f,det,s)*detVal(f,det,opp);
-      //}
-
-
-      //if(fabs(funcval) > 0) 
-      //  vals(f,0)=log(fabs(funcval));
-      //else vals(f,0)=-1e3;
-      //si(f)=sign(funcval);
 
       log_real_value invtotval=totval;
       invtotval.logval*=-1;
+      Array1 <log_real_value> detgrads(ndet);
       for(int i=1; i< 5; i++) {
         lap.amp(f,i)=0;
-        Array1 <log_real_value> detgrads(ndet);
         for(int det=0; det < ndet; det++) {
           doublevar temp=0;
           for(int j=0; j<nelectrons(s); j++) {
             temp+=moVal(i , e, dataptr->occupation(f,det,s)(j) )
                  *inverse(f,det,s)(dataptr->rede(e), j);
           }
-          detgrads(det)=temp*dataptr->detwt(det)*detVal(f,det,s)*detVal(f,det,opp)*invtotval;
-
-          //Prevent catastrophe with a singular matrix.
-          //Shouldn't happen much.
-          /*
-          if(detVal(f,det,s)*detVal(f,det,opp)==0)
-            temp=0;
-          
-          if(ndet >1) 
-            temp*=dataptr->detwt(det)*detVal(f,det, s)*detVal(f,det, opp);
-          vals(f,i)+=temp;
-          */
-          //vals(f,i)+=dataptr->detwt(det)*temp
-          //          *detVal(f,det, s)*detVal(f,det, opp);
+          detgrads(det)=temp*dataptr->detwt(det);//*detVal(f,det,s)*detVal(f,det,opp)*invtotval;
+          detgrads(det)*=detVal(f,det,s);
+          detgrads(det)*=detVal(f,det,opp);
+          detgrads(det)*=invtotval;
         }
 
         log_real_value totgrad=sum(detgrads);
 
         vals(f,i)=totgrad.val();
-        /*
-        if(funcval==0)
-          vals(f,i)=0;  //Prevent division by zero
-        else if(ndet > 1) 
-          vals(f,i)/=funcval;
-          */
       }
       
     }

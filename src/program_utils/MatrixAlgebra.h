@@ -40,6 +40,11 @@ struct log_real_value {
   log_real_value() { logval=0; sign=1; }  //initializing to 1..
   //operator double() const { return sign*exp(logval); } 
   log_real_value(doublevar t) { logval=log(fabs(t)); sign=t<0?-1:1; }
+  log_real_value & operator*=(const log_real_value & right) { 
+    this->logval+=right.logval;
+    this->sign*=right.sign;
+    return *this;
+  }
 };
 
 inline log_real_value operator*(double t, log_real_value u) { 

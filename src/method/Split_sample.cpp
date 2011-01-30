@@ -92,7 +92,7 @@ doublevar Split_sampler::transition_prob(int point1, int point2,
                                          doublevar timestep, 
                                          drift_type dtype) {
   doublevar prob=0;
-  Array1 <doublevar> drift(3);
+  static Array1 <doublevar> drift(3);
   //cout << "transition probability" << endl;
 
   drift=trace(point1).drift;
@@ -392,8 +392,8 @@ int Split_sampler::split_driver(int e,
 
   if(depth > recursion_depth_) return 0;
 
-  Array1 <doublevar> c_olddrift(3);
-  Array1 <doublevar> c_newdrift(3);
+  static Array1 <doublevar> c_olddrift(3);
+  static Array1 <doublevar> c_newdrift(3);
   
   c_olddrift=trace(0).drift;  
   limDrift(c_olddrift, timesteps(depth), dtype);
@@ -465,7 +465,7 @@ int Split_sampler::split_driver(int e,
   else {
     info.accepted=0;
     
-    Array1 <doublevar> rev(3,0.0);
+    static Array1 <doublevar> rev(3,0.0);
     for(int d=0; d< 3; d++) rev(d)=-trace(depth).translation(d);
     sample->translateElectron(e,rev);
 

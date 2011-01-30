@@ -448,26 +448,28 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
   int accept_counter=0;
   //deriv.Resize(natoms, 3);
   //deriv=0;
+  Array1 <doublevar>  nonlocal(nwf);
+  Array2 <doublevar> integralpts(nwf, maxaip);
+  Array1 <doublevar> rDotR(maxaip);
+          
   
   for(int at=0; at< natoms; at++){
     if(numL(at) != 0) {
+      Array1 <doublevar> v_l(numL(at));
+      
       sample->getIonPos(at, ionpos);
 
       for(int e=0; e < sample->electronSize(); e++)  {
         sample->getElectronPos(e, oldpos);
         
-        Array1 <doublevar> der_this_e(3);
-        der_this_e=0;
         //note: this updateEIDist might become inefficient..
         //depends on how often we're rejecting/how much it costs
         //to do it.  If needed, we should add an interface to 
         //Sample_point
         sample->updateEIDist();
         sample->getEIDist(e,at, olddist);
-        Array1 <doublevar>  nonlocal(nwf);
         nonlocal=0;
 
-        Array1 <doublevar> v_l(numL(at));
         int spin=1;
         if(e < sys->nelectrons(0)) spin=0;
         getRadial(at,spin, sample, olddist, v_l);
@@ -502,13 +504,10 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
           Wf_return  oldWfVal(nwf,2);
           wf->getVal(wfdata, e,oldWfVal);
 
-          Array2 <doublevar> integralpts(nwf, aip(at));
-          Array1 <doublevar> rDotR(aip(at));
-          
           for(int i=0; i< aip(at); i++) {
             sample->setElectronPos(e, oldpos);
             doublevar base_sign=sample->overallSign();
-	    doublevar base_phase=sample->overallPhase();
+            doublevar base_phase=sample->overallPhase();
             //Make sure to move the electron relative to the nearest neighbor
             //in a periodic calculation(so subtract the distance rather than
             //adding to the ionic position).  This actually only matters 
@@ -527,7 +526,7 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
             for(int d=0; d < 3; d++)
               rDotR(i)+=newdist(d+2)*olddist(d+2);
             doublevar new_sign=sample->overallSign();
-	    doublevar new_phase=sample->overallPhase();
+            doublevar new_phase=sample->overallPhase();
             
             rDotR(i)/=(newdist(0)*olddist(0));  //divide by the magnitudes
             wf->updateVal(wfdata, sample);
@@ -535,14 +534,14 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
             //cout << "signs " << base_sign << "  " << new_sign << endl;;
             for(int w=0; w< nwf; w++) {
               integralpts(w,i)=exp(val.amp(w,0)-oldWfVal.amp(w,0))
-		*integralweight(at, i);
-	      if ( val.is_complex==1 ) {
-		integralpts(w,i)*=cos(val.phase(w,0)+new_phase
-				      -oldWfVal.phase(w,0)-base_phase);
-	      } else {
-		integralpts(w,i)*=val.sign(w)*oldWfVal.sign(w)
-		  *base_sign*new_sign;
-	      }
+                *integralweight(at, i);
+              if ( val.is_complex==1 ) {
+                integralpts(w,i)*=cos(val.phase(w,0)+new_phase
+                    -oldWfVal.phase(w,0)-base_phase);
+              } else {
+                integralpts(w,i)*=val.sign(w)*oldWfVal.sign(w)
+                  *base_sign*new_sign;
+              }
             }
             
             for(int w=0; w< nwf; w++)  {
@@ -605,13 +604,6 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
         }
 
 
-        //for(int d=0; d< 3; d++) 
-        //  der_this_e(d)+=-v_l(localL,d+1);
-
-        //Array1 <doublevar> fitted(3);
-        //fitter.fit_force(olddist,der_this_e, fitted);
-        //for(int d=0; d< 3; d++) 
-        //  deriv(at,d)+=fitted(d);
 
       }  //electron loop
 

@@ -43,6 +43,10 @@ public:
     return density[x*n[1]*n[2]+y*n[2]+z];
   } 
 
+  double volume_voxel() { 
+    return resolution[0]*resolution[1]*resolution[2];
+  }
+
   void write_projection(vector <double> & proj, ostream & os);
 
 };
@@ -292,10 +296,12 @@ void Cube_info::smooth() {
 
 void Cube_info::normalize() {
   double sum=0.0;
+  double vol=volume_voxel();
   for(vector<double>::iterator i=density.begin();
       i!=density.end(); i++) {
     sum+=*i;
   }
+  sum*=vol;
 
   for(vector<double>::iterator i=density.begin();
       i!=density.end(); i++) {

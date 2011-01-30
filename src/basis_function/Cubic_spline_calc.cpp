@@ -378,8 +378,8 @@ void Cubic_spline::calcLap(
 
     //int interval=splines(0).getInterval(r(0));
 
-    register doublevar rdp, v, h, x, y, z, v1, v2, v3, v4, v5, u2, v2u2, dfdx, dfdy, dfdz;
-    register doublevar func, fdir, f2dir;
+    doublevar rdp, v, h, x, y, z, v1, v2, v3, v4, v5, u2, v2u2, dfdx, dfdy, dfdz;
+    doublevar func, fdir, f2dir;
     //doublevar funct[3];
     int totf=startfill;
 
@@ -765,7 +765,7 @@ void Cubic_spline::calcLap(
           symvals(totf,4)=r(2)*r(3)*(6.*func+v2*(10.*fdir+f2dir));
 	  break;
 
-        case isym_Gxxxz: // g xxxz
+        case isym_Gxxxz: // g xxxzarXiv:cond-mat/9503150v2
 	  v2=r(2)*r(2);
 	  v3=v2*r(2);
 	  v4=v2*v2;
@@ -887,7 +887,6 @@ void Cubic_spline::calcLap(
 	  symvals(totf,3)=r(4)*u2*(2.*func+v2*fdir);
 	  symvals(totf,4)=u2*(2.*func+v2*(10.*fdir+f2dir));
           break;
-
 
 	case isym_G0: //g0
 	  x=r(2);
@@ -1066,7 +1065,6 @@ void Cubic_spline::calcLap(
 	  symvals(totf,3)=h*z;
 	  symvals(totf,4)=2*h+2*fdir*(dfdx*x+dfdy*y)+v4*f2dir;
 	  break;
-
 
 
         default:
