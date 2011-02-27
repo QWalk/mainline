@@ -39,7 +39,12 @@ struct log_real_value {
   doublevar val() { return sign*exp(logval); } 
   log_real_value() { logval=0; sign=1; }  //initializing to 1..
   //operator double() const { return sign*exp(logval); } 
-  log_real_value(doublevar t) { logval=log(fabs(t)); sign=t<0?-1:1; }
+  log_real_value(doublevar t) { 
+    doublevar ft=fabs(t);
+    if(ft > 0) logval=log(ft); 
+    else logval=-1e99;
+    sign=t<0?-1:1; 
+  }
   log_real_value & operator*=(const log_real_value & right) { 
     this->logval+=right.logval;
     this->sign*=right.sign;
@@ -50,7 +55,8 @@ struct log_real_value {
 inline log_real_value operator*(double t, log_real_value u) { 
   log_real_value v;
   v=u;
-  v.logval+=log(fabs(t));
+  doublevar ft=fabs(t);
+  if(ft > 0) v.logval+=log(ft);
   v.sign*=t<0?-1:1;
   return v;
 }

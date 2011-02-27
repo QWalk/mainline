@@ -236,21 +236,7 @@ int Periodic_system::read(vector <string> & words,
 
   //cross product:  0->1x2, 1->2x0, 2->0x1
   Array2 <doublevar> crossProduct(ndim, ndim);
-getCross(latVec,crossProduct);
-/*
-  crossProduct(0,0)=(latVec(1,1)*latVec(2,2)-latVec(1,2)*latVec(2,1));
-  crossProduct(0,1)=(latVec(1,2)*latVec(2,0)-latVec(1,0)*latVec(2,2));
-  crossProduct(0,2)=(latVec(1,0)*latVec(2,1)-latVec(1,1)*latVec(2,0));
-
-  crossProduct(1,0)=(latVec(2,1)*latVec(0,2)-latVec(2,2)*latVec(0,1));
-  crossProduct(1,1)=(latVec(2,2)*latVec(0,0)-latVec(2,0)*latVec(0,2));
-  crossProduct(1,2)=(latVec(2,0)*latVec(0,1)-latVec(2,1)*latVec(0,0));
-
-  crossProduct(2,0)=(latVec(0,1)*latVec(1,2)-latVec(0,2)*latVec(1,1));
-  crossProduct(2,1)=(latVec(0,2)*latVec(1,0)-latVec(0,0)*latVec(1,2));
-  crossProduct(2,2)=(latVec(0,0)*latVec(1,1)-latVec(0,1)*latVec(1,0));
-*/
-
+  getCross(latVec,crossProduct);
 
 
   //------------reciprocal cell
@@ -553,8 +539,7 @@ doublevar Periodic_system::calcLoc(Sample_point * sample)
 //----------------------------------------------------------------------
 /*!
 \todo
-Add in the correction terms for summing over non-zero l; also try a better
-XC correction
+Add in the correction terms for summing over non-zero l
  */
 
 void Periodic_system::constEwald() {
