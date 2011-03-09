@@ -164,7 +164,27 @@ void Plot_method::read(vector <string> words,
       minmax(2*d+1)=LatticeVec(0,d)+LatticeVec(1,d)+LatticeVec(2,d)+origin(d);
     }
   }
-  else  { error("Need MINMAX in METHOD section");} 
+  else  { 
+  
+    for(int d=0; d< 3; d++) { 
+      minmax(2*d)=minmax(2*d+1)=0.0;
+    }
+  
+    int nions=sysprop->nIons();
+    Array1 <doublevar> ionpos(3);
+    for(int i=0; i< nions; i++) {
+      sysprop->getIonPos(i,ionpos);
+      for(int d=0; d< 3; d++) {
+        if(ionpos(d) < minmax(2*d)) minmax(2*d) = ionpos(d);
+        if(ionpos(d) > minmax(2*d+1)) minmax(2*d+1)=ionpos(d);
+      }
+    }
+
+    for(int d=0; d< 3; d++) {
+      minmax(2*d)-=4.0;
+      minmax(2*d+1)+=4.0;
+    }
+  } 
 
 }
 
