@@ -243,6 +243,7 @@ int Periodic_system::read(vector <string> & words,
   recipLatVec.Resize(ndim, ndim);
   doublevar det=Determinant(latVec, ndim);
 
+  if(det <0) det*=-1;
   debug_write(cout, "cell volume ", det,"\n");
   cellVolume=det;
 
@@ -667,7 +668,7 @@ doublevar Periodic_system::ewaldIon() {
 
   eion*=2;
 
-  //debug_write(cout,"reciprocal space ion ", eion,"\n");
+  debug_write(cout,"reciprocal space ion ", eion,"\n");
 
   return eion+IonIon;
 }
