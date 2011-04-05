@@ -88,9 +88,9 @@ class MultiEinsplineOrbComplex : public MultiEinsplineOrb {
     val=dcomplex(0.0,0.0);
     for(int d=0;d<3;d++){
       if((r(d)<0) || (r(d)>1.0)){
-	cout  <<"WARNING! electron at "<<r(0)<<"  "<<r(1)<<"  "<<r(2);
-	cout  <<" is outside the box, orbital value is set to zero"<<endl;
-	return;
+        cout  <<"WARNING! electron at "<<r(0)<<"  "<<r(1)<<"  "<<r(2);
+        cout  <<" is outside the box, orbital value is set to zero"<<endl;
+        return;
       }
     }
 
@@ -102,7 +102,7 @@ class MultiEinsplineOrbComplex : public MultiEinsplineOrb {
   }
 
   virtual void evaluate_spline (const Array1 < doublevar > & r, Array1 <dcomplex> & val, 
-				Array1 < Array1 <dcomplex> >& grad, Array1 <dcomplex> & lap){
+      Array1 < Array1 <dcomplex> >& grad, Array1 <dcomplex> & lap){
     val=lap=dcomplex(0.0,0.0);
     for(int m=0;m<grad.GetSize();m++){
       grad(m)=dcomplex(0.0,0.0);
@@ -133,8 +133,8 @@ class MultiEinsplineOrbComplex : public MultiEinsplineOrb {
   }
 
   virtual void evaluate_spline  (const Array1 < doublevar > & r, Array1 <dcomplex> & val, 
-				 Array1 <Array1 <dcomplex> > & grad, 
-				 Array1 <Array2 <dcomplex> > & hess){
+      Array1 <Array1 <dcomplex> > & grad, 
+      Array1 <Array2 <dcomplex> > & hess){
     val=dcomplex(0.0,0.0);
     for(int m=0;m<grad.GetSize();m++){
       grad(m)=dcomplex(0.0,0.0);
@@ -142,28 +142,28 @@ class MultiEinsplineOrbComplex : public MultiEinsplineOrb {
     }
     for(int d=0;d<3;d++){
       if((r(d)<0) || (r(d)>1.0)){
-	cout  <<"WARNING! electron at "<<r(0)<<"  "<<r(1)<<"  "<<r(2);
-	cout  <<" is outside the box, orbitals val, grad and hess are set to zero"<<endl;
-	return;
+        cout  <<"WARNING! electron at "<<r(0)<<"  "<<r(1)<<"  "<<r(2);
+        cout  <<" is outside the box, orbitals val, grad and hess are set to zero"<<endl;
+        return;
       }
     }
 
-     Array1 <dcomplex> linear_grad(3*grad.GetSize());
-     Array1 <dcomplex> linear_hess(9*hess.GetSize());
+    Array1 <dcomplex> linear_grad(3*grad.GetSize());
+    Array1 <dcomplex> linear_hess(9*hess.GetSize());
     
 #ifdef USE_EINSPLINE
     eval_multi_UBspline_3d_z_vgh (MultiSpline, r(0), r(1), r(2), val.v, linear_grad.v, linear_hess.v);
 
     for(int m=0;m<grad.GetSize();m++){
       for(int i=0;i<3;i++){
-	grad(m)(i)=linear_grad(3*m+i);
-	for(int j=0;j<3;j++){
-	  hess(m)(i,j)=linear_hess(9*m+3*i+j);
-	}
+        grad(m)(i)=linear_grad(3*m+i);
+        for(int j=0;j<3;j++){
+          hess(m)(i,j)=linear_hess(9*m+3*i+j);
+        }
       }
     }
 #else
- error("need EINSPLINE library for eval_UBspline_3d_d_vgh");
+    error("need EINSPLINE library for eval_UBspline_3d_d_vgh");
 #endif
   }
 

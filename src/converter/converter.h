@@ -38,6 +38,16 @@ void split
 void append_number(std::string & str, int num);
 
 
+//Make a uniform grid out of a nonuniform one
+void make_uniform(std::vector <double> & r, 
+                  std::vector <double> & vals,
+                  std::vector <double> & ur,
+                  std::vector <double> & uvals,
+                  double spacing) ;
+
+
+
+
 class Atom {
 public:
   std::vector <double> pos;

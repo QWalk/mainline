@@ -13,22 +13,15 @@ CRYSTAL2QMCOBJS:=$(OBJPATH)/crystal2qmc.o $(ALLOBJS)
 SIESTA2QMCOBJS:= $(OBJPATH)/siesta2qmc.o $(ALLOBJS)
 JEEP2QMCOBJS :=  $(OBJPATH)/jeep2qmc.o $(OBJPATH)/JeepBasis.o $(ALLOBJS)
 ABINIT2QMCOBJS := $(OBJPATH)/abinit2qmc.o $(OBJPATH)/Blochwave_function.o $(ALLOBJS)
+ABINIT2QMC2OBJS := $(OBJPATH)/abinit2qmc2.o $(ALLOBJS)
 G032QMCOBJS := $(OBJPATH)/g032qmcmain.o $(OBJPATH)/g03tools.o $(ALLOBJS)
 HEG2QMCOBJS := $(OBJPATH)/heg2qmc.o $(OBJPATH)/indexx.o
 HEG2QMCCOBJS := $(OBJPATH)/heg2qmcc.o $(OBJPATH)/indexx.o $(OBJPATH)/setk01.o
 SQD2QMCOBJS:=$(OBJPATH)/sqd2qmc.o $(ALLOBJS)
 
-#ifeq ($(PLATFORM), Linux)
-#	SUFFIX :=  
-#else
-	SUFFIX := -$(PLATFORM) 
-#endif
+SUFFIX := -$(PLATFORM) 
 
-
-
-
-
-all: gamess2qmc$(SUFFIX) gamessci2qmc$(SUFFIX) crystal2qmc$(SUFFIX) siesta2qmc$(SUFFIX) g032qmc$(SUFFIX) heg2qmc$(SUFFIX) abinit2qmc$(SUFFIX) 
+all: gamess2qmc$(SUFFIX) gamessci2qmc$(SUFFIX) crystal2qmc$(SUFFIX) siesta2qmc$(SUFFIX) g032qmc$(SUFFIX) heg2qmc$(SUFFIX) abinit2qmc$(SUFFIX) abinit2qmc2$(SUFFIX)
 .PHONY: clean 
 
 gamess2qmc$(SUFFIX): $(GAMESS2QMCOBJS)
@@ -61,6 +54,11 @@ abinit2qmc$(SUFFIX) : $(ABINIT2QMCOBJS)
 	@echo Linking $@
 	$(CXX) $(DEBUG) $(CXXFLAGS) -o abinit2qmc$(SUFFIX) $(LDFLAGS) $(BLAS_LIBS) $(ABINIT2QMCOBJS)
 
+abinit2qmc2$(SUFFIX) : $(ABINIT2QMC2OBJS)
+	@echo ________________________________________________________________  
+	@echo Linking $@
+	$(CXX) $(DEBUG) $(CXXFLAGS) -o abinit2qmc2$(SUFFIX) $(LDFLAGS) $(BLAS_LIBS) $(ABINIT2QMC2OBJS)
+
 g032qmc$(SUFFIX) : $(G032QMCOBJS)
 	@echo ________________________________________________________________
 	@echo Linking $@
@@ -75,7 +73,6 @@ heg2qmcc$(SUFFIX) : $(HEG2QMCCOBJS)
 	@echo ________________________________________________________________
 	@echo Linking $@
 	$(CXX) $(DEBUG) $(CXXFLAGS) -o heg2qmcc$(SUFFIX) $(LDFLAGS) $(BLAS_LIBS) $(HEG2QMCCOBJS) -lgfortran #-lg2c
-
 
 sqd2qmc$(SUFFIX) : $(SQD2QMCOBJS)
 	@echo ________________________________________________________________

@@ -46,6 +46,39 @@ void append_number(string & str, int num)
   str+=strbuff;
 }
 
+
+
+void make_uniform(vector <double> & r, 
+                  vector <double> & vals,
+                  vector <double> & ur,
+                  vector <double> & uvals,
+                  double spacing) { 
+  double cutoff=r[r.size()-1]; //mostly for convienence..we work in terms of npts below
+                      //this can be set quite high, since QWalk will find where to cut it off anyway
+                      //(and fairly agressively)
+  int npts=int(cutoff/spacing);
+  
+  int interval=0;
+  for(int i=0; i< npts; i++) { 
+    double rad=i*spacing;
+    double val=0.0;
+    if(i==0)  { 
+      val=vals[0];
+    }
+    else { 
+      while(r[interval+1] < rad && interval < r.size()-1) interval++;
+      double x=(rad-r[interval])/(r[interval+1]-r[interval]);
+      //cout << "rad " << rad << " x " << x << " r1 " << r[interval] 
+      //  << " r2 " << r[interval+1] << endl;
+      val=(1-x)*vals[interval]+x*vals[interval+1];
+    }
+    ur.push_back(rad);
+    uvals.push_back(val);
+  }
+  
+}
+
+
 //--------------------------------------------------------
 
 

@@ -161,12 +161,11 @@ void Test_method::run(Program_options & options, ostream & output)
   config_pos.Resize(0);
   if(readconfig!="") { 
     read_configurations(readconfig, config_pos);
-  }
-  if(config_pos.GetDim(0)<1)
-    error("Could not read a single walker from config file");
+    config_pos(0).restorePos(sample);
 
-  //take a first one
-  config_pos(0).restorePos(sample);
+  }
+  else sample->randomGuess();
+    
 
   
   sample->attachObserver(mywf);

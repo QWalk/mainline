@@ -371,24 +371,24 @@ void MO_matrix_bspline::updateLap(Sample_point * sample, int e,
     xgrad=dcomplex(0,0);
     for(int i=0;i<3;i++){
       for(int j=0;j<3;j++){
-	xgrad(i)+=cgrad(j)*PrimRecipLatVec(j,i);
+        xgrad(i)+=cgrad(j)*PrimRecipLatVec(j,i);
       }
     }
     for(int i=0;i<3;i++)
       for(int j=i;j<3;j++){
-	chess(i,j)= eikr*( - kvectors_linear(m)(i)* kvectors_linear(m)(j)*cval_spline(m) + 
+        chess(i,j)= eikr*( - kvectors_linear(m)(i)* kvectors_linear(m)(j)*cval_spline(m) + 
 			   I*kvectors_linear(m)(i)*cgrad_spline(m)(j)+
 			   I*kvectors_linear(m)(j)*cgrad_spline(m)(i)+ 
-			   chess_spline(m)(i,j));
-	if(i!=j)
-	  chess(j,i)=chess(i,j);
+         chess_spline(m)(i,j));
+        if(i!=j)
+          chess(j,i)=chess(i,j);
       }
     dcomplex clap=0;
     for(int i=0;i<3;i++)
       for(int k=0;k<3;k++)
-	for(int l=0;l<3;l++){
-	  clap+=PrimRecipLatVec(k,i)*PrimRecipLatVec(l,i)*chess(k,l);
-	}
+        for(int l=0;l<3;l++){
+          clap+=PrimRecipLatVec(k,i)*PrimRecipLatVec(l,i)*chess(k,l);
+        }
       
     multi_val(2*m)=cval.real();
     multi_val(2*m+1)=cval.imag();
@@ -404,7 +404,7 @@ void MO_matrix_bspline::updateLap(Sample_point * sample, int e,
     int mo=moLists(listnum)(m);
     newvals(m,0)= magnification_factor*multi_val(mo);
       for(int d=0;d<3;d++)
-	newvals(m,d+1)= magnification_factor*multi_grad(mo)(d);
+        newvals(m,d+1)= magnification_factor*multi_grad(mo)(d);
       newvals(m,4)=magnification_factor*multi_lap(mo);
   }//m
 }

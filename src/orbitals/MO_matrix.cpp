@@ -31,6 +31,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "MO_matrix_Cbspline.h"
 #include "MO_matrix_Cbasfunc.h"
 #include "MO_matrix_Ccutoff.h"
+#include "MO_matrix_einspline.h"
 
 
 int allocate(vector <string> & words, System * sys, MO_matrix *& moptr) {
@@ -46,6 +47,9 @@ int allocate(vector <string> & words, System * sys, MO_matrix *& moptr) {
     moptr=new MO_matrix_basfunc;
   else if(caseless_eq(words[0],"BSPLINE_MO"))
     moptr=new MO_matrix_bspline;
+  else if(caseless_eq(words[0],"EINSPLINE_MO"))
+    moptr=new MO_matrix_einspline;
+  
   else {
     cout << "****WARNING*****  Assuming you want a cutoff MO."
     "  In the future, you'll need to specify.\n";

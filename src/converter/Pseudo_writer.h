@@ -56,6 +56,7 @@ public:
 
   std::string label;
   bool spin_dep;
+  double effcharge; //Not strictly used, but often in the psp file.
   virtual void print_pseudo(std::ostream & os);
   Spline_pseudo_writer() { 
     spin_dep=false;
