@@ -151,6 +151,8 @@ void Abinit_converter::readfile(string  filename) {
 void Abinit_converter::prune_coefficients() { 
    //In principle, we can save a bit of time by taking out the G,-G pairs.
    //For the moment, I won't worry about it.
+   //We may be able to save a lot of time by making the wave functions real
+   //instead of detecting it post facto, as well.
 }
 
 //--------------------------------------------------------------

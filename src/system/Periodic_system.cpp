@@ -381,9 +381,10 @@ int Periodic_system::read(vector <string> & words,
                                /(cellVolume*gsqrd);
 
 
-          if(gweighttemp(currgpt) > 1e-18) {
+          if(gweighttemp(currgpt) > 1e-10) { //
+           // cout << "g vector " << ig << "  " << jg << "  " << kg << " weight " << gweighttemp(currgpt) <<  endl;
+            
             currgpt++;
-            //cout << "g vector " << ig << "  " << jg << "  " << kg << endl;
           }
         }
       }
