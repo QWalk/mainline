@@ -54,9 +54,11 @@ void Slat_wf_writer::print_wavefunction(ostream & inputfile ) {
             << "  " << orbtype << " {\n"
             << "  " << mo_matrix_type << endl
             << "    MAGNIFY " << magnification << endl
-            << "    INCLUDE " << basisname << endl
             << "    NMO " << nmo << endl
             << "    ORBFILE " << orbname << endl;
+  if(basisname!="") { 
+    inputfile << "    INCLUDE " << basisname << endl;
+  }
 
   if(write_centers) {
     inputfile << "    CENTERS { READ " << centername << " } " << endl;

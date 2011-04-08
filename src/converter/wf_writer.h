@@ -35,7 +35,7 @@ class Wf_writer {
 
 class Slat_wf_writer:public Wf_writer {
 public:
-  Slat_wf_writer() { magnification=-1; orbtype="ORBITALS"; } 
+  Slat_wf_writer() { magnification=-1; orbtype="ORBITALS"; write_centers=false;} 
   int nup, ndown; //number of up and down electrons
   int spin_dwn_start;  //the MO at which the down orbitals start(for a UHF calctype only)
   double magnification;

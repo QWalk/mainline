@@ -52,12 +52,12 @@ jeep2qmc$(SUFFIX) : $(JEEP2QMCOBJS)
 abinit2qmc$(SUFFIX) : $(ABINIT2QMCOBJS)
 	@echo ________________________________________________________________
 	@echo Linking $@
-	$(CXX) $(DEBUG) $(CXXFLAGS) -o abinit2qmc$(SUFFIX) $(LDFLAGS) $(BLAS_LIBS) $(ABINIT2QMCOBJS)
+	$(CXX) $(DEBUG)  $(CXXFLAGS) -o abinit2qmc$(SUFFIX) $(LDFLAGS) $(BLAS_LIBS) $(ABINIT2QMCOBJS)
 
 abinit2qmc2$(SUFFIX) : $(ABINIT2QMC2OBJS)
 	@echo ________________________________________________________________  
 	@echo Linking $@
-	$(CXX) $(DEBUG) $(CXXFLAGS) -o abinit2qmc2$(SUFFIX) $(LDFLAGS) $(BLAS_LIBS) $(ABINIT2QMC2OBJS)
+	$(CXX) $(DEBUG) -I$(INCLUDEPATH) $(CXXFLAGS) -o abinit2qmc2$(SUFFIX) $(LDFLAGS) $(BLAS_LIBS) $(ABINIT2QMC2OBJS)
 
 g032qmc$(SUFFIX) : $(G032QMCOBJS)
 	@echo ________________________________________________________________
