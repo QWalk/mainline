@@ -24,6 +24,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <fstream>
 #include <cmath>
 #include "elements.h"
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include "vecmath.h"
 using namespace std;
 
