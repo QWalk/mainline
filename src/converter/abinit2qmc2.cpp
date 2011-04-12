@@ -368,7 +368,7 @@ void Abinit_converter::read_wfk(string filename) {
   assert(nsppol==1);
   if(nsppol==1) spin_polarized=false;
   int nelectrons=0;
-  for(int i=0; i< bantot; i++) { 
+  for(int i=0; i< nband[0]; i++) { 
     nelectrons+=int(occ[i]);
   }
   slater.nup=nelectrons/2;
@@ -409,6 +409,9 @@ void Abinit_converter::read_wfk(string filename) {
     }
     cout << endl;
   }
+  
+  delete [] istwfk,nband,npwarr,so_psp,symafm,symrel,typat;
+  delete [] kpt,occ,tnons,znucltypat,wtk;
   read_wf_from_wfk(wffile);
 }
 //----------------------------------------------------------------------
@@ -482,7 +485,6 @@ void Abinit_converter::read_wf_from_wfk(FILE * wffile) {
   //   cout << endl;
   // }
 
-  //Don't forget to delete[] all the allocated variables
 }
 
 

@@ -549,22 +549,22 @@ void kpoint_to_frac_coords(vector < vector <double> > &recip_latvec,
   
 
   for (int n = 0; n < kpoints.size(); ++n)
-    {
-      temp_vec[0] = change_matrix[0][0] * kpoints[n][0] +
-	change_matrix[0][1] * kpoints[n][1] +
-	change_matrix[0][2] * kpoints[n][2];
-      temp_vec[1] = change_matrix[1][0] * kpoints[n][0] +
-	change_matrix[1][1] * kpoints[n][1] +
-	change_matrix[1][2] * kpoints[n][2];
-      temp_vec[2] = change_matrix[2][0] * kpoints[n][0] +
-	change_matrix[2][1] * kpoints[n][1] +
-	change_matrix[2][2] * kpoints[n][2];
+  {
+    temp_vec[0] = change_matrix[0][0] * kpoints[n][0] +
+      change_matrix[0][1] * kpoints[n][1] +
+      change_matrix[0][2] * kpoints[n][2];
+    temp_vec[1] = change_matrix[1][0] * kpoints[n][0] +
+      change_matrix[1][1] * kpoints[n][1] +
+      change_matrix[1][2] * kpoints[n][2];
+    temp_vec[2] = change_matrix[2][0] * kpoints[n][0] +
+      change_matrix[2][1] * kpoints[n][1] +
+      change_matrix[2][2] * kpoints[n][2];
 
 
       //This factor of two is a little bit mysterious to me,
       //but it matches the qwalk convention and everything works out...
       for (int i = 0; i < 3; ++i)
-	kpoints_frac[n][i] = 2.0 * temp_vec[i];
+        kpoints_frac[n][i] = 2.0 * temp_vec[i];
     }
      
 }
@@ -580,6 +580,11 @@ void orbital_split(string line, vector <string> & currline)
   split(line, space, currline);
   if (currline.size() < 7) //If last two were joined by a -...
     {
+      if(line.find("****")!=string::npos) { 
+        cout << "It looks like SIESTA had a formatting error: " << endl;
+        cout << line << endl;
+        exit(1);
+      }
       int loc = currline[5].rfind("-", currline[5].size());
       string temp_1 = currline[5].substr(0, loc - 1);
       string temp_2 = currline[5].substr(loc, currline[5].size());
