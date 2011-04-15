@@ -32,7 +32,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "MO_matrix_Cbasfunc.h"
 #include "MO_matrix_Ccutoff.h"
 #include "MO_matrix_einspline.h"
-
+#define COMPLEX_WF
+#include "MO_matrix_einspline.h"
+#undef COMPLEX_WF
 
 int allocate(vector <string> & words, System * sys, MO_matrix *& moptr) {
   assert(moptr==NULL);
@@ -71,6 +73,8 @@ int allocate(vector <string> & words, System * sys,
     moptr=new MO_matrix_Ccutoff;
   else if(caseless_eq(words[0],"CBSPLINE_MO"))
     moptr=new MO_matrix_Cbspline;
+  else if(caseless_eq(words[0],"EINSPLINE_MO"))
+    moptr=new MO_matrix_Ceinspline;
   else 
     error("Unknown complex MO: ", words[0]);
 

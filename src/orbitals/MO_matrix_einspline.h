@@ -18,8 +18,14 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  
 */
 
-#ifndef MO_MATRIX_EINSPLINE_H_INCLUDED
+#if (!defined(MO_MATRIX_CEINSPLINE_H_INCLUDED) && defined(COMPLEX_WF))|| (!defined(MO_MATRIX_EINSPLINE_H_INCLUDED) && !defined(COMPLEX_WF)) 
+
+
+#ifdef COMPLEX_WF
+#define MO_MATRIX_CEINSPLINE_H_INCLUDED
+#else 
 #define MO_MATRIX_EINSPLINE_H_INCLUDED
+#endif 
 
 #include "MO_matrix.h"
 #include "Array45.h"
@@ -40,19 +46,31 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 /*!
 Represents a periodic set of orbitals using Ken Esler's EINSPLINE library. 
  */
-
+#ifdef COMPLEX_WF
+class MO_matrix_Ceinspline:public Complex_MO_matrix { 
+#else 
 class MO_matrix_einspline: public MO_matrix {
+#endif
 protected:
   void init() { }
 private:
 #ifdef USE_EINSPLINE
+#ifdef COMPLEX_WF
+  Array1 <multi_UBspline_3d_z *> spline;
+#else
   Array1 <multi_UBspline_3d_d *> spline;
+#endif
 #endif 
   Array2 <doublevar> latvec;
   Array2 <doublevar> latvecinv;
   Array1 <int> npoints;
   Array1 <doublevar> resolution;
+  Array1 <doublevar> kpoint;
+#ifdef COMPLEX_WF
+  Array4 <dcomplex > modata;
+#else
   Array4 <doublevar> modata; //indices: mo,x,y,z
+#endif
   Array1 <int> nmo_lists;
   int ndim;
 public:
@@ -72,36 +90,18 @@ public:
     error("Need to implement MO_matrix_einspline::nMoCoeff()");
     return 0;
   }
-  virtual void updateVal(
-    Sample_point * sample,
-    int e,
-    //!< electron number
-    int listnum,
-    Array2 <doublevar> & newvals
-    //!< The return: in form (MO)
-  );
-  
-  virtual void getBasisVal(
-    Sample_point * sample,
-    int e,
-    Array1 <doublevar> & newvals
-    ){
-    error("Need to implement MO_matrix_blas::getBasisVal()");
+#ifdef COMPLEX_WF
+  virtual void updateVal(Sample_point *,int e,int listnum,Array2<dcomplex>&);
+  virtual void updateLap(Sample_point *,int e, int listnum, Array2<dcomplex>&);
+  MO_matrix_Ceinspline() { } 
+#else 
+  virtual void updateVal(Sample_point *,int e, int listnum, Array2<doublevar>&);
+  virtual void getBasisVal(Sample_point *,int e,Array1<doublevar> &) {
+    error("Don't support getBasisVal() in MO_matrix_einspline");
   }
-
-  virtual void updateLap(
-    Sample_point * sample,
-    int e,
-    //!< electron number
-    int listnum,
-    //!< Choose the list that was built in buildLists
-    Array2 <doublevar> & newvals
-    //!< The return: in form ([value gradient lap], MO)
-  );
-
-  MO_matrix_einspline()
-  {}
-
+  virtual void updateLap(Sample_point *,int e,int listnum,Array2<doublevar> &);
+  MO_matrix_einspline() {}
+#endif
 };
 
 

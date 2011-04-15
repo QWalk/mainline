@@ -36,20 +36,24 @@ using namespace std;
 
 //--------------------------------------------------------------
 
+
+
 class Abinit_converter { 
   public:
-    void readfile(string filename);
-    void readabinitout(string filename);
+    //void readfile(string filename);
+    void readabinitout(string filename,vector<double> & selected_kpt);
     void add_psp(string filename);
+
     void write_files(string basename);
     void write_orbitals(string  filename);
     void write_sys(string filename);
     void write_slater(string filename);
   private:
-    void prune_coefficients();  //Cancel out the G and -G degeneracies
-    void read_wfk(string filename);
+    void read_wfk(string filename, vector <double> & selected_kpt);
     void read_wf_from_wfk(FILE * wffile);
+    void skip_wf(FILE * wffile);
     
+    void prune_coefficients();
     void evaluate_orbital(vector<double> & r, vector <complex <double> > & orbitals);
     void reassign_z(); 
     //Information from the conversion.
@@ -62,146 +66,44 @@ class Abinit_converter {
     vector < vector <complex < double> > > coeff;
     vector<double> kpoint;
     bool spin_polarized;
+    bool complex_wavefunction;
     double grid_resolution;
 };
 //--------------------------------------------------------------
 
 int main(int argc, char ** argv) { 
 
-  string files="",outbase="qwalk",wfdata="qwalk.in";
+  string outbase="qwalk",abinit_out="abinit.out";
+
+  vector<double> selected_kpt(3);
+  selected_kpt[0]=selected_kpt[1]=selected_kpt[2]=0.0;
 
   for(int i=1; i< argc; i++) { 
     if(!strcmp(argv[i],"-o") && i<argc-1)
       outbase=argv[++i];
-    else if(!strcmp(argv[i],"-wfdata") && i < argc-1) 
-      wfdata=argv[++i];
-    else if(!strcmp(argv[i],"-files") && i < argc-1)
-      files=argv[++i];
+    else if(!strcmp(argv[i],"-ao") && i < argc-1) 
+      abinit_out=argv[++i];
+    else if(!strcmp(argv[i],"-kpoint") && i < argc-3) { 
+      selected_kpt[0]=atof(argv[++i]);
+      selected_kpt[1]=atof(argv[++i]);
+      selected_kpt[2]=atof(argv[++i]);
+    }
     else { 
       cout << "Error parsing command line " << endl;
       exit(1);
     }
   }
 
-
   Abinit_converter abconverter;
-  abconverter.readabinitout("abinit.out");
-  abconverter.write_files("nwabinit");
-  exit(0);
-  abconverter.readfile(wfdata);
-  ifstream is(files.c_str());
-  if(!is) { cout << "Couldn't open files file " << files << endl; exit(1); }
-  string line;
-  while(getline(is,line)) { 
-    abconverter.add_psp(line);
-  }
+  abconverter.readabinitout(abinit_out,selected_kpt);
   abconverter.write_files(outbase);
   return 0;
 }
 
 //--------------------------------------------------------------
 
-//Only read in the information from the converter output file.  All other processing goes in other
-//functions.
-void Abinit_converter::readfile(string  filename) { 
-  ifstream is(filename.c_str());
-  if(!is) { cout << "Couldn't open " << filename << endl; exit(1); }
-  string line;
-  vector <string> words;
-  int nelectrons=0;
-  string sep=" ";
-  while(getline(is,line)) { 
-    words.clear();
-    if(line=="Number of electrons per primitive cell") {
-      getline(is,line);
-      nelectrons=atoi(line.c_str());
-      cout <<  "number of electrons " <<  nelectrons << endl;
-      slater.nup=nelectrons/2;
-      slater.ndown=nelectrons/2;
-    }
-    else if(line=="GEOMETRY") { 
-      getline(is,line); getline(is,line); getline(is,line);
-      int nat=atoi(line.c_str());
-      cout << "Number of atoms " << nat << endl;
-      getline(is,line);
-      for(int i=0; i< nat; i++) { 
-        words.clear();
-        getline(is,line);
-        cout << "line " << line; 
-        split(line,sep,words);
-        Atom at;
-        at.charge=atoi(words[0].c_str());
-        for(int d=0;d < 3; d++) at.pos[d]=atof(words[d+1].c_str());
-        at.name=element_lookup_caps[int(at.charge)];
-        atoms.push_back(at);
-      }
-    }
-    else if(line=="Primitive lattice vectors (au)") { 
-      latvec.resize(3);
-      for(int d1=0; d1< 3; d1++) { 
-        latvec[d1].resize(3);
-        words.clear();
-        getline(is,line);
-        split(line,sep,words);
-        for(int d2=0; d2 < 3; d2++) latvec[d1][d2]=atof(words[d2].c_str());
-      }
-    }
-    else if(line=="G VECTORS") { 
-      getline(is,line); getline(is,line); getline(is,line);
-      int ngvec=atoi(line.c_str());
-      getline(is,line); cout << line << endl; assert(line=="Gx Gy Gz (au)");
-      gvec.resize(ngvec);
-      for(vector< vector<double> >::iterator i=gvec.begin(); i!=gvec.end(); i++) { 
-        getline(is,line);
-        words.clear(); split(line,sep,words);
-        for(vector<string>::iterator j=words.begin(); j!=words.end(); j++) 
-          i->push_back(atof(j->c_str()));
-      }
-    }
-    else if(line=="WAVE FUNCTION") { 
-      getline(is,line); getline(is,line); getline(is,line);
-      int nkpts=atoi(line.c_str());
-      assert(nkpts==1);
-      getline(is,line); getline(is,line);
-      words.clear(); split(line,sep,words);
-      int kptnum=atoi(words[0].c_str());
-      int nbandsup=atoi(words[1].c_str());
-      int nbandsdown=atoi(words[2].c_str());
-      for(int d=0; d< 3; d++) kpoint.push_back(atof(words[3+d].c_str()));
-      assert(nbandsdown==0);
-      coeff.resize(nbandsup);
-      for(vector<vector < complex < double> > >::iterator band=coeff.begin(); band!=coeff.end(); band++) {
-        getline(is,line); getline(is,line); getline(is,line);
-        cout << line << endl;
-        assert(line=="Eigenvector coefficients");
-        band->resize(gvec.size());
-        for(vector< complex <double> >::iterator c=band->begin(); c!=band->end(); c++) { 
-          is >> *c;
-        }
-        is.ignore(180,'\n');
-      }
-    }
-    else if(line=="Plane wave cutoff (au)") { 
-      getline(is,line);
-       //seems safe (magic number, I know!)
-      grid_resolution=3.0/atof(line.c_str());    
-    }
-    else if(line=="Spin polarized:") { 
-      getline(is,line);
-      if(line.find(".true.")!=string::npos) 
-        spin_polarized=true;
-      else spin_polarized=false;
-    }
-  }
 
-  prune_coefficients();
-  //add_psp("pp.Si.burkatzki.fhi");
-}
-
-//--------------------------------------------------------------
-
-
-void Abinit_converter::readabinitout(string  filename) { 
+void Abinit_converter::readabinitout(string  filename,vector<double> & selected_kpt) { 
   ifstream is(filename.c_str());
   if(!is) { 
     cout << "couldn't open " << filename << endl;
@@ -227,7 +129,7 @@ void Abinit_converter::readabinitout(string  filename) {
     }
   }
 
-  read_wfk(outputroot+"_DS1_WFK");
+  read_wfk(outputroot+"_DS1_WFK",selected_kpt);
 
 }
 //--------------------------------------------------------------
@@ -254,7 +156,7 @@ void uread(char * p,int ncount,FILE * file) {
 }
 
 /*!
- * Fortran for some reason puts in a 4-byte header in front of every write statement,
+ * Fortran for some reason puts in a 4-byte header in front and back of every write statement,
  * so we have to clear it since we know when the writes come from the excellent
  * abinit documentation.
  * */
@@ -262,8 +164,8 @@ void clear_header(FILE * file) {
   char buff[4];
   fread(buff,sizeof(char),4,file);
 }
-
-void Abinit_converter::read_wfk(string filename) { 
+//----------------------------------------------------------------------
+void Abinit_converter::read_wfk(string filename, vector <double> & selected_kpt) { 
   char codvsn[6];
   int headform,fform,bantot,date,intxc,ixc,natom,ngfft[3],nkpt,npsp,nspden;
   int nspinor,nsppol,nsym,ntypat,occopt,pertcase,usepaw;
@@ -375,7 +277,7 @@ void Abinit_converter::read_wfk(string filename) {
   slater.ndown=nelectrons/2;
   cout << "nelectrons " << nelectrons << endl;
 
-  grid_resolution=0.2;
+  grid_resolution=0.4;
 
   cout << "Lattice vectors " << endl;
   latvec.resize(3);
@@ -403,18 +305,52 @@ void Abinit_converter::read_wfk(string filename) {
   }
 
   cout << "K-points " << endl;
+  kpoint.resize(3);
+  int selected_kpt_number=0;
   for(int k=0; k< nkpt; k++) { 
+    bool is_the_one=true;
     for(int i=0; i<3; i++) { 
       cout << kpt[k*3+i] << " ";
+      if(fabs(kpt[k*3+i]-selected_kpt[i])>1e-3) 
+        is_the_one=false;
     }
-    cout << endl;
+    if(is_the_one) { 
+      selected_kpt_number=k;
+      cout << " <----printing this one \n";
+      for(int i=0; i< 3; i++) kpoint[i]=2*kpt[k*3+i];
+      read_wf_from_wfk(wffile);
+    }
+    else {
+      skip_wf(wffile);
+      cout << endl;
+    }
   }
-  
+  if(selected_kpt_number==0) complex_wavefunction=false;
+  else  complex_wavefunction=true;
+  complex_wavefunction=true;
+
   delete [] istwfk,nband,npwarr,so_psp,symafm,symrel,typat;
   delete [] kpt,occ,tnons,znucltypat,wtk;
-  read_wf_from_wfk(wffile);
 }
 //----------------------------------------------------------------------
+//
+
+void Abinit_converter::skip_wf(FILE * wffile) { 
+  clear_header(wffile);
+  int npw=read_int(wffile);
+  int nspinor=read_int(wffile);
+  int nband=read_int(wffile);
+  cout << "skipping npw " << npw << " nspinor " <<  nspinor << " nband " << nband << endl;
+  clear_header(wffile);
+  fseek(wffile,ftell(wffile)
+      +4*sizeof(char)*2*(2+nband) //the nband+2 write statements
+      +sizeof(int)*3*npw //The plane wave coordinates
+      +sizeof(double)*2*nband //eigenvalues and occupation numbers
+      +sizeof(double)*2*npw*nband, //The wf coefficients
+      SEEK_SET);
+}
+//----------------------------------------------------------------------
+
 void Abinit_converter::read_wf_from_wfk(FILE * wffile) { 
   vector <vector <double> > gprim;
   matrix_inverse(latvec,gprim);
@@ -429,6 +365,7 @@ void Abinit_converter::read_wf_from_wfk(FILE * wffile) {
   int nspinor=read_int(wffile);
   int nband=read_int(wffile);
   clear_header(wffile);
+  cout << "npw " << npw << " nspinor " << nspinor << " nband " << nband << endl;
   gvec.resize(npw);
   clear_header(wffile);
   //these are the reduced g-vectors.  They can be transformed by multiplying 
@@ -445,10 +382,10 @@ void Abinit_converter::read_wf_from_wfk(FILE * wffile) {
     }
   }
   delete [] tmpgvecs;
-  //cout << "First few g-vectors : \n";
-  //for(int g=0; g< 10; g++) { 
-  //  cout << gvec[g][0] << " " << gvec[g][1] << " " << gvec[g][2] << endl;
-  //}
+  cout << "First few g-vectors : \n";
+  for(int g=0; g< 10; g++) { 
+    cout << gvec[g][0] << " " << gvec[g][1] << " " << gvec[g][2] << endl;
+  }
   clear_header(wffile);
   coeff.resize(nband);
 
@@ -476,15 +413,6 @@ void Abinit_converter::read_wf_from_wfk(FILE * wffile) {
     clear_header(wffile);
   }
   delete[] tmpcoeff;
-  //cout << "first few coefficients from each band \n";
-  //for(int i=0; i< nband; i++) { 
-  //  cout << "band " <<i << endl;
-  //  for(int ipw=0; ipw < 10; ipw++) { 
-  //    cout << coeff[i][ipw] << endl;
-  //  }
-  //   cout << endl;
-  // }
-
 }
 
 
@@ -511,12 +439,27 @@ void Abinit_converter::prune_coefficients() {
 
 void Abinit_converter::evaluate_orbital(vector<double> & r, 
     vector <complex< double> > & orbitals) { 
+  //vector <vector <double> > gprim;
+  //matrix_inverse(latvec,gprim);
+  //vector<double> kpt_eval(3);
+  //cout << "k-point ";
+  //for(int d=0; d< 3; d++) { 
+  //  kpt_eval[d]=0;
+  //  for(int d1=0; d1 < 3; d1++) { 
+  //    kpt_eval[d]+=pi*kpoint[d1]*gprim[d1][d];
+  //  }
+    //cout << kpt_eval[d] << " ";
+  //}
+  //cout << endl;
   assert(orbitals.size()==coeff.size());
   int ngvec=gvec.size();
   vector < complex<double> > basis(ngvec);
   vector <complex <double> >::iterator b=basis.begin();
   for(vector<vector<double> >::iterator g=gvec.begin(); g!=gvec.end(); g++,b++) { 
-    double dot=(*g)[0]*r[0]+(*g)[1]*r[1]+(*g)[2]*r[2];
+    double dot=0.0;
+    for(int d=0; d< 3; d++) { 
+      dot+=(*g)[d]*r[d];
+    }
     *b=complex<double>(cos(dot),sin(dot));
   }
   
@@ -550,14 +493,14 @@ void Abinit_converter::write_orbitals(string  filename) {
   vector<double> r(3),prop(3);
   int count=0;
   long int ntotalpts=npts[0]*npts[1]*npts[2]*orbitals.size();
-  cout << "size of all orbitals: " << ntotalpts*8.0/1024.0/1024.0 << " megabytes ("<< ntotalpts << ") total points" << endl;
+  cout << "size of all orbitals: " << 2*ntotalpts*8.0/1024.0/1024.0 << " megabytes ("<< ntotalpts << ") total points" << endl;
   complex<double> * allorbitals=new complex<double>[ntotalpts];
   vector <complex<double> > orbnorm(coeff.size());
   for(vector<complex<double> >::iterator i=orbnorm.begin(); i!=orbnorm.end(); i++) 
     *i=0.0;
 
   for(int ii=0; ii < npts[0]; ii++) { 
-    cout << "ii " << ii << endl;
+    cout << "converting: " << 100*double(ii)/double(npts[0]) << "\% done" << endl;
     for(int jj=0; jj< npts[1]; jj++) { 
       for(int kk=0; kk< npts[2]; kk++) { 
         for(int i=0; i< 3; i++) r[i]=0.0;
@@ -589,6 +532,7 @@ void Abinit_converter::write_orbitals(string  filename) {
       orbn++) cout <<"norm " << *orbn << endl;
 
   ofstream os(filename.c_str());
+  os.precision(15);
   os << "Orbitals file" << endl;
   os << "norbitals " << orbitals.size() << endl;
   os << "Lattice vectors " << endl;
@@ -608,16 +552,24 @@ void Abinit_converter::write_orbitals(string  filename) {
   complex<double> * ptr=allorbitals;
   for(int orb=0; orb < orbnorm.size(); orb++) { 
     int nxyz=npts[0]*npts[1]*npts[2];
-    if(orbnorm[orb].real() > orbnorm[orb].imag())  { 
-      cout << "orb " <<orb << " real " << endl;
-      for(int i=0; i< nxyz; i++) {
-        os << ptr->real() << "\n";
+    if(complex_wavefunction) { 
+      for(int i=0; i< nxyz; i++) { 
+        os << *ptr << "\n";
         ptr++;
       }
     }
-    else for(int i=0; i< nxyz; i++) { 
-      os << ptr->imag() << "\n";
-      ptr++;
+    else { 
+      if(orbnorm[orb].real() > orbnorm[orb].imag())  { 
+        cout << "orb " <<orb << " real " << endl;
+        for(int i=0; i< nxyz; i++) {
+          os << ptr->real() << "\n";
+          ptr++;
+        }
+      }
+      else for(int i=0; i< nxyz; i++) { 
+        os << ptr->imag() << "\n";
+        ptr++;
+      }
     }
   }
   delete [] allorbitals;
@@ -653,7 +605,10 @@ void Abinit_converter::write_sys(string filename) {
 //--------------------------------------------------------------
 void Abinit_converter::write_slater(string filename) { 
   ofstream os(filename.c_str());
-  slater.orbtype="ORBITALS";
+  if(!complex_wavefunction) 
+    slater.orbtype="ORBITALS";
+  else 
+    slater.orbtype="CORBITALS";
   slater.mo_matrix_type="EINSPLINE_MO";
   slater.calctype="RHF";
   slater.print_wavefunction(os);
@@ -736,3 +691,4 @@ void Abinit_converter::reassign_z() {
   }
 }
 //--------------------------------------------------------------
+
