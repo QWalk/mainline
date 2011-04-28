@@ -1,6 +1,6 @@
 /*
  
-Copyright (C) 2009 Lucas Wagner
+Copyright (C) 2011 Lucas Wagner
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -28,9 +28,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 using namespace std;
 
 /*
- * -files      # files file for abinit
  * -o          # Output base for qwalk files
- * -wfdata     # wf output from abinit
+ * -ao     # output file from abinit
  * */
 
 
@@ -50,7 +49,7 @@ class Abinit_converter {
     void write_slater(string filename);
   private:
     void read_wfk(string filename, vector <double> & selected_kpt);
-    void read_wf_from_wfk(FILE * wffile);
+    void read_wf_from_wfk(FILE * wffile,vector<double> & occupation);
     void skip_wf(FILE * wffile);
     
     void prune_coefficients();
@@ -267,15 +266,16 @@ void Abinit_converter::read_wfk(string filename, vector <double> & selected_kpt)
 // of variables that abinit puts out.  We now print out what we need from the
 // file, just as a check.
   cout << "Number of spin channels " << nsppol << endl;
-  assert(nsppol==1);
+//assert(nsppol==1);
   if(nsppol==1) spin_polarized=false;
-  int nelectrons=0;
-  for(int i=0; i< nband[0]; i++) { 
-    nelectrons+=int(occ[i]);
-  }
-  slater.nup=nelectrons/2;
-  slater.ndown=nelectrons/2;
-  cout << "nelectrons " << nelectrons << endl;
+  else spin_polarized=true;
+  //int nelectrons=0;
+  //for(int i=0; i< nband[0]; i++) { 
+  //  nelectrons+=int(occ[i]);
+  //}
+  //slater.nup=nelectrons/2;
+  //slater.ndown=nelectrons/2;
+  //cout << "nelectrons " << nelectrons << endl;
 
   grid_resolution=0.4;
 
@@ -303,28 +303,50 @@ void Abinit_converter::read_wfk(string filename, vector <double> & selected_kpt)
     tmpat.print_atom(cout);
     atoms.push_back(tmpat);
   }
-
+  slater.nup=0; 
+  slater.ndown=0;
   cout << "K-points " << endl;
   kpoint.resize(3);
+  if(nsppol==2) 
+    slater.calctype="UHF";
+  else 
+    slater.calctype="RHF";
+
   int selected_kpt_number=0;
-  for(int k=0; k< nkpt; k++) { 
-    bool is_the_one=true;
-    for(int i=0; i<3; i++) { 
-      cout << kpt[k*3+i] << " ";
-      if(fabs(kpt[k*3+i]-selected_kpt[i])>1e-3) 
-        is_the_one=false;
-    }
-    if(is_the_one) { 
-      selected_kpt_number=k;
-      cout << " <----printing this one \n";
-      for(int i=0; i< 3; i++) kpoint[i]=2*kpt[k*3+i];
-      read_wf_from_wfk(wffile);
-    }
-    else {
-      skip_wf(wffile);
-      cout << endl;
+  for(int isppol=0; isppol<nsppol; isppol++) { 
+    for(int k=0; k< nkpt; k++) { 
+      bool is_the_one=true;
+      for(int i=0; i<3; i++) { 
+        cout << kpt[k*3+i] << " ";
+        if(fabs(kpt[k*3+i]-selected_kpt[i])>1e-3) 
+          is_the_one=false;
+      }
+      if(is_the_one) { 
+        selected_kpt_number=k;
+        cout << " <----printing this one \n";
+        for(int i=0; i< 3; i++) kpoint[i]=2*kpt[k*3+i];
+        vector <double> occupation;
+        if(isppol==1) 
+          slater.spin_dwn_start=coeff.size();
+        read_wf_from_wfk(wffile,occupation);
+        for(vector<double>::iterator o=occupation.begin(); o!=occupation.end(); o++) { 
+          if( fabs(*o-1.0) < 1e-3) { 
+            if(isppol==0) slater.nup++;
+            else slater.ndown++;
+          }
+          else if( fabs(*o-2.0) < 1e-3) { 
+            slater.nup++;
+            slater.ndown++;
+          }
+        }
+      }
+      else {
+        skip_wf(wffile);
+        cout << endl;
+      }
     }
   }
+  cout << "nup " << slater.nup << " ndown " << slater.ndown << endl;
   if(selected_kpt_number==0) complex_wavefunction=false;
   else  complex_wavefunction=true;
   complex_wavefunction=true;
@@ -351,7 +373,7 @@ void Abinit_converter::skip_wf(FILE * wffile) {
 }
 //----------------------------------------------------------------------
 
-void Abinit_converter::read_wf_from_wfk(FILE * wffile) { 
+void Abinit_converter::read_wf_from_wfk(FILE * wffile,vector<double> & occupation) { 
   vector <vector <double> > gprim;
   matrix_inverse(latvec,gprim);
   cout << "Inverse Matrix " << endl;
@@ -366,6 +388,10 @@ void Abinit_converter::read_wf_from_wfk(FILE * wffile) {
   int nband=read_int(wffile);
   clear_header(wffile);
   cout << "npw " << npw << " nspinor " << nspinor << " nband " << nband << endl;
+  if(gvec.size() > 0 && gvec.size()!=npw) { 
+    cout << "Something wrong--number of g-vectors is changing" << endl;
+    exit(1);
+  }
   gvec.resize(npw);
   clear_header(wffile);
   //these are the reduced g-vectors.  They can be transformed by multiplying 
@@ -387,7 +413,7 @@ void Abinit_converter::read_wf_from_wfk(FILE * wffile) {
     cout << gvec[g][0] << " " << gvec[g][1] << " " << gvec[g][2] << endl;
   }
   clear_header(wffile);
-  coeff.resize(nband);
+//coeff.resize(nband);
 
   double *eigen=new double[nband],*occ=new double[nband];
   clear_header(wffile);
@@ -397,19 +423,23 @@ void Abinit_converter::read_wf_from_wfk(FILE * wffile) {
   cout << "occupations " << endl;
   for(int i=0; i< nband; i++) { 
     cout << occ[i] << " ";
+    occupation.push_back(occ[i]);
   }
   cout << endl;
   delete[] eigen,occ;
 
   double * tmpcoeff=new double[2*npw*nspinor];
+  vector <complex <double> > tmpvec(npw);
+  
   assert(nspinor==1);
   for(int i=0; i< nband; i++) { 
     clear_header(wffile);
     uread(tmpcoeff,2*npw*nspinor,wffile);
-    coeff[i].resize(npw);
+//coeff[i].resize(npw);
     for(int ipw=0; ipw < npw; ipw++) { 
-      coeff[i][ipw]=complex<double>(tmpcoeff[ipw*2],tmpcoeff[ipw*2+1]);
+      tmpvec[ipw]=complex<double>(tmpcoeff[ipw*2],tmpcoeff[ipw*2+1]);
     }
+    coeff.push_back(tmpvec);
     clear_header(wffile);
   }
   delete[] tmpcoeff;
@@ -610,7 +640,6 @@ void Abinit_converter::write_slater(string filename) {
   else 
     slater.orbtype="CORBITALS";
   slater.mo_matrix_type="EINSPLINE_MO";
-  slater.calctype="RHF";
   slater.print_wavefunction(os);
 
 }
