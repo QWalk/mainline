@@ -453,6 +453,17 @@ void Abinit_converter::write_files(string basename) {
   write_orbitals(basename+".orb");
   write_sys(basename+".sys");
   write_slater(basename+".slater");
+
+  string jast2outname=basename+".jast2";
+  double basis_cutoff=find_basis_cutoff(latvec);
+  Jastrow2_wf_writer jast2writer;
+  jast2writer.set_atoms(atoms);
+  
+  
+  ofstream jast2out(jast2outname.c_str());
+  print_std_jastrow2(jast2writer, jast2out, basis_cutoff);
+  jast2out.close();
+  
 }
 
 
