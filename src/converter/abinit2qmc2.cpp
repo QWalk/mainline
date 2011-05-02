@@ -25,6 +25,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <cmath>
 #include "elements.h"
 #include "vecmath.h"
+#include <iomanip>
 using namespace std;
 
 /*
@@ -51,7 +52,7 @@ class Abinit_converter {
     void read_wfk(string filename, vector <double> & selected_kpt);
     void read_wf_from_wfk(FILE * wffile,vector<double> & occupation);
     void skip_wf(FILE * wffile);
-    
+    void assign_occupations(vector<double> &occupations,bool spin_polarized); 
     void prune_coefficients();
     void evaluate_orbital(vector<double> & r, vector <complex <double> > & orbitals);
     void reassign_z(); 
@@ -64,7 +65,6 @@ class Abinit_converter {
     vector < vector <double> > gvec;
     vector < vector <complex < double> > > coeff;
     vector<double> kpoint;
-    bool spin_polarized;
     bool complex_wavefunction;
     double grid_resolution;
 };
@@ -266,16 +266,6 @@ void Abinit_converter::read_wfk(string filename, vector <double> & selected_kpt)
 // of variables that abinit puts out.  We now print out what we need from the
 // file, just as a check.
   cout << "Number of spin channels " << nsppol << endl;
-//assert(nsppol==1);
-  if(nsppol==1) spin_polarized=false;
-  else spin_polarized=true;
-  //int nelectrons=0;
-  //for(int i=0; i< nband[0]; i++) { 
-  //  nelectrons+=int(occ[i]);
-  //}
-  //slater.nup=nelectrons/2;
-  //slater.ndown=nelectrons/2;
-  //cout << "nelectrons " << nelectrons << endl;
 
   grid_resolution=0.4;
 
@@ -303,16 +293,13 @@ void Abinit_converter::read_wfk(string filename, vector <double> & selected_kpt)
     tmpat.print_atom(cout);
     atoms.push_back(tmpat);
   }
-  slater.nup=0; 
-  slater.ndown=0;
   cout << "K-points " << endl;
   kpoint.resize(3);
-  if(nsppol==2) 
-    slater.calctype="UHF";
-  else 
-    slater.calctype="RHF";
+  if(nsppol==2)  slater.calctype="UHF";
+  else  slater.calctype="RHF";
 
   int selected_kpt_number=0;
+  vector <double> occupation;
   for(int isppol=0; isppol<nsppol; isppol++) { 
     for(int k=0; k< nkpt; k++) { 
       bool is_the_one=true;
@@ -325,20 +312,11 @@ void Abinit_converter::read_wfk(string filename, vector <double> & selected_kpt)
         selected_kpt_number=k;
         cout << " <----printing this one \n";
         for(int i=0; i< 3; i++) kpoint[i]=2*kpt[k*3+i];
-        vector <double> occupation;
+        vector <double> occ_tmp;
         if(isppol==1) 
           slater.spin_dwn_start=coeff.size();
-        read_wf_from_wfk(wffile,occupation);
-        for(vector<double>::iterator o=occupation.begin(); o!=occupation.end(); o++) { 
-          if( fabs(*o-1.0) < 1e-3) { 
-            if(isppol==0) slater.nup++;
-            else slater.ndown++;
-          }
-          else if( fabs(*o-2.0) < 1e-3) { 
-            slater.nup++;
-            slater.ndown++;
-          }
-        }
+        read_wf_from_wfk(wffile,occ_tmp);
+        occupation.insert(occupation.end(),occ_tmp.begin(),occ_tmp.end());
       }
       else {
         skip_wf(wffile);
@@ -346,10 +324,10 @@ void Abinit_converter::read_wfk(string filename, vector <double> & selected_kpt)
       }
     }
   }
-  cout << "nup " << slater.nup << " ndown " << slater.ndown << endl;
-  if(selected_kpt_number==0) complex_wavefunction=false;
-  else  complex_wavefunction=true;
   complex_wavefunction=true;
+  assign_occupations(occupation,nsppol==2);
+  cout << "nup " << slater.nup << " ndown " << slater.ndown << endl;
+  
 
   delete [] istwfk,nband,npwarr,so_psp,symafm,symrel,typat;
   delete [] kpt,occ,tnons,znucltypat,wtk;
@@ -362,7 +340,7 @@ void Abinit_converter::skip_wf(FILE * wffile) {
   int npw=read_int(wffile);
   int nspinor=read_int(wffile);
   int nband=read_int(wffile);
-  cout << "skipping npw " << npw << " nspinor " <<  nspinor << " nband " << nband << endl;
+  //cout << "skipping npw " << npw << " nspinor " <<  nspinor << " nband " << nband << endl;
   clear_header(wffile);
   fseek(wffile,ftell(wffile)
       +4*sizeof(char)*2*(2+nband) //the nband+2 write statements
@@ -376,18 +354,13 @@ void Abinit_converter::skip_wf(FILE * wffile) {
 void Abinit_converter::read_wf_from_wfk(FILE * wffile,vector<double> & occupation) { 
   vector <vector <double> > gprim;
   matrix_inverse(latvec,gprim);
-  cout << "Inverse Matrix " << endl;
-  for(int i=0; i< 3; i++) { 
-    for(int j=0; j< 3; j++) cout << gprim[i][j] << " ";
-    cout << endl; 
-  }
   
   clear_header(wffile);
   int npw=read_int(wffile);
   int nspinor=read_int(wffile);
   int nband=read_int(wffile);
   clear_header(wffile);
-  cout << "npw " << npw << " nspinor " << nspinor << " nband " << nband << endl;
+  //cout << "npw " << npw << " nspinor " << nspinor << " nband " << nband << endl;
   if(gvec.size() > 0 && gvec.size()!=npw) { 
     cout << "Something wrong--number of g-vectors is changing" << endl;
     exit(1);
@@ -408,10 +381,10 @@ void Abinit_converter::read_wf_from_wfk(FILE * wffile,vector<double> & occupatio
     }
   }
   delete [] tmpgvecs;
-  cout << "First few g-vectors : \n";
-  for(int g=0; g< 10; g++) { 
-    cout << gvec[g][0] << " " << gvec[g][1] << " " << gvec[g][2] << endl;
-  }
+  //cout << "First few g-vectors : \n";
+  //for(int g=0; g< 10; g++) { 
+  //  cout << gvec[g][0] << " " << gvec[g][1] << " " << gvec[g][2] << endl;
+  //}
   clear_header(wffile);
 //coeff.resize(nband);
 
@@ -420,12 +393,12 @@ void Abinit_converter::read_wf_from_wfk(FILE * wffile,vector<double> & occupatio
   uread(eigen,nband,wffile);
   uread(occ,nband,wffile);
   clear_header(wffile);
-  cout << "occupations " << endl;
+  //cout << "occupations " << endl;
   for(int i=0; i< nband; i++) { 
-    cout << occ[i] << " ";
+  //  cout << occ[i] << " ";
     occupation.push_back(occ[i]);
   }
-  cout << endl;
+  //cout << endl;
   delete[] eigen,occ;
 
   double * tmpcoeff=new double[2*npw*nspinor];
@@ -435,7 +408,6 @@ void Abinit_converter::read_wf_from_wfk(FILE * wffile,vector<double> & occupatio
   for(int i=0; i< nband; i++) { 
     clear_header(wffile);
     uread(tmpcoeff,2*npw*nspinor,wffile);
-//coeff[i].resize(npw);
     for(int ipw=0; ipw < npw; ipw++) { 
       tmpvec[ipw]=complex<double>(tmpcoeff[ipw*2],tmpcoeff[ipw*2+1]);
     }
@@ -444,8 +416,49 @@ void Abinit_converter::read_wf_from_wfk(FILE * wffile,vector<double> & occupatio
   }
   delete[] tmpcoeff;
 }
+//----------------------------------------------------------------------
 
-
+void Abinit_converter::assign_occupations(vector<double>& occupations,bool spin_polarized) { 
+ slater.detwt.resize(1);
+ slater.detwt[0]=1.0;
+ slater.occ_up.resize(1);
+ slater.occ_down.resize(1);
+ int nstates=occupations.size();
+ //------spin polarized
+ if(spin_polarized) {
+   assert(nstates%2==0);
+   nstates/=2;
+   for(int i=0; i< nstates; i++) { 
+     if(fabs(occupations[i]-1.0) < 1e-3)  { 
+       slater.occ_up[0].push_back(i+1);
+     }
+     else if(fabs(occupations[i]) > 1e-3) { 
+       cout << "occupation !=0 or 1 for spin-polarized case" << endl;
+       exit(1);
+     }
+     if(fabs(occupations[i+nstates]-1.0) < 1e-3) 
+       slater.occ_down[0].push_back(i+nstates+1);
+     else if(fabs(occupations[i+nstates]) > 1e-3) { 
+       cout << "occupation != 0 or 1 for spin-polarized case" << endl;
+       exit(1);
+     }
+   }
+ }
+ else  {  //spin unpolarized
+   for(int i=0; i< nstates; i++) { 
+     if(fabs(occupations[i]-2.0) < 1e-3) { 
+       slater.occ_up[0].push_back(i+1);
+       slater.occ_down[0].push_back(i+1);
+     }
+     else if(fabs(occupations[i]) > 1e-3) { 
+       cout << "occupation !=0 or 2 for spin unpolarized case" << endl;
+       exit(1);
+     }
+   }
+ }
+ slater.nup=slater.occ_up[0].size();
+ slater.ndown=slater.occ_down[0].size();
+}
 //--------------------------------------------------------------
 
 void Abinit_converter::write_files(string basename) { 
@@ -559,7 +572,12 @@ void Abinit_converter::write_orbitals(string  filename) {
           *ptr=*i;
           *orbn+=complex<double>(i->real()*i->real(),i->imag()*i->imag());
           ptr+=npts[1]*npts[2]*npts[0];
+          if(ii==3 && jj==5 && kk==7) 
+            cout << "orbval " << setw(18) << i->real() << setw(18) << i->imag()  
+              << setw(18) << atan2(i->imag(),i->real())/pi << endl;
+
         }
+        
         //cout << r[0] <<  " " << r[1] << " " << r[2] << " "
         //  << orbitals[15] << endl;
         //cout << orbitals[0] << " " ;
@@ -632,7 +650,7 @@ void Abinit_converter::write_sys(string filename) {
     os << endl;
   }
   os <<  "}\n";
-  os << "   kpoint { 0 0 0 } \n";
+  os << "   kpoint { " << kpoint[0] << " " << kpoint[1] << " " << kpoint[2] << " } \n"; 
   
   os << "} ";
 
