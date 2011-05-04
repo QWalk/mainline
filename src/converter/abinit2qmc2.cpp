@@ -493,18 +493,6 @@ void Abinit_converter::prune_coefficients() {
 
 void Abinit_converter::evaluate_orbital(vector<double> & r, 
     vector <complex< double> > & orbitals) { 
-  //vector <vector <double> > gprim;
-  //matrix_inverse(latvec,gprim);
-  //vector<double> kpt_eval(3);
-  //cout << "k-point ";
-  //for(int d=0; d< 3; d++) { 
-  //  kpt_eval[d]=0;
-  //  for(int d1=0; d1 < 3; d1++) { 
-  //    kpt_eval[d]+=pi*kpoint[d1]*gprim[d1][d];
-  //  }
-    //cout << kpt_eval[d] << " ";
-  //}
-  //cout << endl;
   assert(orbitals.size()==coeff.size());
   int ngvec=gvec.size();
   vector < complex<double> > basis(ngvec);

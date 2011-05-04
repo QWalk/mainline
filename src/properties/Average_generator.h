@@ -26,8 +26,7 @@
 #include "Wavefunction_data.h"
 #include "Basis_function.h"
 #include "System.h"
-class Basis_function;
-
+#include "Basis_function.h"
 
 struct Average_return {
   string type;

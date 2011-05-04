@@ -27,12 +27,12 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 /*!
 This class represents a basis set around a single center.  
 */
-class Basis_function
+template <class T> class Templated_Basis_function
 {
 public:
 
 
-  virtual ~Basis_function()
+  virtual ~Templated_Basis_function()
   {}
 
   /*!
@@ -41,7 +41,7 @@ public:
   */
   virtual void calcVal(const Array1 <doublevar> & r,
                        //!< in form r, r^2, x, y, z
-                       Array1 <doublevar> & symvals,
+                       Array1 <T> & symvals,
                        //!< The values and derivatives of the basis function
                        const int startfill=0
                        //!< The place in the array to start the fill
@@ -55,7 +55,7 @@ public:
   virtual void calcLap(
     const Array1 <doublevar> & r,
     //!< in form r, r^2, x, y, z
-    Array2 <doublevar> & symvals,
+    Array2 <T> & symvals,
     //!< The values and derivatives of the basis function
     const int startfill=0
     //!< The place in the array to start the fill
@@ -63,7 +63,7 @@ public:
 
 
   virtual void calcHessian(const Array1 <doublevar> & r,
-			   Array2 <doublevar> & symvals,
+			   Array2 <T> & symvals,
 			   //!< (func, [val,grad,d2f/dx2,d2f/dy2,d2f/dz2
 			   //,d2f/dxdy,d2f/dxdz,d2f/dydz]) (nfunc,10)
 			   const int startfill=0
@@ -84,7 +84,9 @@ public:
     from old code.  Don't use it unless you know what you're
     doing.
   */
-  virtual void raw_input(ifstream & )=0;
+  virtual void raw_input(ifstream & ){ 
+    error("raw_input not supported");
+  }
 
   /*!
     \brief
@@ -153,9 +155,12 @@ public:
     return 0;
   }
 };
-
+typedef Templated_Basis_function<doublevar> Basis_function;
+typedef Templated_Basis_function<dcomplex> CBasis_function;
 int allocate(vector <string> & basistext, Basis_function * & bptr);
 int deallocate(Basis_function * & bptr);
+int allocate(vector <string> & basistext, CBasis_function * & bptr);
+int deallocate(CBasis_function * & bptr);
 
 #endif //BASIS_FUNCTION_H_INCLUDED
 //--------------------------------------------------------------------------

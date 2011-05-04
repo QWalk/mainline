@@ -30,7 +30,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Sample_point.h"
 #include "Guiding_function.h"
 class Program_options;
-class Basis_function;
+#include "Basis_function.h"
 #include "Backflow_wf_data.h"
 #include "System.h"
 /*!

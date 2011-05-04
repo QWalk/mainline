@@ -22,8 +22,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #define CENTER_SET_H_INCLUDED
 #include "Array.h"
 #include "System.h"
-class Basis_function;
-class CBasis_function;
+#include "Basis_function.h"
 class Sample_point;
 /*!
 \brief
