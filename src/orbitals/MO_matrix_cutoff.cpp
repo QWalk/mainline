@@ -1,3 +1,4 @@
+#if 0
 /*
  
 Copyright (C) 2007 Lucas K. Wagner
@@ -582,3 +583,4 @@ void MO_matrix_cutoff::updateHessian(
 }
 
 //--------------------------------------------------------------------------
+#endif

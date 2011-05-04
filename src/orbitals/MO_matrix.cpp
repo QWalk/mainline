@@ -40,7 +40,7 @@ int allocate(vector <string> & words, System * sys, MO_matrix *& moptr) {
   assert(moptr==NULL);
 
   if(caseless_eq(words[0],"CUTOFF_MO"))
-    moptr=new MO_matrix_cutoff;
+    moptr=new MO_matrix_cutoff<doublevar>;
   else if(caseless_eq(words[0],"STANDARD_MO"))
     moptr=new MO_matrix_standard;
   else if(caseless_eq(words[0],"BLAS_MO"))
@@ -53,9 +53,7 @@ int allocate(vector <string> & words, System * sys, MO_matrix *& moptr) {
     moptr=new MO_matrix_einspline;
   
   else {
-    cout << "****WARNING*****  Assuming you want a cutoff MO."
-    "  In the future, you'll need to specify.\n";
-    moptr=new MO_matrix_cutoff;
+    error("Didn't  understand ",words[0]);
   }
 
   unsigned int pos=0;
@@ -69,8 +67,8 @@ int allocate(vector <string> & words, System * sys,
     moptr=new MO_1d;
   else if(caseless_eq(words[0],"CBASFUNC_MO"))
     moptr=new MO_matrix_Cbasfunc;
-  else if(caseless_eq(words[0],"CCUTOFF_MO"))
-    moptr=new MO_matrix_Ccutoff;
+  else if(caseless_eq(words[0],"CUTOFF_MO"))
+    moptr=new MO_matrix_cutoff<dcomplex>;
   else if(caseless_eq(words[0],"CBSPLINE_MO"))
     moptr=new MO_matrix_Cbspline;
   else if(caseless_eq(words[0],"EINSPLINE_MO"))

@@ -276,6 +276,7 @@ Although there is a slight difference even compared to MO_matrix_Cbasfunc,
 since here we have real basis functions and there are complex basis
 functions.
 */
+/*
 void MO_matrix_Ccutoff::read(vector <string> & words,
 			     unsigned int & startpos,
 			     System * sys)
@@ -366,6 +367,7 @@ void MO_matrix_Ccutoff::read(vector <string> & words,
   init();
 
 }
+*/
 
 //------------------------------------------------------------------------
 

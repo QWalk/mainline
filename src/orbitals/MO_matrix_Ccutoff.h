@@ -68,8 +68,8 @@ public:
 
   virtual int writeinput(string &, ostream &);
 
-  virtual void read(vector <string> & words, unsigned int & startpos, 
-                    System * sys);
+  //virtual void read(vector <string> & words, unsigned int & startpos, 
+  //                  System * sys);
 
   virtual void writeorb(ostream &, Array2 <doublevar> & rotation, Array1 <int> &);
 

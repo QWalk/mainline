@@ -58,8 +58,7 @@ class General_MO_matrix {
 template <class T> class Templated_MO_matrix: public General_MO_matrix {
 protected:
   Center_set centers;
-  Array1 <Basis_function *> basis;
-  
+  Array1 <Basis_function *> basis; 
   int nmo;
   doublevar magnification_factor;
   string orbfile;
@@ -70,8 +69,6 @@ protected:
   string oldsofile;
 
   Array1 <doublevar> kpoint; //!< the k-point of the orbitals in fractional units(1 0 0) is X, etc..
-  //Array1 <doublevar> mo_counter;//!< Count how many basis functions are evaluated per MO
-  //unsigned int n_calls; //!< number of calls
 public:
 
   /*!
@@ -115,6 +112,7 @@ public:
   }
   virtual int nMoCoeff() { 
     error("nMoCoeff not implemented");
+    return 0;
   }
 
 
@@ -196,14 +194,30 @@ int readorb(istream & input, Center_set & centers,
             int nmo, int maxbasis, Array1 <doublevar> & kpoint, 
 	    Array3 <int > & coeffmat, Array1 <dcomplex> & coeff);
 
-//----------------------------------------------------------------------------
-#include "qmc_io.h"
-template<> inline void Complex_MO_matrix::read(vector <string> & words,
-                     unsigned int & startpos,
-                     System * sys) { 
+//----------------------------------------------------------------------
+//A simple templated function to evaluate the k-point when it is real versus
+//when it is complex. 
+template <class T> inline T eval_kpoint_fac(doublevar & dot) {
+  error("Not a general class.");
 }
 
-template<> inline void MO_matrix::read(vector <string> & words,
+template <> inline doublevar eval_kpoint_fac<doublevar>(doublevar & dot) { 
+  return cos(dot*pi);
+}
+template <> inline  dcomplex eval_kpoint_fac<dcomplex>(doublevar & dot) { 
+  return exp(dcomplex(0.0,1.0)*dot*pi);
+}
+
+
+
+//----------------------------------------------------------------------------
+#include "qmc_io.h"
+//template<> inline void Complex_MO_matrix::read(vector <string> & words,
+//                     unsigned int & startpos,
+//                     System * sys) { 
+//}
+
+template<class T> inline void Templated_MO_matrix<T>::read(vector <string> & words,
                      unsigned int & startpos,
                      System * sys)
 {
@@ -211,8 +225,7 @@ template<> inline void MO_matrix::read(vector <string> & words,
 
   unsigned int pos=startpos;
 
-  if(!readvalue(words, pos, nmo, "NMO"))
-  {
+  if(!readvalue(words, pos, nmo, "NMO")) {
     error("Need NMO in molecular orbital section");
   }
 
@@ -231,74 +244,23 @@ template<> inline void MO_matrix::read(vector <string> & words,
   vector <vector <string> > basistext;
   vector < string > basissec;
   pos=0;
-  while( readsection(words, pos, basissec, "BASIS") != 0)
-  {
+  while( readsection(words, pos, basissec, "BASIS") != 0) {
     basistext.insert(basistext.end(), basissec);
   }
   basis.Resize(basistext.size());
   basis=NULL;
 
   if(basistext.size() == 0 )
-  {
     error("Didn't find a BASIS section");
-  }
-  for(unsigned int i=0; i<basistext.size(); i++)
-  {
+  for(unsigned int i=0; i<basistext.size(); i++) {
     allocate(basistext[i], basis(i));
   }
   
   sys->kpoint(kpoint);
-  /*
-  vector <string> kpt;
-  if(readsection(words, pos=0, kpt, "KPOINT")) {
-    if(kpt.size()!=3) error("KPOINT must be a section of size 3");
-    kpoint.Resize(3);
-    for(int i=0; i< 3; i++) 
-      kpoint(i)=atof(kpt[i].c_str());
-  }
-  else {
-    kpoint.Resize(3);
-    kpoint=0;
-  }
-  */
-
-  //OLDSOFILE is for compatibility to the old qmc f90
-  //version, which stores the spline coefficients in
-  //a bit of a strange format.  You still have to
-  //put in the regular input, since the SO file doesn't
-  //contain the symmetry information.
-  pos=0;
-  if(readvalue(words, pos, oldsofile, "OLDSOFILE"))
-  {
-    ifstream sofile(oldsofile.c_str());
-    if(sofile)
-    {
-      single_write(cout,
-                   "Overwriting the basis functions with the information ",
-                   "from ",oldsofile, "\n");
-      int dummy;
-      sofile >> dummy;
-      for(unsigned int i=0; i<basistext.size(); i++)
-      {
-        basis(i)->raw_input(sofile);
-      }
-      sofile.close();
-    }
-
-    else
-    {
-      error("Didn't find compatibility SO file in ", oldsofile);
-    }
-  }
-
-
   //------------------------------Centers
   vector <string> centertext;
   pos=startpos;
-  if(readsection(words, pos, centertext, "CENTERS"))
-  {}
-  else
-  {
+  if(!readsection(words, pos, centertext, "CENTERS")) { 
     single_write(cout, "Defaulting to using the atoms as centers\n");
     string temp="USEATOMS";
     centertext.push_back(temp);
