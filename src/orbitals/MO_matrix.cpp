@@ -30,11 +30,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "MO_matrix_bspline.h"
 #include "MO_matrix_Cbspline.h"
 #include "MO_matrix_Cbasfunc.h"
-#include "MO_matrix_Ccutoff.h"
 #include "MO_matrix_einspline.h"
-#define COMPLEX_WF
-#include "MO_matrix_einspline.h"
-#undef COMPLEX_WF
 
 int allocate(vector <string> & words, System * sys, MO_matrix *& moptr) {
   assert(moptr==NULL);
