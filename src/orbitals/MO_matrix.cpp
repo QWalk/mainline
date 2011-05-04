@@ -50,7 +50,7 @@ int allocate(vector <string> & words, System * sys, MO_matrix *& moptr) {
   else if(caseless_eq(words[0],"BSPLINE_MO"))
     moptr=new MO_matrix_bspline;
   else if(caseless_eq(words[0],"EINSPLINE_MO"))
-    moptr=new MO_matrix_einspline;
+    moptr=new MO_matrix_einspline<doublevar>;
   
   else {
     error("Didn't  understand ",words[0]);
@@ -72,7 +72,7 @@ int allocate(vector <string> & words, System * sys,
   else if(caseless_eq(words[0],"CBSPLINE_MO"))
     moptr=new MO_matrix_Cbspline;
   else if(caseless_eq(words[0],"EINSPLINE_MO"))
-    moptr=new MO_matrix_Ceinspline;
+    moptr=new MO_matrix_einspline<dcomplex>;
   else 
     error("Unknown complex MO: ", words[0]);
 

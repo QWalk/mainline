@@ -208,6 +208,40 @@ template <> inline  dcomplex eval_kpoint_fac<dcomplex>(doublevar & dot) {
   return exp(dcomplex(0.0,1.0)*dot*pi);
 }
 
+template <class T> inline void eval_kpoint_deriv(Array1 <doublevar> & kpoint,
+    doublevar kr,
+    T & val, Array1 <T> & grad, Array2 <T> & hess)  { 
+  error("kpoint_deriv not implemented in general");
+}
+
+template <> inline void eval_kpoint_deriv<dcomplex>(Array1 <doublevar> & kpoint,
+    doublevar kr,
+    dcomplex & val, Array1 <dcomplex> & grad, Array2 <dcomplex> & hess)  { 
+  int ndim=grad.GetDim(0);
+  assert(ndim==hess.GetDim(0));
+  assert(ndim==hess.GetDim(1));
+  const dcomplex I(0,1.0);
+  dcomplex eikr=eval_kpoint_fac<dcomplex>(kr);
+  for(int d1=0; d1 < ndim; d1++) 
+    for(int d2=0; d2< ndim; d2++) 
+      hess(d1,d2)=eikr*(hess(d1,d2)
+          +I*pi*kpoint(d1)*grad(d2)
+          +I*pi*kpoint(d2)*grad(d1)
+          -pi*pi*kpoint(d1)*kpoint(d2)*val);
+ for (int d=0; d< ndim; d++) 
+   grad(d)=eikr*(I*pi*kpoint(d)*val+grad(d));
+ val*=eikr;
+}
+
+template <> inline void eval_kpoint_deriv<doublevar>(Array1 <doublevar> & kpoint,
+    doublevar kr,
+    doublevar & val, Array1 <doublevar> & grad, Array2 <doublevar> & hess)  { 
+  //still not clear how to do this exactly, so we'll ignore it for now.
+  assert(abs(kpoint(0)) < 1e-14);
+  assert(abs(kpoint(1)) < 1e-14);
+  assert(abs(kpoint(2)) < 1e-14);
+}
+
 
 
 //----------------------------------------------------------------------------

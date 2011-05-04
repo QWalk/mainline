@@ -18,14 +18,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  
 */
 
-#if (!defined(MO_MATRIX_CEINSPLINE_H_INCLUDED) && defined(COMPLEX_WF))|| (!defined(MO_MATRIX_EINSPLINE_H_INCLUDED) && !defined(COMPLEX_WF)) 
-
-
-#ifdef COMPLEX_WF
-#define MO_MATRIX_CEINSPLINE_H_INCLUDED
-#else 
+#ifndef MO_MATRIX_EINSPLINE_H_INCLUDED
 #define MO_MATRIX_EINSPLINE_H_INCLUDED
-#endif 
 
 #include "MO_matrix.h"
 #include "Array45.h"
@@ -42,35 +36,88 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <multi_bspline.h>
 #endif
 
+/*! This is a simple adaptor class to translate between the template language
+ * and the C-type language of einspline
+ * */
+#ifdef USE_EINSPLINE
+template <class T> class Spline_evaluator { 
+  public:
+    void create(Ugrid & gridx, Ugrid & gridy, Ugrid & gridz, int nspline) { } 
+    void set(int i, T * data) { }
+    void val(doublevar x, doublevar y, doublevar z, T * vals) { } 
+    void hess(doublevar x, doublevar y, doublevar z, T* vals, T * grad, T * hess) { } 
+};
+
+template <> class Spline_evaluator<doublevar> { 
+private:
+  multi_UBspline_3d_d * spline;
+public:
+  Spline_evaluator() { spline=NULL; } 
+  void create(Ugrid &  gridx, Ugrid & gridy, Ugrid & gridz,int nspline) { 
+    BCtype_d bc;
+    bc.lCode=PERIODIC; bc.rCode=PERIODIC;
+    spline=create_multi_UBspline_3d_d(gridx,gridy,gridz,bc, bc, bc,nspline);
+  }
+  void set(int i, doublevar * data) { 
+    set_multi_UBspline_3d_d(spline,i,data);
+  }
+  void val(doublevar x, doublevar y, doublevar z,doublevar * vals) { 
+    eval_multi_UBspline_3d_d(spline,x,y,z,vals);
+  }
+  void hess(doublevar x, doublevar y, doublevar z, doublevar * vals, 
+      doublevar * grad, doublevar * hess) { 
+    eval_multi_UBspline_3d_d_vgh(spline,x,y,z,vals,grad,hess);
+  }
+  ~Spline_evaluator() { 
+  }
+};
+
+
+template <> class Spline_evaluator<dcomplex> { 
+private:
+  multi_UBspline_3d_z * spline;
+public:
+  Spline_evaluator() { spline=NULL; } 
+  void create(Ugrid &  gridx, Ugrid & gridy, Ugrid & gridz,int nspline) { 
+    BCtype_z bc;
+    bc.lCode=PERIODIC; bc.rCode=PERIODIC;
+    spline=create_multi_UBspline_3d_z(gridx,gridy,gridz,bc, bc, bc,nspline);
+  }
+  void set(int i, dcomplex * data) { 
+    set_multi_UBspline_3d_z(spline,i,data);
+  }
+  void val(doublevar x, doublevar y, doublevar z,dcomplex * vals) { 
+    eval_multi_UBspline_3d_z(spline,x,y,z,vals);
+  }
+  void hess(doublevar x, doublevar y, doublevar z, dcomplex * vals, 
+      dcomplex * grad, dcomplex * hess) { 
+    eval_multi_UBspline_3d_z_vgh(spline,x,y,z,vals,grad,hess);
+  }
+  ~Spline_evaluator() { 
+  }
+};
+
+#endif //USE_EINSPLINE
+
 
 /*!
 Represents a periodic set of orbitals using Ken Esler's EINSPLINE library. 
  */
-#ifdef COMPLEX_WF
-class MO_matrix_Ceinspline:public Complex_MO_matrix { 
-#else 
-class MO_matrix_einspline: public MO_matrix {
-#endif
+template <class T> class MO_matrix_einspline:public Templated_MO_matrix<T> { 
 protected:
   void init() { }
+  using Templated_MO_matrix<T>::nmo;
+  using Templated_MO_matrix<T>::orbfile;
 private:
 #ifdef USE_EINSPLINE
-#ifdef COMPLEX_WF
-  Array1 <multi_UBspline_3d_z *> spline;
-#else
-  Array1 <multi_UBspline_3d_d *> spline;
+  Array1 <Spline_evaluator<T> > spline;
 #endif
-#endif 
   Array2 <doublevar> latvec;
   Array2 <doublevar> latvecinv;
   Array1 <int> npoints;
   Array1 <doublevar> resolution;
   Array1 <doublevar> kpoint;
-#ifdef COMPLEX_WF
-  Array4 <dcomplex > modata;
-#else
-  Array4 <doublevar> modata; //indices: mo,x,y,z
-#endif
+  Array4 <T > modata;
   Array1 <int> nmo_lists;
   int ndim;
 public:
@@ -90,19 +137,204 @@ public:
     error("Need to implement MO_matrix_einspline::nMoCoeff()");
     return 0;
   }
-#ifdef COMPLEX_WF
-  virtual void updateVal(Sample_point *,int e,int listnum,Array2<dcomplex>&);
-  virtual void updateLap(Sample_point *,int e, int listnum, Array2<dcomplex>&);
-  MO_matrix_Ceinspline() { } 
-#else 
-  virtual void updateVal(Sample_point *,int e, int listnum, Array2<doublevar>&);
-  virtual void getBasisVal(Sample_point *,int e,Array1<doublevar> &) {
-    error("Don't support getBasisVal() in MO_matrix_einspline");
-  }
-  virtual void updateLap(Sample_point *,int e,int listnum,Array2<doublevar> &);
-  MO_matrix_einspline() {}
-#endif
+  virtual void updateVal(Sample_point *,int e,int listnum,Array2<T>&);
+  virtual void updateLap(Sample_point *,int e, int listnum, Array2<T>&);
+  MO_matrix_einspline() { } 
 };
+
+
+#include "qmc_io.h"
+#include "MatrixAlgebra.h"
+
+
+//----------------------------------------------------------------------
+template <class T> void MO_matrix_einspline<T>::buildLists(Array1 <Array1 <int> > & occupations) { 
+#ifdef USE_EINSPLINE
+  
+  int nsplines=occupations.GetDim(0);
+  spline.Resize(occupations.GetDim(0));
+  int ngridpts=npoints(0)*npoints(1)*npoints(2);
+  Array1 <Ugrid> grids(ndim);
+  for(int d=0; d<ndim; d++) { 
+    grids(d).start=0;
+    grids(d).end=1.0;
+    grids(d).num=npoints(d);
+  }
+  nmo_lists.Resize(nsplines);
+  for(int s=0; s< nsplines; s++) { 
+    nmo_lists(s)=occupations(s).GetDim(0);
+    spline(s).create(grids(0),grids(1), grids(2),nmo_lists(s));
+    for(int i=0; i < nmo_lists(s); i++) { 
+      spline(s).set(i,modata.v+occupations(s)(i)*ngridpts);
+    }
+  }
+
+#endif
+}
+//----------------------------------------------------------------------
+
+template <class T> void MO_matrix_einspline<T>::read(vector <string> & words, unsigned int & startpos, System * sys) { 
+#ifdef USE_EINSPLINE
+  unsigned int pos=startpos;
+  ndim=3;
+//  string orbfile;
+  sys->kpoint(kpoint);
+  if(!readvalue(words,pos=startpos,orbfile,"ORBFILE")) 
+    error("Need keyword ORBFILE..");
+  if(!readvalue(words,pos=startpos,nmo,"NMO"))
+    error("Need keyword NMO");
+  double magnify=1.0;
+  readvalue(words,pos=startpos,magnify,"MAGNIFY");
+  //Should probably just make node0 read this and send to others over MPI..
+  ifstream is(orbfile.c_str());
+  if(!is) error("Couldn't open ",orbfile);
+  string dummy;
+  is.ignore(180,'\n');
+  is >> dummy; 
+  int nmo_file;
+  is >> nmo_file;
+  is.ignore(180,'\n');
+  is.ignore(180,'\n');
+  latvec.Resize(ndim,ndim);
+  for(int i=0; i< ndim; i++) { 
+    for(int j=0; j< ndim; j++) {
+      is >> latvec(i,j);
+    }
+  }
+  latvecinv.Resize(ndim,ndim);
+  InvertMatrix(latvec,latvecinv,ndim);
+  is >> dummy;
+  resolution.Resize(ndim);
+  for(int i=0; i< ndim; i++) is >> resolution(i);
+  is >> dummy;
+  npoints.Resize(ndim);
+  for(int i=0; i< ndim; i++) is >> npoints(i);
+  is.ignore(180,'\n'); is.ignore(180,'\n');
+  modata.Resize(nmo,npoints(0),npoints(1),npoints(2));
+  int totpts=nmo*npoints(0)*npoints(1)*npoints(2);
+  for(T *p=modata.v;p!=modata.v+totpts; p++) {
+    is >> *p;
+  }
+  is.close();
+
+#endif //USE_EINSPLINE
+}
+//----------------------------------------------------------------------
+
+template <class T> int MO_matrix_einspline<T>::showinfo(ostream & os) { 
+  os << "Einspline" << endl;
+  os << "NMO " << nmo << endl;
+  os << "ORBFILE " << orbfile << endl;
+  return 1;
+
+}
+//----------------------------------------------------------------------
+
+template <class T>int MO_matrix_einspline<T>::writeinput(string & indent, ostream &os ) { 
+  os << indent << "EINSPLINE_MO" << endl;
+  os<< indent << "NMO " << nmo << endl;
+  os<< indent << "ORBFILE " << orbfile << endl;
+  return 1;
+}
+//----------------------------------------------------------------------
+
+template <class T> void MO_matrix_einspline<T>::updateVal(Sample_point * sample,
+    int e, int listnum, Array2 <T> & newvals) { 
+#ifdef USE_EINSPLINE
+  Array1 <doublevar> pos(ndim),u(ndim);
+  sample->getElectronPos(e,pos);
+  u=0;
+  for(int d=0; d< ndim; d++) { 
+    for(int d1=0; d1 < ndim; d1++) { 
+      u(d)+=pos(d1)*latvecinv(d,d1);
+    }
+    u(d)-=floor(u(d));
+  }
+ 
+  Array1 <T> vals(nmo_lists(listnum));
+  spline(listnum).val(u(0),u(1),u(2),vals.v);
+  doublevar kr=0;
+  for(int d=0; d< ndim; d++) { 
+    kr+=kpoint(d)*u(d);
+  }
+  T kfac=eval_kpoint_fac<T>(kr);
+  
+  for(int i=0; i< nmo_lists(listnum); i++) 
+    vals(i)*=kfac;
+  
+  for(int i=0; i< nmo_lists(listnum); i++) { 
+    newvals(i,0)=vals(i);
+  }
+#endif
+}
+//----------------------------------------------------------------------
+
+template <class T> void MO_matrix_einspline<T>::updateLap(Sample_point * sample,
+    int e,int listnum,Array2 <T> & newvals) { 
+#ifdef USE_EINSPLINE
+  Array1 <doublevar> pos(ndim),u(ndim);
+  sample->getElectronPos(e,pos);
+  u=0;
+  for(int d=0; d< ndim; d++) { 
+    for(int d1=0; d1 < ndim; d1++) { 
+      u(d)+=pos(d1)*latvecinv(d,d1);
+    }
+    u(d)-=floor(u(d));
+  }
+  Array1 <T> vals(nmo_lists(listnum));
+  Array2 <T> grad(nmo_lists(listnum),ndim);
+  Array3 <T> hess(nmo_lists(listnum),ndim,ndim);
+  spline(listnum).hess(u(0),u(1),u(2),vals.v,grad.v,hess.v);
+
+  doublevar kr=0;
+  for(int d=0; d< ndim; d++) { 
+    kr+=kpoint(d)*u(d);
+  }
+  Array1 <T> tmp_grad(ndim);
+  Array2 <T> tmp_hess(ndim,ndim);
+  for(int i=0; i< nmo_lists(listnum); i++) { 
+    for(int d1=0; d1 < ndim; d1++) {
+      tmp_grad(d1)=grad(i,d1);
+      for(int d2=0; d2 < ndim; d2++) 
+        tmp_hess(d1,d2)=hess(i,d1,d2);
+    }
+    eval_kpoint_deriv(kpoint,kr,vals(i),tmp_grad,tmp_hess);
+    for(int d1=0; d1 < ndim; d1++) {
+      grad(i,d1)=tmp_grad(d1);
+      for(int d2=0; d2 < ndim; d2++) 
+        hess(i,d1,d2)=tmp_hess(d1,d2);
+    }
+  }
+  for(int i=0; i< nmo_lists(listnum); i++) { 
+    newvals(i,0)=vals(i);
+  }
+  for(int i=0; i< nmo_lists(listnum); i++) { 
+    for(int d=0; d< ndim; d++) { 
+      newvals(i,d+1)=0.0;
+      for(int d1=0; d1 < ndim; d1++) { 
+        newvals(i,d+1)+=latvecinv(d1,d)*grad(i,d1);
+      }
+    }
+  }
+
+  for(int i=0; i< nmo_lists(listnum); i++) { 
+    T lap=0.0;
+    for(int d1=0; d1< ndim; d1++) { 
+      for(int d2=0; d2 < ndim; d2++) { 
+        for(int d3=0; d3 < ndim; d3++) { 
+          lap+=hess(i,d2,d3)*latvecinv(d2,d1)*latvecinv(d3,d1);
+        }
+      }
+    }
+    newvals(i,ndim+1)=lap;
+  }
+
+#endif
+}
+//----------------------------------------------------------------------
+
+
+
 
 
 #endif //MO_MATRIX_EINSPLINE_H_INCLUDED

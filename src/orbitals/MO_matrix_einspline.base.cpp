@@ -1,3 +1,4 @@
+#if 0 
 /*
  
 Copyright (C) 2011 Lucas K. Wagner
@@ -271,3 +272,4 @@ void EINSPLINE_NAME::updateLap(Sample_point * sample,int e,int listnum,Array2 <d
 
 
 #undef EINSPLINE_NAME
+#endif
