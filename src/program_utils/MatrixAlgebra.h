@@ -37,7 +37,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 template <class T> struct log_value { 
   T logval;
   int sign;
-  T val() { return sign*exp(logval); } 
+  T val() { return doublevar(sign)*exp(logval); }  //doublevar() a bit ugly, but it works ok
   log_value() { logval=0; sign=1; } 
   log_value(T t) {  } 
   log_value<T> & operator *=(const log_value<T> & right) {
@@ -56,7 +56,7 @@ template<> inline log_value<doublevar>::log_value(doublevar t) {
 
 template<> inline log_value<dcomplex>::log_value(dcomplex t) { 
   sign=1;
-  logval=log(t);
+  logval=dcomplex(log(abs(t)),arg(t));
 }
 typedef log_value<doublevar> log_real_value;
 typedef log_value<dcomplex> log_complex_value;
@@ -71,7 +71,7 @@ template <class T> inline log_value<T> operator*(T t, log_value<T> u) {
 
 template <class T> inline log_value<T>  operator*(log_value<T> u,double t) { return t*u; }
 template <class T> inline log_value<T> operator*(log_value<T> t, log_value<T> u) { 
-  log_real_value v;
+  log_value<T> v;
   v.logval=t.logval+u.logval;
   v.sign=t.sign*u.sign;
   return v;
@@ -83,7 +83,7 @@ template <class T> inline log_value<T> sum(const Array1 <log_value<T> > & vec) {
   int n=vec.GetDim(0);
   int piv=0;
   for(int i=0; i< n; i++) 
-    s+=vec(i).sign*vec(piv).sign*exp(vec(i).logval-vec(piv).logval);
+    s+=T(vec(i).sign*vec(piv).sign)*exp(vec(i).logval-vec(piv).logval);
   return s*vec(piv);
 }
 
@@ -106,8 +106,24 @@ doublevar InverseUpdateRow(Array2 <doublevar> & a1, const Array2 <doublevar> & a
                            const int lRow, const int n);
 doublevar InverseUpdateRow(Array2 <doublevar> & a1, const Array1 <doublevar> & newRow,
                            const int lRow, const int n);
-doublevar InverseGetNewRatio(const Array2 <doublevar> & a1, const Array1 <doublevar> & newCol,
-                             const int lCol, const int n);
+//doublevar InverseGetNewRatio(const Array2 <doublevar> & a1, const Array1 <doublevar> & newCol,
+//                             const int lCol, const int n);
+//Get the new ratio without updating the inverse..
+
+template <class T> T InverseGetNewRatio(const Array2 <T> & a1, 
+     const Array1 <T> & newCol,
+                             const int lCol, const int n) { 
+  T f=T(0.0);  
+  for(int i=0;i<n;++i) {
+    f += a1(lCol,i)*newCol[i];
+  }
+  f =1.0/f;
+  
+  return f;
+   
+}
+
+
 doublevar InverseGetNewRatioRow(const Array2 <doublevar> & a1, const Array1 <doublevar> & newRow,
                              const int lRow, const int n);
 doublevar InverseUpdateColumn(Array2 <doublevar> & a1, const Array2 <doublevar> & a,

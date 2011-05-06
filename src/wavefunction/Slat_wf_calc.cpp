@@ -1,3 +1,4 @@
+#if 0
 /*
  
 Copyright (C) 2007 Lucas K. Wagner
@@ -1076,3 +1077,4 @@ void Slat_wf::updateLap(Slat_wf_data * dataptr,
 }
 
 //-------------------------------------------------------------------------
+#endif

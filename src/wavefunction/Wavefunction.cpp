@@ -167,8 +167,8 @@ void Wf_return::setVals(Array2 <dcomplex> & vals,
 */
 
 
-void Wf_return::setVals(Array2 <dcomplex> & vals, 
-                        Array1 <doublevar> &  p) {
+void Wf_return::setVals(Array2 <dcomplex> & vals ,
+                       Array1 <doublevar> &  p) {
 
   // here we extract amplitude and phase, and their gradients and laplacians,
   // from the complex value and its gradient and derivative
@@ -186,9 +186,9 @@ void Wf_return::setVals(Array2 <dcomplex> & vals,
     if (ntype>=4) {
       for (int i=1; i<4; i++) {
         amp(w,i)=vals(w,i).real();
-	phase(w,i)=vals(w,i).imag();
-	sum_ii+=phase(w,i)*phase(w,i);
-	sum_ri+=amp(w,i)*phase(w,i);
+        phase(w,i)=vals(w,i).imag();
+        sum_ii+=phase(w,i)*phase(w,i);
+        sum_ri+=amp(w,i)*phase(w,i);
       }
     }
 

@@ -24,8 +24,10 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Qmc_std.h"
 #include "Wavefunction_data.h"
 #include "MO_matrix.h"
-#include "Slat_wf.h"
-#include "Cslat_wf.h"
+//#include "Slat_wf.h"
+//#include "Cslat_wf.h"
+template <class T> class Slat_wf;
+class Cslat_wf;
 /*!
 \brief
 A Slater determinant or several determinants.  Also can use the same
@@ -122,7 +124,8 @@ public:
 
 private:
   void init_mo();
-  friend class Slat_wf;
+  friend class Slat_wf<doublevar>;
+  friend class Slat_wf<dcomplex>;
   friend class Cslat_wf;
   friend class FSlat_wf;
 
@@ -142,8 +145,6 @@ private:
 				       const Array1 <int> & order);
   //!< Helper function: sum cost of updating determinants using iterative algorithm in O(N) units
 
-  //vector <Wavefunction *> wfObserver;
-  //!< The children of this _data
 
   Array3 < Array1 <int> > occupation;
   //!< The place in totoccupation for the molecular orbitals for (fn, det, spin) Used to look up the right MO from MO_matrix.
@@ -184,8 +185,6 @@ private:
   int use_complexmo;
   int use_iterative_updates; //!<Whether to use "fast"/low-memory Nukala-Kent iterative updates for multideterminants
   Complex_MO_matrix * cmolecorb;
-  
-
 
 };
 
