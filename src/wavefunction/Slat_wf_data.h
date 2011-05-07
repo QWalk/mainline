@@ -27,7 +27,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 //#include "Slat_wf.h"
 //#include "Cslat_wf.h"
 template <class T> class Slat_wf;
-class Cslat_wf;
+//class Cslat_wf;
 /*!
 \brief
 A Slater determinant or several determinants.  Also can use the same

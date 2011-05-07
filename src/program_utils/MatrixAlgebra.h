@@ -191,7 +191,7 @@ int ludcmp(Array2 <dcomplex > & a, const int n,
 void lubksb(Array2 < dcomplex > & a, int n, 
             Array1 <int> & indx, Array1 <dcomplex > & b);
 
-dcomplex
+log_value <dcomplex>
 TransposeInverseMatrix(const Array2 <dcomplex > & a, 
                        Array2 <dcomplex> & a1, 
                        const int n);

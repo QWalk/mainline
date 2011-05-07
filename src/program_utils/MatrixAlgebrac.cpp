@@ -1245,7 +1245,7 @@ void lubksb(Array2 < complex <doublevar> > & a, int n,
 
 //----------------------------------------------------------------------
 
-complex <doublevar> 
+log_value<dcomplex>
 TransposeInverseMatrix(const Array2 < complex <doublevar> > & a, 
                        Array2 < complex <doublevar> > & a1, 
                        const int n)
@@ -1276,7 +1276,7 @@ TransposeInverseMatrix(const Array2 < complex <doublevar> > & a,
   //cout << "ludcmp" << endl;
   //if the matrix is singular, the determinant is zero.
   if(ludcmp(temp,n,indx,d)==0)
-    return 0;
+    return dcomplex(0.0,0.0);
 
   //cout << "lubksb" << endl;
 
@@ -1289,9 +1289,9 @@ TransposeInverseMatrix(const Array2 < complex <doublevar> > & a,
   }
 
 
-  complex <doublevar> det(d,0);
-  for(int j=0;j<n;++j)
-  {
+  //complex <doublevar> det(d,0);
+  log_value<dcomplex> det=dcomplex(d,0);
+  for(int j=0;j<n;++j) {
     det *= temp(j,j);
   }
   return det;
@@ -1304,7 +1304,7 @@ TransposeInverseMatrix(const Array2 < complex <doublevar> > & a,
 // a1= old inverse
 // newCol = new column lCol in the new matrix a_new
 // returns Det(a_old)/Det(a_new)
-complex <doublevar> 
+dcomplex
 InverseUpdateColumn(Array2 <complex <doublevar> > & a1, 
                     const Array1 <complex <doublevar> > & newCol,
                               const int lCol, const int n)

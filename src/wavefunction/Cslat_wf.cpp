@@ -520,7 +520,7 @@ void Cslat_wf::calcLap(Sample_point * sample)
         }
         
         detVal(f,det,s)=
-          TransposeInverseMatrix(modet,inverse(f,det,s), nelectrons(s));
+          TransposeInverseMatrix(modet,inverse(f,det,s), nelectrons(s)).val();
 
       }
     }

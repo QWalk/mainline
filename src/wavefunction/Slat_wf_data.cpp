@@ -23,7 +23,6 @@
 #include "Slat_wf_data.h"
 #include "Wavefunction_data.h"
 #include "Slat_wf.h"
-#include "Cslat_wf.h"
 #include "FSlat_wf.h"
 #include <algorithm>
 #include "MatrixAlgebra.h"
