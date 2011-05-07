@@ -6,7 +6,6 @@
 #include "Backflow_wf_data.h"
 #include "Wavefunction_data.h"
 #include "Backflow_wf.h"
-#include "Cslat_wf.h"
 #include <algorithm>
 
 
