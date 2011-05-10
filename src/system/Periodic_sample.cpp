@@ -137,6 +137,10 @@ void Periodic_sample::updateEEDist() {
   for(int e=0; e< nelectrons; e++) {
     if(elecDistStale(e)==1) {
 
+
+
+      
+
       elecDistStale(e)=0;
       for(int j=0; j<e; j++) {
         pointdist(j, e,1)=0.0;

@@ -211,7 +211,7 @@ template <class T> void MO_matrix_cutoff<T>::init() {
   }
 
   Array3 <int> coeffmat;
-  Array1 <doublevar> coeff;
+  Array1 <T> coeff;
   
   readorb(ORB,centers, nmo, maxbasis,kpoint, coeffmat, coeff);
   string in;
