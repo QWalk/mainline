@@ -120,7 +120,7 @@ struct Wf_return {
       }
       if(nst > 4) { 
         doublevar sum_ii=0,sum_ri=0;
-        for(int s=1; s< nst; s++) { 
+        for(int s=1; s< 4; s++) { 
            sum_ii+=phase(f,s)*phase(f,s);
            sum_ri+=amp(f,s)*phase(f,s);
         }
