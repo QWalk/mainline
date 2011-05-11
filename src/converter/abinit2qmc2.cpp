@@ -325,6 +325,8 @@ void Abinit_converter::read_wfk(string filename, vector <double> & selected_kpt)
     }
   }
   complex_wavefunction=true;
+  if(fabs(kpoint[0])+fabs(kpoint[1])+fabs(kpoint[2]) < 1e-4) 
+    complex_wavefunction=false;
   assign_occupations(occupation,nsppol==2);
   cout << "nup " << slater.nup << " ndown " << slater.ndown << endl;
   
@@ -556,15 +558,19 @@ void Abinit_converter::write_orbitals(string  filename) {
         evaluate_orbital(r,orbitals);
         complex<double> * ptr=allorbitals+kk+jj*npts[2]+ii*npts[2]*npts[1];
         vector< complex <double> >::iterator i=orbitals.begin(),orbn=orbnorm.begin();
+        complex <double> mult=1.0;
         for(; i!= orbitals.end(); i++,orbn++) { 
           *ptr=*i;
           *orbn+=complex<double>(i->real()*i->real(),i->imag()*i->imag());
           ptr+=npts[1]*npts[2]*npts[0];
-          if(ii==3 && jj==5 && kk==7) 
-            cout << "orbval " << setw(18) << i->real() << setw(18) << i->imag()  
-              << setw(18) << atan2(i->imag(),i->real())/pi << endl;
+          //if(ii==3 && jj==5) 
+          //  cout << "orbval " << setw(18) << i->real() << setw(18) << i->imag()  
+          //    << setw(18) << atan2(i->imag(),i->real())/pi << endl;
+          mult*=*i;
 
         }
+        //cout << "product " << mult << endl;
+        
         
         //cout << r[0] <<  " " << r[1] << " " << r[2] << " "
         //  << orbitals[15] << endl;
