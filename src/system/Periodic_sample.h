@@ -174,7 +174,8 @@ private:
   Array1 <int> ionDistStale;
   Array3 <doublevar> pointdist;  //this is an upper triangular matrix;
   //the lower is currently wasted
-  
+  Array2 <doublevar> lattice_basis; //the basis we search over for interparticle distances
+
   doublevar overall_sign;
   doublevar overall_phase;
   // false for complex-valued wavefunctions, i.e., for non-integer k-points

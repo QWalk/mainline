@@ -287,7 +287,7 @@ void Abinit_converter::read_wfk(string filename, vector <double> & selected_kpt)
     for(int i=0; i< 3; i++) { 
       tmpat.pos[i]=0.0;
       for(int j=0; j< 3; j++) {
-        tmpat.pos[i]+=latvec[i][j]*xred[at*3+i];
+        tmpat.pos[i]+=latvec[i][j]*xred[at*3+j];
       }
     }
     tmpat.print_atom(cout);
@@ -325,8 +325,8 @@ void Abinit_converter::read_wfk(string filename, vector <double> & selected_kpt)
     }
   }
   complex_wavefunction=true;
-  if(fabs(kpoint[0])+fabs(kpoint[1])+fabs(kpoint[2]) < 1e-4) 
-    complex_wavefunction=false;
+  //if(fabs(kpoint[0])+fabs(kpoint[1])+fabs(kpoint[2]) < 1e-4) 
+   // complex_wavefunction=false;
   assign_occupations(occupation,nsppol==2);
   cout << "nup " << slater.nup << " ndown " << slater.ndown << endl;
   

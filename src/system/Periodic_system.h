@@ -160,6 +160,7 @@ private:
 
   Array2 <doublevar> latVec;
   //!< lattice vectors, first index is a,b,c, second is x,y,z
+  Array2 <doublevar> inverseLatVec; //Inverse of the lattice vector matrix
   Array1 <doublevar> kpt; //!< the k-point we're simulating at.    
   Array2 <doublevar> recipLatVec; //!<reciprocal lattice vectors
   Array2 <doublevar> prim_recip_vec; //!< lattice vectors of the reciprocal primitive cell
