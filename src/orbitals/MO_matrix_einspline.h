@@ -116,7 +116,7 @@ private:
   Array2 <doublevar> latvecinv;
   Array1 <int> npoints;
   Array1 <doublevar> resolution;
-  Array1 <doublevar> kpoint;
+  Array2 <doublevar> kpoint; //k-point for each orbital
   Array4 <T > modata;
   Array1 <int> nmo_lists;
   int ndim;
@@ -178,7 +178,7 @@ template <class T> void MO_matrix_einspline<T>::read(vector <string> & words, un
   unsigned int pos=startpos;
   ndim=3;
 //  string orbfile;
-  sys->kpoint(kpoint);
+  //sys->kpoint(kpoint);
   if(!readvalue(words,pos=startpos,orbfile,"ORBFILE")) 
     error("Need keyword ORBFILE..");
   if(!readvalue(words,pos=startpos,nmo,"NMO"))
@@ -189,20 +189,31 @@ template <class T> void MO_matrix_einspline<T>::read(vector <string> & words, un
   ifstream is(orbfile.c_str());
   if(!is) error("Couldn't open ",orbfile);
   string dummy;
-  is.ignore(180,'\n');
-  is >> dummy; 
+  is.ignore(180,'\n'); //header
+  is >> dummy;  //nmo
   int nmo_file;
   is >> nmo_file;
+  is.ignore(180,'\n'); //clear nmo line
+  is.ignore(180,'\n'); //K-point line
+  kpoint.Resize(nmo_file,ndim);
+  for(int i=0; i< nmo_file; i++) { 
+    for(int d=0; d< ndim; d++) 
+      is >> kpoint(i,d);
+  }
   is.ignore(180,'\n');
+
   is.ignore(180,'\n');
   latvec.Resize(ndim,ndim);
   for(int i=0; i< ndim; i++) { 
     for(int j=0; j< ndim; j++) {
       is >> latvec(i,j);
+      cout << latvec(i,j) << " ";
     }
   }
   latvecinv.Resize(ndim,ndim);
+  cout << "inverting " << endl;
   InvertMatrix(latvec,latvecinv,ndim);
+  cout << "done " << endl;
   is >> dummy;
   resolution.Resize(ndim);
   for(int i=0; i< ndim; i++) is >> resolution(i);
@@ -253,14 +264,16 @@ template <class T> void MO_matrix_einspline<T>::updateVal(Sample_point * sample,
  
   Array1 <T> vals(nmo_lists(listnum));
   spline(listnum).val(u(0),u(1),u(2),vals.v);
-  doublevar kr=0;
-  for(int d=0; d< ndim; d++) { 
-    kr+=kpoint(d)*u(d);
-  }
-  T kfac=eval_kpoint_fac<T>(kr);
   
-  for(int i=0; i< nmo_lists(listnum); i++) 
+  for(int i=0; i< nmo_lists(listnum); i++)  { 
+    doublevar kr=0;
+    for(int d=0; d< ndim; d++) { 
+      kr+=kpoint(i,d)*u(d);
+    }
+    T kfac=eval_kpoint_fac<T>(kr);
+
     vals(i)*=kfac;
+  }
   
   for(int i=0; i< nmo_lists(listnum); i++) { 
     newvals(i,0)=vals(i);
@@ -286,19 +299,22 @@ template <class T> void MO_matrix_einspline<T>::updateLap(Sample_point * sample,
   Array3 <T> hess(nmo_lists(listnum),ndim,ndim);
   spline(listnum).hess(u(0),u(1),u(2),vals.v,grad.v,hess.v);
 
-  doublevar kr=0;
-  for(int d=0; d< ndim; d++) { 
-    kr+=kpoint(d)*u(d);
-  }
   Array1 <T> tmp_grad(ndim);
   Array2 <T> tmp_hess(ndim,ndim);
+  Array1 <doublevar> tmp_kpt(ndim);
   for(int i=0; i< nmo_lists(listnum); i++) { 
+    doublevar kr=0;
+    for(int d=0; d< ndim; d++) { 
+      kr+=kpoint(i,d)*u(d);
+      tmp_kpt(d)=kpoint(i,d);
+    }
+    
     for(int d1=0; d1 < ndim; d1++) {
       tmp_grad(d1)=grad(i,d1);
       for(int d2=0; d2 < ndim; d2++) 
         tmp_hess(d1,d2)=hess(i,d1,d2);
     }
-    eval_kpoint_deriv(kpoint,kr,vals(i),tmp_grad,tmp_hess);
+    eval_kpoint_deriv(tmp_kpt,kr,vals(i),tmp_grad,tmp_hess);
     for(int d1=0; d1 < ndim; d1++) {
       grad(i,d1)=tmp_grad(d1);
       for(int d2=0; d2 < ndim; d2++) 

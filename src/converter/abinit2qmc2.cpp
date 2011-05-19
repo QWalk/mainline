@@ -35,13 +35,146 @@ using namespace std;
 
 
 //--------------------------------------------------------------
+/*!
+ * Return a list of k-points with which we can construct a wave function for the supercell given.  
+ * We're not able to do this for all supercell matrices, so we error out if this
+ * algorithm doesn't work.
+ * */
+void supercell_kpoints(const vector <vector <double> > & supercell, 
+    vector <vector <double> > & kpoints) { 
+  assert(supercell.size()==3);
+  assert(supercell[0].size()==3);
+  kpoints.clear();
+  vector <vector <double> >  inversesupercell(3);
+  for(int d=0; d< 3; d++) inversesupercell.resize(3);
+  matrix_inverse(supercell,inversesupercell);
+  vector <double> kpoint(3);
+
+  int nkpts=1;
+  for(int d=0; d< 3; d++) { 
+    for(int d1=0; d1 < 3; d1++) {
+      cout << inversesupercell[d][d1] << " ";
+      nkpts*=max(fabs(supercell[d][d1]),1.0);
+    }
+    cout << endl;
+  }
+
+  int nsearch=10;
+  for(int ii=-nsearch; ii < nsearch; ii++) 
+  for(int jj=-nsearch; jj < nsearch; jj++) 
+  for(int kk=-nsearch; kk < nsearch; kk++) { 
+    for(int d=0; d< 3; d++) {
+      kpoint[d]=ii*inversesupercell[0][d]
+        +jj*inversesupercell[1][d]
+        +kk*inversesupercell[2][d];
+    }
+    if(kpoint[0] >= 0 && kpoint[0] < 1  &&
+        kpoint[1] >= 0 && kpoint[1] < 1 &&
+        kpoint[2] >= 0 && kpoint[2] < 1) { 
+      cout << "kpoint " << kpoint[0] << " " << kpoint[1] << " " << kpoint[2] 
+        << endl;
+      kpoints.push_back(kpoint);
+    }
+  }
+
+  if(nkpts!=kpoints.size()) { 
+    cout << "Did not find a number of kpoints equal to the number required by the supercell." << endl;
+    cout << "nreq " << nkpts << " nfound " << kpoints.size() << endl;
+    exit(1);
+  }
+
+}
+//----------------------------------------------------------------------
+void extend_supercell(const vector <vector <double> > & supercell,
+    const vector <Atom> & primatoms, const vector < vector <double> > & primlat,
+    vector <Atom> & superatoms, vector <vector <double> > & superlat) { 
+ assert(supercell.size()==3);
+ assert(supercell[0].size()==3);
+ superlat=primlat;
+ for(int d=0; d< 3; d++) { 
+   for(int d1=0; d1 < 3; d1++) {
+     superlat[d][d1]=0.0;
+     for(int d2=0; d2 < 3; d2++) { 
+       superlat[d][d1]+=supercell[d][d2]*primlat[d2][d1];
+     }
+     cout << superlat[d][d1] << " ";
+   }
+   cout << endl;
+ }
+
+  vector <vector <double> >  inversesuperlat(3);
+  for(int d=0; d< 3; d++) inversesuperlat.resize(3);
+  matrix_inverse(superlat,inversesuperlat);
+
+
+ vector < vector <double> > deltas;
+
+ int nsearch=10;
+ for(int ii=-nsearch; ii< nsearch; ii++) 
+ for(int jj=-nsearch; jj< nsearch; jj++)
+ for(int kk=-nsearch; kk< nsearch; kk++) { 
+   vector<double> delta(3);
+   for(int d=0; d< 3; d++) { 
+     delta[d]=ii*primlat[0][d]+jj*primlat[1][d]+kk*primlat[2][d];
+   }
+   vector <double> u(3);
+   for(int d=0; d< 3; d++) u[d]=0.0;
+   for(int d=0; d< 3; d++) {
+     for(int d1=0; d1 < 3; d1++) { 
+       u[d]+=inversesuperlat[d1][d]*delta[d];
+     }
+   }
+   if(u[0]>=0 && u[0] < 1 && u[1]>=0 && u[1]<1 && u[2]>=0 && u[2]<1) {
+     deltas.push_back(delta);
+     cout << "delta " << delta[0] << "  " << delta[1] << " " << delta[2] << endl;
+   }
+ }
+ superatoms.clear();
+
+ for(vector<Atom>::const_iterator i=primatoms.begin(); i!=primatoms.end(); i++) { 
+   for(vector <vector <double> >::iterator d=deltas.begin(); d!=deltas.end(); d++) { 
+     Atom tmp_at=*i;
+     for(int d1=0; d1< 3; d1++) { 
+       tmp_at.pos[d1]+=(*d)[d1];
+     }
+     superatoms.push_back(tmp_at);
+   }
+ }
+
+}
+
+
+//----------------------------------------------------------------------
+
+class WF_kpoint  { //all the information necessary to calculate the periodic part of the wave function at a given k-point.
+private:
+  vector <vector <double> > gvec;
+  vector <vector <complex <double> > > coeff;
+  //vector <double> kpoint;
+  vector <double> occupation;
+  vector <vector <double> > latvec;
+public:
+  int norbitals() { 
+    return coeff.size();
+  }
+  int npw() { 
+    return gvec.size();
+  }
+  void occ(vector <double> & occ_) { 
+    occ_=occupation;
+  }
+  void read_wf_from_wfk(FILE * wffile,vector <vector <double> > & latvec);
+  void evaluate_orbital(vector <double> & r, vector <complex <double> > & orbitals);
+
+};
 
 
 
+
+//----------------------------------------------------------------------
 class Abinit_converter { 
   public:
-    //void readfile(string filename);
-    void readabinitout(string filename,vector<double> & selected_kpt);
+    void readabinitout(string filename,vector <vector<double> > & selected_kpt);
     void add_psp(string filename);
 
     void write_files(string basename);
@@ -49,33 +182,40 @@ class Abinit_converter {
     void write_sys(string filename);
     void write_slater(string filename);
   private:
-    void read_wfk(string filename, vector <double> & selected_kpt);
-    void read_wf_from_wfk(FILE * wffile,vector<double> & occupation);
+    void read_wfk(string filename, vector <vector <double> > & selected_kpt);
+    //void read_wf_from_wfk(FILE * wffile,vector<double> & occupation);
     void skip_wf(FILE * wffile);
     void assign_occupations(vector<double> &occupations,bool spin_polarized); 
     void prune_coefficients();
-    void evaluate_orbital(vector<double> & r, vector <complex <double> > & orbitals);
+    //void evaluate_orbital(vector<double> & r, vector <complex <double> > & orbitals);
     void reassign_z(); 
+  
     //Information from the conversion.
     Slat_wf_writer slater;
     Jastrow_wf_writer jast;
     vector <Atom> atoms;
     vector <vector<double> > latvec;
     vector <Spline_pseudo_writer> pspspline; //one for each atom type
+/*
     vector < vector <double> > gvec;
     vector < vector <complex < double> > > coeff;
-    vector<double> kpoint;
+    vector <vector <double> > kpoint_orbital; //k-point of a given orbital
+    vector <double> occupation; 
+*/    
+    vector <WF_kpoint> wavefunctions;
+    vector <vector <double> > kpoint_orbital;
+    vector<double> kpoint; //overall k-point
     bool complex_wavefunction;
     double grid_resolution;
 };
 //--------------------------------------------------------------
 
 int main(int argc, char ** argv) { 
-
   string outbase="qwalk",abinit_out="abinit.out";
 
-  vector<double> selected_kpt(3);
-  selected_kpt[0]=selected_kpt[1]=selected_kpt[2]=0.0;
+  vector < vector<double> > selected_kpt(1);
+  selected_kpt[0].resize(3);
+  selected_kpt[0][0]=selected_kpt[0][1]=selected_kpt[0][2]=0.0;
 
   for(int i=1; i< argc; i++) { 
     if(!strcmp(argv[i],"-o") && i<argc-1)
@@ -83,9 +223,9 @@ int main(int argc, char ** argv) {
     else if(!strcmp(argv[i],"-ao") && i < argc-1) 
       abinit_out=argv[++i];
     else if(!strcmp(argv[i],"-kpoint") && i < argc-3) { 
-      selected_kpt[0]=atof(argv[++i]);
-      selected_kpt[1]=atof(argv[++i]);
-      selected_kpt[2]=atof(argv[++i]);
+      selected_kpt[0][0]=atof(argv[++i]);
+      selected_kpt[0][1]=atof(argv[++i]);
+      selected_kpt[0][2]=atof(argv[++i]);
     }
     else { 
       cout << "Error parsing command line " << endl;
@@ -102,7 +242,7 @@ int main(int argc, char ** argv) {
 //--------------------------------------------------------------
 
 
-void Abinit_converter::readabinitout(string  filename,vector<double> & selected_kpt) { 
+void Abinit_converter::readabinitout(string  filename,vector <vector<double> > & selected_kpt) { 
   ifstream is(filename.c_str());
   if(!is) { 
     cout << "couldn't open " << filename << endl;
@@ -111,8 +251,8 @@ void Abinit_converter::readabinitout(string  filename,vector<double> & selected_
   string line;
   vector<string> words;
   string sep=" ";
-  vector <int> typat;
-  vector<double> znucl;
+ // vector <int> typat;
+ // vector<double> znucl;
   string outputroot;
 
   while(getline(is,line)) { 
@@ -164,7 +304,8 @@ void clear_header(FILE * file) {
   fread(buff,sizeof(char),4,file);
 }
 //----------------------------------------------------------------------
-void Abinit_converter::read_wfk(string filename, vector <double> & selected_kpt) { 
+void Abinit_converter::read_wfk(string filename, 
+    vector <vector <double> >  & selected_kpts) { 
   char codvsn[6];
   int headform,fform,bantot,date,intxc,ixc,natom,ngfft[3],nkpt,npsp,nspden;
   int nspinor,nsppol,nsym,ntypat,occopt,pertcase,usepaw;
@@ -295,40 +436,20 @@ void Abinit_converter::read_wfk(string filename, vector <double> & selected_kpt)
   }
   cout << "K-points " << endl;
   kpoint.resize(3);
-  if(nsppol==2)  slater.calctype="UHF";
-  else  slater.calctype="RHF";
-
-  int selected_kpt_number=0;
-  vector <double> occupation;
-  for(int isppol=0; isppol<nsppol; isppol++) { 
+  wavefunctions.resize(nsppol*nkpt);
+  for(int isppol=0; isppol < nsppol; isppol++) { 
+    vector <double> kpoint_tmp(3);
     for(int k=0; k< nkpt; k++) { 
-      bool is_the_one=true;
-      for(int i=0; i<3; i++) { 
-        cout << kpt[k*3+i] << " ";
-        if(fabs(kpt[k*3+i]-selected_kpt[i])>1e-3) 
-          is_the_one=false;
-      }
-      if(is_the_one) { 
-        selected_kpt_number=k;
-        cout << " <----printing this one \n";
-        for(int i=0; i< 3; i++) kpoint[i]=2*kpt[k*3+i];
-        vector <double> occ_tmp;
-        if(isppol==1) 
-          slater.spin_dwn_start=coeff.size();
-        read_wf_from_wfk(wffile,occ_tmp);
-        occupation.insert(occupation.end(),occ_tmp.begin(),occ_tmp.end());
-      }
-      else {
-        skip_wf(wffile);
-        cout << endl;
-      }
+      for(int i=0; i< 3; i++) kpoint_tmp[i]=2*kpt[k*3+i];
+      kpoint_orbital.push_back(kpoint_tmp);
+      wavefunctions[isppol*nkpt+k].read_wf_from_wfk(wffile,latvec);
     }
   }
+  
   complex_wavefunction=true;
-  //if(fabs(kpoint[0])+fabs(kpoint[1])+fabs(kpoint[2]) < 1e-4) 
-   // complex_wavefunction=false;
-  assign_occupations(occupation,nsppol==2);
-  cout << "nup " << slater.nup << " ndown " << slater.ndown << endl;
+
+  //assign_occupations(occupation,nsppol==2);
+  //cout << "nup " << slater.nup << " ndown " << slater.ndown << endl;
   
 
   delete [] istwfk,nband,npwarr,so_psp,symafm,symrel,typat;
@@ -353,73 +474,6 @@ void Abinit_converter::skip_wf(FILE * wffile) {
 }
 //----------------------------------------------------------------------
 
-void Abinit_converter::read_wf_from_wfk(FILE * wffile,vector<double> & occupation) { 
-  vector <vector <double> > gprim;
-  matrix_inverse(latvec,gprim);
-  
-  clear_header(wffile);
-  int npw=read_int(wffile);
-  int nspinor=read_int(wffile);
-  int nband=read_int(wffile);
-  clear_header(wffile);
-  //cout << "npw " << npw << " nspinor " << nspinor << " nband " << nband << endl;
-  if(gvec.size() > 0 && gvec.size()!=npw) { 
-    cout << "Something wrong--number of g-vectors is changing" << endl;
-    exit(1);
-  }
-  gvec.resize(npw);
-  clear_header(wffile);
-  //these are the reduced g-vectors.  They can be transformed by multiplying 
-  //by gprim, which is the matrix inverse of rprimd obtained above.
-  int * tmpgvecs=new int[3*npw];
-  uread(tmpgvecs,3*npw,wffile);
-  for(vector<vector <double> >::iterator g=gvec.begin(); g!=gvec.end(); g++) g->resize(3);
-  for(int g=0; g< npw; g++) { 
-    for(int i=0; i< 3; i++) { 
-      gvec[g][i]=0.0;
-      for(int j=0; j< 3; j++) { 
-        gvec[g][i]+=2*pi*gprim[j][i]*tmpgvecs[g*3+j];
-      }
-    }
-  }
-  delete [] tmpgvecs;
-  //cout << "First few g-vectors : \n";
-  //for(int g=0; g< 10; g++) { 
-  //  cout << gvec[g][0] << " " << gvec[g][1] << " " << gvec[g][2] << endl;
-  //}
-  clear_header(wffile);
-//coeff.resize(nband);
-
-  double *eigen=new double[nband],*occ=new double[nband];
-  clear_header(wffile);
-  uread(eigen,nband,wffile);
-  uread(occ,nband,wffile);
-  clear_header(wffile);
-  //cout << "occupations " << endl;
-  for(int i=0; i< nband; i++) { 
-  //  cout << occ[i] << " ";
-    occupation.push_back(occ[i]);
-  }
-  //cout << endl;
-  delete[] eigen,occ;
-
-  double * tmpcoeff=new double[2*npw*nspinor];
-  vector <complex <double> > tmpvec(npw);
-  
-  assert(nspinor==1);
-  for(int i=0; i< nband; i++) { 
-    clear_header(wffile);
-    uread(tmpcoeff,2*npw*nspinor,wffile);
-    for(int ipw=0; ipw < npw; ipw++) { 
-      tmpvec[ipw]=complex<double>(tmpcoeff[ipw*2],tmpcoeff[ipw*2+1]);
-    }
-    coeff.push_back(tmpvec);
-    clear_header(wffile);
-  }
-  delete[] tmpcoeff;
-}
-//----------------------------------------------------------------------
-
 void Abinit_converter::assign_occupations(vector<double>& occupations,bool spin_polarized) { 
  slater.detwt.resize(1);
  slater.detwt[0]=1.0;
@@ -428,6 +482,7 @@ void Abinit_converter::assign_occupations(vector<double>& occupations,bool spin_
  int nstates=occupations.size();
  //------spin polarized
  if(spin_polarized) {
+   slater.calctype="UHF";
    assert(nstates%2==0);
    nstates/=2;
    for(int i=0; i< nstates; i++) { 
@@ -447,6 +502,7 @@ void Abinit_converter::assign_occupations(vector<double>& occupations,bool spin_
    }
  }
  else  {  //spin unpolarized
+   slater.calctype="RHF";
    for(int i=0; i< nstates; i++) { 
      if(fabs(occupations[i]-2.0) < 1e-3) { 
        slater.occ_up[0].push_back(i+1);
@@ -464,8 +520,54 @@ void Abinit_converter::assign_occupations(vector<double>& occupations,bool spin_
 //--------------------------------------------------------------
 
 void Abinit_converter::write_files(string basename) { 
+  vector <vector <double> > supercell(3);
+  for(int d=0; d< 3; d++) supercell[d].resize(3);
+  supercell[0][0]=2.0; supercell[0][1]=0.0; supercell[0][2]=0.0;
+  supercell[1][0]=0.0; supercell[1][1]=2.0; supercell[1][2]=0.0;
+  supercell[2][0]=0.0; supercell[2][1]=0.0; supercell[2][2]=2.0;
+
+  vector <Atom> oldatoms=atoms;
+  vector <vector <double> > oldlatvec=latvec;
+  extend_supercell(supercell,oldatoms,oldlatvec,atoms,latvec);
+  vector <vector <double> > supercell_kpts;
+  supercell_kpoints(supercell,supercell_kpts);
+  int nkpts=wavefunctions.size();
+  if(nkpts < supercell_kpts.size()) { 
+    cout << "Not enough k-points for this supercell. Need " 
+      << nkpts << " and only found " << atoms.size()/oldatoms.size() << endl;
+    exit(2);
+  }
+  vector <double> tot_occupation;
+  for(int k=0; k< nkpts; k++) { 
+    bool matching_kpt=false;
+    for(vector <vector <double> >::iterator skpt=supercell_kpts.begin(); 
+        skpt!=supercell_kpts.end(); skpt++) { 
+      bool match=true;
+      for(int d=0;d < 3; d++) {
+        if(fabs(2*(*skpt)[d]-kpoint_orbital[k][d]) > 1e-3)
+          match=false;
+      }
+      if(match) {
+        matching_kpt=true;
+        break;
+      }
+    }
+    if(matching_kpt) { 
+      vector <double> occ;
+      wavefunctions[k].occ(occ);
+      tot_occupation.insert(tot_occupation.end(),occ.begin(),occ.end());
+    }
+    else { 
+      vector <double> occ(wavefunctions[k].norbitals());
+      for(vector<double>::iterator i=occ.begin(); i!=occ.end(); i++) *i=0.0;
+      tot_occupation.insert(tot_occupation.end(),occ.begin(),occ.end());
+    }
+  }
+
+  assign_occupations(tot_occupation,false);  
+
   reassign_z();
-  write_orbitals(basename+".orb");
+  //write_orbitals(basename+".orb");
   write_sys(basename+".sys");
   write_slater(basename+".slater");
 
@@ -493,37 +595,16 @@ void Abinit_converter::prune_coefficients() {
 
 //--------------------------------------------------------------
 
-void Abinit_converter::evaluate_orbital(vector<double> & r, 
-    vector <complex< double> > & orbitals) { 
-  assert(orbitals.size()==coeff.size());
-  int ngvec=gvec.size();
-  vector < complex<double> > basis(ngvec);
-  vector <complex <double> >::iterator b=basis.begin();
-  for(vector<vector<double> >::iterator g=gvec.begin(); g!=gvec.end(); g++,b++) { 
-    double dot=0.0;
-    for(int d=0; d< 3; d++) { 
-      dot+=(*g)[d]*r[d];
-    }
-    *b=complex<double>(cos(dot),sin(dot));
-  }
-  
-  vector< complex < double> >::iterator o=orbitals.begin();
-  vector<vector<complex <double> > >::iterator co=coeff.begin();
-  for(;o!=orbitals.end() && co!=coeff.end(); co++,*o++) { 
-    *o=0.0;
-    vector <complex<double> >::iterator co_j=co->begin();
-    b=basis.begin();
-    for(;b!=basis.end() && co_j!=co->end(); b++,co_j++) { 
-      *o+=(*co_j)*(*b);
-    }
-  }
-}
-
-//--------------------------------------------------------------
-
+//Here we just dumbly write all the orbitals in wavefunctions to a file.
 void Abinit_converter::write_orbitals(string  filename) { 
   slater.orbname=filename;
-  vector <complex < double> > orbitals(coeff.size());
+  //vector <complex < double> > orbitals(coeff.size());
+  int totorbitals=0,maxorbitals=0;
+  for(vector<WF_kpoint>::iterator w=wavefunctions.begin(); w!=wavefunctions.end();w++) { 
+    totorbitals+=w->norbitals();
+    maxorbitals=max(w->norbitals(),maxorbitals);
+  }
+  vector<complex <double> > orbitals(maxorbitals);
   vector <double> res(3);
   vector <int> npts(3);
   for(int d=0;d < 3; d++) {
@@ -536,10 +617,10 @@ void Abinit_converter::write_orbitals(string  filename) {
   cout << "point resolution " << grid_resolution << endl;
   vector<double> r(3),prop(3);
   int count=0;
-  long int ntotalpts=npts[0]*npts[1]*npts[2]*orbitals.size();
-  cout << "size of all orbitals: " << 2*ntotalpts*8.0/1024.0/1024.0 << " megabytes ("<< ntotalpts << ") total points" << endl;
-  complex<double> * allorbitals=new complex<double>[ntotalpts];
-  vector <complex<double> > orbnorm(coeff.size());
+  long int ntotalpts=npts[0]*npts[1]*npts[2]*totorbitals;
+  cout << "size of all orbitals: " << 2*ntotalpts*8.0/1024.0/1024.0 << " megabytes ("<< ntotalpts << " total values)" << endl;
+  vector <complex<double> > allorbitals(ntotalpts);
+  vector <complex<double> > orbnorm(totorbitals);
   for(vector<complex<double> >::iterator i=orbnorm.begin(); i!=orbnorm.end(); i++) 
     *i=0.0;
 
@@ -552,31 +633,23 @@ void Abinit_converter::write_orbitals(string  filename) {
         for(int i=0; i< 3; i++) { 
           for(int j=0; j< 3; j++) { 
             r[i]+=prop[j]*latvec[i][j];
-            //os << r[j] << " ";
           }
         }
-        evaluate_orbital(r,orbitals);
-        complex<double> * ptr=allorbitals+kk+jj*npts[2]+ii*npts[2]*npts[1];
-        vector< complex <double> >::iterator i=orbitals.begin(),orbn=orbnorm.begin();
-        complex <double> mult=1.0;
-        for(; i!= orbitals.end(); i++,orbn++) { 
-          *ptr=*i;
-          *orbn+=complex<double>(i->real()*i->real(),i->imag()*i->imag());
-          ptr+=npts[1]*npts[2]*npts[0];
-          //if(ii==3 && jj==5) 
-          //  cout << "orbval " << setw(18) << i->real() << setw(18) << i->imag()  
-          //    << setw(18) << atan2(i->imag(),i->real())/pi << endl;
-          mult*=*i;
-
+        vector< complex <double> >::iterator 
+          ptr=allorbitals.begin()+kk+jj*npts[2]+ii*npts[2]*npts[1],
+          orbn=orbnorm.begin();
+        
+        for(vector<WF_kpoint>::iterator w=wavefunctions.begin(); 
+            w!=wavefunctions.end(); w++) { 
+          w->evaluate_orbital(r,orbitals);
+          vector< complex <double> >::iterator i=orbitals.begin();
+          for(; i!= orbitals.end(); i++,orbn++) { 
+            *ptr=*i;
+            *orbn+=complex<double>(i->real()*i->real(),i->imag()*i->imag());
+            ptr+=npts[1]*npts[2]*npts[0];
+          }
+          count++;
         }
-        //cout << "product " << mult << endl;
-        
-        
-        //cout << r[0] <<  " " << r[1] << " " << r[2] << " "
-        //  << orbitals[15] << endl;
-        //cout << orbitals[0] << " " ;
-        //if(count%6==5) cout << endl;
-        count++;
       }
     }
   }
@@ -587,7 +660,14 @@ void Abinit_converter::write_orbitals(string  filename) {
   ofstream os(filename.c_str());
   os.precision(15);
   os << "Orbitals file" << endl;
-  os << "norbitals " << orbitals.size() << endl;
+  os << "norbitals " << totorbitals << endl;
+  os << "K-point of each orbital " << endl;
+  vector<WF_kpoint>::iterator w=wavefunctions.begin();
+  for(vector<vector <double> >::iterator k=kpoint_orbital.begin() ;
+      k!=kpoint_orbital.end() && w!=wavefunctions.end(); k++,w++) {
+    for(int i=0; i< w->norbitals(); i++) 
+      os << (*k)[0] << " " << (*k)[1] << " " << (*k)[2] << endl;
+  }
   os << "Lattice vectors " << endl;
   for(int i=0; i< 3; i++) { 
     for(int j=0; j< 3; j++) { 
@@ -602,7 +682,7 @@ void Abinit_converter::write_orbitals(string  filename) {
   for(int i=0; i< 3; i++) os << npts[i] << " ";
   os << endl;
   os << "orbitals follow (orbital,x,y,z indices) " << endl;
-  complex<double> * ptr=allorbitals;
+  vector<complex<double> >::iterator ptr=allorbitals.begin();
   for(int orb=0; orb < orbnorm.size(); orb++) { 
     int nxyz=npts[0]*npts[1]*npts[2];
     if(complex_wavefunction) { 
@@ -625,7 +705,6 @@ void Abinit_converter::write_orbitals(string  filename) {
       }
     }
   }
-  delete [] allorbitals;
   
 }
 //--------------------------------------------------------------
@@ -742,5 +821,104 @@ void Abinit_converter::reassign_z() {
     }
   }
 }
-//--------------------------------------------------------------
 
+
+//----------------------------------------------------------------------
+
+void WF_kpoint::read_wf_from_wfk(FILE * wffile,vector <vector <double> > & latvec_) { 
+  latvec=latvec_;
+  vector <vector <double> > gprim;
+  matrix_inverse(latvec,gprim);
+  
+  clear_header(wffile);
+  int npw=read_int(wffile);
+  int nspinor=read_int(wffile);
+  int nband=read_int(wffile);
+  clear_header(wffile);
+  cout << "npw " << npw << " nspinor " << nspinor << " nband " << nband << endl;
+  if(gvec.size() > 0 && gvec.size()!=npw) { 
+    cout << "Something wrong--number of g-vectors is changing" << endl;
+    exit(1);
+  }
+  gvec.resize(npw);
+  clear_header(wffile);
+  //these are the reduced g-vectors.  They can be transformed by multiplying 
+  //by gprim, which is the matrix inverse of rprimd obtained above.
+  int * tmpgvecs=new int[3*npw];
+  uread(tmpgvecs,3*npw,wffile);
+  for(vector<vector <double> >::iterator g=gvec.begin(); g!=gvec.end(); g++) 
+    g->resize(3);
+  for(int g=0; g< npw; g++) { 
+    for(int i=0; i< 3; i++) { 
+      gvec[g][i]=0.0;
+      for(int j=0; j< 3; j++) { 
+        gvec[g][i]+=2*pi*gprim[j][i]*tmpgvecs[g*3+j];
+      }
+    }
+  }
+  delete [] tmpgvecs;
+  //cout << "First few g-vectors : \n";
+  //for(int g=0; g< 10; g++) { 
+  //  cout << gvec[g][0] << " " << gvec[g][1] << " " << gvec[g][2] << endl;
+  //}
+  clear_header(wffile);
+//coeff.resize(nband);
+
+  double *eigen=new double[nband],*occ=new double[nband];
+  clear_header(wffile);
+  uread(eigen,nband,wffile);
+  uread(occ,nband,wffile);
+  clear_header(wffile);
+  //cout << "occupations " << endl;
+  for(int i=0; i< nband; i++) { 
+  //  cout << occ[i] << " ";
+    cout << "eigenvals " << eigen[i] << endl;
+    occupation.push_back(occ[i]);
+  }
+  //cout << endl;
+  delete[] eigen,occ;
+
+  double * tmpcoeff=new double[2*npw*nspinor];
+  vector <complex <double> > tmpvec(npw);
+  
+  assert(nspinor==1);
+  for(int i=0; i< nband; i++) { 
+    clear_header(wffile);
+    uread(tmpcoeff,2*npw*nspinor,wffile);
+    for(int ipw=0; ipw < npw; ipw++) { 
+      tmpvec[ipw]=complex<double>(tmpcoeff[ipw*2],tmpcoeff[ipw*2+1]);
+    }
+    coeff.push_back(tmpvec);
+    clear_header(wffile);
+  }
+  delete[] tmpcoeff;
+}
+
+//----------------------------------------------------------------------
+void WF_kpoint::evaluate_orbital(vector<double> & r, 
+    vector <complex< double> > & orbitals) { 
+  assert(orbitals.size()==coeff.size());
+  int ngvec=gvec.size();
+  vector < complex<double> > basis(ngvec);
+  vector <complex <double> >::iterator b=basis.begin();
+  for(vector<vector<double> >::iterator g=gvec.begin(); g!=gvec.end(); g++,b++) { 
+    double dot=0.0;
+    for(int d=0; d< 3; d++) { 
+      dot+=(*g)[d]*r[d];
+    }
+    *b=complex<double>(cos(dot),sin(dot));
+  }
+  
+  vector< complex < double> >::iterator o=orbitals.begin();
+  vector<vector<complex <double> > >::iterator co=coeff.begin();
+  for(;o!=orbitals.end() && co!=coeff.end(); co++,*o++) { 
+    *o=0.0;
+    vector <complex<double> >::iterator co_j=co->begin();
+    b=basis.begin();
+    for(;b!=basis.end() && co_j!=co->end(); b++,co_j++) { 
+      *o+=(*co_j)*(*b);
+    }
+  }
+}
+
+//----------------------------------------------------------------------
