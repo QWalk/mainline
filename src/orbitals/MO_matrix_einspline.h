@@ -112,7 +112,7 @@ private:
 #ifdef USE_EINSPLINE
   Array1 <Spline_evaluator<T> > spline;
 #endif
-  Array2 <doublevar> latvec;
+  Array2 <doublevar> latvec; //lattice vectors for the cell on which the function is defined
   Array2 <doublevar> latvecinv;
   Array1 <int> npoints;
   Array1 <doublevar> resolution;
@@ -120,6 +120,7 @@ private:
   Array4 <T > modata;
   Array1 <int> nmo_lists;
   int ndim;
+  Array1 <Array1 <int> > occ;
 public:
   virtual void buildLists(Array1 <Array1 <int> > & occupations);
   virtual void read(vector <string> & words, unsigned int & startpos, 
@@ -150,7 +151,7 @@ public:
 //----------------------------------------------------------------------
 template <class T> void MO_matrix_einspline<T>::buildLists(Array1 <Array1 <int> > & occupations) { 
 #ifdef USE_EINSPLINE
-  
+  occ=occupations; 
   int nsplines=occupations.GetDim(0);
   spline.Resize(occupations.GetDim(0));
   int ngridpts=npoints(0)*npoints(1)*npoints(2);
@@ -181,8 +182,6 @@ template <class T> void MO_matrix_einspline<T>::read(vector <string> & words, un
   //sys->kpoint(kpoint);
   if(!readvalue(words,pos=startpos,orbfile,"ORBFILE")) 
     error("Need keyword ORBFILE..");
-  if(!readvalue(words,pos=startpos,nmo,"NMO"))
-    error("Need keyword NMO");
   double magnify=1.0;
   readvalue(words,pos=startpos,magnify,"MAGNIFY");
   //Should probably just make node0 read this and send to others over MPI..
@@ -193,12 +192,16 @@ template <class T> void MO_matrix_einspline<T>::read(vector <string> & words, un
   is >> dummy;  //nmo
   int nmo_file;
   is >> nmo_file;
+  nmo=nmo_file;
   is.ignore(180,'\n'); //clear nmo line
   is.ignore(180,'\n'); //K-point line
   kpoint.Resize(nmo_file,ndim);
+  Array2 <doublevar> tmp_kpt(nmo_file,ndim);
   for(int i=0; i< nmo_file; i++) { 
-    for(int d=0; d< ndim; d++) 
-      is >> kpoint(i,d);
+    for(int d=0; d< ndim; d++)  { 
+      is >> tmp_kpt(i,d);
+    }
+
   }
   is.ignore(180,'\n');
 
@@ -214,6 +217,15 @@ template <class T> void MO_matrix_einspline<T>::read(vector <string> & words, un
   cout << "inverting " << endl;
   InvertMatrix(latvec,latvecinv,ndim);
   cout << "done " << endl;
+
+  kpoint=0.0;
+  for(int i=0; i< nmo_file; i++) { 
+    for(int d1=0; d1 < ndim; d1++) { 
+      for(int d2=0; d2 < ndim; d2++) { 
+        kpoint(i,d2)+=tmp_kpt(i,d1)*latvecinv(d1,d2);
+      }
+    }
+  }
   is >> dummy;
   resolution.Resize(ndim);
   for(int i=0; i< ndim; i++) is >> resolution(i);
@@ -254,7 +266,7 @@ template <class T> void MO_matrix_einspline<T>::updateVal(Sample_point * sample,
 #ifdef USE_EINSPLINE
   Array1 <doublevar> pos(ndim),u(ndim);
   sample->getElectronPos(e,pos);
-  u=0;
+  u=0; 
   for(int d=0; d< ndim; d++) { 
     for(int d1=0; d1 < ndim; d1++) { 
       u(d)+=pos(d1)*latvecinv(d,d1);
@@ -268,10 +280,9 @@ template <class T> void MO_matrix_einspline<T>::updateVal(Sample_point * sample,
   for(int i=0; i< nmo_lists(listnum); i++)  { 
     doublevar kr=0;
     for(int d=0; d< ndim; d++) { 
-      kr+=kpoint(i,d)*u(d);
+      kr+=kpoint(occ(listnum)(i),d)*pos(d);
     }
     T kfac=eval_kpoint_fac<T>(kr);
-
     vals(i)*=kfac;
   }
   
@@ -299,20 +310,33 @@ template <class T> void MO_matrix_einspline<T>::updateLap(Sample_point * sample,
   Array3 <T> hess(nmo_lists(listnum),ndim,ndim);
   spline(listnum).hess(u(0),u(1),u(2),vals.v,grad.v,hess.v);
 
+
   Array1 <T> tmp_grad(ndim);
   Array2 <T> tmp_hess(ndim,ndim);
   Array1 <doublevar> tmp_kpt(ndim);
   for(int i=0; i< nmo_lists(listnum); i++) { 
     doublevar kr=0;
     for(int d=0; d< ndim; d++) { 
-      kr+=kpoint(i,d)*u(d);
-      tmp_kpt(d)=kpoint(i,d);
+      kr+=kpoint(occ(listnum)(i),d)*pos(d);
+      tmp_kpt(d)=kpoint(occ(listnum)(i),d);
     }
+   // cout << i << " kpt " << tmp_kpt(0) << " " << tmp_kpt(1) << " " << tmp_kpt(2) << endl;
     
+    tmp_grad=T(0.0);
+    tmp_hess=T(0.0);
+    for(int d1=0; d1 < ndim; d1++) { 
+      for(int d2=0; d2< ndim; d2++) { 
+        tmp_grad(d1)+=latvecinv(d2,d1)*grad(i,d2);
+      }
+    }
     for(int d1=0; d1 < ndim; d1++) {
-      tmp_grad(d1)=grad(i,d1);
-      for(int d2=0; d2 < ndim; d2++) 
-        tmp_hess(d1,d2)=hess(i,d1,d2);
+      for(int d2=0; d2 < ndim; d2++) {
+        for(int d3=0; d3 < ndim; d3++) { 
+          for(int d4=0; d4 < ndim; d4++) { 
+            tmp_hess(d1,d2)+=hess(i,d1,d2)*latvecinv(d3,d1)*latvecinv(d4,d2);
+          }
+        }
+      }
     }
     eval_kpoint_deriv(tmp_kpt,kr,vals(i),tmp_grad,tmp_hess);
     for(int d1=0; d1 < ndim; d1++) {
@@ -321,6 +345,7 @@ template <class T> void MO_matrix_einspline<T>::updateLap(Sample_point * sample,
         hess(i,d1,d2)=tmp_hess(d1,d2);
     }
   }
+  /*
   for(int i=0; i< nmo_lists(listnum); i++) { 
     newvals(i,0)=vals(i);
   }
@@ -343,6 +368,17 @@ template <class T> void MO_matrix_einspline<T>::updateLap(Sample_point * sample,
       }
     }
     newvals(i,ndim+1)=lap;
+  }
+  */
+  for(int i=0; i< nmo_lists(listnum); i++) { 
+    newvals(i,0)=vals(i);
+    for(int d=0; d< ndim;d++) { 
+      newvals(i,d+1)=grad(i,d);
+    }
+    newvals(i,ndim+1)=0.0;
+    for(int d=0; d< ndim; d++) { 
+      newvals(i,ndim+1)+=hess(i,d,d);
+    }
   }
 
 #endif

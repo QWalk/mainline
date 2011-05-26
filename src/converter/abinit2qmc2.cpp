@@ -520,11 +520,15 @@ void Abinit_converter::assign_occupations(vector<double>& occupations,bool spin_
 //--------------------------------------------------------------
 
 void Abinit_converter::write_files(string basename) { 
+
+  write_orbitals(basename+".orb");
+
   vector <vector <double> > supercell(3);
   for(int d=0; d< 3; d++) supercell[d].resize(3);
   supercell[0][0]=2.0; supercell[0][1]=0.0; supercell[0][2]=0.0;
-  supercell[1][0]=0.0; supercell[1][1]=2.0; supercell[1][2]=0.0;
-  supercell[2][0]=0.0; supercell[2][1]=0.0; supercell[2][2]=2.0;
+  supercell[1][0]=0.0; supercell[1][1]=1.0; supercell[1][2]=0.0;
+  supercell[2][0]=0.0; supercell[2][1]=0.0; supercell[2][2]=1.0;
+
 
   vector <Atom> oldatoms=atoms;
   vector <vector <double> > oldlatvec=latvec;
@@ -567,7 +571,6 @@ void Abinit_converter::write_files(string basename) {
   assign_occupations(tot_occupation,false);  
 
   reassign_z();
-  //write_orbitals(basename+".orb");
   write_sys(basename+".sys");
   write_slater(basename+".slater");
 
