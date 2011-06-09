@@ -6,7 +6,6 @@ MY_SOURCES:= \
         Backflow_pf_wf_data.cpp \
 	BCS_wf.cpp \
 	BCS_wf_data.cpp \
-	Cslat_wf.cpp \
 	Jastrow2_wf.cpp \
         Jastrow2_one.cpp \
         Jastrow2_two.cpp \
@@ -16,7 +15,6 @@ MY_SOURCES:= \
         Pfaff_wf_data.cpp \
 	Slat_Jastrow.cpp \
 	Slat_Jastrow_data.cpp \
-	Slat_wf_calc.cpp \
 	Slat_wf_data.cpp \
 	FSlat_wf_calc.cpp \
 	Wavefunction.cpp \

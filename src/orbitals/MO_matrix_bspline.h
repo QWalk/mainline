@@ -196,51 +196,51 @@ class MultiEinsplineOrbComplex : public MultiEinsplineOrb {
 
       //check the size of imag wrt. to real grid
       for (int d=0;d<3;d++)
-	if(grid_real.GetDim(d)!=grid_imag.GetDim(d))
-	  error("Real and Imag grids have diffrent sizes");
+        if(grid_real.GetDim(d)!=grid_imag.GetDim(d))
+          error("Real and Imag grids have diffrent sizes");
 
       if(m==0){
-	BCtype_z xBC, yBC, zBC;
-	Ugrid x_grid, y_grid, z_grid;
-	xBC.lCode = xBC.rCode = PERIODIC;
-	yBC.lCode = yBC.rCode = PERIODIC;
-	zBC.lCode = zBC.rCode = PERIODIC;
-	  
-	//spline calculation is in fractional coordinates of lattice vectors
-	x_grid.start = 0.0; x_grid.end = 1.0; x_grid.num =grid_real.GetDim(0) ;
-	y_grid.start = 0.0; y_grid.end = 1.0; y_grid.num =grid_real.GetDim(1) ;
-	z_grid.start = 0.0; z_grid.end = 1.0; z_grid.num =grid_real.GetDim(2) ;
-	  
-	for(int d=0;d<3;d++){
-	  resolution_array(d)=1.0/grid_real.GetDim(d);
-	}
-	//make complex grid by multiplying by exp(-2*i*pi*k*r)
-	//be aware that kvector in the code includes factor 2!
-	MultiSpline = create_multi_UBspline_3d_z (x_grid, y_grid, z_grid, xBC, yBC, zBC, nsplines);
+        BCtype_z xBC, yBC, zBC;
+        Ugrid x_grid, y_grid, z_grid;
+        xBC.lCode = xBC.rCode = PERIODIC;
+        yBC.lCode = yBC.rCode = PERIODIC;
+        zBC.lCode = zBC.rCode = PERIODIC;
+
+        //spline calculation is in fractional coordinates of lattice vectors
+        x_grid.start = 0.0; x_grid.end = 1.0; x_grid.num =grid_real.GetDim(0) ;
+        y_grid.start = 0.0; y_grid.end = 1.0; y_grid.num =grid_real.GetDim(1) ;
+        z_grid.start = 0.0; z_grid.end = 1.0; z_grid.num =grid_real.GetDim(2) ;
+
+        for(int d=0;d<3;d++){
+          resolution_array(d)=1.0/grid_real.GetDim(d);
+        }
+        //make complex grid by multiplying by exp(-2*i*pi*k*r)
+        //be aware that kvector in the code includes factor 2!
+        MultiSpline = create_multi_UBspline_3d_z (x_grid, y_grid, z_grid, xBC, yBC, zBC, nsplines);
       }//m==0
       else{
-	if(MultiSpline->x_grid.num!=grid_real.GetDim(0) || 
-	   MultiSpline->y_grid.num!=grid_real.GetDim(1) ||
-	   MultiSpline->z_grid.num!=grid_real.GetDim(2))
-	  error("Number of grid points is different that in the first plotfile");
+        if(MultiSpline->x_grid.num!=grid_real.GetDim(0) || 
+            MultiSpline->y_grid.num!=grid_real.GetDim(1) ||
+            MultiSpline->z_grid.num!=grid_real.GetDim(2))
+          error("Number of grid points is different that in the first plotfile");
       }
-	
+
       Array3 <dcomplex> cgrid(MultiSpline->x_grid.num,MultiSpline->y_grid.num,MultiSpline->z_grid.num);
       Array1 <doublevar> xyz(3);  //fractional coordinates of Lattice vectors
       for(int xx=0;xx<grid_real.GetDim(0);xx++){
-	xyz(0)=xx*resolution_array(0);
-	for(int yy=0;yy<grid_real.GetDim(1);yy++){
-	  xyz(1)=yy*resolution_array(1);
-	  for(int zz=0;zz<grid_real.GetDim(2);zz++){
-	    xyz(2)=zz*resolution_array(2);
-	    //cout <<xyz(0)<<"  "<<xyz(1)<<"  "<<xyz(2)<<endl;
-	    dcomplex eikr=exp(-I*dot(xyz, kpointt(m)));
-	    cgrid(xx,yy,zz)=(grid_real(xx,yy,zz)+I*grid_imag(xx,yy,zz))*eikr;
-	    //if(xx==10 && yy==15)
-	    //cout << xyz(2) <<"  "<<grid_real(xx,yy,zz)<<"  "<<grid_imag(xx,yy,zz)
-	    //  <<"  "<<cgrid(xx,yy,zz).real()<<"  "<<cgrid(xx,yy,zz).imag()<<"  "<<eikr.real()<<"  "<<eikr.imag()<<endl;
-	  } 
-	}
+        xyz(0)=xx*resolution_array(0);
+        for(int yy=0;yy<grid_real.GetDim(1);yy++){
+          xyz(1)=yy*resolution_array(1);
+          for(int zz=0;zz<grid_real.GetDim(2);zz++){
+            xyz(2)=zz*resolution_array(2);
+            //cout <<xyz(0)<<"  "<<xyz(1)<<"  "<<xyz(2)<<endl;
+            dcomplex eikr=exp(-I*dot(xyz, kpointt(m)));
+            cgrid(xx,yy,zz)=(grid_real(xx,yy,zz)+I*grid_imag(xx,yy,zz))*eikr;
+            //if(xx==10 && yy==15)
+            //cout << xyz(2) <<"  "<<grid_real(xx,yy,zz)<<"  "<<grid_imag(xx,yy,zz)
+            //  <<"  "<<cgrid(xx,yy,zz).real()<<"  "<<cgrid(xx,yy,zz).imag()<<"  "<<eikr.real()<<"  "<<eikr.imag()<<endl;
+          } 
+        }
       }
       grid_real.clear();
       grid_imag.clear();
@@ -250,7 +250,7 @@ class MultiEinsplineOrbComplex : public MultiEinsplineOrb {
       cgrid.clear();
     }//m
 #else
- error("need EINSPLINE library for create_UBspline_3d_d");
+    error("need EINSPLINE library for create_UBspline_3d_d");
 #endif
   }
   virtual ~MultiEinsplineOrbComplex() { };

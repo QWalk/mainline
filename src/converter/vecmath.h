@@ -123,7 +123,7 @@ inline double projection(std::vector <double> & a, std::vector <double> & b) {
 }
 
 //Compute the inverse of a 3x3 matrix (useful for coordinate transformations)
-inline void matrix_inverse(std::vector < std::vector < double > > &input, 
+inline void matrix_inverse(const std::vector < std::vector < double > > &input, 
 		    std::vector < std::vector < double > > &output)
 {
   assert(input.size() == 3);

@@ -161,7 +161,8 @@ int Periodic_system::read(vector <string> & words,
       latVec(i,j)=atof(latvectxt[i*ndim+j].c_str());
     }
   }
-
+  inverseLatVec.Resize(ndim,ndim);
+  InvertMatrix(latVec,inverseLatVec,ndim);
   latvectxt.clear();
 
 
@@ -629,7 +630,7 @@ doublevar Periodic_system::ewaldIon() {
             doublevar r=sqrt(r2(0)*r2(0)+r2(1)*r2(1)+r2(2)*r2(2));
 
             IonIon+=ions.charge(i)*ions.charge(j)*erfcm(alpha*r)/r;
-            //cout << "r " << r << "  ionion " << IonIon << endl;
+//            cout << "r " << r << "  ionion " << IonIon << " i " << i << " j " << j << endl;
           }
         }
       }
@@ -670,7 +671,7 @@ doublevar Periodic_system::ewaldIon() {
   eion*=2;
 
   debug_write(cout,"reciprocal space ion ", eion,"\n");
-
+  cout << "eion " << eion << " IonIon " << IonIon << endl;
   return eion+IonIon;
 }
 

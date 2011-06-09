@@ -29,56 +29,61 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 /*!
   This is basically a replacement for doubles, but always with a logarithmic representation.
   I've tried to make it so it automatically does the right thing with standard 
-  multiplication. Automatic downconversion to double is possible, but I've excluded it to 
-  prevent accidental loss of precision.
-  Note also that there may be performance problems with using these automatic conversions..
+  multiplication. Automatic downconversion to double/complex is possible, but I've excluded it to 
+  prevent accidental loss of precision.  Use the explicit val() function instead.
+  Note also that there may be performance problems with using these automatic conversions, so if performance is critical, one may need to write some specialized code.
   */
-struct log_real_value { 
-  doublevar logval;
+
+template <class T> struct log_value { 
+  T logval;
   int sign;
-  doublevar val() { return sign*exp(logval); } 
-  log_real_value() { logval=0; sign=1; }  //initializing to 1..
-  //operator double() const { return sign*exp(logval); } 
-  log_real_value(doublevar t) { 
+  T val() { return doublevar(sign)*exp(logval); }  //doublevar() a bit ugly, but it works ok
+  log_value() { logval=0; sign=1; } 
+  log_value(T t) {  } 
+  log_value<T> & operator *=(const log_value<T> & right) {
+    this->logval+=right.logval;
+    this->sign*=right.sign;
+    return *this;
+  } 
+};
+
+template<> inline log_value<doublevar>::log_value(doublevar t) {
     doublevar ft=fabs(t);
     if(ft > 0) logval=log(ft); 
     else logval=-1e99;
     sign=t<0?-1:1; 
-  }
-  log_real_value & operator*=(const log_real_value & right) { 
-    this->logval+=right.logval;
-    this->sign*=right.sign;
-    return *this;
-  }
-};
+}
 
-inline log_real_value operator*(double t, log_real_value u) { 
-  log_real_value v;
-  v=u;
-  doublevar ft=fabs(t);
-  if(ft > 0) v.logval+=log(ft);
-  v.sign*=t<0?-1:1;
+template<> inline log_value<dcomplex>::log_value(dcomplex t) { 
+  sign=1;
+  logval=dcomplex(log(abs(t)),arg(t));
+}
+typedef log_value<doublevar> log_real_value;
+typedef log_value<dcomplex> log_complex_value;
+
+//--------Finished with the class definitions
+//Here are a few helper functions.
+template <class T> inline log_value<T> operator*(T t, log_value<T> u) { 
+  log_value<T> v(t);
+  v*=u;
   return v;
 }
 
-inline log_real_value  operator*(log_real_value u,double t) { return t*u; }
-inline log_real_value operator*(log_real_value t, log_real_value u) { 
-  log_real_value v;
+template <class T> inline log_value<T>  operator*(log_value<T> u,double t) { return t*u; }
+template <class T> inline log_value<T> operator*(log_value<T> t, log_value<T> u) { 
+  log_value<T> v;
   v.logval=t.logval+u.logval;
   v.sign=t.sign*u.sign;
   return v;
 }
 
-//Try to safely sum a series of log_real_values
-inline log_real_value sum(const Array1 <log_real_value> & vec) { 
-  double s=0; 
-  //for now, pivot on the first one
-  //A more advanced way might be to check for underflows
+//Try to safely sum a series of log_values
+template <class T> inline log_value<T> sum(const Array1 <log_value<T> > & vec) { 
+  T s=0;
   int n=vec.GetDim(0);
   int piv=0;
-  for(int i=0; i< n; i++) { 
-    s+=vec(i).sign*vec(piv).sign*exp(vec(i).logval-vec(piv).logval);
-  }
+  for(int i=0; i< n; i++) 
+    s+=T(vec(i).sign*vec(piv).sign)*exp(vec(i).logval-vec(piv).logval);
   return s*vec(piv);
 }
 
@@ -101,8 +106,24 @@ doublevar InverseUpdateRow(Array2 <doublevar> & a1, const Array2 <doublevar> & a
                            const int lRow, const int n);
 doublevar InverseUpdateRow(Array2 <doublevar> & a1, const Array1 <doublevar> & newRow,
                            const int lRow, const int n);
-doublevar InverseGetNewRatio(const Array2 <doublevar> & a1, const Array1 <doublevar> & newCol,
-                             const int lCol, const int n);
+//doublevar InverseGetNewRatio(const Array2 <doublevar> & a1, const Array1 <doublevar> & newCol,
+//                             const int lCol, const int n);
+//Get the new ratio without updating the inverse..
+
+template <class T> T InverseGetNewRatio(const Array2 <T> & a1, 
+     const Array1 <T> & newCol,
+                             const int lCol, const int n) { 
+  T f=T(0.0);  
+  for(int i=0;i<n;++i) {
+    f += a1(lCol,i)*newCol[i];
+  }
+  f =1.0/f;
+  
+  return f;
+   
+}
+
+
 doublevar InverseGetNewRatioRow(const Array2 <doublevar> & a1, const Array1 <doublevar> & newRow,
                              const int lRow, const int n);
 doublevar InverseUpdateColumn(Array2 <doublevar> & a1, const Array2 <doublevar> & a,
@@ -170,7 +191,7 @@ int ludcmp(Array2 <dcomplex > & a, const int n,
 void lubksb(Array2 < dcomplex > & a, int n, 
             Array1 <int> & indx, Array1 <dcomplex > & b);
 
-dcomplex
+log_value <dcomplex>
 TransposeInverseMatrix(const Array2 <dcomplex > & a, 
                        Array2 <dcomplex> & a1, 
                        const int n);

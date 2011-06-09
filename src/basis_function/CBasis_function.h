@@ -17,7 +17,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  
 */
-
+#if 0
 #ifndef CBASIS_FUNCTION_H_INCLUDED
 #define CBASIS_FUNCTION_H_INCLUDED
 
@@ -148,8 +148,7 @@ public:
   }
 };
 
-int allocate(vector <string> & basistext, CBasis_function * & bptr);
-int deallocate(CBasis_function * & bptr);
 
 #endif //CBASIS_FUNCTION_H_INCLUDED
 //--------------------------------------------------------------------------
+#endif

@@ -19,7 +19,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 
 
-#include "CBasis_function.h"
+#include "Basis_function.h"
 #include "qmc_io.h"
 #include "CPlanewave_function.h"
 #include "Blochwave_function.h"

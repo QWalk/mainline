@@ -54,85 +54,21 @@ class General_MO_matrix {
 
 //----------------------------------------------------------------------
 
-class Complex_MO_matrix : public General_MO_matrix {
 
- protected:
-  // transferred from MO_matrix
-  Center_set centers;
-  Array1 <CBasis_function *> basis;
-  int nmo;
-  doublevar magnification_factor;
-  string orbfile;
-  int totbasis;
-  int maxbasis;
-  string oldsofile;
-  Array1 <doublevar> kpoint;
-  //!< the k-point of the orbitals in fractional units(1 0 0) is X, etc..
-  // -----
-
- public:
-  /*!
-    Build several sets of MO's to be evaluated in updateVal and updateLap.
-    Each element in occupations should be a list of the MO's that should
-    be evaluated.  For example, one can create a list of spin up and spin
-    down MO's, and only evaluate up when an up electron is moved.
-   */
-  virtual void buildLists(Array1 <Array1 <int> > & occupations)=0;
-
-  /*!
-    get the number of molecular orbitals
-  */
-  int getNmo() { return nmo; }
-  virtual int showinfo(ostream & os)=0;
-  virtual int writeinput(string &, ostream &)=0;
-  virtual void read(vector <string> & words, unsigned int & startpos, 
-                    System * sys)=0;
-  virtual void updateVal(Sample_point * sample,
-			 int e,
-			 //!< electron number
-			 int listnum,
-			 Array2 <dcomplex> & newvals
-			 //!< The return: in form (MO)
-			 )=0;
-  
-  virtual void updateLap(Sample_point * sample,
-			 int e,
-			 //!< electron number
-			 int listnum,
-			 //!< Choose the list that was built in buildLists
-			 Array2 <dcomplex> & newvals
-			 //!< The return: in form ([value gradient lap], MO)
-			 )=0;
-
-  virtual ~Complex_MO_matrix() {  }
-
-};
-
-//----------------------------------------------------------------------
-
-/*!
-\brief
-MO_matrix is a class to hold everything necessary to calculate the
-molecular orbitals for a situation.
-
-*/
-class MO_matrix: public General_MO_matrix
-{
+template <class T> class Templated_MO_matrix: public General_MO_matrix {
 protected:
   Center_set centers;
-  Array1 <Basis_function *> basis;
+  Array1 <Basis_function *> basis; 
   int nmo;
   doublevar magnification_factor;
   string orbfile;
   int totbasis;
   int maxbasis;
-  virtual void init()=0;
+  virtual void init() { } ;
 
   string oldsofile;
 
   Array1 <doublevar> kpoint; //!< the k-point of the orbitals in fractional units(1 0 0) is X, etc..
-  //Array1 <doublevar> mo_counter;//!< Count how many basis functions are evaluated per MO
-  //unsigned int n_calls; //!< number of calls
 public:
 
   /*!
@@ -142,8 +78,6 @@ public:
     down MO's, and only evaluate up when an up electron is moved.
    */
   virtual void buildLists(Array1 <Array1 <int> > & occupations)=0;
-
-
   virtual void setOrbfile(string & x) {
     orbfile=x;
   }
@@ -157,27 +91,29 @@ public:
   virtual int showinfo(ostream & os)=0;
 
   virtual int writeinput(string &, ostream &)=0;
-
-
   virtual void read(vector <string> & words, unsigned int & startpos, 
                     System * sys);
 
-  //! Takes an ORB file and inserts all the coefficients.
-  // virtual int readorb(istream &, Array3 <int> &, Array1 <doublevar> & );
-
-
-  virtual void writeorb(ostream &, Array2 <doublevar> & rotation, Array1 <int> &)=0;
+  virtual void writeorb(ostream &, Array2 <doublevar> & rotation, Array1 <int> &)
+  { error("writeorb not implemented"); } 
 
   /*!
     Get the molecular orbital coefficients
    */
-  virtual void getMoCoeff(Array2 <doublevar> & coeff)=0;
+  virtual void getMoCoeff(Array2 <T> & coeff) { 
+    error("getMoCoeff not implemented");
+  }
   
   /*!
     
    */
-  virtual void setMoCoeff(Array2 <doublevar> & coeff)=0;
-  virtual int nMoCoeff()=0;
+  virtual void setMoCoeff(Array2 <T> & coeff){
+    error("setMoCoeff not implemented");
+  }
+  virtual int nMoCoeff() { 
+    error("nMoCoeff not implemented");
+    return 0;
+  }
 
 
   virtual void updateVal(
@@ -185,7 +121,7 @@ public:
     int e,
     //!< electron number
     int listnum,
-    Array2 <doublevar> & newvals
+    Array2 <T> & newvals
     //!< The return: in form (MO)
   )=0;
 
@@ -193,8 +129,10 @@ public:
     Sample_point * sample,
     int e,
     //!< electron number
-    Array1 <doublevar> & newvals
-    )=0;
+    Array1 <T> & newvals
+    ) { 
+    error("getBasisVal not implemented");
+  }
 
   virtual void updateLap(
     Sample_point * sample,
@@ -202,23 +140,23 @@ public:
     //!< electron number
     int listnum,
     //!< Choose the list that was built in buildLists
-    Array2 <doublevar> & newvals
+    Array2 <T> & newvals
     //!< The return: in form (MO,[value gradient lap])
   )=0;
 
   virtual void updateHessian(Sample_point * sample,
 			     int e,
 			     int listnum,
-			     Array2 <doublevar>& newvals
+			     Array2 <T>& newvals
 			     //!< in form (MO, [value gradient, dxx,dyy,dzz,dxy,dxz,dyz])
 			     ) { 
     error("this MO_matrix doesn't support Hessians");
   }
 
-  MO_matrix()
+  Templated_MO_matrix()
   {}
 
-  virtual ~MO_matrix()
+  virtual ~Templated_MO_matrix()
   {
     //doublevar totcalls=0;
     //for(int i=0; i< nmo; i++) {
@@ -232,6 +170,8 @@ public:
 
 };
 
+typedef  Templated_MO_matrix<doublevar> MO_matrix;
+typedef  Templated_MO_matrix<dcomplex> Complex_MO_matrix;
 //----------------------------------------------------------------------------
 
 
@@ -253,6 +193,146 @@ int readorb(istream & input, Center_set & centers,
 int readorb(istream & input, Center_set & centers, 
             int nmo, int maxbasis, Array1 <doublevar> & kpoint, 
 	    Array3 <int > & coeffmat, Array1 <dcomplex> & coeff);
+
+//----------------------------------------------------------------------
+//A simple templated function to evaluate the k-point when it is real versus
+//when it is complex. 
+template <class T> inline T eval_kpoint_fac(doublevar & dot) {
+  error("Not a general class.");
+}
+
+template <> inline doublevar eval_kpoint_fac<doublevar>(doublevar & dot) { 
+  return cos(dot*pi);
+}
+template <> inline  dcomplex eval_kpoint_fac<dcomplex>(doublevar & dot) { 
+  return exp(dcomplex(0.0,1.0)*dot*pi);
+}
+
+template <class T> inline void eval_kpoint_deriv(Array1 <doublevar> & kpoint,
+    doublevar kr,
+    T & val, Array1 <T> & grad, Array2 <T> & hess)  { 
+  error("kpoint_deriv not implemented in general");
+}
+
+template <> inline void eval_kpoint_deriv<dcomplex>(Array1 <doublevar> & kpoint,
+    doublevar kr,
+    dcomplex & val, Array1 <dcomplex> & grad, Array2 <dcomplex> & hess)  { 
+  int ndim=grad.GetDim(0);
+  assert(ndim==hess.GetDim(0));
+  assert(ndim==hess.GetDim(1));
+  const dcomplex I(0,1.0);
+  dcomplex eikr=eval_kpoint_fac<dcomplex>(kr);
+  for(int d1=0; d1 < ndim; d1++) 
+    for(int d2=0; d2< ndim; d2++) 
+      hess(d1,d2)=eikr*(hess(d1,d2)
+          +I*pi*kpoint(d1)*grad(d2)
+          +I*pi*kpoint(d2)*grad(d1)
+          -pi*pi*kpoint(d1)*kpoint(d2)*val);
+ for (int d=0; d< ndim; d++) 
+   grad(d)=eikr*(I*pi*kpoint(d)*val+grad(d));
+ val*=eikr;
+}
+
+template <> inline void eval_kpoint_deriv<doublevar>(Array1 <doublevar> & kpoint,
+    doublevar kr,
+    doublevar & val, Array1 <doublevar> & grad, Array2 <doublevar> & hess)  { 
+  //still not clear how to do this exactly, so we'll ignore it for now.
+  assert(abs(kpoint(0)) < 1e-14);
+  assert(abs(kpoint(1)) < 1e-14);
+  assert(abs(kpoint(2)) < 1e-14);
+}
+
+
+
+//----------------------------------------------------------------------------
+#include "qmc_io.h"
+//template<> inline void Complex_MO_matrix::read(vector <string> & words,
+//                     unsigned int & startpos,
+//                     System * sys) { 
+//}
+
+template<class T> inline void Templated_MO_matrix<T>::read(vector <string> & words,
+                     unsigned int & startpos,
+                     System * sys)
+{
+
+
+  unsigned int pos=startpos;
+
+  if(!readvalue(words, pos, nmo, "NMO")) {
+    error("Need NMO in molecular orbital section");
+  }
+
+  if(nmo > 40000) 
+    error("You have entered more than 40,000 for NMO.  This seems a bit big; we most likely"
+        " can't handle it.");
+
+
+  pos=0;
+  if(!readvalue(words, pos, magnification_factor, "MAGNIFY")) {
+    magnification_factor=1;
+  }
+
+
+  //Basis functions
+  vector <vector <string> > basistext;
+  vector < string > basissec;
+  pos=0;
+  while( readsection(words, pos, basissec, "BASIS") != 0) {
+    basistext.insert(basistext.end(), basissec);
+  }
+  basis.Resize(basistext.size());
+  basis=NULL;
+
+  if(basistext.size() == 0 )
+    error("Didn't find a BASIS section");
+  for(unsigned int i=0; i<basistext.size(); i++) {
+    allocate(basistext[i], basis(i));
+  }
+  
+  sys->kpoint(kpoint);
+  //------------------------------Centers
+  vector <string> centertext;
+  pos=startpos;
+  if(!readsection(words, pos, centertext, "CENTERS")) { 
+    single_write(cout, "Defaulting to using the atoms as centers\n");
+    string temp="USEATOMS";
+    centertext.push_back(temp);
+  }
+
+
+  unsigned int newpos=0;
+  centers.read(centertext, newpos, sys);
+  centers.assignBasis(basis);
+
+  //cout << "number of centers " << centers.size() << endl;
+  totbasis=0;
+  maxbasis=0;
+  for(int i=0; i< centers.size(); i++)
+  {
+    int basiscent=0;
+    for(int j=0; j< centers.nbasis(i); j++)
+    {
+      basiscent+=basis(centers.basis(i,j))->nfunc();
+      //cout << "basiscent " << basiscent << endl;
+    }
+    totbasis+=basiscent;
+    if(maxbasis < basiscent)
+      maxbasis=basiscent;
+  }
+
+  //cout << "maxbasis " << maxbasis << endl;
+  //single_write(cout, nmo, " molecular orbitals requested.\n");
+
+  pos=0;
+  if(! readvalue(words, pos, orbfile, "ORBFILE"))
+  {
+    error("Must specify ORBFILE for MO matrix");
+  }
+  init();
+
+}
+//----------------------------------------------------------------------------
 
 #endif // MO_MATRIX_H_INCLUDED
 

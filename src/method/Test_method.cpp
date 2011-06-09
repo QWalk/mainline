@@ -193,6 +193,7 @@ void Test_method::run(Program_options & options, ostream & output)
     sample->getElectronPos(e,epos);
     //cout <<" position "<<epos(0)<<" "<<epos(1)<<" "<<epos(2)<<endl;
     doublevar lap=0;
+    doublevar phaselap=0;
     for(int d=0;d < 3; d++) {
       new_epos=epos;
       new_epos(d)+=del;
@@ -204,11 +205,18 @@ void Test_method::run(Program_options & options, ostream & output)
       //mywf->getVal(wfdata,e,test_wf);
       doublevar ratio=exp(test_wf.amp(0,0)-first_calc(0).amp(0,0));
       doublevar derivative=(ratio-1)/del;
+      doublevar phasederivative=(exp(test_wf.phase(0,0)-first_calc(0).phase(0,0))-1)/del;
       lap+=(test_wf.amp(0,d+1)*ratio-first_calc(e).amp(0,d+1))/del;
+      phaselap+=(test_wf.phase(0,d+1)*ratio-first_calc(d).phase(0,d+1))/del;
+      cout << "amplitude ";
       check_numbers(derivative,first_calc(e).amp(0,d+1),cout);
+      cout << "phase ";
+      check_numbers(phasederivative,first_calc(e).phase(0,d+1),cout);
     }
-    cout << "laplacian " << endl;
+    cout << "amplitude laplacian ";
     check_numbers(lap,first_calc(e).amp(0,4),cout);
+    cout << "phase laplacian ";
+    check_numbers(phaselap,first_calc(e).phase(0,4),cout);
     sample->setElectronPos(e,epos);
     mywf->updateVal(wfdata, sample);
   }

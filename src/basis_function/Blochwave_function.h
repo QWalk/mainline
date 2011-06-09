@@ -21,7 +21,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #ifndef BLOCHWAVE_FUNCTION_H_INCLUDED
 #define BLOCHWAVE_FUNCTION_H_INCLUDED
 
-#include "CBasis_function.h"
+#include "Basis_function.h"
 
 /*!
 

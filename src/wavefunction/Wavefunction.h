@@ -62,7 +62,7 @@ private:
 
 typedef complex <doublevar> dcomplex;
 //typedef Array2 <complex <doublevar> > Wf_return;
-
+#include "MatrixAlgebra.h"
 
 struct Wf_return {
   Wf_return() {is_complex=0;}
@@ -89,6 +89,46 @@ struct Wf_return {
 
     if(fabs(phase(w,0)) < 1e-6) return 1;
     else return -1;
+  }
+
+  void setVals(Array2 <log_value<doublevar> > & v ) { 
+    is_complex=0;
+    int nfunc=v.GetDim(0);
+    int nst=v.GetDim(1);
+    Resize(nfunc,nst);
+    for(int f=0; f< nfunc; f++) { 
+      amp(f,0)=v(f,0).logval;
+      phase(f,0)=v(f,0).sign<0?pi:0.0;
+      for(int s=1; s< nst; s++) { 
+        amp(f,s)=v(f,s).val();
+        phase(f,s)=0.0;
+      }
+    }
+  }
+
+  void setVals(Array2 <log_value<dcomplex> > & v ) { 
+    is_complex=1;
+    int nfunc=v.GetDim(0);
+    int nst=v.GetDim(1);
+    Resize(nfunc,nst);
+    for(int f=0; f< nfunc; f++) { 
+      amp(f,0)=v(f,0).logval.real();
+      phase(f,0)=v(f,0).logval.imag();
+      for(int s=1; s< nst; s++) { 
+        amp(f,s)=v(f,s).val().real();
+        phase(f,s)=v(f,s).val().imag();
+      }
+      if(nst > 4) { 
+        doublevar sum_ii=0,sum_ri=0;
+        for(int s=1; s< 4; s++) { 
+           sum_ii+=phase(f,s)*phase(f,s);
+           sum_ri+=amp(f,s)*phase(f,s);
+        }
+        phase(f,4)-=2*sum_ri;
+        amp(f,4)+=sum_ii;
+      }
+
+    }
   }
 
 

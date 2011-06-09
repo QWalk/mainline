@@ -367,7 +367,8 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
       if(print_wf_vals) { 
         Wf_return wfval(nwf_guide,2);
         wf->getVal(wfdata,0, wfval);
-        cout << "node " << mpi_info.node << "  amp " << wfval.amp(0,0) << endl;
+        cout << "node " << mpi_info.node << "  amp " << wfval.amp(0,0) 
+          << " phase " << cos(wfval.phase(0,0)) << endl;
       }
       
       for(int step=0; step< nstep; step++) {
@@ -395,7 +396,8 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
               if(print_wf_vals) { 
                 Wf_return wfval(nwf_guide, 2);
                 wf->getVal(wfdata,0,wfval);
-                cout << "step " << e << " amp " << wfval.amp(0,0) << endl;
+                cout << "step " << e << " amp " << wfval.amp(0,0) 
+                  << " phase " << cos(wfval.phase(0,0)) << endl;
               }
               
               if(acc>0) {

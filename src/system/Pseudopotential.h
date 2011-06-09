@@ -25,13 +25,13 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Qmc_std.h"
 #include "Wavefunction.h"
 #include "Force_fitter.h"
+#include "Basis_function.h"
 class Program_options;
 class System;
 class Wavefunction;
 class Sample_point;
 class Wavefunction_data;
 class Wavefunction_storage;
-class Basis_function;
 
 
 //---------

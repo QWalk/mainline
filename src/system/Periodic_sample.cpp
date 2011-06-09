@@ -83,6 +83,7 @@ void Periodic_sample::updateEIDist() {
     if(ionDistStale(e)) {
       ionDistStale(e)=0;
       int nions=parent->ions.size();
+     /* 
       for(int j=0; j<nions; j++)
         iondist(j,e,1)=1e99;
 
@@ -115,8 +116,58 @@ void Periodic_sample::updateEIDist() {
           }
         }
       }
+      */
       //cout << "tmpdis " << tmpdis << endl;
+      doublevar height2=parent->smallestheight*parent->smallestheight*.25;
+      const int ndim=3;
+      
+      int nlatbas=lattice_basis.GetDim(0);
+      doublevar tmpdis=0.0;
+      Array1 <doublevar> tmpvec(ndim);
+      Array1 <doublevar> s(ndim);
+      for(int j=0; j< nions; j++) { 
+        s=0.0;
+        for(int d1=0; d1 < ndim; d1++) { 
+          for(int d2=0; d2<ndim; d2++) { 
+            s(d1)+=parent->inverseLatVec(d1,d2)*(elecpos(e,d2)-parent->ions.r(d2,j));
+          }
+        }
+        for(int d=0; d< ndim; d++)  { 
+          while(s(d) > 0.5) s(d)-=1.0;
+          while(s(d) < -0.5) s(d)+=1.0;
+        }
+        iondist(j,e,1)=0.0;
+        for(int d1=0; d1 < ndim; d1++) { 
+          iondist(j,e,d1+2)=0.0;
+          for(int d2=0; d2< ndim; d2++)  { 
+            iondist(j,e,d1+2)+=parent->latVec(d1,d2)*s(d2);
+          }
+          iondist(j,e,1)+=iondist(j,e,d1+2)*iondist(j,e,d1+2);
+        }
 
+      
+
+        if(iondist(j,e,1) > height2) { 
+          for(int a=0; a < nlatbas; a++) { 
+            tmpdis=0.0;
+            for(int d=0; d< ndim; d++)  { 
+              tmpvec(d)=iondist(j,e,d+2)+lattice_basis(a,d);
+              tmpdis+=tmpvec(d)*tmpvec(d);
+            }
+            if(tmpdis < iondist(j,e,1)) { 
+              for(int d=0; d< ndim; d++) {
+                iondist(j,e,d+2)=tmpvec(d);
+              }
+              iondist(j,e,1)=tmpdis;
+
+            }
+            if(tmpdis < height2)
+              break;
+          }
+        }
+
+      }
+      
       for(int j=0; j<nions; j++)
         iondist(j, e,0)=sqrt(iondist(j, e,1));
     }
@@ -133,11 +184,110 @@ void Periodic_sample::updateEIDist() {
 
  */
 void Periodic_sample::updateEEDist() {
-
+  const int ndim=3;
   for(int e=0; e< nelectrons; e++) {
     if(elecDistStale(e)==1) {
 
       elecDistStale(e)=0;
+     
+      Array1 <doublevar> tmpvec(3);
+      doublevar tmpdis;
+      doublevar height2=parent->smallestheight*parent->smallestheight*.25;
+      int nlatbas=lattice_basis.GetDim(0);
+      
+      Array1 <doublevar> s(ndim);
+      for(int j=0; j< e; j++) { 
+        s=0.0;
+        for(int d1=0; d1 < ndim; d1++) { 
+          for(int d2=0; d2<ndim; d2++) { 
+            s(d1)+=parent->inverseLatVec(d1,d2)*(elecpos(j,d2)-elecpos(e,d2));
+          }
+        }
+        for(int d=0; d< ndim; d++)  { 
+          while(s(d) > 0.5) s(d)-=1.0;
+          while(s(d) < -0.5) s(d)+=1.0;
+        }
+        pointdist(j,e,1)=0.0;
+        for(int d1=0; d1 < ndim; d1++) { 
+          pointdist(j,e,d1+2)=0.0;
+          for(int d2=0; d2< ndim; d2++)  { 
+            pointdist(j,e,d1+2)+=parent->latVec(d1,d2)*s(d2);
+          }
+          pointdist(j,e,1)+=pointdist(j,e,d1+2)*pointdist(j,e,d1+2);
+        }
+        if(pointdist(j,e,1) > height2) { 
+          for(int a=0; a < nlatbas; a++) { 
+            tmpdis=0.0;
+            for(int d=0; d< ndim; d++)  { 
+              tmpvec(d)=pointdist(j,e,d+2)+lattice_basis(a,d);
+              tmpdis+=tmpvec(d)*tmpvec(d);
+            }
+            if(tmpdis < pointdist(j,e,1)) { 
+              for(int d=0; d< ndim; d++) {
+                pointdist(j,e,d+2)=tmpvec(d);
+              }
+              pointdist(j,e,1)=tmpdis;
+              
+            }
+            if(tmpdis < height2)
+              break;
+          }
+
+        }
+        //for(int d1=0; d1  < ndim; d1++) 
+        //cout << "pointdist " << j << " " << e << " dist " << pointdist(j,e,d1+2) << endl;
+        
+      }
+
+      for(int k=e+1; k< nelectrons; k++) { 
+        s=0.0;
+        for(int d1=0; d1 < ndim; d1++) { 
+          for(int d2=0; d2<ndim; d2++) { 
+            s(d1)+=parent->inverseLatVec(d1,d2)*(elecpos(e,d2)-elecpos(k,d2));
+          }
+        }
+        for(int d=0; d< ndim; d++)  { 
+          while(s(d) > 0.5) s(d)-=1.0;
+          while(s(d) < -0.5) s(d)+=1.0;
+        }
+        pointdist(e,k,1)=0.0;
+        for(int d1=0; d1 < ndim; d1++) { 
+          pointdist(e,k,d1+2)=0.0;
+          for(int d2=0; d2< ndim; d2++)  { 
+            pointdist(e,k,d1+2)+=parent->latVec(d1,d2)*s(d2);
+          }
+          pointdist(e,k,1)+=pointdist(e,k,d1+2)*pointdist(e,k,d1+2);
+          
+        }
+        if(pointdist(e,k,1) > height2) { 
+          //cout << "height " << sqrt(height2) << " dist " << sqrt(pointdist(e,k,1))  
+          //  << " d " << pointdist(e,k,2) << " " << pointdist(e,k,3) << "  " << pointdist(e,k,4) << endl;
+          for(int a=0; a < nlatbas; a++) { 
+            tmpdis=0.0;
+            for(int d=0; d< ndim; d++)  { 
+              tmpvec(d)=pointdist(e,k,d+2)+lattice_basis(a,d);
+              tmpdis+=tmpvec(d)*tmpvec(d);
+            }
+            if(tmpdis < pointdist(e,k,1)) { 
+              for(int d=0; d< ndim; d++) {
+                pointdist(e,k,d+2)=tmpvec(d);
+              }
+              pointdist(e,k,1)=tmpdis;
+         // cout << "height " << sqrt(height2) << " dist " << sqrt(pointdist(e,k,1))  
+         //   << " d " << pointdist(e,k,2) << " " << pointdist(e,k,3) << "  " << pointdist(e,k,4) << endl;
+              
+            }
+            if(tmpdis < height2)
+              break;
+          }
+
+        }
+        
+      }
+   /* 
+
+      
+
       for(int j=0; j<e; j++) {
         pointdist(j, e,1)=0.0;
       }
@@ -147,26 +297,6 @@ void Periodic_sample::updateEEDist() {
 
       //-------------------------
       //Find the closest image
-      Array1 <doublevar> tmpvec(3);
-      doublevar tmpdis;
-      doublevar height2=parent->smallestheight*parent->smallestheight*.25;
-      Array2 <doublevar> tmplat(26,3);
-      int counter=0;
-      for(int aa=-1; aa <= 1; aa++) {
-        for(int bb=-1; bb <= 1; bb++) {
-          for(int cc=-1; cc <= 1; cc++) {    
-            if(aa!=0 || bb !=0 || cc!=0) {
-              for(int d=0; d< 3; d++) {
-                tmplat(counter,d)=aa*parent->latVec(0,d)
-                         +bb*parent->latVec(1,d)
-                          +cc*parent->latVec(2,d);
-              }
-              counter++;
-            }
-          }
-        }
-      }
-
       
       for(int j=0; j< e; j++) {
         //first try within the primitive cell
@@ -177,9 +307,9 @@ void Periodic_sample::updateEEDist() {
         
         //then check outside if we haven't found the minimum image
         if(pointdist(j,e,1) > height2) {
-          for(int a=0; a< 26; a++) {
+          for(int a=0; a< nlatbas; a++) {
             for(int d=0; d< 3; d++) 
-              tmpvec(d)=elecpos(j,d)-elecpos(e,d)+tmplat(a,d);
+              tmpvec(d)=elecpos(j,d)-elecpos(e,d)+lattice_basis(a,d);
               
             tmpdis=0;
             for(int d=0; d<3; d++) tmpdis+=tmpvec(d)*tmpvec(d);
@@ -194,6 +324,9 @@ void Periodic_sample::updateEEDist() {
               break;
           }
         }
+
+        //for(int d1=0; d1 < 3; d1++) 
+        //  cout << "oldpointdist " << j << " " << e << " dist " << pointdist(j,e,d1+2) << endl;
       }
       
         
@@ -206,9 +339,9 @@ void Periodic_sample::updateEEDist() {
         
         //then check outside if we haven't found the minimum image
         if(pointdist(e,k,1) > height2) {
-          for(int a=0; a< 26; a++) {
+          for(int a=0; a< nlatbas; a++) {
             for(int d=0; d< 3; d++) 
-              tmpvec(d)=elecpos(e,d)-elecpos(k,d)+tmplat(a,d);
+              tmpvec(d)=elecpos(e,d)-elecpos(k,d)+lattice_basis(a,d);
               
             tmpdis=0;
             for(int d=0; d<3; d++) tmpdis+=tmpvec(d)*tmpvec(d);
@@ -225,7 +358,7 @@ void Periodic_sample::updateEEDist() {
         }
       }     
 
-
+*/
       //---------------------------
       for(int j=0; j<e; j++) {
         pointdist(j, e,0)=sqrt(pointdist(j, e,1));
@@ -268,7 +401,7 @@ void Periodic_sample::updateECDist() {
   //cout << "done" << endl;
 }
 //----------------------------------------------------------------------
-
+#include "qmc_io.h"
 void Periodic_sample::init(System * sys) {
   assert(sys != NULL);
   recast(sys, parent); //assign sys to parent
@@ -309,6 +442,38 @@ void Periodic_sample::init(System * sys) {
   }
   */
 
+  bool orthorhombic=true;
+  for(int i=0; i< 3; i++) { 
+    for(int j=i+1; j < 3; j++) { 
+      doublevar dot=0.0;
+      for(int d=0; d< 3; d++) {
+        dot+=parent->latVec(i,d)*parent->latVec(j,d);
+      }
+      if(dot > 1e-10) orthorhombic=false;
+    }
+  }
+  if(orthorhombic) { 
+    single_write(cout,"Detected orthorhombic cell");
+  }
+  else { 
+    lattice_basis.Resize(26,3);
+    int counter=0;
+    for(int aa=-1; aa <= 1; aa++) {
+      for(int bb=-1; bb <= 1; bb++) {
+        for(int cc=-1; cc <= 1; cc++) {    
+          if(aa!=0 || bb !=0 || cc!=0) {
+            for(int d=0; d< 3; d++) {
+              lattice_basis(counter,d)=aa*parent->latVec(0,d)
+                +bb*parent->latVec(1,d)
+                +cc*parent->latVec(2,d);
+            }
+            counter++;
+          }
+        }
+      }
+    }
+  }
+  
 }
 
 
