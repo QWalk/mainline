@@ -151,6 +151,13 @@ public:
 //----------------------------------------------------------------------
 template <class T> void MO_matrix_einspline<T>::buildLists(Array1 <Array1 <int> > & occupations) { 
 #ifdef USE_EINSPLINE
+  ifstream is(orbfile.c_str());
+  string dummy;
+  is >> dummy;
+  while(dummy != "orbitals") is>>dummy;
+  is.ignore(180,'\n');
+  Array1 <T> orb_data(npoints(0)*npoints(1)*npoints(2));
+
   occ=occupations; 
   int nsplines=occupations.GetDim(0);
   spline.Resize(occupations.GetDim(0));
@@ -165,8 +172,20 @@ template <class T> void MO_matrix_einspline<T>::buildLists(Array1 <Array1 <int> 
   for(int s=0; s< nsplines; s++) { 
     nmo_lists(s)=occupations(s).GetDim(0);
     spline(s).create(grids(0),grids(1), grids(2),nmo_lists(s));
-    for(int i=0; i < nmo_lists(s); i++) { 
-      spline(s).set(i,modata.v+occupations(s)(i)*ngridpts);
+  }
+
+  for(int mo=0; mo < nmo; mo++) { 
+    cout << "reading " << mo << endl;
+    for(T * p=orb_data.v; p!= orb_data.v+npoints(0)*npoints(1)*npoints(2); p++) { 
+      is >> *p;
+    }
+    for(int s=0; s< nsplines; s++) { 
+      for(int i=0; i < nmo_lists(s); i++) { 
+        if(occupations(s)(i)==mo) { 
+          
+          spline(s).set(i,orb_data.v);
+        }
+      }
     }
   }
 
@@ -178,8 +197,6 @@ template <class T> void MO_matrix_einspline<T>::read(vector <string> & words, un
 #ifdef USE_EINSPLINE
   unsigned int pos=startpos;
   ndim=3;
-//  string orbfile;
-  //sys->kpoint(kpoint);
   if(!readvalue(words,pos=startpos,orbfile,"ORBFILE")) 
     error("Need keyword ORBFILE..");
   double magnify=1.0;
@@ -233,13 +250,8 @@ template <class T> void MO_matrix_einspline<T>::read(vector <string> & words, un
   npoints.Resize(ndim);
   for(int i=0; i< ndim; i++) is >> npoints(i);
   is.ignore(180,'\n'); is.ignore(180,'\n');
-  modata.Resize(nmo,npoints(0),npoints(1),npoints(2));
-  int totpts=nmo*npoints(0)*npoints(1)*npoints(2);
-  for(T *p=modata.v;p!=modata.v+totpts; p++) {
-    is >> *p;
-  }
-  is.close();
 
+  is.close();
 #endif //USE_EINSPLINE
 }
 //----------------------------------------------------------------------
