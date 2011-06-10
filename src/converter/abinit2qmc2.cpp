@@ -62,7 +62,7 @@ void supercell_kpoints(const vector <vector <double> > & supercell,
     cout << endl;
   }
 
-  int nsearch=10;
+  int nsearch=20;
   for(int ii=-nsearch; ii < nsearch; ii++) 
   for(int jj=-nsearch; jj < nsearch; jj++) 
   for(int kk=-nsearch; kk < nsearch; kk++) { 
@@ -71,15 +71,16 @@ void supercell_kpoints(const vector <vector <double> > & supercell,
         +jj*inversesupercell[1][d]
         +kk*inversesupercell[2][d];
     }
-    if(kpoint[0] >= 0 && kpoint[0] < 1  &&
-        kpoint[1] >= 0 && kpoint[1] < 1 &&
-        kpoint[2] >= 0 && kpoint[2] < 1) { 
+    if(kpoint[0] > -0.5 && kpoint[0] <= 0.5  &&
+        kpoint[1] > -0.5 && kpoint[1] <= 0.5 &&
+        kpoint[2] > -0.5 && kpoint[2] <= 0.5) { 
       cout << "kpoint " << kpoint[0] << " " << kpoint[1] << " " << kpoint[2] 
-        << endl;
+      << endl;
       kpoints.push_back(kpoint);
     }
   }
 
+  cout <<  "nkpts " << nkpts << " nfound " << kpoints.size() << endl;
   if(nkpts!=kpoints.size()) { 
     cout << "Did not find a number of kpoints equal to the number required by the supercell." << endl;
     cout << "nreq " << nkpts << " nfound " << kpoints.size() << endl;
@@ -127,7 +128,7 @@ void extend_supercell(const vector <vector <double> > & supercell,
        u[d]+=inversesuperlat[d1][d]*delta[d];
      }
    }
-   if(u[0]>=0 && u[0] < 1 && u[1]>=0 && u[1]<1 && u[2]>=0 && u[2]<1) {
+   if(u[0]>=0 && u[0] < .99 && u[1]>=0 && u[1]<.99 && u[2]>=0 && u[2]<.99) {
      deltas.push_back(delta);
      cout << "delta " << delta[0] << "  " << delta[1] << " " << delta[2] << endl;
    }
@@ -153,7 +154,7 @@ class WF_kpoint  { //all the information necessary to calculate the periodic par
 private:
   vector <vector <double> > gvec;
   vector <vector <complex <double> > > coeff;
-  //vector <double> kpoint;
+  vector <double> kpt;
   vector <double> occupation;
   vector <vector <double> > latvec;
 public:
@@ -162,6 +163,10 @@ public:
   }
   int npw() { 
     return gvec.size();
+  }
+  double kpoint(int d) { return kpt[d]; } 
+  void set_kpoint(vector<double> & k) { 
+    kpt=k;
   }
   void occ(vector <double> & occ_) { 
     occ_=occupation;
@@ -206,7 +211,7 @@ class Abinit_converter {
     vector <double> occupation; 
 */    
     vector <WF_kpoint> wavefunctions;
-    vector <vector <double> > kpoint_orbital;
+    //vector <vector <double> > kpoint_orbital;
     vector<double> kpoint; //overall k-point
     bool complex_wavefunction;
     double grid_resolution;
@@ -411,7 +416,7 @@ void Abinit_converter::read_wfk(string filename,
 // file, just as a check.
   cout << "Number of spin channels " << nsppol << endl;
 
-  grid_resolution=0.4;
+  grid_resolution=1.0;
 
   cout << "Lattice vectors " << endl;
   latvec.resize(3);
@@ -443,9 +448,10 @@ void Abinit_converter::read_wfk(string filename,
   for(int isppol=0; isppol < nsppol; isppol++) { 
     vector <double> kpoint_tmp(3);
     for(int k=0; k< nkpt; k++) { 
-      for(int i=0; i< 3; i++) kpoint_tmp[i]=2*kpt[k*3+i];
-      kpoint_orbital.push_back(kpoint_tmp);
+      for(int i=0; i< 3; i++) kpoint_tmp[i]=kpt[k*3+i];
+      //kpoint_orbital.push_back(kpoint_tmp);
       wavefunctions[isppol*nkpt+k].read_wf_from_wfk(wffile,latvec);
+      wavefunctions[isppol*nkpt+k].set_kpoint(kpoint_tmp);
     }
   }
   
@@ -482,6 +488,8 @@ void Abinit_converter::assign_occupations(vector<double>& occupations,bool spin_
  slater.detwt[0]=1.0;
  slater.occ_up.resize(1);
  slater.occ_down.resize(1);
+ slater.occ_up[0].clear();
+ slater.occ_down[0].clear();
  int nstates=occupations.size();
  //------spin polarized
  if(spin_polarized) {
@@ -522,38 +530,35 @@ void Abinit_converter::assign_occupations(vector<double>& occupations,bool spin_
 }
 //--------------------------------------------------------------
 
-void Abinit_converter::write_files(string basename) { 
 
-  write_orbitals(basename+".orb");
-
-  vector <vector <double> > supercell(3);
-  for(int d=0; d< 3; d++) supercell[d].resize(3);
-  supercell[0][0]=2.0; supercell[0][1]=0.0; supercell[0][2]=0.0;
-  supercell[1][0]=0.0; supercell[1][1]=1.0; supercell[1][2]=0.0;
-  supercell[2][0]=0.0; supercell[2][1]=0.0; supercell[2][2]=1.0;
-
-
-  vector <Atom> oldatoms=atoms;
-  vector <vector <double> > oldlatvec=latvec;
-  extend_supercell(supercell,oldatoms,oldlatvec,atoms,latvec);
+//Find the k-points and occupation vector for a given supercell expansion.
+//return 0 if unsuccessful
+int extend_occupation(vector <vector < double> > & supercell,
+                vector <WF_kpoint> & wavefunctions, 
+                vector <double> & sys_kpt,
+                vector <double> & tot_occupation) { 
+  int nkpts=wavefunctions.size();
   vector <vector <double> > supercell_kpts;
   supercell_kpoints(supercell,supercell_kpts);
-  int nkpts=wavefunctions.size();
   if(nkpts < supercell_kpts.size()) { 
-    cout << "Not enough k-points for this supercell. Need " 
-      << nkpts << " and only found " << atoms.size()/oldatoms.size() << endl;
-    exit(2);
+    cout << "Not enough k-points for this supercell. Have " 
+      << nkpts << " and need " << supercell_kpts.size() << endl;
+    return 0;
   }
-  vector <double> tot_occupation;
+  tot_occupation.clear();
+  int nkpts_found=0;
   for(int k=0; k< nkpts; k++) { 
     bool matching_kpt=false;
     for(vector <vector <double> >::iterator skpt=supercell_kpts.begin(); 
         skpt!=supercell_kpts.end(); skpt++) { 
       bool match=true;
       for(int d=0;d < 3; d++) {
-        if(fabs(2*(*skpt)[d]-kpoint_orbital[k][d]) > 1e-3)
+        if(fabs((*skpt)[d]-wavefunctions[k].kpoint(d)) > 1e-3)
           match=false;
       }
+
+      cout << "checking " << (*skpt)[0] << " " << (*skpt)[1] << " " << (*skpt)[2] 
+        << "\n     " << wavefunctions[k].kpoint(0) <<  wavefunctions[k].kpoint(1) << "  " <<   wavefunctions[k].kpoint(2) << endl;
       if(match) {
         matching_kpt=true;
         break;
@@ -563,6 +568,9 @@ void Abinit_converter::write_files(string basename) {
       vector <double> occ;
       wavefunctions[k].occ(occ);
       tot_occupation.insert(tot_occupation.end(),occ.begin(),occ.end());
+      cout << "found k-point " << wavefunctions[k].kpoint(0) << " " << wavefunctions[k].kpoint(1) << " " 
+         << wavefunctions[k].kpoint(2) << endl;
+      nkpts_found++;
     }
     else { 
       vector <double> occ(wavefunctions[k].norbitals());
@@ -570,23 +578,58 @@ void Abinit_converter::write_files(string basename) {
       tot_occupation.insert(tot_occupation.end(),occ.begin(),occ.end());
     }
   }
+  if(nkpts_found != supercell_kpts.size()) { 
+    cout << "couldn't find necessary supercell k-points: needed " << supercell_kpts.size() 
+      << " and found " << nkpts_found << endl;
+    
+    return 0;
+  }
+  return 1;
 
-  assign_occupations(tot_occupation,false);  
+}
 
-  reassign_z();
-  write_sys(basename+".sys");
-  write_slater(basename+".slater");
 
-  string jast2outname=basename+".jast2";
-  double basis_cutoff=find_basis_cutoff(latvec);
-  Jastrow2_wf_writer jast2writer;
-  jast2writer.set_atoms(atoms);
-  
-  
-  ofstream jast2out(jast2outname.c_str());
-  print_std_jastrow2(jast2writer, jast2out, basis_cutoff);
-  jast2out.close();
-  
+//----------------------------------------------------------------------
+
+void Abinit_converter::write_files(string basename) { 
+
+  write_orbitals(basename+".orb");
+
+  for(int super_expansion=1; super_expansion<6; super_expansion++) { 
+    cout <<"########################expanding " << super_expansion << " ####################\n";
+    vector <vector <double> > supercell(3);
+    for(int d=0; d< 3; d++) supercell[d].resize(3);
+    supercell[0][0]=super_expansion; supercell[0][1]=0.0; supercell[0][2]=0.0;
+    supercell[1][0]=0.0; supercell[1][1]=super_expansion; supercell[1][2]=0.0;
+    supercell[2][0]=0.0; supercell[2][1]=0.0; supercell[2][2]=super_expansion;
+
+
+    vector <Atom> oldatoms=atoms;
+    vector <vector <double> > oldlatvec=latvec;
+    extend_supercell(supercell,oldatoms,oldlatvec,atoms,latvec);
+    vector <double> tot_occupation;
+    vector <double> sys_kpt(3);
+    sys_kpt[0]=0.0; sys_kpt[1]=0.0; sys_kpt[2]=0.0;
+    if(extend_occupation(supercell,wavefunctions,sys_kpt,tot_occupation)) { 
+      string super_name=basename+"super";
+      append_number(super_name,super_expansion);
+      assign_occupations(tot_occupation,false);  
+      reassign_z();
+      write_sys(super_name+".sys");
+      write_slater(super_name+".slater");
+
+      string jast2outname=super_name+".jast2";
+      double basis_cutoff=find_basis_cutoff(latvec);
+      Jastrow2_wf_writer jast2writer;
+      jast2writer.set_atoms(atoms);
+      ofstream jast2out(jast2outname.c_str());
+      print_std_jastrow2(jast2writer, jast2out, basis_cutoff);
+      jast2out.close();
+    }
+    atoms=oldatoms;
+    latvec=oldlatvec;
+  }
+
 }
 
 
@@ -669,10 +712,11 @@ void Abinit_converter::write_orbitals(string  filename) {
   os << "norbitals " << totorbitals << endl;
   os << "K-point of each orbital " << endl;
   vector<WF_kpoint>::iterator w=wavefunctions.begin();
-  for(vector<vector <double> >::iterator k=kpoint_orbital.begin() ;
-      k!=kpoint_orbital.end() && w!=wavefunctions.end(); k++,w++) {
+  //for(vector<vector <double> >::iterator k=kpoint_orbital.begin() ;
+  //    k!=kpoint_orbital.end() && w!=wavefunctions.end(); k++,w++) {
+  for(; w!=wavefunctions.end(); w++) { 
     for(int i=0; i< w->norbitals(); i++) 
-      os << (*k)[0] << " " << (*k)[1] << " " << (*k)[2] << endl;
+      os << 2*w->kpoint(0) << " " << 2*w->kpoint(1) << " " << 2*w->kpoint(2) << endl;
   }
   os << "Lattice vectors " << endl;
   for(int i=0; i< 3; i++) { 
