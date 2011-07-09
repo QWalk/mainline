@@ -553,7 +553,7 @@ int extend_occupation(vector <vector < double> > & supercell,
         skpt!=supercell_kpts.end(); skpt++) { 
       bool match=true;
       for(int d=0;d < 3; d++) {
-        if(fabs((*skpt)[d]-wavefunctions[k].kpoint(d)) > 1e-3)
+        if(fabs((*skpt)[d]+sys_kpt[d]-wavefunctions[k].kpoint(d)) > 1e-3)
           match=false;
       }
 
@@ -589,6 +589,7 @@ int extend_occupation(vector <vector < double> > & supercell,
 }
 
 
+
 //----------------------------------------------------------------------
 
 void Abinit_converter::write_files(string basename) { 
@@ -609,25 +610,33 @@ void Abinit_converter::write_files(string basename) {
     extend_supercell(supercell,oldatoms,oldlatvec,atoms,latvec);
     vector <double> tot_occupation;
     vector <double> sys_kpt(3);
-    sys_kpt[0]=0.0; sys_kpt[1]=0.0; sys_kpt[2]=0.0;
-    if(extend_occupation(supercell,wavefunctions,sys_kpt,tot_occupation)) { 
-      string super_name=basename+"super";
-      append_number(super_name,super_expansion);
-      assign_occupations(tot_occupation,false);  
-      reassign_z();
-      write_sys(super_name+".sys");
-      write_slater(super_name+".slater");
+    int knum=0;
+    for(vector<WF_kpoint>::iterator wf=wavefunctions.begin(); 
+        wf!= wavefunctions.end(); wf++) { 
+      sys_kpt[0]=wf->kpoint(0); sys_kpt[1]=wf->kpoint(1); sys_kpt[2]=wf->kpoint(2);
+      for(int d=0; d< 3; d++) kpoint[d]=sys_kpt[d]*super_expansion;
+      if(extend_occupation(supercell,wavefunctions,sys_kpt,tot_occupation)) { 
+        string super_name=basename+"super";
+        append_number(super_name,super_expansion);
+        super_name+="k";
+        append_number(super_name,knum);
+        assign_occupations(tot_occupation,false);  
+        reassign_z();
+        write_sys(super_name+".sys");
+        write_slater(super_name+".slater");
 
-      string jast2outname=super_name+".jast2";
-      double basis_cutoff=find_basis_cutoff(latvec);
-      Jastrow2_wf_writer jast2writer;
-      jast2writer.set_atoms(atoms);
-      ofstream jast2out(jast2outname.c_str());
-      print_std_jastrow2(jast2writer, jast2out, basis_cutoff);
-      jast2out.close();
+        string jast2outname=super_name+".jast2";
+        double basis_cutoff=find_basis_cutoff(latvec);
+        Jastrow2_wf_writer jast2writer;
+        jast2writer.set_atoms(atoms);
+        ofstream jast2out(jast2outname.c_str());
+        print_std_jastrow2(jast2writer, jast2out, basis_cutoff);
+        jast2out.close();
+        knum++;
+      }
+      atoms=oldatoms;
+      latvec=oldlatvec;
     }
-    atoms=oldatoms;
-    latvec=oldlatvec;
   }
 
 }
