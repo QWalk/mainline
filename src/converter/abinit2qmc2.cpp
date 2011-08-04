@@ -416,7 +416,7 @@ void Abinit_converter::read_wfk(string filename,
 // file, just as a check.
   cout << "Number of spin channels " << nsppol << endl;
 
-  grid_resolution=1.0;
+  grid_resolution=.4;
 
   cout << "Lattice vectors " << endl;
   latvec.resize(3);
