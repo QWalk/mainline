@@ -210,6 +210,7 @@ template <class T> void MO_matrix_einspline<T>::read(vector <string> & words, un
   int nmo_file;
   is >> nmo_file;
   nmo=nmo_file;
+  cout << "nmo " << nmo << endl;
   is.ignore(180,'\n'); //clear nmo line
   is.ignore(180,'\n'); //K-point line
   kpoint.Resize(nmo_file,ndim);
@@ -252,7 +253,10 @@ template <class T> void MO_matrix_einspline<T>::read(vector <string> & words, un
   is.ignore(180,'\n'); is.ignore(180,'\n');
 
   is.close();
+#else
+  error("Not compiled with EINSPLINE support!");
 #endif //USE_EINSPLINE
+
 }
 //----------------------------------------------------------------------
 
