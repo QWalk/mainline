@@ -2,7 +2,7 @@
 #include "qmc_io.h"
 #include "gesqua.h"
 #include "ulec.h"
-
+#include "Average_density_matrix.h"
 
 //-----------------------------------------------------------------------------
 int decide_averager(string & label, Average_generator *& avg) { 
@@ -32,6 +32,8 @@ int decide_averager(string & label, Average_generator *& avg) {
     avg=new Average_spherical_density_grid;
   else if(caseless_eq(label, "LINE_DENSITY"))
     avg=new Average_line_density;
+  else if(caseless_eq(label,"TBDM_BASIS")) 
+    avg=new Average_tbdm_basis;
   else 
     error("Didn't understand ", label, " in Average_generator.");
   
