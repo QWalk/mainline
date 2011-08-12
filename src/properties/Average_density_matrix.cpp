@@ -32,7 +32,7 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
   Wf_return wfval_base(wf->nfunc(),2);
   Wf_return wfval_2b(wf->nfunc(),2),wfval_1b(wf->nfunc(),2); //
   wf->getVal(wfdata,0,wfval_base);
-  int totelectrons=sys->nelectrons(0)+sys->nelectrons(1);
+  int nelec_1b=sys->nelectrons(0);
   int npairs=sys->nelectrons(0)*sys->nelectrons(1);
   for(int i=0; i< npoints_eval ;i++) { 
     Array1 <doublevar> r1(3),r2(3),oldr1(3),oldr2(3);
@@ -70,7 +70,7 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
           *psiratio_2b)/npoints_eval ;
       avg.vals(nmo*3+orbnum)+=0.5*(movals1(orbnum,0)*movals1(orbnum,0)+movals2(orbnum,0)*movals2(orbnum,0))/npoints_eval;
 
-      avg.vals(orbnum)+=totelectrons*movals1(orbnum,0)*movals1_old(orbnum,0)*psiratio_1b/npoints_eval;
+      avg.vals(orbnum)+=nelec_1b*movals1(orbnum,0)*movals1_old(orbnum,0)*psiratio_1b/npoints_eval;
       avg.vals(nmo+orbnum)+=movals1(orbnum,0)*movals1(orbnum,0)/npoints_eval;
 
     }
@@ -121,8 +121,6 @@ void Average_tbdm_basis::read(vector <string> & words) {
   //  error("Need ORBITALS section in TBDM_BASIS");
   //}
   //allocate(mosec,sys,momat);
-
-
   //Array1 <Array1 <int> > occupations(1);
   //occupations[0].Resize(momat->getNmo());
   //for(int i=0; i< momat->getNmo(); i++) { 
@@ -135,14 +133,15 @@ void Average_tbdm_basis::read(vector <string> & words) {
 //----------------------------------------------------------------------
 void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, ostream & os) { 
   for(int orbnum=0; orbnum < nmo; orbnum++) { 
-    os << "Average_obdm_basis " << orbnum << setw(16) 
+    os << "Average_obdm_basis " << orbnum << setw(17) 
       << avg.vals(orbnum) << " +/- " << setw(16) << err.vals(orbnum) 
-      << setw(16) << avg.vals(nmo+orbnum) << " +/- "<< setw(16) << err.vals(nmo+orbnum) <<  setw(17) << avg.vals(orbnum)/avg.vals(nmo+orbnum) << endl;
+      << setw(16) << avg.vals(nmo+orbnum) << " +/- "<< setw(16) << err.vals(nmo+orbnum) <<  setw(17) << avg.vals(orbnum)/avg.vals(nmo+orbnum) << " +/- " << err.vals(orbnum)/avg.vals(nmo+orbnum) <<  endl;
   }
   for(int orbnum=2*nmo; orbnum < 3*nmo; orbnum++) { 
-    os << "Average_tbdm_basis " << orbnum << setw(16) 
+    os << "Average_tbdm_basis " << orbnum-2*nmo << setw(16) 
       << avg.vals(orbnum) << " +/- " << setw(16) << err.vals(orbnum) 
-      << setw(16) << avg.vals(nmo+orbnum) << " +/- "<< setw(16) << err.vals(nmo+orbnum) <<  setw(17) << avg.vals(orbnum)/avg.vals(nmo+orbnum)/avg.vals(nmo+orbnum) << endl;
+      << setw(16) << avg.vals(nmo+orbnum) << " +/- "<< setw(16) << err.vals(nmo+orbnum) <<  setw(17) << avg.vals(orbnum)/avg.vals(nmo+orbnum)/avg.vals(nmo+orbnum) 
+      << " +/- " << setw(16) << err.vals(orbnum)/avg.vals(nmo+orbnum)/avg.vals(nmo+orbnum) << endl;
   }
   
 }
