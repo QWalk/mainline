@@ -49,11 +49,11 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
       r2(d)=10*rng.ulec()-5;
     }
     sample->setElectronPos(k,r1);
-    gen_sample(10,.2,k,movals1, sample);
+    gen_sample(nstep_sample,.2,k,movals1, sample);
     wf->updateVal(wfdata,sample);
     wf->getVal(wfdata,0,wfval_1b);
     sample->setElectronPos(l,r2); 
-    gen_sample(10,.2,l,movals2,sample);
+    gen_sample(nstep_sample,.2,l,movals2,sample);
 
     //calculate Psi(r1,r2, etc)
     wf->updateVal(wfdata,sample);
@@ -105,9 +105,13 @@ void Average_tbdm_basis::read(System * sys, Wavefunction_data * wfdata, vector
   for(int i=0; i< momat->getNmo(); i++) { 
     occupations[0][i]=i;
   }
-  npoints_eval=100;
   momat->buildLists(occupations);
   nmo=momat->getNmo();
+
+  if(!readvalue(words, pos=0,nstep_sample,"NSTEP_SAMPLE"))
+    nstep_sample=10;
+  if(!readvalue(words,pos=0,npoints_eval,"NPOINTS"))
+    npoints_eval=100;
   
 }
 
