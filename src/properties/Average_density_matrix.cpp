@@ -38,6 +38,9 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
     Array1 <doublevar> r1(3),r2(3),oldr1(3),oldr2(3);
     int k=int(rng.ulec()*sys->nelectrons(0));
     int l=int(rng.ulec()*sys->nelectrons(1))+sys->nelectrons(0);
+    //Calculate the orbital values for r1 and r2
+    momat->updateVal(sample,k,0,movals1_old); 
+    momat->updateVal(sample,l,0,movals2_old); 
     
     sample->getElectronPos(k,oldr1);
     sample->getElectronPos(l,oldr2);
@@ -45,16 +48,12 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
       r1(d)=10*rng.ulec()-5;
       r2(d)=10*rng.ulec()-5;
     }
-    //Calculate the orbital values for r1 and r2
-    momat->updateVal(sample,k,0,movals1_old); 
-    momat->updateVal(sample,l,0,movals2_old); 
-    //
     sample->setElectronPos(k,r1);
-    momat->updateVal(sample,k,0,movals1); 
+    gen_sample(10,.2,k,movals1, sample);
     wf->updateVal(wfdata,sample);
     wf->getVal(wfdata,0,wfval_1b);
-    sample->setElectronPos(l,r2);
-    momat->updateVal(sample,l,0,movals2); 
+    sample->setElectronPos(l,r2); 
+    gen_sample(10,.2,l,movals2,sample);
 
     //calculate Psi(r1,r2, etc)
     wf->updateVal(wfdata,sample);
@@ -64,14 +63,22 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
         *wfval_2b.sign(0)*wfval_base.sign(0);
     doublevar psiratio_1b=exp(wfval_1b.amp(0,0)-wfval_base.amp(0,0))
         *wfval_1b.sign(0)*wfval_base.sign(0);
+
+    doublevar dist1=0,dist2=0;
+    for(int orbnum=0; orbnum < nmo; orbnum++) {
+      dist1+=movals1(orbnum,0)*movals1(orbnum,0);
+      dist2+=movals2(orbnum,0)*movals2(orbnum,0);
+    }
+
     for(int orbnum=0; orbnum < nmo; orbnum++) { 
       avg.vals(nmo*2+orbnum)+=npairs*(movals1(orbnum,0)*movals1_old(orbnum,0)
           *movals2(orbnum,0)*movals2_old(orbnum,0) 
-          *psiratio_2b)/npoints_eval ;
-      avg.vals(nmo*3+orbnum)+=0.5*(movals1(orbnum,0)*movals1(orbnum,0)+movals2(orbnum,0)*movals2(orbnum,0))/npoints_eval;
+          *psiratio_2b)/npoints_eval/dist1/dist2 ;
+      avg.vals(nmo*3+orbnum)+=0.5*(movals1(orbnum,0)*movals1(orbnum,0)/dist1
+          +movals2(orbnum,0)*movals2(orbnum,0)/dist2 )/npoints_eval;
 
-      avg.vals(orbnum)+=nelec_1b*movals1(orbnum,0)*movals1_old(orbnum,0)*psiratio_1b/npoints_eval;
-      avg.vals(nmo+orbnum)+=movals1(orbnum,0)*movals1(orbnum,0)/npoints_eval;
+      avg.vals(orbnum)+=nelec_1b*movals1(orbnum,0)*movals1_old(orbnum,0)*psiratio_1b/npoints_eval/dist1;
+      avg.vals(nmo+orbnum)+=movals1(orbnum,0)*movals1(orbnum,0)/npoints_eval/dist1;
 
     }
     //Restore the electronic positions
@@ -138,7 +145,7 @@ void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, 
       << setw(16) << avg.vals(nmo+orbnum) << " +/- "<< setw(16) << err.vals(nmo+orbnum) <<  setw(17) << avg.vals(orbnum)/avg.vals(nmo+orbnum) << " +/- " << err.vals(orbnum)/avg.vals(nmo+orbnum) <<  endl;
   }
   for(int orbnum=2*nmo; orbnum < 3*nmo; orbnum++) { 
-    os << "Average_tbdm_basis " << orbnum-2*nmo << setw(16) 
+    os << "Average_tbdm_basis " << orbnum-2*nmo << setw(17) 
       << avg.vals(orbnum) << " +/- " << setw(16) << err.vals(orbnum) 
       << setw(16) << avg.vals(nmo+orbnum) << " +/- "<< setw(16) << err.vals(nmo+orbnum) <<  setw(17) << avg.vals(orbnum)/avg.vals(nmo+orbnum)/avg.vals(nmo+orbnum) 
       << " +/- " << setw(16) << err.vals(orbnum)/avg.vals(nmo+orbnum)/avg.vals(nmo+orbnum) << endl;
@@ -147,3 +154,40 @@ void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, 
 }
 
 //----------------------------------------------------------------------
+//
+//
+//Note this needs to be changed for non-zero k-points!
+void Average_tbdm_basis::gen_sample(int nstep, doublevar  tstep, 
+    int e, Array2 <doublevar> & movals, Sample_point * sample) { 
+  int nmo=momat->getNmo();
+  int ndim=3;
+  Array1 <doublevar> r(ndim),rold(ndim);
+  Array2 <doublevar> movals_old(nmo,1);
+  movals.Resize(nmo,1);
+
+  sample->getElectronPos(e,rold);
+  momat->updateVal(sample,e,0,movals_old);
+
+  for(int step=0; step < nstep; step++) { 
+    for(int d=0; d< ndim; d++) { 
+      r(d)=rold(d)+sqrt(tstep)*rng.gasdev();
+    }
+    sample->setElectronPos(e,r);
+    momat->updateVal(sample,e,0,movals); 
+
+    doublevar sum_old=0,sum=0;
+    for(int mo=0; mo < nmo; mo++) { 
+      sum_old+=movals_old(mo,0)*movals_old(mo,0);
+      sum+=movals(mo,0)*movals(mo,0);
+    }
+    if(rng.ulec() < sum/sum_old) { 
+      movals_old=movals;
+      rold=r;
+    }
+  }
+
+  movals=movals_old;
+  sample->setElectronPos(e,rold);
+
+}
+

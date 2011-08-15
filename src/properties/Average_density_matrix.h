@@ -44,6 +44,8 @@ class Average_tbdm_basis:public Average_generator {
   MO_matrix * momat;
   int nmo;
   int npoints_eval; //Number of integration points to use
+  void gen_sample(int nstep, doublevar  tstep, int e, Array2 <doublevar> & movals, Sample_point * sample) ;
+  
 };
 
 #endif //AVERAGE_DENSITY_MATRIX_H_INCLUDED
