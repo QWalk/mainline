@@ -657,11 +657,18 @@ template<class T> inline void Slat_wf<T>::getParmDepVal(Wavefunction_data * wfda
 
 //-----------------------------------------------------------------------
 
-template <class T> inline int Slat_wf<T>::getParmDeriv(Wavefunction_data *  wfdata, 
+
+template <> inline int Slat_wf<dcomplex>::getParmDeriv(Wavefunction_data *  wfdata, 
 			  Sample_point * sample ,
 			  Parm_deriv_return & derivatives){
- error("parmderiv not supported yet!"); 
- /* 
+  error("parmderiv not supported for complex orbitals yet");
+}
+
+template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfdata, 
+			  Sample_point * sample ,
+			  Parm_deriv_return & derivatives){
+// error("parmderiv not supported yet!"); 
+  
   if(inverseStale) { 
     detVal=lastDetVal;
     updateInverse(parent, lastValUpdate);
@@ -675,7 +682,7 @@ template <class T> inline int Slat_wf<T>::getParmDeriv(Wavefunction_data *  wfda
   
   derivatives.gradient.Resize(nparms);
   derivatives.hessian.Resize(nparms, nparms);
-  
+ /* 
   if(parent->optimize_mo) {
     //get values of determinats with 1 and 2 rows differentiated
     Array3 < Array2 <T> > detGrad(nfunc_,ndet,2);
@@ -812,11 +819,18 @@ template <class T> inline int Slat_wf<T>::getParmDeriv(Wavefunction_data *  wfda
       return 1;
     }
   }
+*/
+  if(parent->optimize_mo) { 
+    error("don't support optimizing mo yet");
+  }
   else if(parent->optimize_det) {
-    doublevar sum=0;
+    log_value<doublevar> detsum=0;
+    Array1 <log_value<doublevar> > detvals(ndet);
     for(int det=0; det < ndet; det++) {
-      sum+=(parent->detwt(det)*detVal(0,det,0)*detVal(0,det,1)).val();
+      detvals(det)=parent->detwt(det)*detVal(0,det,0)*detVal(0,det,1);
     }
+    detsum=sum(detvals);
+    detsum.logval*=-1;
     if(parent->use_csf){
       if(parent->all_weights)
         assert(nparms<parent->ncsf+1);
@@ -849,7 +863,7 @@ template <class T> inline int Slat_wf<T>::getParmDeriv(Wavefunction_data *  wfda
         }
       }
       for(int csf=0; csf< nparms; csf++) {
-        derivatives.gradient(csf)/=sum; 
+        derivatives.gradient(csf)*=detsum.val(); 
       }
       derivatives.hessian=0;
       return 1;
@@ -867,7 +881,7 @@ template <class T> inline int Slat_wf<T>::getParmDeriv(Wavefunction_data *  wfda
       }
       
       for(int det=0; det < nparms; det++) {
-        derivatives.gradient(det)/=sum; 
+        derivatives.gradient(det)*=detsum.val(); 
       }
       derivatives.hessian=0;
       return 1;
@@ -878,7 +892,7 @@ template <class T> inline int Slat_wf<T>::getParmDeriv(Wavefunction_data *  wfda
     derivatives.hessian=0;
     return 1;
   }
-  */
+  
   return 0;
 }
 
