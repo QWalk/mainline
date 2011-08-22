@@ -35,12 +35,28 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
   int nup=sys->nelectrons(0);
   int ndown=sys->nelectrons(1);
   int nupup=0,nupdown=0,ndownup=0,ndowndown=0;
-  for(int i=0; i< npoints_eval ;i++) { 
+  for(int i=0; i< npoints_eval  ;i++) { 
     Array1 <doublevar> r1(3),r2(3),oldr1(3),oldr2(3);
     int k=0,l=0;
     while(k==l) { 
       k=int(rng.ulec()*(nup+ndown));
       l=int(rng.ulec()*(nup+ndown));
+      if(i%4==0) { 
+        k=int(rng.ulec()*nup);
+        l=int(rng.ulec()*nup);
+      }
+      else if(i%4==1) { 
+        k=int(rng.ulec()*nup);
+        l=nup+int(rng.ulec()*ndown);
+      }
+      else if(i%4==2) { 
+        k=nup+int(rng.ulec()*ndown);
+        l=int(rng.ulec()*nup);
+      }
+      else if(i%4==3) { 
+        k=nup+int(rng.ulec()*ndown);
+        l=nup+int(rng.ulec()*ndown);
+      }
     }
     //Calculate the orbital values for r1 and r2
     momat->updateVal(sample,k,0,movals1_old); 
@@ -117,6 +133,7 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
       avg.vals(nmo+5*nmo*nmo+place)/=ndowndown;
     }
   }
+  //cout << nupup << " " << nupdown << " " << ndownup << " " << ndowndown << endl;
 
 
 }
@@ -145,6 +162,13 @@ void Average_tbdm_basis::read(System * sys, Wavefunction_data * wfdata, vector
     nstep_sample=10;
   if(!readvalue(words,pos=0,npoints_eval,"NPOINTS"))
     npoints_eval=100;
+
+  //Since we rotate between the different pairs of spin channels, make sure
+  //that npoints_eval is divisible by 4
+  if(npoints_eval%4!=0) {
+    npoints_eval+=4-npoints_eval%4;
+  }
+
   
 }
 
@@ -267,6 +291,52 @@ void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, 
     }
   }
 
+
+  doublevar trace=0;
+  for(int i=0;i< nmo; i++) trace+=obdm_up(i,i);
+  os << "Trace of the obdm: up: " << trace;
+  trace=0;
+  for(int i=0; i< nmo; i++) trace+=obdm_down(i,i);
+  os << " down: " << trace << endl;
+  trace=0;
+  for(int i=0; i< nmo; i++) trace+=tbdm_uu(i,i);
+  os << "Trace of tbdm: upup: " << trace;
+  trace=0;
+  for(int i=0; i< nmo; i++) trace+=tbdm_ud(i,i);
+  os << " updown: " << trace;
+  trace=0;
+  for(int i=0; i< nmo; i++) trace+=tbdm_du(i,i);
+  os << " downup: " << trace;
+  trace=0;
+  for(int i=0; i< nmo; i++) trace+=tbdm_dd(i,i);
+  os << " downdown: " << trace << endl;
+
+
+  os << "OBDM_up" << endl;
+  for(int i=0; i< nmo; i++) { 
+    for(int j=0; j< nmo; j++)  { 
+      os << setw(17) << obdm_up(i,j);
+    }
+    os << endl;
+  }
+
+  os << "TBDM_upup" << endl;
+  for(int i=0; i< nmo; i++) { 
+    for(int j=0; j< nmo; j++) { 
+      os << setw(17) << tbdm_uu(i,j);
+    }
+    os << endl;
+  }
+
+  os << "TBDM_updown" << endl;
+  for(int i=0; i< nmo; i++) { 
+    for(int j=0; j< nmo; j++) { 
+      os << setw(17) << tbdm_ud(i,j);
+    }
+    os << endl;
+  }
+
+  
 
   /*
   os << "Extra correlation" << endl;
