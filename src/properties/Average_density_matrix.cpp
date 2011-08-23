@@ -65,16 +65,19 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
     sample->getElectronPos(k,oldr1);
     sample->getElectronPos(l,oldr2);
     for(int d=0; d< 3; d++) {
-      r1(d)=10*rng.ulec()-5;
-      r2(d)=10*rng.ulec()-5;
+      r1(d)=10.0*(rng.ulec()-.5);
+      r2(d)=10.0*(rng.ulec()-.5);
     }
     sample->setElectronPos(k,r1);
-    gen_sample(nstep_sample,.2,k,movals1, sample);
-    wf->updateVal(wfdata,sample);
+    //gen_sample(nstep_sample,1.0,k,movals1, sample);
+    momat->updateVal(sample,k,0,movals1);
 
+    wf->updateVal(wfdata,sample);
     wf->getVal(wfdata,0,wfval_1b);
+
     sample->setElectronPos(l,r2); 
-    gen_sample(nstep_sample,.2,l,movals2,sample);
+    //gen_sample(nstep_sample,1.0,l,movals2,sample);
+    momat->updateVal(sample,l,0,movals2);
     wf->updateVal(wfdata,sample);
     wf->getVal(wfdata,0,wfval_2b);
 
@@ -89,6 +92,7 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
       dist1+=movals1(orbnum,0)*movals1(orbnum,0);
       dist2+=movals2(orbnum,0)*movals2(orbnum,0);
     }
+    dist1=1.0; dist2=1.0;
 
     //orbital normalization
     for(int orbnum=0; orbnum < nmo; orbnum++) { 
@@ -201,19 +205,6 @@ void Average_tbdm_basis::read(vector <string> & words) {
 //----------------------------------------------------------------------
 void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, ostream & os) { 
 
-  /*
-  for(int orbnum=0; orbnum < nmo; orbnum++) { 
-    os << "Average_obdm_basis " << orbnum << setw(17) 
-      << avg.vals(orbnum) << " +/- " << setw(16) << err.vals(orbnum) 
-      << setw(16) << avg.vals(nmo+orbnum) << " +/- "<< setw(16) << err.vals(nmo+orbnum) <<  setw(17) << avg.vals(orbnum)/avg.vals(nmo+orbnum) << " +/- " << err.vals(orbnum)/avg.vals(nmo+orbnum) <<  endl;
-  }
-  for(int orbnum=2*nmo; orbnum < 3*nmo; orbnum++) { 
-    os << "Average_tbdm_basis " << orbnum-2*nmo << setw(17) 
-      << avg.vals(orbnum) << " +/- " << setw(16) << err.vals(orbnum) 
-      << setw(16) << avg.vals(nmo+orbnum) << " +/- "<< setw(16) << err.vals(nmo+orbnum) <<  setw(17) << avg.vals(orbnum)/avg.vals(nmo+orbnum)/avg.vals(nmo+orbnum) 
-      << " +/- " << setw(16) << err.vals(orbnum)/avg.vals(nmo+orbnum)/avg.vals(nmo+orbnum) << endl;
-  }
-  */
   Array2 <doublevar> obdm_up(nmo,nmo),obdm_down(nmo,nmo), 
          obdm_up_err(nmo,nmo),obdm_down_err(nmo,nmo),
          tbdm_uu(nmo,nmo),tbdm_uu_err(nmo,nmo),
@@ -338,40 +329,12 @@ void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, 
 
   
 
-  /*
-  os << "Extra correlation" << endl;
-  for(int i=0; i< nmo; i++) { 
-    for(int j=0; j< nmo; j++) { 
-      doublevar tmp= tbdm(i,j)-obdm(i,i)*obdm(j,j);
-      doublevar tmp_err= tbdm_err(i,j)+obdm_err(i,i)+obdm_err(j,j); //wrong error!
-      if(fabs(tmp) > 3*tmp_err) { 
-        os << setw(10) << i << setw(10) << j
-          << setw(17) << tmp
-          << setw(17) << tmp_err
-          << endl;
-      }
-    }
-  }
 
-  doublevar trace=0;
-  for(int i=0; i< nmo; i++) trace+=obdm(i,i);
-  os << "trace of the obdm " << trace << endl;
-
-  trace=0;
-  for(int i=0; i< nmo; i++) trace+=tbdm(i,i);
-  os << "trace of the tbdm " << trace << endl;
-
-  //Symmetrize the matrix
-  for(int i=0; i< nmo; i++) {
-    for(int j=i+1; j< nmo; j++) { 
-      obdm(i,j)=obdm(j,i)=0.5*(obdm(i,j)+obdm(j,i));
-    }
-  }
-
+  Array2 <doublevar> obdm_tmp(nmo,nmo),evecs(nmo,nmo);
   Array1 <doublevar> evals(nmo);
-  Array2 <doublevar> evecs(nmo,nmo);
-  EigenSystemSolverRealSymmetricMatrix(obdm,evals,evecs);
-
+  for(int i=0; i< nmo; i++) 
+    for(int j=0; j<nmo; j++) obdm_tmp(i,j)=obdm_tmp(j,i)=0.5*(obdm_up(i,j)+obdm_up(j,i));
+  EigenSystemSolverRealSymmetricMatrix(obdm_tmp,evals,evecs);
   os << "evals ";
   for(int i=0; i< nmo; i++) os << evals(i) <<" " ;
   os << endl;
@@ -380,63 +343,10 @@ void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, 
   os << "Evecs " << endl;
   for(int i=0; i< nmo; i++) { 
     for(int j=0; j< nmo; j++) { 
-      os << setw(17) << evecs(i,j);
+      os << setw(10) << setprecision(3) << evecs(i,j);
     }
     os << endl;
   }
-*/
-/*
-
-  os << "temporary matrix output " << endl;
-  vector <string> orbnames(13);
-  orbnames[0]="Mn2s";
-  orbnames[1]="Mnz";
-  orbnames[2]="Mny+x";
-  orbnames[3]="Mny-x";
-  orbnames[4]="Os";
-  orbnames[5]="Oy+x";
-  orbnames[6]="Oy-x";
-  orbnames[7]="Oz";
-  orbnames[8]="Mnxy";
-  orbnames[9]="Mnxx-yy";
-  orbnames[10]="Mnzz-rr";
-  orbnames[11]="Mnyz+xz";
-  orbnames[12]="Mnyz-xz";
-
-  os << setw(10) << " ";
-  for(int i=0; i< 13; i++) os << setw(10) << orbnames[i];
-  os << endl;
-  for(int i=0; i< 13; i++) {
-    os << setw(10) << orbnames[i];
-    for(int j=0; j< 13; j++) { 
-      if(fabs(obdm(i,j)) > 0.01) 
-        os << setw(10) << setprecision(2) << obdm(i,j);
-      else 
-        os << setw(10) << 0.0;
-    }
-    os << endl;
-  }
-
-
-  Array2 <doublevar> obdm_tmp(13,13);
-  for(int i=0; i< 13; i++) 
-    for(int j=0; j< 13; j++) obdm_tmp(i,j)=obdm(i,j);
-  EigenSystemSolverRealSymmetricMatrix(obdm,evals,evecs);
-  nmo=13;
-  os << "evals ";
-  for(int i=0; i< nmo; i++) os << evals(i) <<" " ;
-  os << endl;
-
-
-  os << "Evecs " << endl;
-  for(int i=0; i< nmo; i++) { 
-    os << setw(10) << orbnames[i];
-    for(int j=0; j< nmo; j++) { 
-      os << setw(10) << evecs(i,j);
-    }
-    os << endl;
-  }
-*/
 
 }
 
@@ -454,6 +364,7 @@ void Average_tbdm_basis::gen_sample(int nstep, doublevar  tstep,
 
   sample->getElectronPos(e,rold);
   momat->updateVal(sample,e,0,movals_old);
+  doublevar acc=0;
 
   for(int step=0; step < nstep; step++) { 
     for(int d=0; d< ndim; d++) { 
@@ -470,8 +381,10 @@ void Average_tbdm_basis::gen_sample(int nstep, doublevar  tstep,
     if(rng.ulec() < sum/sum_old) { 
       movals_old=movals;
       rold=r;
+      acc++;
     }
   }
+  //cout << "acceptance " << acc/nstep << endl;
 
   movals=movals_old;
   sample->setElectronPos(e,rold);
