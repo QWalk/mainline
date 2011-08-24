@@ -61,23 +61,25 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
     //Calculate the orbital values for r1 and r2
     momat->updateVal(sample,k,0,movals1_old); 
     momat->updateVal(sample,l,0,movals2_old); 
-    
     sample->getElectronPos(k,oldr1);
     sample->getElectronPos(l,oldr2);
-    for(int d=0; d< 3; d++) {
-      r1(d)=10.0*(rng.ulec()-.5);
-      r2(d)=10.0*(rng.ulec()-.5);
-    }
+
+    r1=saved_r(i);
+    r2=saved_r(npoints_eval+i);
+    //for(int d=0; d< 3; d++) {
+      //r1(d)=10.0*(rng.ulec()-.5);
+      //r2(d)=10.0*(rng.ulec()-.5);
+    //}
     sample->setElectronPos(k,r1);
-    //gen_sample(nstep_sample,1.0,k,movals1, sample);
-    momat->updateVal(sample,k,0,movals1);
+    doublevar dist1=gen_sample(nstep_sample,1.0,k,movals1, sample);
+    //momat->updateVal(sample,k,0,movals1);
 
     wf->updateVal(wfdata,sample);
     wf->getVal(wfdata,0,wfval_1b);
 
     sample->setElectronPos(l,r2); 
-    //gen_sample(nstep_sample,1.0,l,movals2,sample);
-    momat->updateVal(sample,l,0,movals2);
+    doublevar dist2=gen_sample(nstep_sample,1.0,l,movals2,sample);
+    //momat->updateVal(sample,l,0,movals2);
     wf->updateVal(wfdata,sample);
     wf->getVal(wfdata,0,wfval_2b);
 
@@ -87,17 +89,13 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
     doublevar psiratio_1b=exp(wfval_1b.amp(0,0)-wfval_base.amp(0,0))
         *wfval_1b.sign(0)*wfval_base.sign(0);
 
-    doublevar dist1=0,dist2=0;
-    for(int orbnum=0; orbnum < nmo; orbnum++) {
-      dist1+=movals1(orbnum,0)*movals1(orbnum,0);
-      dist2+=movals2(orbnum,0)*movals2(orbnum,0);
-    }
-    dist1=1.0; dist2=1.0;
+    //dist1=1.0; dist2=1.0;
 
     //orbital normalization
     for(int orbnum=0; orbnum < nmo; orbnum++) { 
       avg.vals(orbnum)+=0.5*(movals1(orbnum,0)*movals1(orbnum,0)/dist1
             +movals2(orbnum,0)*movals2(orbnum,0)/dist2 )/npoints_eval;
+
     }
     int which_tbdm=0;
     int which_obdm=0;
@@ -108,6 +106,17 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
     else if(k < nup and l >= nup) { which_tbdm=3; npairs=nup*ndown; nupdown++;} 
     else if(k >= nup and l < nup) { which_tbdm=4; npairs=ndown*nup; ndownup++; } 
     else if(k >= nup and l >= nup) { which_tbdm=5; npairs=ndown*(ndown-1);ndowndown++; } 
+    //if(k < nup ) { 
+    //  cout //<< "test position orb1 " << setw(17) << movals1(1,0) 
+        // << " orb6 " << setw(17) << movals1(6,0) 
+        //<< " old " << setw(17) << movals1_old(1,0) 
+        //<< " orb6 " << setw(17)<< movals1_old(6,0) 
+    //    << "orb1 " << setw(17) <<  (movals1(1,0)/movals1_old(1,0))/
+    ///     (movals1(6,0)/movals1_old(6,0))
+     //   << " 1-6 " << setw(17) << movals1(1,0)*movals1_old(6,0) 
+    //    << " 6-1 " << setw(17) << movals1(6,0)*movals1_old(1,0) 
+    //    <<  endl;
+    //}
     for(int orbnum=0; orbnum < nmo; orbnum++) { 
       for(int orbnum2=0; orbnum2 < nmo; orbnum2++) { 
         avg.vals(nmo+which_tbdm*nmo*nmo+orbnum*nmo+orbnum2)+=
@@ -122,6 +131,8 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
 
     }
     //Restore the electronic positions
+    sample->getElectronPos(k,saved_r(i));
+    sample->getElectronPos(l,saved_r(npoints_eval+i));
     sample->setElectronPos(k,oldr1);
     sample->setElectronPos(l,oldr2);
   }
@@ -173,7 +184,19 @@ void Average_tbdm_basis::read(System * sys, Wavefunction_data * wfdata, vector
     npoints_eval+=4-npoints_eval%4;
   }
 
+  int ndim=3;
+  saved_r.Resize(npoints_eval*2); //r1 and r2;
+  for(int i=0; i< npoints_eval*2; i++) saved_r(i).Resize(ndim);
   
+  int warmup_steps=1000;
+  Sample_point * sample=NULL;
+  sys->generateSample(sample);
+  sample->randomGuess();
+  Array2 <doublevar> movals(nmo,2);
+  for(int i=0; i< npoints_eval*2; i++) { 
+    gen_sample(warmup_steps,1.0,0,movals,sample);
+    sample->getElectronPos(0,saved_r(i));
+  }
 }
 
 //----------------------------------------------------------------------
@@ -211,11 +234,19 @@ void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, 
          tbdm_ud(nmo,nmo),tbdm_ud_err(nmo,nmo),
          tbdm_du(nmo,nmo),tbdm_du_err(nmo,nmo),
          tbdm_dd(nmo,nmo),tbdm_dd_err(nmo,nmo);
+
+  os << "Orbital normalization " << endl;
+  for(int i=0; i< nmo; i++) { 
+    os << avg.vals(i) << " +/- " << err.vals(i) << endl;
+  }
+
   for(int i=0; i < nmo; i++) { 
     for(int j=0; j < nmo; j++)  { 
       doublevar norm=sqrt(avg.vals(i)*avg.vals(j));
       int place=i*nmo+j;
       obdm_up(i,j)=avg.vals(nmo+place)/norm;
+      //os << "testing:: " << i << " " << j  << " "  << avg.vals(nmo+place) << " norm " 
+      //    << norm << " reversed " << avg.vals(nmo+j*nmo+i) << endl;
       obdm_up_err(i,j)=err.vals(nmo+place)/norm;
       obdm_down(i,j)=avg.vals(nmo+nmo*nmo+place)/norm;
       obdm_down_err(i,j)=err.vals(nmo+nmo*nmo+place)/norm;
@@ -354,7 +385,7 @@ void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, 
 //
 //
 //Note this needs to be changed for non-zero k-points!
-void Average_tbdm_basis::gen_sample(int nstep, doublevar  tstep, 
+doublevar Average_tbdm_basis::gen_sample(int nstep, doublevar  tstep, 
     int e, Array2 <doublevar> & movals, Sample_point * sample) { 
   int nmo=momat->getNmo();
   int ndim=3;
@@ -388,6 +419,12 @@ void Average_tbdm_basis::gen_sample(int nstep, doublevar  tstep,
 
   movals=movals_old;
   sample->setElectronPos(e,rold);
+
+  doublevar sum=0;
+  for(int mo=0; mo < nmo; mo++) {
+    sum+=movals(mo,0)*movals(mo,0);
+  }
+  return sum;
 
 }
 

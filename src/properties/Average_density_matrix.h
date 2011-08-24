@@ -45,7 +45,8 @@ class Average_tbdm_basis:public Average_generator {
   int nmo;
   int npoints_eval; //Number of integration points to use
   int nstep_sample; //Number of steps to use when sampling the auxilliary points
-  void gen_sample(int nstep, doublevar  tstep, int e, Array2 <doublevar> & movals, Sample_point * sample) ;
+  doublevar gen_sample(int nstep, doublevar  tstep, int e, Array2 <doublevar> & movals, Sample_point * sample) ;
+  Array1 < Array1 <doublevar> > saved_r;
   
 };
 
