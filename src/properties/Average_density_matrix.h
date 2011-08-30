@@ -42,11 +42,14 @@ class Average_tbdm_basis:public Average_generator {
   }
  private:
   MO_matrix * momat;
+  Complex_MO_matrix * cmomat;
   int nmo;
   int npoints_eval; //Number of integration points to use
   int nstep_sample; //Number of steps to use when sampling the auxilliary points
-  doublevar gen_sample(int nstep, doublevar  tstep, int e, Array2 <doublevar> & movals, Sample_point * sample) ;
+  doublevar gen_sample(int nstep, doublevar  tstep, int e, Array2 <dcomplex> & movals, Sample_point * sample) ;
+  void calc_mos(Sample_point *, int e, Array2 <dcomplex> & movals);
   Array1 < Array1 <doublevar> > saved_r;
+  bool complex_orbitals; 
   
 };
 
