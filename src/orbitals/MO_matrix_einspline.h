@@ -69,6 +69,7 @@ public:
     eval_multi_UBspline_3d_d_vgh(spline,x,y,z,vals,grad,hess);
   }
   ~Spline_evaluator() { 
+    if (spline) destroy_Bspline(spline);
   }
 };
 
@@ -94,6 +95,7 @@ public:
     eval_multi_UBspline_3d_z_vgh(spline,x,y,z,vals,grad,hess);
   }
   ~Spline_evaluator() { 
+    if (spline) destroy_Bspline(spline);
   }
 };
 
@@ -117,7 +119,7 @@ private:
   Array1 <int> npoints;
   Array1 <doublevar> resolution;
   Array2 <doublevar> kpoint; //k-point for each orbital
-  Array4 <T > modata;
+  //Array4 <T > modata;
   Array1 <int> nmo_lists;
   int ndim;
   Array1 <Array1 <int> > occ;
