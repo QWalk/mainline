@@ -36,9 +36,11 @@ class Average_tbdm_basis:public Average_generator {
   virtual void write_summary(Average_return &,Average_return &, ostream & os);
   virtual ~Average_tbdm_basis() { 
     if(momat) delete momat;
+    if(cmomat) delete cmomat;
   }
   Average_tbdm_basis() { 
     momat=NULL;
+    cmomat=NULL;
   }
  private:
   MO_matrix * momat;

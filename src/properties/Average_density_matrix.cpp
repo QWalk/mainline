@@ -41,21 +41,29 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
     while(k==l) { 
       k=int(rng.ulec()*(nup+ndown));
       l=int(rng.ulec()*(nup+ndown));
-      if(i%4==0) { 
-        k=int(rng.ulec()*nup);
-        l=int(rng.ulec()*nup);
+      if(nup==1 and ndown==1) { 
+        k=0; l=1;
       }
-      else if(i%4==1) { 
-        k=int(rng.ulec()*nup);
-        l=nup+int(rng.ulec()*ndown);
+      else if(nup==1 or ndown==1) { 
+        error("Need to fix density_matrix");
       }
-      else if(i%4==2) { 
-        k=nup+int(rng.ulec()*ndown);
-        l=int(rng.ulec()*nup);
-      }
-      else if(i%4==3) { 
-        k=nup+int(rng.ulec()*ndown);
-        l=nup+int(rng.ulec()*ndown);
+      else { 
+        if(i%4==0) { 
+          k=int(rng.ulec()*nup);
+          l=int(rng.ulec()*nup);
+        }
+        else if(i%4==1) { 
+          k=int(rng.ulec()*nup);
+          l=nup+int(rng.ulec()*ndown);
+        }
+        else if(i%4==2) { 
+          k=nup+int(rng.ulec()*ndown);
+          l=int(rng.ulec()*nup);
+        }
+        else if(i%4==3) { 
+          k=nup+int(rng.ulec()*ndown);
+          l=nup+int(rng.ulec()*ndown);
+        }
       }
     }
     //Calculate the orbital values for r1 and r2
@@ -121,8 +129,8 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
     int place=0;
     for(int orbnum=0; orbnum < nmo; orbnum++) { 
       for(int orbnum2=0; orbnum2 < nmo; orbnum2++) { 
-        tmp=doublevar(npairs)*conj(movals1(orbnum,0))*movals1_old(orbnum,0)
-            *conj(movals2(orbnum2,0))*movals2_old(orbnum2,0)
+        tmp=doublevar(npairs)*conj(movals1(orbnum,0))*movals1_old(orbnum2,0)
+            *conj(movals2(orbnum,0))*movals2_old(orbnum2,0)
             *psiratio_2b/dist1/dist2;
         avg.vals(nmo+2*which_tbdm*nmo*nmo+place)+=tmp.real();
         avg.vals(nmo+2*which_tbdm*nmo*nmo+place+1)+=tmp.imag();
