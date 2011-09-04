@@ -52,6 +52,7 @@ class Average_tbdm_basis:public Average_generator {
   void calc_mos(Sample_point *, int e, Array2 <dcomplex> & movals);
   Array1 < Array1 <doublevar> > saved_r;
   bool complex_orbitals; 
+  bool eval_tbdm;
   
 };
 

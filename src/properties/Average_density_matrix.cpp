@@ -24,8 +24,16 @@
 void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
                         System * sys, Sample_point * sample, Average_return & avg) { 
   avg.type="tbdm_basis";
-  avg.vals.Resize(nmo+12*nmo*nmo); //orbital normalization, then 1bdm up, 1bdm down, 2bdm up up, 2bdm up down 2bdm down up 2bdm down down, with everything complex
+  //orbital normalization, then 1bdm up, 1bdm down, 2bdm up up, 2bdm up down 2bdm down up 2bdm down down, with everything complex
+  if(eval_tbdm) { 
+    avg.vals.Resize(nmo+4*nmo*nmo+8*nmo*nmo);
+  }
+  else { 
+    avg.vals.Resize(nmo+(4)*nmo*nmo);  
+  }
   avg.vals=0;
+
+
   wf->updateVal(wfdata,sample);
 
   Array2 <dcomplex> movals1(nmo,1),movals2(nmo,1),movals1_old(nmo,1),movals2_old(nmo,1);
@@ -80,25 +88,27 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
     wf->updateVal(wfdata,sample);
     wf->getVal(wfdata,0,wfval_1b);
 
-    sample->setElectronPos(l,r2); 
-    doublevar dist2=gen_sample(nstep_sample,1.0,l,movals2,sample);
-    wf->updateVal(wfdata,sample);
-    wf->getVal(wfdata,0,wfval_2b);
 
-    //Accumulate matrix elements 
-    //doublevar psiratio_2b=exp(wfval_2b.amp(0,0)-wfval_base.amp(0,0))
-    //    *wfval_2b.sign(0)*wfval_base.sign(0);
-    //doublevar psiratio_1b=exp(wfval_1b.amp(0,0)-wfval_base.amp(0,0))
-    //    *wfval_1b.sign(0)*wfval_base.sign(0);
     dcomplex psiratio_1b=exp(dcomplex(wfval_1b.amp(0,0)-wfval_base.amp(0,0),
           wfval_1b.phase(0,0)-wfval_base.phase(0,0)));
-    dcomplex psiratio_2b=exp(dcomplex(wfval_2b.amp(0,0)-wfval_base.amp(0,0),
-          wfval_2b.phase(0,0)-wfval_base.phase(0,0)));
+   
+    doublevar dist2; dcomplex psiratio_2b;
+    if(eval_tbdm) { 
+
+      sample->setElectronPos(l,r2); 
+      dist2=gen_sample(nstep_sample,1.0,l,movals2,sample);
+      wf->updateVal(wfdata,sample);
+      wf->getVal(wfdata,0,wfval_2b);
+
+      psiratio_2b=exp(dcomplex(wfval_2b.amp(0,0)-wfval_base.amp(0,0),
+            wfval_2b.phase(0,0)-wfval_base.phase(0,0)));
+    }
 
     //orbital normalization
     for(int orbnum=0; orbnum < nmo; orbnum++) { 
-      avg.vals(orbnum)+=0.5*(norm(movals1(orbnum,0))/dist1
-            +norm(movals2(orbnum,0))/dist2 )/npoints_eval;
+      //avg.vals(orbnum)+=0.5*(norm(movals1(orbnum,0))/dist1
+      //      +norm(movals2(orbnum,0))/dist2 )/npoints_eval;
+      avg.vals(orbnum)+=norm(movals1(orbnum,0))/(dist1*npoints_eval);
 
     }
     int which_tbdm=0;
@@ -110,31 +120,11 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
     else if(k < nup and l >= nup) { which_tbdm=3; npairs=nup*ndown; nupdown++;} 
     else if(k >= nup and l < nup) { which_tbdm=4; npairs=ndown*nup; ndownup++; } 
     else if(k >= nup and l >= nup) { which_tbdm=5; npairs=ndown*(ndown-1);ndowndown++; } 
-    /*
-    for(int orbnum=0; orbnum < nmo; orbnum++) { 
-      for(int orbnum2=0; orbnum2 < nmo; orbnum2++) { 
-        avg.vals(nmo+which_tbdm*nmo*nmo+orbnum*nmo+orbnum2)+=
-            npairs*(movals1(orbnum,0)*movals1_old(orbnum,0)
-            *movals2(orbnum2,0)*movals2_old(orbnum2,0) 
-            *psiratio_2b)/dist1/dist2 ;
 
-        avg.vals(nmo+which_obdm*nmo*nmo+orbnum*nmo+orbnum2)+=
-          nelec_1b*movals1(orbnum,0)*movals1_old(orbnum2,0)
-          *psiratio_1b/dist1;
-      }
-
-    }
-    */
     dcomplex tmp;
     int place=0;
     for(int orbnum=0; orbnum < nmo; orbnum++) { 
       for(int orbnum2=0; orbnum2 < nmo; orbnum2++) { 
-        tmp=doublevar(npairs)*conj(movals1(orbnum,0))*movals1_old(orbnum2,0)
-            *conj(movals2(orbnum,0))*movals2_old(orbnum2,0)
-            *psiratio_2b/dist1/dist2;
-        avg.vals(nmo+2*which_tbdm*nmo*nmo+place)+=tmp.real();
-        avg.vals(nmo+2*which_tbdm*nmo*nmo+place+1)+=tmp.imag();
-
         tmp=doublevar(nelec_1b)*movals1(orbnum,0)*conj(movals1_old(orbnum2,0))
             *psiratio_1b/dist1;
 
@@ -144,6 +134,20 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
         place+=2;
       }
     }
+    if(eval_tbdm) { 
+      place=0;
+      for(int orbnum=0; orbnum < nmo; orbnum++) { 
+        for(int orbnum2=0; orbnum2 < nmo; orbnum2++) { 
+          tmp=doublevar(npairs)*conj(movals1(orbnum,0))*movals1_old(orbnum2,0)
+            *conj(movals2(orbnum,0))*movals2_old(orbnum2,0)
+            *psiratio_2b/dist1/dist2;
+          avg.vals(nmo+2*which_tbdm*nmo*nmo+place)+=tmp.real();
+          avg.vals(nmo+2*which_tbdm*nmo*nmo+place+1)+=tmp.imag();
+          place+=2;
+        }
+      }
+    }
+    
     //Restore the electronic positions
     sample->getElectronPos(k,saved_r(i));
     sample->getElectronPos(l,saved_r(npoints_eval+i));
@@ -157,10 +161,12 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
       for(int k=0; k< 2; k++) { 
         avg.vals(nmo+2*0*nmo*nmo+place)/=nupup+nupdown;
         avg.vals(nmo+2*1*nmo*nmo+place)/=ndownup+ndowndown;
-        avg.vals(nmo+2*2*nmo*nmo+place)/=nupup;
-        avg.vals(nmo+2*3*nmo*nmo+place)/=nupdown;
-        avg.vals(nmo+2*4*nmo*nmo+place)/=ndownup;
-        avg.vals(nmo+2*5*nmo*nmo+place)/=ndowndown;
+        if(eval_tbdm) { 
+          avg.vals(nmo+2*2*nmo*nmo+place)/=nupup;
+          avg.vals(nmo+2*3*nmo*nmo+place)/=nupdown;
+          avg.vals(nmo+2*4*nmo*nmo+place)/=ndownup;
+          avg.vals(nmo+2*5*nmo*nmo+place)/=ndowndown;
+        }
         place++;
       }
     }
@@ -175,39 +181,51 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
 void Average_tbdm_basis::read(System * sys, Wavefunction_data * wfdata, vector
                     <string> & words) { 
   unsigned int pos=0;
+  vector <string> orbs;
+
   vector <string> mosec;
   if(readsection(words,pos=0, mosec,"ORBITALS")) { 
     //error("Need ORBITALS section in TBDM_BASIS");
     complex_orbitals=false;
     allocate(mosec,sys,momat);
-
-
-    Array1 <Array1 <int> > occupations(1);
-    occupations[0].Resize(momat->getNmo());
-    for(int i=0; i< momat->getNmo(); i++) { 
-      occupations[0][i]=i;
-    }
-    momat->buildLists(occupations);
     nmo=momat->getNmo();
   }
   else if(readsection(words,pos=0,mosec,"CORBITALS")) { 
     complex_orbitals=true;
     allocate(mosec,sys,cmomat);
-    Array1 <Array1 <int> > occupations(1);
-    occupations[0].Resize(cmomat->getNmo());
-    for(int i=0; i< cmomat->getNmo(); i++) { 
-      occupations[0][i]=i;
-    }
-    cmomat->buildLists(occupations);
     nmo=cmomat->getNmo();
   }
   else { error("Need ORBITALS or CORBITALS in TBDM_BASIS"); } 
+
+  Array1 <Array1 <int> > occupations(1);
+  if(readsection(words,pos=0,orbs,"EVAL_ORBS")) { 
+    nmo=orbs.size();
+    occupations[0].Resize(nmo);
+    for(int i=0; i< nmo; i++) 
+      occupations[0][i]=atoi(orbs[i].c_str());
+  }
+  else { 
+    occupations[0].Resize(nmo);
+    for(int i=0; i< nmo; i++) { 
+      occupations[0][i]=i;
+    }
+  }
+
+  if(complex_orbitals) 
+    cmomat->buildLists(occupations);
+  else 
+    momat->buildLists(occupations);
+
 
 
   if(!readvalue(words, pos=0,nstep_sample,"NSTEP_SAMPLE"))
     nstep_sample=10;
   if(!readvalue(words,pos=0,npoints_eval,"NPOINTS"))
     npoints_eval=100;
+
+  eval_tbdm=true;
+  if(haskeyword(words,pos=0,"ONLY_OBDM"))
+    eval_tbdm=false;
 
   //Since we rotate between the different pairs of spin channels, make sure
   //that npoints_eval is divisible by 4
@@ -236,6 +254,9 @@ void Average_tbdm_basis::write_init(string & indent, ostream & os) {
   os << indent << "TBDM_BASIS" << endl;
   os << indent << "NMO " << nmo << endl;
   os << indent << "NPOINTS " << npoints_eval << endl;
+  if(!eval_tbdm) { 
+    os << indent << "ONLY_OBDM" << endl;
+  }
   if(complex_orbitals) { 
     os << indent << "CORBITALS { \n";
     cmomat->writeinput(indent,os); 
@@ -264,6 +285,8 @@ void Average_tbdm_basis::read(vector <string> & words) {
 
   readvalue(words, pos=0,nmo,"NMO");
   readvalue(words,pos=0,npoints_eval,"NPOINTS");
+  if(haskeyword(words, pos=0,"ONLY_OBDM")) eval_tbdm=false;
+  else eval_tbdm=true;
 }
 //----------------------------------------------------------------------
 void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, ostream & os) { 
@@ -293,19 +316,20 @@ void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, 
       index+=2*nmo*nmo;
       obdm_down(i,j)=dcomplex(avg.vals(index),avg.vals(index+1))/norm;
       obdm_down_err(i,j)=dcomplex(err.vals(index),err.vals(index+1))/norm;
-
-      index+=2*nmo*nmo;
-      tbdm_uu(i,j)=dcomplex(avg.vals(index),avg.vals(index+1))/(norm*norm);
-      tbdm_uu_err(i,j)=dcomplex(err.vals(index),err.vals(index+1))/(norm*norm);
-      index+=2*nmo*nmo;
-      tbdm_ud(i,j)=dcomplex(avg.vals(index),avg.vals(index+1))/(norm*norm);
-      tbdm_ud_err(i,j)=dcomplex(err.vals(index),err.vals(index+1))/(norm*norm);
-      index+=2*nmo*nmo;
-      tbdm_du(i,j)=dcomplex(avg.vals(index),avg.vals(index+1))/(norm*norm);
-      tbdm_du_err(i,j)=dcomplex(err.vals(index),err.vals(index+1))/(norm*norm);
-      index+=2*nmo*nmo;
-      tbdm_dd(i,j)=dcomplex(avg.vals(index),avg.vals(index+1))/(norm*norm);
-      tbdm_dd_err(i,j)=dcomplex(err.vals(index),err.vals(index+1))/(norm*norm);
+      if(eval_tbdm) { 
+        index+=2*nmo*nmo;
+        tbdm_uu(i,j)=dcomplex(avg.vals(index),avg.vals(index+1))/(norm*norm);
+        tbdm_uu_err(i,j)=dcomplex(err.vals(index),err.vals(index+1))/(norm*norm);
+        index+=2*nmo*nmo;
+        tbdm_ud(i,j)=dcomplex(avg.vals(index),avg.vals(index+1))/(norm*norm);
+        tbdm_ud_err(i,j)=dcomplex(err.vals(index),err.vals(index+1))/(norm*norm);
+        index+=2*nmo*nmo;
+        tbdm_du(i,j)=dcomplex(avg.vals(index),avg.vals(index+1))/(norm*norm);
+        tbdm_du_err(i,j)=dcomplex(err.vals(index),err.vals(index+1))/(norm*norm);
+        index+=2*nmo*nmo;
+        tbdm_dd(i,j)=dcomplex(avg.vals(index),avg.vals(index+1))/(norm*norm);
+        tbdm_dd_err(i,j)=dcomplex(err.vals(index),err.vals(index+1))/(norm*norm);
+      }
       place+=2;
     }
   }
@@ -325,24 +349,25 @@ void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, 
     }
 
   }
+  if(eval_tbdm) { 
+    os << "two-body density matrix " << endl;
+    os << setw(10) << " " << setw(10) << " "
+      << setw(colwidth) << "upup" << setw(colwidth) << "upup err"
+      << setw(colwidth) << "updown" << setw(colwidth) << "updown err"
+      << setw(colwidth) << "downup" << setw(colwidth) << "downup err"
+      << setw(colwidth) << "downdown" << setw(colwidth) << "downdown err"
+      << endl;
+    for(int i=0; i< nmo ; i++) { 
+      for(int j=0; j<nmo; j++) { 
+        os << setw(10) << i << setw(10) << j
+          << setw(colwidth) << tbdm_uu(i,j) << setw(colwidth) << tbdm_uu_err(i,j)
+          << setw(colwidth) << tbdm_ud(i,j) << setw(colwidth) << tbdm_ud_err(i,j)
+          << setw(colwidth) << tbdm_du(i,j) << setw(colwidth) << tbdm_du_err(i,j)
+          << setw(colwidth) << tbdm_dd(i,j) << setw(colwidth) << tbdm_dd_err(i,j)
+          << endl;
+      }
 
-  os << "two-body density matrix " << endl;
-  os << setw(10) << " " << setw(10) << " "
-    << setw(colwidth) << "upup" << setw(colwidth) << "upup err"
-    << setw(colwidth) << "updown" << setw(colwidth) << "updown err"
-    << setw(colwidth) << "downup" << setw(colwidth) << "downup err"
-    << setw(colwidth) << "downdown" << setw(colwidth) << "downdown err"
-    << endl;
-  for(int i=0; i< nmo ; i++) { 
-    for(int j=0; j<nmo; j++) { 
-      os << setw(10) << i << setw(10) << j
-        << setw(colwidth) << tbdm_uu(i,j) << setw(colwidth) << tbdm_uu_err(i,j)
-        << setw(colwidth) << tbdm_ud(i,j) << setw(colwidth) << tbdm_ud_err(i,j)
-        << setw(colwidth) << tbdm_du(i,j) << setw(colwidth) << tbdm_du_err(i,j)
-        << setw(colwidth) << tbdm_dd(i,j) << setw(colwidth) << tbdm_dd_err(i,j)
-        << endl;
     }
-
   }
 
 
@@ -352,65 +377,8 @@ void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, 
   trace=0;
   for(int i=0; i< nmo; i++) trace+=obdm_down(i,i);
   os << " down: " << trace << endl;
-  trace=0;
-  for(int i=0; i< nmo; i++) trace+=tbdm_uu(i,i);
-  os << "Trace of tbdm: upup: " << trace;
-  trace=0;
-  for(int i=0; i< nmo; i++) trace+=tbdm_ud(i,i);
-  os << " updown: " << trace;
-  trace=0;
-  for(int i=0; i< nmo; i++) trace+=tbdm_du(i,i);
-  os << " downup: " << trace;
-  trace=0;
-  for(int i=0; i< nmo; i++) trace+=tbdm_dd(i,i);
-  os << " downdown: " << trace << endl;
 
 
-  os << "OBDM_up" << endl;
-  for(int i=0; i< nmo; i++) { 
-    for(int j=0; j< nmo; j++)  { 
-      os << setw(colwidth) << obdm_up(i,j);
-    }
-    os << endl;
-  }
-
-  os << "TBDM_upup" << endl;
-  for(int i=0; i< nmo; i++) { 
-    for(int j=0; j< nmo; j++) { 
-      os << setw(colwidth) << tbdm_uu(i,j);
-    }
-    os << endl;
-  }
-
-  os << "TBDM_updown" << endl;
-  for(int i=0; i< nmo; i++) { 
-    for(int j=0; j< nmo; j++) { 
-      os << setw(colwidth) << tbdm_ud(i,j);
-    }
-    os << endl;
-  }
-
-  
-
-/*
-  Array2 <doublevar> obdm_tmp(nmo,nmo),evecs(nmo,nmo);
-  Array1 <doublevar> evals(nmo);
-  for(int i=0; i< nmo; i++) 
-    for(int j=0; j<nmo; j++) obdm_tmp(i,j)=obdm_tmp(j,i)=0.5*(obdm_up(i,j)+obdm_up(j,i));
-  EigenSystemSolverRealSymmetricMatrix(obdm_tmp,evals,evecs);
-  os << "evals ";
-  for(int i=0; i< nmo; i++) os << evals(i) <<" " ;
-  os << endl;
-
-
-  os << "Evecs " << endl;
-  for(int i=0; i< nmo; i++) { 
-    for(int j=0; j< nmo; j++) { 
-      os << setw(10) << setprecision(3) << evecs(i,j);
-    }
-    os << endl;
-  }
-*/
 }
 
 //----------------------------------------------------------------------
