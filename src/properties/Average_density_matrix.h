@@ -50,6 +50,12 @@ class Average_tbdm_basis:public Average_generator {
   int nstep_sample; //Number of steps to use when sampling the auxilliary points
   doublevar gen_sample(int nstep, doublevar  tstep, int e, Array2 <dcomplex> & movals, Sample_point * sample) ;
   void calc_mos(Sample_point *, int e, Array2 <dcomplex> & movals);
+
+  enum tbdm_t { tbdm_uu,tbdm_ud, tbdm_du,tbdm_dd } ;
+  int tbdm_index(tbdm_t typ, int i, int j, int k, int l) { 
+    return nmo+4*nmo*nmo+2*(typ*nmo*nmo*nmo*nmo+i*nmo*nmo*nmo+j*nmo*nmo+k*nmo+l);
+  }
+
   Array1 < Array1 <doublevar> > saved_r;
   bool complex_orbitals; 
   bool eval_tbdm;

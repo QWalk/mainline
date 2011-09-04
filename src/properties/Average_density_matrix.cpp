@@ -26,7 +26,7 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
   avg.type="tbdm_basis";
   //orbital normalization, then 1bdm up, 1bdm down, 2bdm up up, 2bdm up down 2bdm down up 2bdm down down, with everything complex
   if(eval_tbdm) { 
-    avg.vals.Resize(nmo+4*nmo*nmo+8*nmo*nmo);
+    avg.vals.Resize(nmo+4*nmo*nmo+8*nmo*nmo*nmo*nmo);
   }
   else { 
     avg.vals.Resize(nmo+(4)*nmo*nmo);  
@@ -111,15 +111,15 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
       avg.vals(orbnum)+=norm(movals1(orbnum,0))/(dist1*npoints_eval);
 
     }
-    int which_tbdm=0;
+    tbdm_t which_tbdm;
     int which_obdm=0;
     int npairs=0;
     int nelec_1b=nup;
     if(k >= nup) { which_obdm=1; nelec_1b=ndown; } 
-    if(k < nup and l < nup) { which_tbdm=2; npairs=nup*(nup-1);nupup++; } 
-    else if(k < nup and l >= nup) { which_tbdm=3; npairs=nup*ndown; nupdown++;} 
-    else if(k >= nup and l < nup) { which_tbdm=4; npairs=ndown*nup; ndownup++; } 
-    else if(k >= nup and l >= nup) { which_tbdm=5; npairs=ndown*(ndown-1);ndowndown++; } 
+    if(k < nup and l < nup) { which_tbdm=tbdm_uu; npairs=nup*(nup-1);nupup++; } 
+    else if(k < nup and l >= nup) { which_tbdm=tbdm_ud; npairs=nup*ndown; nupdown++;} 
+    else if(k >= nup and l < nup) { which_tbdm=tbdm_du; npairs=ndown*nup; ndownup++; } 
+    else if(k >= nup and l >= nup) { which_tbdm=tbdm_dd; npairs=ndown*(ndown-1);ndowndown++; } 
 
     dcomplex tmp;
     int place=0;
@@ -135,15 +135,19 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
       }
     }
     if(eval_tbdm) { 
-      place=0;
-      for(int orbnum=0; orbnum < nmo; orbnum++) { 
-        for(int orbnum2=0; orbnum2 < nmo; orbnum2++) { 
-          tmp=doublevar(npairs)*conj(movals1(orbnum,0))*movals1_old(orbnum2,0)
-            *conj(movals2(orbnum,0))*movals2_old(orbnum2,0)
-            *psiratio_2b/dist1/dist2;
-          avg.vals(nmo+2*which_tbdm*nmo*nmo+place)+=tmp.real();
-          avg.vals(nmo+2*which_tbdm*nmo*nmo+place+1)+=tmp.imag();
-          place+=2;
+      for(int oi=0; oi < nmo; oi++) { 
+        for(int oj=0; oj < nmo; oj++) { 
+          for(int ok=0; ok < nmo; ok++) { 
+            for(int ol=0; ol < nmo; ol++) { 
+              tmp=doublevar(npairs)*conj(movals1(oi,0))*movals1_old(ok,0)
+                *conj(movals2(oj,0))*movals2_old(ol,0)
+                *psiratio_2b/dist1/dist2;
+              int ind=tbdm_index(which_tbdm,oi,oj,ok,ol);
+              avg.vals(ind)+=tmp.real();
+              avg.vals(ind+1)+=tmp.imag();
+              //cout << "index " << ind << endl;
+            }
+          }
         }
       }
     }
@@ -161,16 +165,34 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
       for(int k=0; k< 2; k++) { 
         avg.vals(nmo+2*0*nmo*nmo+place)/=nupup+nupdown;
         avg.vals(nmo+2*1*nmo*nmo+place)/=ndownup+ndowndown;
-        if(eval_tbdm) { 
-          avg.vals(nmo+2*2*nmo*nmo+place)/=nupup;
-          avg.vals(nmo+2*3*nmo*nmo+place)/=nupdown;
-          avg.vals(nmo+2*4*nmo*nmo+place)/=ndownup;
-          avg.vals(nmo+2*5*nmo*nmo+place)/=ndowndown;
-        }
         place++;
       }
     }
   }
+
+  if(eval_tbdm) { 
+    place=0;
+    for(int oi=0; oi < nmo; oi++) { 
+      for(int oj=0; oj < nmo; oj++) { 
+        for (int ok=0; ok < nmo; ok++) { 
+          for(int ol=0; ol < nmo; ol++) { 
+            int induu=tbdm_index(tbdm_uu,oi,oj,ok,ol);
+            int indud=tbdm_index(tbdm_ud,oi,oj,ok,ol);
+            int inddu=tbdm_index(tbdm_du,oi,oj,ok,ol);
+            int inddd=tbdm_index(tbdm_dd,oi,oj,ok,ol);
+            for(int k=0; k < 2; k++) { 
+              avg.vals(induu+k)/=nupup;
+              avg.vals(indud+k)/=nupdown;
+              avg.vals(inddu+k)/=ndownup;
+              avg.vals(inddd+k)/=ndowndown;
+            }
+          }
+        }
+      }
+    }
+  }
+
+
   //cout << nupup << " " << nupdown << " " << ndownup << " " << ndowndown << endl;
 
 
@@ -292,11 +314,12 @@ void Average_tbdm_basis::read(vector <string> & words) {
 void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, ostream & os) { 
 
   Array2 <dcomplex> obdm_up(nmo,nmo),obdm_down(nmo,nmo), 
-         obdm_up_err(nmo,nmo),obdm_down_err(nmo,nmo),
-         tbdm_uu(nmo,nmo),tbdm_uu_err(nmo,nmo),
-         tbdm_ud(nmo,nmo),tbdm_ud_err(nmo,nmo),
-         tbdm_du(nmo,nmo),tbdm_du_err(nmo,nmo),
-         tbdm_dd(nmo,nmo),tbdm_dd_err(nmo,nmo);
+         obdm_up_err(nmo,nmo),obdm_down_err(nmo,nmo);
+  //Array4 <dcomplex>
+  //       tbdm_uu(nmo,nmo),tbdm_uu_err(nmo,nmo),
+   //      tbdm_ud(nmo,nmo),tbdm_ud_err(nmo,nmo),
+   //      tbdm_du(nmo,nmo),tbdm_du_err(nmo,nmo),
+   //      tbdm_dd(nmo,nmo),tbdm_dd_err(nmo,nmo);
 
   os << "tbdm: nmo " << nmo << endl;
   os << "Orbital normalization " << endl;
@@ -316,20 +339,6 @@ void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, 
       index+=2*nmo*nmo;
       obdm_down(i,j)=dcomplex(avg.vals(index),avg.vals(index+1))/norm;
       obdm_down_err(i,j)=dcomplex(err.vals(index),err.vals(index+1))/norm;
-      if(eval_tbdm) { 
-        index+=2*nmo*nmo;
-        tbdm_uu(i,j)=dcomplex(avg.vals(index),avg.vals(index+1))/(norm*norm);
-        tbdm_uu_err(i,j)=dcomplex(err.vals(index),err.vals(index+1))/(norm*norm);
-        index+=2*nmo*nmo;
-        tbdm_ud(i,j)=dcomplex(avg.vals(index),avg.vals(index+1))/(norm*norm);
-        tbdm_ud_err(i,j)=dcomplex(err.vals(index),err.vals(index+1))/(norm*norm);
-        index+=2*nmo*nmo;
-        tbdm_du(i,j)=dcomplex(avg.vals(index),avg.vals(index+1))/(norm*norm);
-        tbdm_du_err(i,j)=dcomplex(err.vals(index),err.vals(index+1))/(norm*norm);
-        index+=2*nmo*nmo;
-        tbdm_dd(i,j)=dcomplex(avg.vals(index),avg.vals(index+1))/(norm*norm);
-        tbdm_dd_err(i,j)=dcomplex(err.vals(index),err.vals(index+1))/(norm*norm);
-      }
       place+=2;
     }
   }
@@ -351,20 +360,42 @@ void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, 
   }
   if(eval_tbdm) { 
     os << "two-body density matrix " << endl;
-    os << setw(10) << " " << setw(10) << " "
+    os << setw(10) << " i " << setw(10) << " j " << setw(10) << " k " 
+      << " l " 
       << setw(colwidth) << "upup" << setw(colwidth) << "upup err"
       << setw(colwidth) << "updown" << setw(colwidth) << "updown err"
       << setw(colwidth) << "downup" << setw(colwidth) << "downup err"
       << setw(colwidth) << "downdown" << setw(colwidth) << "downdown err"
       << endl;
+    dcomplex uu,uu_err,ud,ud_err,du,du_err,dd,dd_err;
     for(int i=0; i< nmo ; i++) { 
       for(int j=0; j<nmo; j++) { 
-        os << setw(10) << i << setw(10) << j
-          << setw(colwidth) << tbdm_uu(i,j) << setw(colwidth) << tbdm_uu_err(i,j)
-          << setw(colwidth) << tbdm_ud(i,j) << setw(colwidth) << tbdm_ud_err(i,j)
-          << setw(colwidth) << tbdm_du(i,j) << setw(colwidth) << tbdm_du_err(i,j)
-          << setw(colwidth) << tbdm_dd(i,j) << setw(colwidth) << tbdm_dd_err(i,j)
-          << endl;
+        for(int k=0; k< nmo; k++) {
+          for(int l=0; l< nmo; l++) { 
+            doublevar norm=sqrt(avg.vals(i)*avg.vals(j)*avg.vals(k)*avg.vals(l));
+            int induu=tbdm_index(tbdm_uu,i,j,k,l);
+            int indud=tbdm_index(tbdm_ud,i,j,k,l);
+            int inddu=tbdm_index(tbdm_du,i,j,k,l);
+            int inddd=tbdm_index(tbdm_dd,i,j,k,l);
+            
+            uu=dcomplex(avg.vals(induu),avg.vals(induu+1))/norm;
+            uu_err=dcomplex(err.vals(induu),err.vals(induu+1))/norm;
+            ud=dcomplex(avg.vals(indud),avg.vals(indud+1))/norm;
+            ud_err=dcomplex(err.vals(indud),err.vals(indud+1))/norm;
+            du=dcomplex(avg.vals(inddu),avg.vals(inddu+1))/norm;
+            du_err=dcomplex(err.vals(inddu),err.vals(inddu+1))/norm;
+            dd=dcomplex(avg.vals(inddd),avg.vals(inddd+1))/norm;
+            dd_err=dcomplex(err.vals(inddd),err.vals(inddd+1))/norm;
+
+            
+            os << setw(10) << i << setw(10) << j << setw(10) << k <<  setw(10) << l 
+              << setw(colwidth) << uu << setw(colwidth) << uu_err
+              << setw(colwidth) << ud << setw(colwidth) << ud_err
+              << setw(colwidth) << du << setw(colwidth) << du_err
+              << setw(colwidth) << dd << setw(colwidth) << dd_err
+              << endl;
+          }
+        }
       }
 
     }
