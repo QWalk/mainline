@@ -177,7 +177,7 @@ template <class T> void MO_matrix_einspline<T>::buildLists(Array1 <Array1 <int> 
   }
 
   for(int mo=0; mo < nmo; mo++) { 
-    cout << "reading " << mo << endl;
+    //cout << "reading " << mo << endl;
     for(T * p=orb_data.v; p!= orb_data.v+npoints(0)*npoints(1)*npoints(2); p++) { 
       is >> *p;
     }
