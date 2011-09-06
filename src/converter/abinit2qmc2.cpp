@@ -93,8 +93,8 @@ void supercell_kpoints(const vector <vector <double> > & supercell,
     if(kpoint[0] > -0.5 && kpoint[0] <= 0.5  &&
         kpoint[1] > -0.5 && kpoint[1] <= 0.5 &&
         kpoint[2] > -0.5 && kpoint[2] <= 0.5) { 
-      cout << "kpoint " << kpoint[0] << " " << kpoint[1] << " " << kpoint[2] 
-      << endl;
+      //cout << "kpoint " << kpoint[0] << " " << kpoint[1] << " " << kpoint[2] 
+      //<< endl;
       kpoints.push_back(kpoint);
     }
   }
@@ -149,7 +149,7 @@ void extend_supercell(const vector <vector <double> > & supercell,
    }
    if(u[0]>=0 && u[0] < .99 && u[1]>=0 && u[1]<.99 && u[2]>=0 && u[2]<.99) {
      deltas.push_back(delta);
-     cout << "delta " << delta[0] << "  " << delta[1] << " " << delta[2] << endl;
+     //cout << "delta " << delta[0] << "  " << delta[1] << " " << delta[2] << endl;
    }
  }
  superatoms.clear();
@@ -488,6 +488,9 @@ void Abinit_converter::read_wfk(string filename,
       wavefunctions[isppol*nkpt+k].set_kpoint(kpoint_tmp);
     }
   }
+
+  if(nsppol==1) slater.calctype="RHF";
+  if(nsppol==2) slater.calctype="UHF";
   
   complex_wavefunction=true;
 
@@ -570,11 +573,12 @@ void Abinit_converter::assign_occupations(vector<double>& occupations,bool spin_
 int extend_occupation(vector <vector < double> > & supercell,
                 vector <WF_kpoint> & wavefunctions, 
                 vector <double> & sys_kpt,
-                vector <double> & tot_occupation) { 
+                vector <double> & tot_occupation,bool spin_polarized) { 
   int nkpts=wavefunctions.size();
   vector <vector <double> > supercell_kpts;
   supercell_kpoints(supercell,supercell_kpts);
-  if(nkpts < supercell_kpts.size()) { 
+  if( (!spin_polarized && nkpts < supercell_kpts.size()) 
+      || (spin_polarized && nkpts/2 < supercell_kpts.size())) { 
     cout << "Not enough k-points for this supercell. Have " 
       << nkpts << " and need " << supercell_kpts.size() << endl;
     return 0;
@@ -612,7 +616,8 @@ int extend_occupation(vector <vector < double> > & supercell,
       tot_occupation.insert(tot_occupation.end(),occ.begin(),occ.end());
     }
   }
-  if(nkpts_found != supercell_kpts.size()) { 
+  if( (!spin_polarized && nkpts_found != supercell_kpts.size())
+       || (spin_polarized && nkpts_found!=2*supercell_kpts.size())) { 
     cout << "couldn't find necessary supercell k-points: needed " << supercell_kpts.size() 
       << " and found " << nkpts_found << endl;
     
@@ -631,6 +636,15 @@ void Abinit_converter::write_files(string basename) {
   write_orbitals(basename+".orb");
 
   if(mpi_info.node==0) { 
+    bool spin_polarized=false;
+    if(slater.calctype=="UHF") spin_polarized=true;
+
+    vector<WF_kpoint>::iterator wfend=wavefunctions.end();
+    if(spin_polarized) { 
+      assert(wavefunctions.size()%2==0);
+      wfend=wavefunctions.begin()+wavefunctions.size()/2;
+    }
+
     for(int super_expansion=1; super_expansion<6; super_expansion++) { 
       cout <<"########################expanding " << super_expansion << " ####################\n";
       vector <vector <double> > supercell(3);
@@ -647,15 +661,17 @@ void Abinit_converter::write_files(string basename) {
       vector <double> sys_kpt(3);
       int knum=0;
       for(vector<WF_kpoint>::iterator wf=wavefunctions.begin(); 
-          wf!= wavefunctions.end(); wf++) { 
+          wf!= wfend; wf++) { 
         sys_kpt[0]=wf->kpoint(0); sys_kpt[1]=wf->kpoint(1); sys_kpt[2]=wf->kpoint(2);
         for(int d=0; d< 3; d++) kpoint[d]=sys_kpt[d]*super_expansion;
-        if(extend_occupation(supercell,wavefunctions,sys_kpt,tot_occupation)) { 
+        if(extend_occupation(supercell,wavefunctions,sys_kpt,tot_occupation,spin_polarized)) { 
           string super_name=basename+"super";
           append_number(super_name,super_expansion);
           super_name+="k";
           append_number(super_name,knum);
-          assign_occupations(tot_occupation,false);  
+          for(vector<double>::iterator i=tot_occupation.begin(); i!=tot_occupation.end(); 
+              i++) cout << "occ " << *i << endl;
+          assign_occupations(tot_occupation,spin_polarized);  
           reassign_z();
           write_sys(super_name+".sys");
           write_slater(super_name+".slater");
@@ -889,11 +905,12 @@ void Abinit_converter::add_psp(string filename) {
   int lmax=atoi(words[2].c_str());
   int lloc=atoi(words[3].c_str());
   cout << "lmax " << lmax << " lloc " << lloc << " zatom " << zatom << " zion " << zion << endl;
-  assert(lloc == lmax); //for now, we'll assume the highest is  the local one
+  //assert(lloc == lmax); //for now, we'll assume the highest is  the local one
                         //I think that QWalk also assumes this at the time of this writing, so 
                         //we'd have to change it there too.
+  int nl=lmax+1; 
   Spline_pseudo_writer psp;
-  for(int l=0; l< lmax; l++) { 
+  for(int l=0; l< nl; l++) { 
     //find the start of the values
     double rcut=0;
     while(getline(is,line)) { 
@@ -916,14 +933,21 @@ void Abinit_converter::add_psp(string filename) {
     psp.psp_pos.push_back(upos);
     psp.psp_val.push_back(uval);
   }
+//We'll handle the random local channel by putting it at the end (so QWalk uses it as local)
+//and zeroing out the corresponding channel.  This is not that elegant, but it should work.
+  vector<double> tmp=psp.psp_pos[lloc];
+  psp.psp_pos.push_back(tmp);
+  tmp=psp.psp_val[lloc];
+  psp.psp_val.push_back(tmp);
+  cout << " size " << psp.psp_val.size() << endl;
   psp.label=element_lookup_caps[int(zatom)];
   psp.effcharge=zion;
   int newnpoints=psp.psp_pos[0].size();
-  for(int i=0; i< lloc-1; i++) { 
-    assert(psp.psp_pos[i].size()==psp.psp_pos[lloc-1].size());
+  for(int i=0; i< nl; i++) { 
+    assert(psp.psp_pos[i].size()==psp.psp_pos[0].size());
     for(int j=0; j< newnpoints; j++) {
-      assert(fabs(psp.psp_pos[i][j]-psp.psp_pos[lloc-1][j]) < 1e-5);
-      psp.psp_val[i][j]-=psp.psp_val[lloc-1][j];
+      assert(fabs(psp.psp_pos[i][j]-psp.psp_pos[nl][j]) < 1e-5);
+      psp.psp_val[i][j]-=psp.psp_val[nl][j];
     }
   }
 
