@@ -51,11 +51,14 @@ class Properties_manager {
   void setSize(int nwf_, int nblocks, int nsteps, int maxwalkers, System *, 
                Wavefunction_data *);
   void setFirstStep(int s) {
+    error("setFirstStep depreciated");
+    /*
     start_avg_step=s;
-    int nsteps=trace.GetDim(0);
+    //int nsteps=trace.GetDim(0);
 
     if(nsteps-start_avg_step-2 < autocorr_depth) 
       autocorr_depth=nsteps-start_avg_step-2;
+      */
   }
 
   void setLog(string & file, string & label) {
@@ -103,7 +106,11 @@ class Properties_manager {
 
  private:
   void autocorrelation(Array2 <doublevar> &,  int);
-  Array2 < Properties_point > trace;
+  //Array2 < Properties_point > trace;
+  Properties_point weighted_sum,sample_avg,sample_var;
+  Array1 <doublevar> energy_avg,energy_var;
+  int npoints_this_block;
+  
   //control
   int start_avg_step;
 

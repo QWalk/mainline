@@ -52,9 +52,14 @@ struct Properties_point {
   void write(string & indent, ostream & os);
   void read(istream & is);
 
-  doublevar energy(int w) {
+  const doublevar  energy(int w) const {
     return kinetic(w)+potential(w)+nonlocal(w);
   }
+  //Add the values contained in pt to this point, respecting the weight
+  void weighted_add(const Properties_point & pt);
+  //Add the values contained in pt, without respecting the weight, and 
+  //with an optional prefactor
+  void unweighted_add(const Properties_point & pt,doublevar pre=1.0);
  
   int nchildren;
   int parent;

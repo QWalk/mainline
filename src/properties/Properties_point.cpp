@@ -27,6 +27,10 @@ void Properties_point::setSize(int nwf) {
   wf_val.Resize(nwf, 1);
   weight=1;
   count=0;
+  kinetic=0;
+  potential=0;
+  nonlocal=0;
+
 }
 
 
@@ -153,3 +157,43 @@ void Properties_point::write(string & indent, ostream & os) {
 }
 
 //----------------------------------------------------------------------
+void Properties_point::weighted_add(const Properties_point & pt) { 
+  int nwf=kinetic.GetDim(0);
+  assert(nwf==pt.kinetic.GetDim(0));
+  for(int w=0;w < nwf; w++) {
+    kinetic(w)+=pt.weight(w)*pt.kinetic(w);
+    potential(w)+=pt.weight(w)*pt.potential(w);
+    nonlocal(w)+=pt.weight(w)*pt.nonlocal(w);
+    weight(w)+=pt.weight(w);
+    int navg=avgrets.GetDim(1);
+    assert(navg==pt.avgrets.GetDim(1));
+    for(int a=0; a< navg; a++) { 
+      for(int j=0; j< pt.avgrets(w,a).vals.GetDim(0); j++) { 
+        avgrets(w,a).vals(j)+=pt.weight(w)*pt.avgrets(w,a).vals(j);
+      }
+    }
+  }
+}
+
+
+//----------------------------------------------------------------------
+
+void Properties_point::unweighted_add(const Properties_point & pt,doublevar pre) { 
+  int nwf=kinetic.GetDim(0);
+  assert(nwf==pt.kinetic.GetDim(0));
+  for(int w=0;w < nwf; w++) {
+    kinetic(w)+=pre*pt.kinetic(w);
+    potential(w)+=pre*pt.potential(w);
+    nonlocal(w)+=pre*pt.nonlocal(w);
+    weight(w)+=pre*pt.weight(w);
+    int navg=avgrets.GetDim(1);
+    assert(navg==pt.avgrets.GetDim(1));
+    for(int a=0; a< navg; a++) { 
+      for(int j=0; j< pt.avgrets(w,a).vals.GetDim(0); j++) { 
+        avgrets(w,a).vals(j)+=pre*pt.avgrets(w,a).vals(j);
+      }
+    }
+  }
+}
+//----------------------------------------------------------------------
+
