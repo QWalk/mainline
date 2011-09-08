@@ -390,7 +390,8 @@ void Properties_manager::setSize(int nwf_, int nblocks, int nsteps,
   nwf=nwf_;
 
   current_block=0;
-  
+  npoints_this_block=0;
+
   block_avg.Resize(nblocks);
   for(int i=0; i< nblocks; i++) { 
     block_avg(i).setSize(nwf, 0,0);
@@ -398,12 +399,24 @@ void Properties_manager::setSize(int nwf_, int nblocks, int nsteps,
   }
   
   autocorr_depth=min(nsteps-1, max_autocorr_depth);
-  trace.Resize(nsteps, maxwalkers);
+  //trace.Resize(nsteps, maxwalkers);
+  weighted_sum.setSize(nwf);
 }
 
 //--------------------------------------------------
 
 
+
+void update_avgvar(doublevar & avg, doublevar & var, int pt_number, doublevar nwpt) { 
+  doublevar oldavg=avg;
+  doublevar oldvar=var;
+  avg=oldavg+(nwpt-oldavg)/(pt_number+1);
+  var=oldvar+(nwpt*nwpt-oldvar)/(pt_number+1);
+  //if(pt_number > 0) 
+  //  var=(1.0-1.0/pt_number)*oldvar+(pt_number+1)*(avg-oldavg);
+  //else
+  //  var=0;
+}
 
 
 void Properties_manager::insertPoint(int step, 
@@ -412,10 +425,56 @@ void Properties_manager::insertPoint(int step,
   assert(walker < trace.GetDim(1));
   assert(step < trace.GetDim(0));
   //cout << "insertpt " << pt.z_pol(0) << endl;
-  trace(step, walker)=pt;
+  //trace(step, walker)=pt;
   if(step >= 1 && pt.parent < 0) {
     error("Problem in insertPoint; parent not set");
   }
+
+  //int nwf=pt.avgrets.GetDim(0);
+  int navg=pt.avgrets.GetDim(1);
+  assert(pt.kinetic.GetDim(0)==nwf);
+  assert(pt.potential.GetDim(0)==nwf);
+  assert(pt.nonlocal.GetDim(0)==nwf);
+  assert(pt.weight.GetDim(0)==nwf);
+
+  if(npoints_this_block==0) { 
+    weighted_sum.setSize(nwf);
+    sample_avg.setSize(nwf);
+    sample_var.setSize(nwf);
+    sample_avg.weight=0;
+    sample_var.weight=0;
+    weighted_sum.avgrets=pt.avgrets;
+    weighted_sum.weight=0;
+    energy_avg.Resize(nwf);
+    energy_var.Resize(nwf);
+    energy_avg=0;
+    energy_var=0;
+    //sample_avg.avgrets=pt.avgrets;
+    //sample_var.avgrets=pt.avgrets;
+    for(int w=0; w < nwf; w++) { 
+      for(int a=0; a< navg; a++) { 
+        for(int j=0; j< pt.avgrets(w,a).vals.GetDim(0); j++) { 
+          weighted_sum.avgrets(w,a).vals(j)=0;
+          //sample_avg.avgrets(w,a).vals(j)=0;
+          //sample_var.avgrets(w,a).vals(j)=0;
+        }
+      }
+    }
+  }
+
+
+  weighted_sum.weighted_add(pt);
+  for(int w=0; w< nwf; w++) { 
+    update_avgvar(sample_avg.kinetic(w),sample_var.kinetic(w),npoints_this_block,pt.kinetic(w));
+    update_avgvar(sample_avg.potential(w),sample_var.potential(w),npoints_this_block,pt.potential(w));
+    update_avgvar(sample_avg.nonlocal(w),sample_var.nonlocal(w),npoints_this_block,pt.nonlocal(w));
+    update_avgvar(sample_avg.weight(w),sample_var.weight(w),npoints_this_block,pt.weight(w));
+    update_avgvar(energy_avg(w),energy_var(w),npoints_this_block,pt.energy(w));
+  }
+  
+  npoints_this_block++;
+  
+
 }
 
 
@@ -428,7 +487,8 @@ graph, so let's start at the bottom and follow parents up.
 */
 void Properties_manager::autocorrelation(Array2 <doublevar> & autocorr,
                                          int depth) {
-
+  error("autocorrelation currently unsupported");
+  /*
   using namespace Properties_types;
   assert(depth >= 0);
   int nsteps=trace.GetDim(0);
@@ -488,35 +548,66 @@ void Properties_manager::autocorrelation(Array2 <doublevar> & autocorr,
       autocorr(w,d)/= block_avg(current_block).var(total_energy,w);
     }
   }
-
+*/
 }
 
 
 //--------------------------------------------------
 
-/*!
-\todo
-Use the recurrence relations from 
-http://mathworld.wolfram.com/SampleVarianceComputation.html
-to remove the extraneous trace in Properties_manager..
- */
 
+//a and a2 are assumed not to be updated over all processors
+doublevar condense_variance(doublevar a2,doublevar a,int totpts, int npoints_this) { 
+  doublevar a_avg=parallel_sum(npoints_this*a/totpts);
+  return (parallel_sum(npoints_this*a2/totpts)-a_avg*a_avg)*(totpts/(totpts-1));
+}
 void Properties_manager::endBlock() {
   using namespace Properties_types;
 
   
-  int nwalkers=trace.GetDim(1);
+  //int nwalkers=trace.GetDim(1);
   
-  int nsteps=trace.GetDim(0);
-  int totpts=0;
+  //int nsteps=trace.GetDim(0);
   //For the generalized averaging, this can be broken if 
   //the calling program isn't consistent with the ordering and 
   //number of Average_returns.  I can't think of any reason why someone
   //would want to do that other than spite, though.
-  int navg_gen=trace(0,0).avgrets.GetDim(1);
+  int navg_gen=weighted_sum.avgrets.GetDim(1);
   block_avg(current_block).avgrets.Resize(nwf, navg_gen);
-  assert(trace(0,0).avgrets.GetDim(0)==nwf);
-  
+  assert(weighted_sum.avgrets.GetDim(0)==nwf);
+  for(int w=0; w < nwf; w++) { 
+    doublevar totweight=parallel_sum(weighted_sum.weight(w));
+    int totpts=parallel_sum(npoints_this_block);
+    block_avg(current_block).avg(kinetic,w)=parallel_sum(weighted_sum.kinetic(w))/totweight;
+    block_avg(current_block).avg(potential,w)=parallel_sum(weighted_sum.potential(w))/totweight;
+    block_avg(current_block).avg(nonlocal,w)=parallel_sum(weighted_sum.nonlocal(w))/totweight;
+    block_avg(current_block).avg(total_energy,w)=parallel_sum(weighted_sum.energy(w))/totweight;
+    block_avg(current_block).avg(weight,w)=totweight/totpts;
+    block_avg(current_block).totweight=totweight;
+    
+    for(int i=0; i< navg_gen; i++) { 
+      for(int j=0; j< block_avg(current_block).avgrets(w,i).vals.GetDim(0); j++) { 
+        block_avg(current_block).avgrets(w,i).vals(j)=
+                 parallel_sum(weighted_sum.avgrets(w,i).vals(j))/totweight;
+      }
+    }
+
+    int nprocs=mpi_info.nprocs;
+    block_avg(current_block).var(kinetic, w)=
+      condense_variance(sample_var.kinetic(w),sample_avg.kinetic(w),totpts,npoints_this_block);
+    block_avg(current_block).var(potential, w)=
+      condense_variance(sample_var.potential(w),sample_avg.potential(w),totpts,npoints_this_block);
+    block_avg(current_block).var(nonlocal, w)=
+      condense_variance(sample_var.nonlocal(w),sample_avg.nonlocal(w),totpts,npoints_this_block);
+    block_avg(current_block).var(weight, w)=
+      condense_variance(sample_var.weight(w),sample_avg.weight(w),totpts,npoints_this_block);
+    block_avg(current_block).var(total_energy, w)=
+      condense_variance(energy_var(w),energy_avg(w),totpts,npoints_this_block);
+
+
+
+  }
+
+ /* 
   for(int w=0; w< nwf; w++) {
     doublevar totweight=0;
     doublevar avgkin=0;
@@ -623,9 +714,9 @@ void Properties_manager::endBlock() {
   
   //cout << "autocorrelation " << endl;
   
-  autocorrelation(block_avg(current_block).autocorr,
-                  autocorr_depth);
-  
+  //autocorrelation(block_avg(current_block).autocorr,
+   //               autocorr_depth);
+  */
   //cout << "writing block " << endl;
   if(mpi_info.node==0 && log_file != "") {
     ofstream logout(log_file.c_str(), ios::app);
@@ -637,9 +728,12 @@ void Properties_manager::endBlock() {
     logout.close();
   }
   current_block++;
+  npoints_this_block=0;
+  /*
   for(int step=0; step < nsteps; step++)
     for(int walker=0; walker < nwalkers; walker++) 
       trace(step, walker).reset();
+      */
   final_avg.blockReduce(block_avg, 0, current_block,1);
 }
 
@@ -654,6 +748,8 @@ to remove the extraneous trace in Properties_manager..
  */
 
 void Properties_manager::endBlock_per_step() {
+  error("endBlock_per_step() depreciated");
+  /*
   using namespace Properties_types;
 
   
@@ -838,12 +934,15 @@ void Properties_manager::endBlock_per_step() {
   //cout << "average " << endl;
   final_avg.blockReduce(block_avg, 0, current_block,1);
   //cout << "done" << endl;
+  */
 }
 
 //--------------------------------------------------
 
 
 void Properties_manager::endBlockSHDMC() {
+  error("endBlockSHDMC() depreciated");
+  /*
   using namespace Properties_types;
 
   
@@ -988,6 +1087,7 @@ void Properties_manager::endBlockSHDMC() {
       trace(step, walker).reset();
   
   final_avg.blockReduce(block_avg, 0, current_block,1);
+  */
 }
 
 
