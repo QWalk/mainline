@@ -585,7 +585,10 @@ void Properties_manager::endBlock() {
     block_avg(current_block).totweight=totweight;
     
     for(int i=0; i< navg_gen; i++) { 
-      for(int j=0; j< block_avg(current_block).avgrets(w,i).vals.GetDim(0); j++) { 
+      int nvals=weighted_sum.avgrets(w,i).vals.GetDim(0);
+
+      block_avg(current_block).avgrets(w,i)=weighted_sum.avgrets(w,i);
+      for(int j=0; j< nvals; j++) { 
         block_avg(current_block).avgrets(w,i).vals(j)=
                  parallel_sum(weighted_sum.avgrets(w,i).vals(j))/totweight;
       }
