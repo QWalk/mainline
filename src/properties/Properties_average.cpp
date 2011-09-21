@@ -193,7 +193,6 @@ void Properties_final_average::blockReduce(Array1 <Properties_block> & block_avg
       }
       
       if(w > 0) {
-        cout << "err " << w  << endl;
         doublevar ediff=block_avg(block).avg(total_energy,w)
         -block_avg(block).avg(total_energy,0);
         diff_energyerr(w)+=(ediff-diff_energy(w))*(ediff-diff_energy(w))*thisweight;
@@ -226,7 +225,6 @@ void Properties_final_average::blockReduce(Array1 <Properties_block> & block_avg
       }
     }
   }
-  cout << "blockreduce done" << endl; 
 }
 
 //----------------------------------------------------------------------

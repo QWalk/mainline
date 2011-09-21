@@ -268,7 +268,7 @@ void Vmc_method::readcheck(string & filename) {
     int nsys=sys.GetDim(0);
     if(nconfig%nsys!=0) error("nconfig needs to be a constant multiple of nsys");
     for(int i=0; i< nconfig; i++) { 
-      int s=i%nsys;
+      int s=0;
       config_pos(i).system=s;
       sample(s)->randomGuess();
       config_pos(i).configs.savePos(sample(s));
@@ -412,8 +412,11 @@ void Vmc_method::runSample(Properties_manager & prop,
           }
           wf_value(si).Resize(wf(si)->nfunc(),2);
           wf(si)->getVal(wfdata(si),0,wf_value(si));
+          //We'll only use the first average_var in order to preserve
+          //correlated sampling.  Note that in some corner cases, this
+          //may give the wrong behavior.
           for(int a=0; a < average_var.GetDim(1); a++) { 
-            average_var(si,a)->randomize(wfdata(si),wf(si),sys(si),sample(si));
+            average_var(0,a)->randomize(wfdata(si),wf(si),sys(si),sample(si));
           }
         }
         int nrandvar=pseudo->nTest();
@@ -424,16 +427,18 @@ void Vmc_method::runSample(Properties_manager & prop,
           sys(si)->calcKinetic(wfdata(si),sample(si),wf(si),kinetic);
           pt.kinetic(si)=kinetic(0);
           pt.potential(si)=sys(si)->calcLoc(sample(si));
-          pseudo->calcNonlocWithTest(wfdata(si), sys(si), sample(si), wf(si),rand_num,nonlocal);
+          pseudo->calcNonlocWithTest(wfdata(si), sys(si), sample(si), 
+              wf(si),rand_num,nonlocal);
           pt.nonlocal(si)=nonlocal(0);
           //jacobian_save(i)=tot_jacobian;
           for(int a=0; a < average_var.GetDim(1); a++) { 
-            average_var(si,a)->evaluate(wfdata(si),wf(si),sys(si),sample(si),pt.avgrets(si,a));
+            average_var(0,a)->evaluate(wfdata(si),wf(si),sys(si),sample(si),pt.avgrets(si,a));
           }
-          doublevar tmpweight=0.0;
-          for(int sj=0; sj < nsys; sj++)  
-            tmpweight+=exp(2*(wf_value(sj).amp(0,0)-wf_value(si).amp(0,0)));
-          pt.weight(si)=jacobian(si)/tmpweight;
+          //doublevar tmpweight=0.0;
+          //for(int sj=0; sj < nsys; sj++)  
+          //  tmpweight+=exp(2*(wf_value(sj).amp(0,0)-wf_value(si).amp(0,0)));
+          
+          pt.weight(si)=jacobian(si)*exp(2*(wf_value(si).amp(0,0)-wf_value(s).amp(0,0)));
         }
           
 

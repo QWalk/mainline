@@ -575,7 +575,6 @@ void Properties_manager::endBlock() {
   block_avg(current_block).avgrets.Resize(nwf, navg_gen);
   assert(weighted_sum.avgrets.GetDim(0)==nwf);
   for(int w=0; w < nwf; w++) { 
-    cout << "here " << endl;
     doublevar totweight=parallel_sum(weighted_sum.weight(w));
     int totpts=parallel_sum(npoints_this_block);
     block_avg(current_block).avg(kinetic,w)=parallel_sum(weighted_sum.kinetic(w))/totweight;
@@ -583,8 +582,7 @@ void Properties_manager::endBlock() {
     block_avg(current_block).avg(nonlocal,w)=parallel_sum(weighted_sum.nonlocal(w))/totweight;
     block_avg(current_block).avg(total_energy,w)=parallel_sum(weighted_sum.energy(w))/totweight;
     block_avg(current_block).avg(weight,w)=totweight/totpts;
-    block_avg(current_block).totweight=totweight;
-    cout << "avg_gen " << endl; 
+    block_avg(current_block).totweight=totpts;
     for(int i=0; i< navg_gen; i++) { 
       int nvals=weighted_sum.avgrets(w,i).vals.GetDim(0);
 
@@ -610,7 +608,6 @@ void Properties_manager::endBlock() {
   block_avg(current_block).autocorr.Resize(nwf,0);
   block_avg(current_block).autocorr=0;
 
-  cout << "writing block " << endl;
   if(mpi_info.node==0 && log_file != "") {
     ofstream logout(log_file.c_str(), ios::app);
     logout.precision(16);
