@@ -44,6 +44,8 @@ public:
                  int e, Array1 <doublevar> & R_old,
                  Array1 <doublevar> & R_new, 
                  doublevar & jacobian );
+  //set all electrons in sample to the warped coordinates from refsample
+  doublevar warp_all(Sample_point * refsample,Sample_point * sample);
 private:
   Basis_function * weight_basis;
   int warp_on;

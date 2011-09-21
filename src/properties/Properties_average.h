@@ -61,6 +61,8 @@ struct Properties_final_average {
 
   Array2 <Average_return> avgavg;
   Array2 <Average_return> avgerr;
+  Array2 <Average_return> avgdiffavg;
+  Array2 <Average_return> avgdifferr;
   
   Array1 <doublevar> diff_energy;
   Array1 <doublevar> diff_energyerr;

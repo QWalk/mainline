@@ -57,8 +57,7 @@ struct Average_return {
  Futher hints:
  -Averages with weights can be done.  Pack the vals array with val1*weight1, weight1, val2*weight2, weight2, etc.
  The values and weights will be averaged properly, and in write_summary(), you can report <val1*weight1>/<weight1>
- as the average value.  Correlated sampling could(maybe should) be done like this, although it would need
- a slightly different evaluate() function, with the pseudopotential and the random numbers to use to evaluate it.
+ as the average value.
  
  */
 class Average_generator {
@@ -73,6 +72,11 @@ public:
   virtual void read(System * sys, Wavefunction_data * wfdata, vector
                     <string> & words)=0;
   virtual void write_init(string & indent, ostream & os)=0;
+  //This is used for Average_generators that use some kind of random sampling
+  //in addition what's done already in the larger Monte Carlo stuff.  It's separated
+  //from evaluate() so that correlated sampling can work efficiently
+  virtual void randomize(Wavefunction_data * wfdata, Wavefunction * wf,
+                        System * sys, Sample_point * sample) { } 
   
   //these are used in gosling: read will read in the write_init stuff
   //from above and set any relevant

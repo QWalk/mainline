@@ -45,6 +45,8 @@ void Properties_final_average::setSize(int nwf, int naux, int n_cvg) {
 
   diff_energy.Resize(nwf);
   diff_energyerr.Resize(nwf);
+  diff_energy=0.0;
+  diff_energyerr=0.0;
   aux_energy.Resize(naux, n_cvg);
   aux_energyerr.Resize(naux, n_cvg);
   aux_energyvar.Resize(naux, n_cvg);
@@ -89,6 +91,8 @@ void Properties_final_average::blockReduce(Array1 <Properties_block> & block_avg
     for(int i=0; i< avgavg.GetDim(1); i++) 
       avgavg(w,i).vals=0;
   avgerr=avgavg;
+  avgdiffavg=avgavg;
+  avgdifferr=avgavg;
   
   //Stealing Jeff's algorithm for finding the throw-away blocks:
   //average over the last 4/5 of the blocks, and find the block
@@ -143,9 +147,15 @@ void Properties_final_average::blockReduce(Array1 <Properties_block> & block_avg
           avgavg(w,i).vals(j)+=block_avg(block).avgrets(w,i).vals(j)*thisweight;
         }
       }
-      if(w > 0) 
+      if(w > 0)  { 
         diff_energy(w)+=(block_avg(block).avg(total_energy,w)
                          -block_avg(block).avg(total_energy,0))*thisweight;
+        for(int i=0; i< avgavg.GetDim(1); i++) { 
+          for(int j=0; j< avgavg(w,i).vals.GetDim(0); j++) { 
+            avgdiffavg(w,i).vals(j)+=(block_avg(block).avgrets(w,i).vals(j)-block_avg(block).avgrets(0,i).vals(j))*thisweight;
+          }
+        }
+      }
       
     }
     
@@ -183,9 +193,17 @@ void Properties_final_average::blockReduce(Array1 <Properties_block> & block_avg
       }
       
       if(w > 0) {
+        cout << "err " << w  << endl;
         doublevar ediff=block_avg(block).avg(total_energy,w)
         -block_avg(block).avg(total_energy,0);
         diff_energyerr(w)+=(ediff-diff_energy(w))*(ediff-diff_energy(w))*thisweight;
+        for(int i=0; i< avgavg.GetDim(1); i++) { 
+          for(int j=0; j< avgavg(w,i).vals.GetDim(0); j++) { 
+            doublevar diff=(block_avg(block).avgrets(w,i).vals(j)-block_avg(block).avgrets(0,i).vals(j))-avgdiffavg(w,i).vals(j);
+            avgdifferr(w,i).vals(j)+=diff*diff*thisweight;
+          }
+        }
+        
       }
     }
     
@@ -204,10 +222,11 @@ void Properties_final_average::blockReduce(Array1 <Properties_block> & block_avg
     for(int i=0; i< avgavg.GetDim(1); i++) { 
       for(int j=0; j< avgavg(w,i).vals.GetDim(0); j++) { 
         avgerr(w,i).vals(j)=sqrt(avgerr(w,i).vals(j));
+        avgdifferr(w,i).vals(j)=sqrt(avgdifferr(w,i).vals(j));
       }
     }
   }
-  
+  cout << "blockreduce done" << endl; 
 }
 
 //----------------------------------------------------------------------
@@ -405,6 +424,13 @@ void Properties_final_average::showSummary(ostream & os, Array2 <Average_generat
   for(int w=0; w< nwf; w++) { 
     for(int i=0; i< avg_gen.GetDim(1); i++) { 
       avg_gen(w,i)->write_summary(avgavg(w,i),avgerr(w,i), os);
+    }
+  }
+ 
+  os << "--------Properties differences-------------\n";
+  for(int w=1; w< nwf; w++) { 
+    for(int i=0; i< avg_gen.GetDim(1); i++) { 
+      avg_gen(w,i)->write_summary(avgdiffavg(w,i),avgdifferr(w,i), os);
     }
   }
   

@@ -96,7 +96,7 @@ void Properties_block::storeToLog(string & indent, ostream & os,
     }
   }
   
-  
+  cout << "aux " << endl; 
   string indent2=indent+"  ";
   for(int i=0; i< naux; i++) {
     os << indent << "aux_function  { " << endl;
@@ -122,11 +122,12 @@ void Properties_block::storeToLog(string & indent, ostream & os,
 
     os << indent << "}" << endl;
   }
-
+  cout << "autocorr " << endl;
   print_array_sec(os, indent, "autocorr_energy", autocorr(0));
   if(fabs(aux_weight_correlation) > 1e-10)
     os << indent << "aux_weight_correlation " << aux_weight_correlation 
        << endl;
+  cout << "done " << endl;
 }
 
 //----------------------------------------------------------------------

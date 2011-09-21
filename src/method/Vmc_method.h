@@ -34,6 +34,19 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 class Program_options;
 #include "Properties.h"
 
+struct Vmc_point { 
+  Config_save_point configs;
+  int system; //which system 
+  Vmc_point() { 
+  }
+  void mpiSend(int node);
+  void mpiReceive(int node);
+  void read(istream & is);
+  void write(ostream & os);
+};
+
+
+
 /*!
 \brief
 Evaluates the expectation value \f$ <\Psi|H|\Psi>/<\Psi|\Psi> \f$
@@ -47,18 +60,20 @@ public:
     have_read_options=0;
     have_generated_variables=0;
     have_attached_variables=0;
-    sysprop=NULL;
-    mywfdata=NULL;
+    
+    //sysprop=NULL;
+    //mywfdata=NULL;
     guidewf=NULL;
     pseudo=NULL;
-    wf=NULL;
-    sample=NULL;
+    //wf=NULL;
+    //sample=NULL;
     sampler=NULL;
   }
   void read(vector <string> words,
             unsigned int & pos,
             Program_options & options);
   void run(Program_options & options, ostream & output);
+  void runSample(Properties_manager & prop, ostream & output);
   
   int showinfo(ostream & os);
 
@@ -73,14 +88,19 @@ public:
   ~Vmc_method()
   {
     
+    /*
     if(have_generated_variables) {
       if(sysprop) delete sysprop;
       if(mywfdata) delete mywfdata;
       if(pseudo) delete pseudo;
     }
+    */
 
     if(guidewf) delete guidewf;
-    if(sampler) delete sampler;
+    //if(sampler) delete sampler;
+    for(int i=0; i< sampler.GetDim(0); i++) { 
+      if(sampler(i)) delete sampler(i);
+    }
 
     for(int i=0; i< densplt.GetDim(0); i++) {
       if(densplt(i)) delete densplt(i);
@@ -90,7 +110,7 @@ public:
    }
 
 private:
-  int allocateIntermediateVariables(System * , Wavefunction_data *);
+  int allocateIntermediateVariables();
   int deallocateIntermediateVariables();
   void readcheck(string & );
   void storecheck(string &, int append=0);
@@ -98,7 +118,7 @@ private:
   int have_generated_variables;
   int have_attached_variables;
 
-  Dynamics_generator * sampler;
+  Array1 <Dynamics_generator *> sampler;
 
   int nblock;
   int nstep;
@@ -121,22 +141,22 @@ private:
   Guiding_function * guidewf;
 
   Pseudopotential * pseudo;
-  System * sysprop;
-  Sample_point * sample;
-  Array1 <Config_save_point> config_pos;
+  Array1 <System *> sys;
+  Array1 <Sample_point *> sample;
+  Array1 <Vmc_point> config_pos;
 
-  Wavefunction *   wf;  
-  Wavefunction_data * mywfdata;
+  Array1 <Wavefunction *>   wf;  
+  Array1 <Wavefunction_data *> wfdata;
 
   Properties_manager myprop;
-
   Properties_gather mygather;
+  Space_warper warper;
 
   Array1 < Local_density_accumulator *> densplt;
   vector <vector <string> > dens_words;
   Array1 < Nonlocal_density_accumulator *> nldensplt;
   vector <vector <string> > nldens_words;
-  Array1 < Average_generator * > average_var;
+  Array2 < Average_generator * > average_var;
   vector <vector <string> > avg_words;
 
 };

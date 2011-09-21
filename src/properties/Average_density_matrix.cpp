@@ -21,30 +21,15 @@
 #include "Average_density_matrix.h"
 #include "ulec.h"
 
-void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
-                        System * sys, Sample_point * sample, Average_return & avg) { 
-  avg.type="tbdm_basis";
-  //orbital normalization, then 1bdm up, 1bdm down, 2bdm up up, 2bdm up down 2bdm down up 2bdm down down, with everything complex
-  if(eval_tbdm) { 
-    avg.vals.Resize(nmo+4*nmo*nmo+8*nmo*nmo*nmo*nmo);
-  }
-  else { 
-    avg.vals.Resize(nmo+(4)*nmo*nmo);  
-  }
-  avg.vals=0;
-
-
-  wf->updateVal(wfdata,sample);
-
-  Array2 <dcomplex> movals1(nmo,1),movals2(nmo,1),movals1_old(nmo,1),movals2_old(nmo,1);
-  Wf_return wfval_base(wf->nfunc(),2);
-  Wf_return wfval_2b(wf->nfunc(),2),wfval_1b(wf->nfunc(),2); //
-  wf->getVal(wfdata,0,wfval_base);
+void Average_tbdm_basis::randomize(Wavefunction_data * wfdata, Wavefunction * wf,
+                       System * sys, Sample_point * sample_tmp) { 
   int nup=sys->nelectrons(0);
   int ndown=sys->nelectrons(1);
-  int nupup=0,nupdown=0,ndownup=0,ndowndown=0;
-  for(int i=0; i< npoints_eval  ;i++) { 
-    Array1 <doublevar> r1(3),r2(3),oldr1(3),oldr2(3);
+  Array2 <dcomplex> movals1(nmo,1),movals2(nmo,1);
+  //Make a copy of the Sample so that it doesn't have to update the wave function.
+  Sample_point * sample;
+  sys->generateSample(sample);
+  for(int i=0; i< npoints_eval; i++) { 
     int k=0,l=0;
     while(k==l) { 
       k=int(rng.ulec()*(nup+ndown));
@@ -74,6 +59,83 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
         }
       }
     }
+    rk(i)=k;
+    rk(npoints_eval+i)=l;
+    Array1 <doublevar> r1=saved_r(i);
+    Array1 <doublevar> r2=saved_r(npoints_eval+i);
+    sample->setElectronPos(k,r1);
+    sample->setElectronPos(l,r2);
+    doublevar dist1=gen_sample(nstep_sample,1.0,k,movals1, sample);
+    doublevar dist2=gen_sample(nstep_sample,1.0,l,movals2, sample);
+    sample->getElectronPos(k,saved_r(i));
+    sample->getElectronPos(l,saved_r(npoints_eval+i));
+
+  }
+
+
+  delete sample; 
+}
+
+//----------------------------------------------------------------------
+void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+                        System * sys, Sample_point * sample, Average_return & avg) { 
+  avg.type="tbdm_basis";
+  //orbital normalization, then 1bdm up, 1bdm down, 2bdm up up, 2bdm up down 2bdm down up 2bdm down down, with everything complex
+  if(eval_tbdm) { 
+    avg.vals.Resize(nmo+4*nmo*nmo+8*nmo*nmo*nmo*nmo);
+  }
+  else { 
+    avg.vals.Resize(nmo+(4)*nmo*nmo);  
+  }
+  avg.vals=0;
+
+
+  wf->updateVal(wfdata,sample);
+
+  Array2 <dcomplex> movals1(nmo,1),movals2(nmo,1),movals1_old(nmo,1),movals2_old(nmo,1);
+  Wf_return wfval_base(wf->nfunc(),2);
+  Wf_return wfval_2b(wf->nfunc(),2),wfval_1b(wf->nfunc(),2); //
+  wf->getVal(wfdata,0,wfval_base);
+  int nup=sys->nelectrons(0);
+  int ndown=sys->nelectrons(1);
+  int nupup=0,nupdown=0,ndownup=0,ndowndown=0;
+  
+  for(int i=0; i< npoints_eval  ;i++) { 
+    Array1 <doublevar> r1(3),r2(3),oldr1(3),oldr2(3);
+    int k=rk(i);
+    int l=rk(npoints_eval+i);
+    /*
+    int k=0,l=0;
+    
+    while(k==l) { 
+      k=int(rng.ulec()*(nup+ndown));
+      l=int(rng.ulec()*(nup+ndown));
+      if(nup==1 and ndown==1) { 
+        k=0; l=1;
+      }
+      else if(nup==1 or ndown==1) { 
+        error("Need to fix density_matrix");
+      }
+      else { 
+        if(i%4==0) { 
+          k=int(rng.ulec()*nup);
+          l=int(rng.ulec()*nup);
+        }
+        else if(i%4==1) { 
+          k=int(rng.ulec()*nup);
+          l=nup+int(rng.ulec()*ndown);
+        }
+        else if(i%4==2) { 
+          k=nup+int(rng.ulec()*ndown);
+          l=int(rng.ulec()*nup);
+        }
+        else if(i%4==3) { 
+          k=nup+int(rng.ulec()*ndown);
+          l=nup+int(rng.ulec()*ndown);
+        }
+      }
+    }
+    */
     //Calculate the orbital values for r1 and r2
     calc_mos(sample,k,movals1_old);
     calc_mos(sample,l,movals2_old);
@@ -83,7 +145,13 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
     r1=saved_r(i);
     r2=saved_r(npoints_eval+i);
     sample->setElectronPos(k,r1);
-    doublevar dist1=gen_sample(nstep_sample,1.0,k,movals1, sample);
+    //doublevar dist1=gen_sample(nstep_sample,1.0,k,movals1, sample);
+    doublevar dist1=0,dist2=0;
+
+    calc_mos(sample,k,movals1);
+    for(int m=0; m < nmo; m++) 
+      dist1+=norm(movals1(m,0));
+    
 
     wf->updateVal(wfdata,sample);
     wf->getVal(wfdata,0,wfval_1b);
@@ -92,11 +160,14 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
     dcomplex psiratio_1b=exp(dcomplex(wfval_1b.amp(0,0)-wfval_base.amp(0,0),
           wfval_1b.phase(0,0)-wfval_base.phase(0,0)));
    
-    doublevar dist2; dcomplex psiratio_2b;
+     dcomplex psiratio_2b;
     if(eval_tbdm) { 
 
       sample->setElectronPos(l,r2); 
-      dist2=gen_sample(nstep_sample,1.0,l,movals2,sample);
+      //dist2=gen_sample(nstep_sample,1.0,l,movals2,sample);
+      calc_mos(sample,l,movals2);
+      for(int m=0; m < nmo; m++) 
+        dist2+=norm(movals2(m,0));
       wf->updateVal(wfdata,sample);
       wf->getVal(wfdata,0,wfval_2b);
 
@@ -258,6 +329,7 @@ void Average_tbdm_basis::read(System * sys, Wavefunction_data * wfdata, vector
   int ndim=3;
   saved_r.Resize(npoints_eval*2); //r1 and r2;
   for(int i=0; i< npoints_eval*2; i++) saved_r(i).Resize(ndim);
+  rk.Resize(npoints_eval*2);
   
   int warmup_steps=1000;
   Sample_point * sample=NULL;
@@ -268,6 +340,7 @@ void Average_tbdm_basis::read(System * sys, Wavefunction_data * wfdata, vector
     gen_sample(warmup_steps,1.0,0,movals,sample);
     sample->getElectronPos(0,saved_r(i));
   }
+  delete sample;
 }
 
 //----------------------------------------------------------------------
@@ -325,6 +398,10 @@ void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, 
   os << "Orbital normalization " << endl;
   for(int i=0; i< nmo; i++) { 
     os << avg.vals(i) << " +/- " << err.vals(i) << endl;
+  }
+
+  for(int i=0; i < nmo; i++) { 
+    avg.vals(i)=1.0/nmo; //assume that the orbitals are normalized.
   }
 
   dcomplex i_c(0.,1.);

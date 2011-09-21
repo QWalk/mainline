@@ -222,3 +222,17 @@ int Space_warper::space_warp (Sample_point * refsample, Sample_point * sample,
 }
 
 //----------------------------------------------------------------------
+
+doublevar Space_warper::warp_all(Sample_point * refsample,Sample_point * sample) { 
+  doublevar jacobian=1,tot_jacobian=1;
+  int nelectrons=refsample->electronSize();
+  for(int e=0; e< nelectrons; e++) { 
+    Array1 <doublevar> ref_pos(3);
+    Array1 <doublevar> warp_pos(3);
+    refsample->getElectronPos(e,ref_pos);
+    space_warp(refsample,sample, e, ref_pos, warp_pos, jacobian);
+    tot_jacobian*=jacobian;
+    sample->setElectronPos(e,warp_pos);
+  }
+  return tot_jacobian;
+}
