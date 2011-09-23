@@ -535,7 +535,7 @@ void Vmc_point::mpiSend(int node) {
 }
 
 void Vmc_point::mpiReceive(int node) { 
-  configs.mpiSend(node);
+  configs.mpiReceive(node);
   MPI_Recv(system,node);
 }
 
@@ -547,9 +547,10 @@ void Vmc_point::read(istream & is) {
     is.seekg(filepos);
     return;
   }
+  else system=0;
   is >> dum;
   is >> dum >> system;
-  is >> dum; //clear the } 
+  //is >> dum; //clear the } 
 
 }
 
