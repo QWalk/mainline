@@ -113,8 +113,10 @@ void Config_save_point::mpiSend(int node) {
 //----------------------------------------------------------------------
 void Config_save_point::read(istream & is) { 
   string dummy;
-  is >> dummy;
-  assert(dummy=="nElec");
+  while(is >> dummy) { 
+    if(dummy=="nElec") break;
+  }
+  if(dummy!="nElec") error("Couldn't find nElec reading configurations");
   int nelec;
   is >> nelec;
   electronpos.Resize(nelec);
