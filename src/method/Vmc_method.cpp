@@ -530,15 +530,35 @@ void Vmc_method::runSample(Properties_manager & prop,
 //######################################################################
 
 void Vmc_point::mpiSend(int node) { 
+  configs.mpiSend(node);
+  MPI_Send(system,node);
 }
 
 void Vmc_point::mpiReceive(int node) { 
+  configs.mpiSend(node);
+  MPI_Recv(system,node);
 }
 
 void Vmc_point::read(istream & is) { 
+  configs.read(is);
+  long int filepos=is.tellg();
+  string dum; is >> dum;
+  if(!caseless_eq(dum,"VMC")) { 
+    is.seekg(filepos);
+    return;
+  }
+  is >> dum;
+  is >> dum >> system;
+  is >> dum; //clear the } 
+
 }
 
 void Vmc_point::write(ostream & os) { 
+  string indent="";
+  configs.write(os);
+  os << "VMC  { \n";
+     os << "system " << system << endl;
+  os << " } \n";
 }
 //######################################################################
 
