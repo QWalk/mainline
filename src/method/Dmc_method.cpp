@@ -495,34 +495,34 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
 	    if(past_avgrets.size() > max_fw_length) 
 	      past_avgrets.erase(past_avgrets.begin()+max_fw_length, past_avgrets.end());
 
-	    int size=pts(walker).past_properties.size();
-	    //	    cout <<"size of the queqe "<<size<<endl;
+      int size=pts(walker).past_properties.size();
+      //	    cout <<"size of the queqe "<<size<<endl;
 
-	    //find the element from the past
-	    doublevar oldweight;
-	    for(int s=0;s<fw_length.GetSize();s++){
-	      if(fw_length(s)>size){
-		pts(walker).prop.avgrets=pts(walker).past_properties[size-1].avgrets;
-		oldweight=pts(walker).past_properties[size-1].weight;
-	      }
-	      else{
-		//call the prop.avgrets from fw_length(s) steps a go
-		pts(walker).prop.avgrets=pts(walker).past_properties[fw_length(s)-1].avgrets;
-		oldweight=pts(walker).past_properties[fw_length(s)-1].weight;
-	      }
-
-	      //for(int i=0; i< pts(walker).prop.avgrets.GetDim(0); i++)
-	      //for(int j=0; j< pts(walker).prop.avgrets(i).vals.GetDim(0); j++)
-	      //  pts(walker).prop.avgrets(i).vals(j)*=pts(walker).prop.weight(0)/oldweight;
-	      //pts(walker).prop.weight(0)/=oldweight;
-	      
-	      //insert it into observables
-	      prop_fw(s).insertPoint(step+p, walker, pts(walker).prop);
-	    }
-	  }//if FW
-	 
+      //find the element from the past
+      doublevar oldweight;
+      for(int s=0;s<fw_length.GetSize();s++){
+        if(fw_length(s)>size){
+          pts(walker).prop.avgrets=pts(walker).past_properties[size-1].avgrets;
+          oldweight=pts(walker).past_properties[size-1].weight;
         }
-        
+        else{
+          //call the prop.avgrets from fw_length(s) steps a go
+          pts(walker).prop.avgrets=pts(walker).past_properties[fw_length(s)-1].avgrets;
+          oldweight=pts(walker).past_properties[fw_length(s)-1].weight;
+        }
+
+        //for(int i=0; i< pts(walker).prop.avgrets.GetDim(0); i++)
+        //for(int j=0; j< pts(walker).prop.avgrets(i).vals.GetDim(0); j++)
+        //  pts(walker).prop.avgrets(i).vals(j)*=pts(walker).prop.weight(0)/oldweight;
+        //pts(walker).prop.weight(0)/=oldweight;
+
+        //insert it into observables
+        prop_fw(s).insertPoint(step+p, walker, pts(walker).prop);
+      }
+    }//if FW
+
+        }
+
         pts(walker).config_pos.savePos(sample);
       }
       //---Finished moving all walkers
@@ -561,8 +561,8 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
     
     if(max_fw_length){
       for(int s=0;s<fw_length.GetSize();s++){
-	//prop_fw(s).endBlock();
-	prop_fw(s).endBlock_per_step();
+        //prop_fw(s).endBlock();
+        prop_fw(s).endBlock_per_step();
       }
     }
 
@@ -623,7 +623,7 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
     //MB: final printout for FW
     if(max_fw_length){
       for(int s=0;s<fw_length.GetSize();s++)
-	prop_fw(s).printSummary(output,average_var);
+        prop_fw(s).printSummary(output,average_var);
     }
 
   }
