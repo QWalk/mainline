@@ -177,14 +177,25 @@ template <class T> void MO_matrix_einspline<T>::buildLists(Array1 <Array1 <int> 
   }
 
   for(int mo=0; mo < nmo; mo++) { 
-    //cout << "reading " << mo << endl;
-    for(T * p=orb_data.v; p!= orb_data.v+npoints(0)*npoints(1)*npoints(2); p++) { 
-      is >> *p;
+    if(mpi_info.node==0) {
+      is.read((char*)(orb_data.v),sizeof(T)*ngridpts);
     }
+
     for(int s=0; s< nsplines; s++) { 
       for(int i=0; i < nmo_lists(s); i++) { 
         if(occupations(s)(i)==mo) { 
-          
+#ifdef USE_MPI
+          int nvals=sizeof(T)/sizeof(double);
+          if(mpi_info.node==0) { 
+            for(int proc=1; proc < mpi_info.nprocs; proc++) { 
+              MPI_Send(orb_data.v,ngridpts*nvals,MPI_DOUBLE,proc,0,MPI_Comm_grp);
+            }
+          }
+          else { 
+            MPI_Status status;
+            MPI_Recv(orb_data.v,ngridpts*nvals,MPI_DOUBLE,0,0,MPI_Comm_grp,&status);
+          }          
+#endif 
           spline(s).set(i,orb_data.v);
         }
       }
@@ -212,7 +223,7 @@ template <class T> void MO_matrix_einspline<T>::read(vector <string> & words, un
   int nmo_file;
   is >> nmo_file;
   nmo=nmo_file;
-  cout << "nmo " << nmo << endl;
+  //cout << "nmo " << nmo << endl;
   is.ignore(180,'\n'); //clear nmo line
   is.ignore(180,'\n'); //K-point line
   kpoint.Resize(nmo_file,ndim);
@@ -230,13 +241,13 @@ template <class T> void MO_matrix_einspline<T>::read(vector <string> & words, un
   for(int i=0; i< ndim; i++) { 
     for(int j=0; j< ndim; j++) {
       is >> latvec(i,j);
-      cout << latvec(i,j) << " ";
+      //cout << latvec(i,j) << " ";
     }
   }
   latvecinv.Resize(ndim,ndim);
-  cout << "inverting " << endl;
+//  cout << "inverting " << endl;
   InvertMatrix(latvec,latvecinv,ndim);
-  cout << "done " << endl;
+//  cout << "done " << endl;
 
   kpoint=0.0;
   for(int i=0; i< nmo_file; i++) { 

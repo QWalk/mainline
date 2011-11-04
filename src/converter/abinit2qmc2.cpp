@@ -144,12 +144,15 @@ void extend_supercell(const vector <vector <double> > & supercell,
    for(int d=0; d< 3; d++) u[d]=0.0;
    for(int d=0; d< 3; d++) {
      for(int d1=0; d1 < 3; d1++) { 
-       u[d]+=inversesuperlat[d1][d]*delta[d];
+       u[d1]+=inversesuperlat[d1][d]*delta[d];
      }
    }
    if(u[0]>=0 && u[0] < .99 && u[1]>=0 && u[1]<.99 && u[2]>=0 && u[2]<.99) {
      deltas.push_back(delta);
-     //cout << "delta " << delta[0] << "  " << delta[1] << " " << delta[2] << endl;
+  if(mpi_info.node ==0 ) { 
+     cout << "delta " << delta[0] << "  " << delta[1] << " " << delta[2] << endl;
+     cout << " u " << u[0] << " " << u[1] << " " << u[2] << endl;
+  }
    }
  }
  superatoms.clear();
@@ -450,7 +453,7 @@ void Abinit_converter::read_wfk(string filename,
 // file, just as a check.
   cout << "Number of spin channels " << nsppol << endl;
 
-  grid_resolution=0.3;
+  grid_resolution=0.2;
 
   cout << "Lattice vectors " << endl;
   latvec.resize(3);
@@ -644,8 +647,9 @@ void Abinit_converter::write_files(string basename) {
       assert(wavefunctions.size()%2==0);
       wfend=wavefunctions.begin()+wavefunctions.size()/2;
     }
+    wfend=wavefunctions.begin()+1; //only do the first one for now.
 
-    for(int super_expansion=1; super_expansion<6; super_expansion++) { 
+    for(int super_expansion=1; super_expansion<12; super_expansion++) { 
       cout <<"########################expanding " << super_expansion << " ####################\n";
       vector <vector <double> > supercell(3);
       for(int d=0; d< 3; d++) supercell[d].resize(3);
@@ -800,7 +804,8 @@ void Abinit_converter::write_orbitals(string  filename) {
     for(int i=0; i< 3; i++) os << npts[i] << " ";
     os << endl;
     os << "orbitals follow (orbital,x,y,z indices) " << endl;
-
+    os.close();
+    os.open(filename.c_str(), ios::app | ios::binary);
     vector<complex<double> >::iterator ptr=allorbitals.begin();
     vector <complex<double> > tmp_vec(ni_this*npts[1]*npts[2]);
     for(int orb=0; orb < orbnorm.size(); orb++) { 
@@ -809,6 +814,7 @@ void Abinit_converter::write_orbitals(string  filename) {
         if(proc==0) { 
           nxyz=ni_this*npts[1]*npts[2];
           ptr=allorbitals.begin()+orb*nxyz;
+          tmp_vec.assign(ptr,ptr+nxyz);
         }
         else { 
 #ifdef USE_MPI
@@ -821,10 +827,12 @@ void Abinit_converter::write_orbitals(string  filename) {
         }
 
         if(complex_wavefunction) { 
-          for(int i=0; i< nxyz; i++) { 
-            os << *ptr << "\n";
-            ptr++;
-          }
+          os.write((char*)(&tmp_vec[0]),nxyz*sizeof(complex<double>));
+          //for(int i=0; i< nxyz; i++) { 
+            //os << *ptr << "\n";
+          //  os.write((char*)ptr,sizeof(complex<double>));
+          //  ptr++;
+          //}
         }
         else {
           cerr << "Don't support real functions for now" << endl;
