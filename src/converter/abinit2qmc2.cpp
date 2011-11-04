@@ -804,7 +804,8 @@ void Abinit_converter::write_orbitals(string  filename) {
     for(int i=0; i< 3; i++) os << npts[i] << " ";
     os << endl;
     os << "orbitals follow (orbital,x,y,z indices) " << endl;
-
+    os.close();
+    os.open(filename.c_str(), ios::app | ios::binary);
     vector<complex<double> >::iterator ptr=allorbitals.begin();
     vector <complex<double> > tmp_vec(ni_this*npts[1]*npts[2]);
     for(int orb=0; orb < orbnorm.size(); orb++) { 
@@ -813,6 +814,7 @@ void Abinit_converter::write_orbitals(string  filename) {
         if(proc==0) { 
           nxyz=ni_this*npts[1]*npts[2];
           ptr=allorbitals.begin()+orb*nxyz;
+          tmp_vec.assign(ptr,ptr+nxyz);
         }
         else { 
 #ifdef USE_MPI
@@ -825,10 +827,12 @@ void Abinit_converter::write_orbitals(string  filename) {
         }
 
         if(complex_wavefunction) { 
-          for(int i=0; i< nxyz; i++) { 
-            os << *ptr << "\n";
-            ptr++;
-          }
+          os.write((char*)(&tmp_vec[0]),nxyz*sizeof(complex<double>));
+          //for(int i=0; i< nxyz; i++) { 
+            //os << *ptr << "\n";
+          //  os.write((char*)ptr,sizeof(complex<double>));
+          //  ptr++;
+          //}
         }
         else {
           cerr << "Don't support real functions for now" << endl;
