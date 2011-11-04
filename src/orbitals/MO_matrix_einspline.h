@@ -177,15 +177,25 @@ template <class T> void MO_matrix_einspline<T>::buildLists(Array1 <Array1 <int> 
   }
 
   for(int mo=0; mo < nmo; mo++) { 
-    //cout << "reading " << mo << endl;
-    //for(T * p=orb_data.v; p!= orb_data.v+npoints(0)*npoints(1)*npoints(2); p++) { 
-    //  is >> *p;
-    //}
-    is.read((char*)(orb_data.v),sizeof(T)*ngridpts);
+    if(mpi_info.node==0) {
+      is.read((char*)(orb_data.v),sizeof(T)*ngridpts);
+    }
+
     for(int s=0; s< nsplines; s++) { 
       for(int i=0; i < nmo_lists(s); i++) { 
         if(occupations(s)(i)==mo) { 
-          
+#ifdef USE_MPI
+          int nvals=sizeof(T)/sizeof(double);
+          if(mpi_info.node==0) { 
+            for(int proc=1; proc < mpi_info.nprocs; proc++) { 
+              MPI_Send(orb_data.v,ngridpts*nvals,MPI_DOUBLE,proc,0,MPI_Comm_grp);
+            }
+          }
+          else { 
+            MPI_Status status;
+            MPI_Recv(orb_data.v,ngridpts*nvals,MPI_DOUBLE,0,0,MPI_Comm_grp,&status);
+          }          
+#endif 
           spline(s).set(i,orb_data.v);
         }
       }
