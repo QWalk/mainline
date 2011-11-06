@@ -313,11 +313,21 @@ void Vmc_method::run(Program_options & options, ostream & output) {
 
 */
 void Vmc_method::runWithVariables(Properties_manager & prop, 
-                                  System * sys, 
-                                  Wavefunction_data * wfdata,
-                                  Pseudopotential * pseudo,
+                                  System * sys_, 
+                                  Wavefunction_data * wfdata_,
+                                  Pseudopotential * pseudo_,
                                   ostream & output) { 
-  error("need to do runWithVariables");
+  int nsys=1;
+  sys.Resize(nsys);
+  wfdata.Resize(nsys);
+  sys(0)=sys_;
+  wfdata(0)=wfdata_;
+  pseudo=pseudo_;
+  runSample(prop,output);
+  sys=NULL;
+  pseudo=NULL;
+  wfdata=NULL;
+
   
 }
 //----------------------------------------------------------------------
