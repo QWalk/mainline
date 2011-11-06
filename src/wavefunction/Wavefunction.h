@@ -244,6 +244,15 @@ public:
   virtual void getForceBias(Wavefunction_data *, int, Wf_return &);
 
   /*!
+    \brief 
+    Evaluate the wave function values obtained by replacing each electron's position 
+    with the one given in pos.
+  */
+  virtual void evalTestPos(Array1 <doublevar> & pos, Sample_point *,Array1 <Wf_return> & wf) { 
+    error("evalTestPos() not implemented for this wave function");
+  }
+
+  /*!
     \brief
     Calculate the derivatives with respect to the parameters of
     the wave function.  Does not change the state of the wave function,

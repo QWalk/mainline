@@ -79,7 +79,7 @@ public:
 
   virtual void getVal(Wavefunction_data *, int, Wf_return &);
   virtual void getLap(Wavefunction_data *, int, Wf_return &);
-
+  virtual void evalTestPos(Array1 <doublevar> & pos, Sample_point *, Array1 <Wf_return> & wf);
   virtual void getDensity(Wavefunction_data *,int, Array2 <doublevar> &);
 
   virtual void saveUpdate(Sample_point *, int e, Wavefunction_storage *);
@@ -1267,6 +1267,12 @@ template <class T> inline void Slat_wf<T>::updateLap(Slat_wf_data * dataptr,
 }
 
 //-------------------------------------------------------------------------
+
+template <class T> inline void Slat_wf<T>::evalTestPos(Array1 <doublevar> & pos, 
+    Sample_point * sample, Array1 <Wf_return> & wf) {
+
+}
+
 
 #endif //SLAT_WF_H_INCLUDED
 //--------------------------------------------------------------------------
