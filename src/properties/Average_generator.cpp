@@ -3,6 +3,7 @@
 #include "gesqua.h"
 #include "ulec.h"
 #include "Average_density_matrix.h"
+#include "Properties_point.h"
 
 //-----------------------------------------------------------------------------
 int decide_averager(string & label, Average_generator *& avg) { 
@@ -34,6 +35,8 @@ int decide_averager(string & label, Average_generator *& avg) {
     avg=new Average_line_density;
   else if(caseless_eq(label,"TBDM_BASIS")) 
     avg=new Average_tbdm_basis;
+  else if(caseless_eq(label,"WF_PARMDERIV")) 
+    avg=new Average_wf_parmderivs;
   else 
     error("Didn't understand ", label, " in Average_generator.");
   
@@ -1650,4 +1653,62 @@ void Average_line_density::write_summary(Average_return & avg, Average_return & 
   
 }
 
+//######################################################################
 
+void Average_wf_parmderivs::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+                       System * sys, Sample_point * sample, Average_return & avg) { 
+  error("Must use the properties_point version of evaluate with wf_parmderivs");
+}
+
+
+void Average_wf_parmderivs::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+                       System * sys, Sample_point * sample, Properties_point & pt,Average_return & avg) { 
+  
+  Parm_deriv_return deriv;
+  deriv.need_hessian=0;
+  int nparms=wfdata->nparms();
+  deriv.nparms_end=nparms;
+  avg.type="wf_parmderivs";
+  if(!wf->getParmDeriv(wfdata, sample,deriv)) { 
+    error("WF needs to support parmderivs for now.");
+  }
+  avg.vals.Resize(2*nparms+nparms*nparms);
+  for(int i=0; i< nparms; i++) { 
+    avg.vals(i)=deriv.gradient(i)*pt.energy(0);
+    avg.vals(nparms+i)=deriv.gradient(i);
+  }
+  for(int i=0;i< nparms; i++) { 
+    for(int j=0; j< nparms; j++) { 
+      avg.vals(2*nparms+i*nparms+j)=deriv.gradient(i)*deriv.gradient(j);
+    }
+  }
+}
+//-----------------------------------------------------------------------------
+void Average_wf_parmderivs::read(System * sys, Wavefunction_data * wfdata, vector
+                   <string> & words) { 
+}
+//-----------------------------------------------------------------------------
+void Average_wf_parmderivs::write_init(string & indent, ostream & os) { 
+  os << indent << "WF_PARMDERIV" << endl;
+}
+//-----------------------------------------------------------------------------
+void Average_wf_parmderivs::read(vector <string> & words) { 
+}
+//-----------------------------------------------------------------------------
+void Average_wf_parmderivs::write_summary(Average_return &avg ,Average_return & err, ostream & os) { 
+   os << "Wavefunction parameter derivatives" << endl;
+   /*
+   int n=avg.vals.GetDim(0)/2;
+   os << "energy " << endl;
+   for(int i=0; i < n; i++) { 
+     os << i << " " << avg.vals(i) << " +/- " << err.vals(i) << endl;
+   }
+   os << "Wavefunction energy*parameter derivatives " << endl;
+   for(int i=0; i< n; i++) { 
+     for(int j=0; j< n; j++) { 
+       os << i << " " << j << " " << avg.vals(2*n+i*n+j) << " +/- " << err.vals(2*n+i*n+j) << endl;
+     }
+   }
+*/
+}
+//-----------------------------------------------------------------------------

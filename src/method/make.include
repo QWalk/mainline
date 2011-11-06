@@ -16,6 +16,7 @@ MY_SOURCES:= \
 	Qmc_method.cpp \
 	Reptation_method.cpp \
 	Split_sample.cpp \
+        Stochastic_reconfiguration.cpp \
 	Test_method.cpp \
 	Vmc_method.cpp 
 

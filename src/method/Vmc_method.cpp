@@ -432,7 +432,7 @@ void Vmc_method::runSample(Properties_manager & prop,
           pt.nonlocal(si)=nonlocal(0);
           //jacobian_save(i)=tot_jacobian;
           for(int a=0; a < average_var.GetDim(1); a++) { 
-            average_var(0,a)->evaluate(wfdata(si),wf(si),sys(si),sample(si),pt.avgrets(si,a));
+            average_var(0,a)->evaluate(wfdata(si),wf(si),sys(si),sample(si),pt,pt.avgrets(si,a));
           }
           //doublevar tmpweight=0.0;
           //for(int sj=0; sj < nsys; sj++)  

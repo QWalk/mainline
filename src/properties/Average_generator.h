@@ -27,7 +27,7 @@
 #include "Basis_function.h"
 #include "System.h"
 #include "Basis_function.h"
-
+class Properties_point;
 struct Average_return {
   string type;
   Array1 <doublevar> vals;
@@ -69,6 +69,12 @@ public:
   //for gosling
   virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
                         System * sys, Sample_point * sample, Average_return & )=0;
+
+  virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+                        System * sys, Sample_point * sample, Properties_point & pt,Average_return &avg) { 
+    evaluate(wfdata,wf,sys,sample,avg);
+  }
+
   virtual void read(System * sys, Wavefunction_data * wfdata, vector
                     <string> & words)=0;
   virtual void write_init(string & indent, ostream & os)=0;
@@ -347,6 +353,24 @@ public:
    int npoints; //Number of points on the line
 };
 
+//----------------------------------------------------------------------------
+
+
+class Average_wf_parmderivs:public Average_generator { 
+public:
+  virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+                        System * sys, Sample_point * sample, Average_return & avg);
+  virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+                        System * sys, Sample_point * sample, Properties_point & pt, Average_return & avg);
+
+  virtual void read(System * sys, Wavefunction_data * wfdata, vector
+                    <string> & words);
+  virtual void write_init(string & indent, ostream & os);
+  virtual void read(vector <string> & words);
+  virtual void write_summary(Average_return &,Average_return &, ostream & os);
+private:
+  
+};
 
 
 #endif //AVERAGE_GENERATOR_H_INCLUDED
