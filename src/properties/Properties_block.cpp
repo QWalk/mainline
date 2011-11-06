@@ -123,7 +123,7 @@ void Properties_block::storeToLog(string & indent, ostream & os,
     os << indent << "}" << endl;
   }
 
-  print_array_sec(os, indent, "autocorr_energy", autocorr(0));
+  //print_array_sec(os, indent, "autocorr_energy", autocorr(0));
   if(fabs(aux_weight_correlation) > 1e-10)
     os << indent << "aux_weight_correlation " << aux_weight_correlation 
        << endl;

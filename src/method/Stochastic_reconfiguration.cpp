@@ -64,6 +64,16 @@ void Stochastic_reconfiguration_method::run(Program_options & options, ostream &
   doublevar tau_threshold=1e-3;
   int nit_completed=0;
   for(int it=0; it< iterations; it++) { 
+    if(mpi_info.node==0) { 
+    cout << "S " << endl;
+    for(int i=0; i< nparms+1; i++) { 
+      for(int j=0; j< nparms+1; j++) { 
+        cout << S(i,j)  << " ";
+      }
+    }
+    cout << endl;
+    }
+
 
     InvertMatrix(S,Sinv,nparms+1);
     Array1 <doublevar> save_alpha=alpha;
@@ -85,8 +95,8 @@ void Stochastic_reconfiguration_method::run(Program_options & options, ostream &
       cout << endl;
       wfdata->setVarParms(alpha);
       wavefunction_derivative(tmp_energies,tmp_S,tmp_en);
-      cout << "tmp_en " << tmp_en(0) << " en " << en(0) << "+/- " << en(1) << endl;
-      if(tmp_en(0) < en(0) or fabs(tmp_en(0) - en(0)) < en(1)*2) {
+      cout << mpi_info.node << ":tmp_en " << tmp_en(0) << " en " << en(0) << "+/- " << en(1) << endl;
+      if((tmp_en(0) < en(0) or fabs(tmp_en(0) - en(0)) < en(1)*2) and tmp_en(1) < 2*en(1)) {
         energy_lowered=true;
         energies=tmp_energies;
         en=tmp_en;
