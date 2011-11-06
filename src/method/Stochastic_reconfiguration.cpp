@@ -75,12 +75,13 @@ void Stochastic_reconfiguration_method::run(Program_options & options, ostream &
     }
 
 
-    InvertMatrix(S,Sinv,nparms+1);
     Array1 <doublevar> save_alpha=alpha;
     x=0;
     doublevar tmp_tau=tau;
     bool energy_lowered=false;
     while(!energy_lowered) { 
+      InvertMatrix(S,Sinv,nparms+1);
+      
       for(int i=0; i <nparms+1; i++) { 
         for(int j=0; j< nparms+1; j++) { 
           x(i)+=Sinv(i,j)*(S(0,j)-tmp_tau*energies(j));
@@ -96,6 +97,29 @@ void Stochastic_reconfiguration_method::run(Program_options & options, ostream &
       wfdata->setVarParms(alpha);
       wavefunction_derivative(tmp_energies,tmp_S,tmp_en);
       cout << mpi_info.node << ":tmp_en " << tmp_en(0) << " en " << en(0) << "+/- " << en(1) << endl;
+      if(mpi_info.node==0 and tmp_en(0) < -500) { 
+        cout << "#######################################" << endl;
+        cout << "S " << endl;
+        for(int i=0; i< nparms+1; i++) { 
+          for(int j=0; j< nparms+1; j++) { 
+            cout << tmp_S(i,j)  << " ";
+          }
+        }
+        cout << endl;
+        cout << "alpha ";
+        for(int i=0; i< nparms; i++) { 
+          cout << alpha(i) << " ";
+        }
+        cout << endl;
+        cout << "energies ";
+        for(int i=0; i< nparms+1; i++) { 
+          cout << tmp_energies(i) << " ";
+        }
+        cout << endl;
+        exit(122);
+      }
+      MPI_Barrier(MPI_Comm_grp);
+
       if((tmp_en(0) < en(0) or fabs(tmp_en(0) - en(0)) < en(1)*2) and tmp_en(1) < 2*en(1)) {
         energy_lowered=true;
         energies=tmp_energies;
@@ -178,7 +202,8 @@ void Stochastic_reconfiguration_method::wavefunction_derivative(
   vmc.read(words,pos,options);
   Properties_manager prop;
   string name=options.runid+"vmcout";
-  ofstream vmcout(name.c_str());
+  ofstream vmcout;
+  if(mpi_info.node==0) vmcout.open(name.c_str());
   vmc.runWithVariables(prop,sys,wfdata,pseudo,vmcout);
   Properties_final_average final;
   prop.getFinal(final);
