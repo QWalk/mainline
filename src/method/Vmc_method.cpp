@@ -423,7 +423,7 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
         
         pt.avgrets.Resize(1,average_var.GetDim(0));
         for(int i=0; i< average_var.GetDim(0); i++) { 
-          average_var(i)->evaluate(wfdata, wf, sys, sample, pt.avgrets(0,i));
+          average_var(i)->evaluate(wfdata, wf, sys, sample,pt, pt.avgrets(0,i));
         }
         pt.parent=walker;
         pt.nchildren=1; pt.children(0)=1;

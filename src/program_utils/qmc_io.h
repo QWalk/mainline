@@ -32,6 +32,8 @@ const string comment="#";
 
 int caseless_eq(const string & , const string & );
 
+void split
+(std::string & text, std::string & separators, std::vector<std::string> & words);
 
 
 /*!
