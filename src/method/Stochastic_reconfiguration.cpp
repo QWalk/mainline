@@ -118,7 +118,6 @@ void Stochastic_reconfiguration_method::run(Program_options & options, ostream &
         cout << endl;
         exit(122);
       }
-      MPI_Barrier(MPI_Comm_grp);
 
       if((tmp_en(0) < en(0) or fabs(tmp_en(0) - en(0)) < en(1)*2) and tmp_en(1) < 2*en(1)) {
         energy_lowered=true;
