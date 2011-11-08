@@ -1930,6 +1930,7 @@ void Jastrow2_wf::evalTestPos(Array1 <doublevar> & pos, Sample_point * sample,
     Array1 <Wf_return> & wf) { 
 
   wf.Resize(nelectrons);
+  /*
   Wavefunction_storage * store=NULL;
   generateStorage(store);
   Array1 <doublevar> oldpos(3);
@@ -1947,6 +1948,92 @@ void Jastrow2_wf::evalTestPos(Array1 <doublevar> & pos, Sample_point * sample,
   }
 
   delete  store;
+  */
+
+  Array1 <doublevar> oldpos(3);
+  sample->getElectronPos(0,oldpos);
+  sample->setElectronPosNoNotify(0,pos);
+  int ngroups=parent->group.GetDim(0);
+  Array1 <Array3 <doublevar> > eibasis(ngroups);
+  Array1 <Array3 <doublevar> > eebasis(ngroups);
+  for(int g=0; g< ngroups; g++) { 
+    eibasis(g).Resize(parent->natoms, maxeibasis ,5);
+    eebasis(g).Resize(nelectrons,maxeebasis,5);
+    parent->group(g).updateEIBasis(0,sample,eibasis(g));
+    parent->group(g).updateEEBasis(0,sample,eebasis(g));
+  }
+  sample->setElectronPosNoNotify(0,oldpos);
+
+  //We have to also get the eebasis for the test with electron 0.
+  //Doing this in a somewhat inefficient way
+  sample->getElectronPos(1,oldpos);
+  sample->setElectronPosNoNotify(1,pos);
+  for(int g=0; g< ngroups;g++) { 
+    //Using the fact that updateEEBasis(e,..) doesn't touch element e
+    parent->group(g).updateEEBasis(1,sample,eebasis(g));
+  }
+  sample->setElectronPosNoNotify(1,oldpos);
+    
+
+  //We've now calculated the basis functions for all the electrons and can 
+  //get the wave function values
+  Array1 <doublevar> newval_ee(nelectrons);
+  Array3 <doublevar> eibasis_tmp(parent->natoms,maxeibasis,5);
+  doublevar u_one=0;
+  for(int i=0; i< nelectrons; i++) u_one+=one_body_save(i,0);
+
+  for(int e=0; e< nelectrons;e++) { 
+    wf(e).Resize(1,1);
+    doublevar newval_ei=0.0;
+    newval_ee=0.0;
+    for(int g=0; g< ngroups;g++) { 
+      if(parent->group(g).hasOneBody()) { 
+        parent->group(g).one_body.updateVal(e,eibasis(g),newval_ei);
+      }
+      if(parent->group(g).hasTwoBody()) 
+        parent->group(g).two_body->updateVal(e,eebasis(g),newval_ee);
+      //Here we have to do some shifting around of values
+
+      if(parent->group(g).hasThreeBody() || parent->group(g).hasThreeBodySpin()) {  
+        for(int i=0; i< parent->natoms; i++) { 
+          for(int j=0; j< maxeibasis; j++) { 
+            for(int d=0; d< 5; d++) { 
+              eibasis_tmp(i,j,d)=eibasis_save(g)(e,i,j,d);
+              eibasis_save(g)(e,i,j,d)=eibasis(g)(i,j,d);
+            }
+          }
+        }
+        if(parent->group(g).hasThreeBody()) 
+          parent->group(g).three_body.updateVal(e,eibasis_save(g), 
+              eebasis(g), newval_ee);
+        if(parent->group(g).hasThreeBodySpin()) 
+          parent->group(g).three_body_diffspin.updateVal(e,eibasis_save(g), 
+              eebasis(g), newval_ee);
+        for(int i=0; i< parent->natoms; i++) { 
+          for(int j=0; j< maxeibasis; j++) { 
+            for(int d=0; d< 5; d++) { 
+              eibasis_save(g)(e,i,j,d)=eibasis_tmp(i,j,d);
+            }
+          }
+        }
+        
+      }
+      //----
+      
+    }
+
+    doublevar old_eval=0,new_eval=0;
+    for(int i=0; i< e; i++) old_eval+=two_body_save(i,e,0);
+    for(int j=e+1; j< nelectrons; j++) old_eval+=two_body_save(e,j,0);
+    for(int i=0; i< e; i++) new_eval+=newval_ee(i);
+    for(int j=e+1; j< nelectrons; j++) new_eval+=newval_ee(j);
+    doublevar u=u_twobody+u_one //original
+      +new_eval-old_eval+newval_ei-one_body_save(e,0);//updates
+    wf(e).amp(0,0)=u;
+    wf(e).phase(0,0)=0;
+    wf(e).cvals(0,0)=u;
+  }
+  
 }
 //--------------------------------------------------------------------------
 
