@@ -240,8 +240,9 @@ void Jastrow_threebody_piece::updateVal(int e,
   assert(eibasis.GetDim(1) >= parm_centers.GetDim(0));
   int natoms=parm_centers.GetDim(0);
   int nelectrons=eebasis.GetDim(0);
-  
+
   const doublevar tiny=1e-14;
+  doublevar vkl;
   //cout << "updateLap " << endl;
   for(int at=0; at < natoms; at++) {
     int p=parm_centers(at);
@@ -249,18 +250,17 @@ void Jastrow_threebody_piece::updateVal(int e,
       doublevar parm=unique_parameters(p,i);
       int k=klm(i,0), el=klm(i,1), m=klm(i,2);
       if(fabs(eibasis(e,at,k,0)) > tiny
-	 || fabs(eibasis(e,at,el,0)) > tiny) { 
-	for(int j=0; j< e; j++) {
-	  
-	  doublevar vkl=parm*(eibasis(e,at,k,0)*eibasis(j,at,el,0)
-			      +eibasis(j,at,k,0)*eibasis(e,at,el,0));
-	  updated_val(j)+=vkl*eebasis(j,m,0);
-	}
-	for(int j=e+1; j< nelectrons; j++) {
-	  doublevar vkl=parm*(eibasis(e,at,k,0)*eibasis(j,at,el,0)
-			      +eibasis(j,at,k,0)*eibasis(e,at,el,0));
-	  updated_val(j)+=vkl*eebasis(j,m,0);
-	}
+          || fabs(eibasis(e,at,el,0)) > tiny) { 
+        for(int j=0; j< e; j++) {
+          vkl=parm*(eibasis(e,at,k,0)*eibasis(j,at,el,0)
+              +eibasis(j,at,k,0)*eibasis(e,at,el,0));
+          updated_val(j)+=vkl*eebasis(j,m,0);
+        }
+        for(int j=e+1; j< nelectrons; j++) {
+          vkl=parm*(eibasis(e,at,k,0)*eibasis(j,at,el,0)
+              +eibasis(j,at,k,0)*eibasis(e,at,el,0));
+          updated_val(j)+=vkl*eebasis(j,m,0);
+        }
       }
     }
   } 

@@ -1977,15 +1977,18 @@ void Jastrow2_wf::evalTestPos(Array1 <doublevar> & pos, Sample_point * sample,
 
   //We've now calculated the basis functions for all the electrons and can 
   //get the wave function values
+  //Again doing two electrons, slightly inefficient, but the scaling is 
+  //still fine.
   Array1 <doublevar> newval_ee(nelectrons);
   Array3 <doublevar> eibasis_tmp(parent->natoms,maxeibasis,5);
   doublevar u_one=0;
   for(int i=0; i< nelectrons; i++) u_one+=one_body_save(i,0);
+  doublevar newval_ei;
+  newval_ee=0.0;
+  for(int e=0; e< 2;e++) { 
+    newval_ei=0;
+    for(int e1=0; e1 < nelectrons; e1++) if(e1!=e) newval_ee(e1)=0;
 
-  for(int e=0; e< nelectrons;e++) { 
-    wf(e).Resize(1,1);
-    doublevar newval_ei=0.0;
-    newval_ee=0.0;
     for(int g=0; g< ngroups;g++) { 
       if(parent->group(g).hasOneBody()) { 
         parent->group(g).one_body.updateVal(e,eibasis(g),newval_ei);
@@ -2021,7 +2024,12 @@ void Jastrow2_wf::evalTestPos(Array1 <doublevar> & pos, Sample_point * sample,
       //----
       
     }
-
+  }
+  //Here we calculate the wave function for each of the electrons going to the 
+  //test position
+  for(int e=0; e< nelectrons; e++) { 
+    wf(e).Resize(1,1);
+    
     doublevar old_eval=0,new_eval=0;
     for(int i=0; i< e; i++) old_eval+=two_body_save(i,e,0);
     for(int j=e+1; j< nelectrons; j++) old_eval+=two_body_save(e,j,0);
