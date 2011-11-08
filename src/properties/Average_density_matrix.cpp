@@ -155,13 +155,13 @@ void Average_tbdm_basis::evaluate_obdm(Wavefunction_data * wfdata, Wavefunction 
       if(e >= nup) { which_obdm=1; nelec_1b=ndown; } 
       dcomplex tmp;
       int place=0;
+      dcomplex prefactor=psiratio_1b/(dist1*npoints_eval);
       for(int orbnum=0; orbnum < nmo; orbnum++) { 
         for(int orbnum2=0; orbnum2 < nmo; orbnum2++) { 
-          tmp=movals1(orbnum,0)*conj(movals1_base(e)(orbnum2,0))
-            *psiratio_1b/dist1;
+          tmp=movals1(orbnum,0)*conj(movals1_base(e)(orbnum2,0))*prefactor;
 
-          avg.vals(nmo+2*which_obdm*nmo*nmo+place)+=tmp.real()/doublevar(npoints_eval);
-          avg.vals(nmo+2*which_obdm*nmo*nmo+place+1)+=tmp.imag()/doublevar(npoints_eval);
+          avg.vals(nmo+2*which_obdm*nmo*nmo+place)+=tmp.real();
+          avg.vals(nmo+2*which_obdm*nmo*nmo+place+1)+=tmp.imag();
 
           place+=2;
         }
