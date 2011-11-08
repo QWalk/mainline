@@ -122,6 +122,28 @@ void Slat_Jastrow::getVal(Wavefunction_data * wfdata,
 }
 
 
+void Slat_Jastrow::evalTestPos(Array1 <doublevar> & pos, Sample_point * sample,Array1 <Wf_return> & wf) {
+  Array1 <Wf_return> slat_val,jast_val;
+  slater_wf->evalTestPos(pos,sample,slat_val);
+  jastrow_wf->evalTestPos(pos,sample,jast_val);
+  assert(slat_val.GetDim(0)==jast_val.GetDim(0));
+  int n=slat_val.GetDim(0);
+  wf.Resize(n);
+  for(int i=0; i< n; i++) { 
+    wf(i).Resize(nfunc_,2);
+    if ( slat_val(i).is_complex==1 || jast_val(i).is_complex==1 )
+      wf(i).is_complex=1;
+    
+    for(int j=0; j< nfunc_; j++) { 
+      wf(i).phase(j,0)=slat_val(i).phase(j,0)+jast_val(i).phase(j,0); 
+      wf(i).amp(j,0)=slat_val(i).amp(j,0)+jast_val(i).amp(j,0);  //add the logarithm
+    }
+  }
+
+}
+
+
+
 void Slat_Jastrow::getSymmetricVal(Wavefunction_data * wfdata,
 			     int e, Wf_return & val){
 

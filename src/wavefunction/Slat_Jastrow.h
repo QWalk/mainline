@@ -86,6 +86,8 @@ public:
   virtual void getForceBias(Wavefunction_data *, int, Wf_return &);
 
   virtual void getDensity(Wavefunction_data *,int,  Array2 <doublevar> &);
+  virtual void evalTestPos(Array1 <doublevar> & pos, Sample_point * sample,Array1 <Wf_return> & wf);
+  
 
   virtual void generateStorage(Wavefunction_storage * & wfstore);
   virtual void saveUpdate(Sample_point *, int e, Wavefunction_storage *);

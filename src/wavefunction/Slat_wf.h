@@ -1270,6 +1270,58 @@ template <class T> inline void Slat_wf<T>::updateLap(Slat_wf_data * dataptr,
 
 template <class T> inline void Slat_wf<T>::evalTestPos(Array1 <doublevar> & pos, 
     Sample_point * sample, Array1 <Wf_return> & wf) {
+  
+  if(inverseStale) { 
+    inverseStale=0;
+    detVal=lastDetVal;
+    updateInverse(parent, lastValUpdate);
+  }
+
+  int nspin=2;
+  Array1<Array2 <T> > movals(nspin);
+  Array1 <doublevar> oldpos(ndim);
+  Array1 <T> modet(nmo);
+  
+  sample->getElectronPos(0,oldpos);
+  for(int s=0; s< nspin; s++) {
+    movals(s).Resize(nmo,1);
+    sample->setElectronPosNoNotify(0,pos);
+    sample->updateEIDist();
+    molecorb->updateVal(sample,0,s,movals(s));
+  }
+  sample->setElectronPosNoNotify(0,oldpos);
+
+  int tote=sample->electronSize();
+  wf.Resize(tote);
+  for(int e=0; e< tote; e++) { 
+    wf(e).Resize(nfunc_,1);
+    Array2 <log_value<T> > vals(nfunc_,1,T(0.0));
+     
+    int s=spin(e);
+    int opps= s==0?1:0;
+    Array1 <log_value <T> > new_detVals(ndet);
+    int f=0;
+    for(int det=0; det< ndet; det++)  {
+      //fill the molecular orbitals for this
+      //determinant
+      for(int i = 0; i < nelectrons(s); i++) {
+        modet(i)=movals(s)(parent->occupation(f,det,s)(i),0);
+      }
+
+
+      T ratio=1./InverseGetNewRatio(inverse(f,det,s),
+          modet, parent->rede(e),
+          nelectrons(s));
+
+      new_detVals(det)=ratio*detVal(f,det, s)*detVal(f,det,opps);
+    }
+    log_value<T> totval=sum(new_detVals);
+    vals(f,0)=totval;
+    wf(e).setVals(vals);
+
+  }
+
+  
 
 }
 

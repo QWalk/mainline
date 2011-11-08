@@ -998,26 +998,26 @@ void Jastrow2_wf::updateVal(Wavefunction_data * wfdata, Sample_point * sample){
         old_eval+=two_body_save(e,j,0);
 
 
-      
+
       if(keep_ion_dependent) { 
-	for(int a=0; a< parent->natoms; a++) { 
-	  for(int d=0; d< 5; d++)
-	    one_body_ion(e,a,d)=0;
-	}
+        for(int a=0; a< parent->natoms; a++) { 
+          for(int d=0; d< 5; d++)
+            one_body_ion(e,a,d)=0;
+        }
       }
 
 
       for(int g=0; g< ngroups; g++) {
         if(parent->group(g).hasOneBody()) 
           parent->group(g).updateEIBasis(e,sample,eibasis);
-        
+
         if(parent->group(g).hasOneBody()) { 
           parent->group(g).one_body.updateVal(e, eibasis,newval_ei);
-	  if(keep_ion_dependent) { 
-	    //cout << "updating " << endl;
-	    parent->group(g).one_body.updateLap_ion(e, eibasis,one_body_ion);
-	  }
-	}
+          if(keep_ion_dependent) { 
+            //cout << "updating " << endl;
+            parent->group(g).one_body.updateLap_ion(e, eibasis,one_body_ion);
+          }
+        }
         
 
         if(parent->group(g).hasTwoBody() || parent->group(g).hasThreeBody() || parent->group(g).hasThreeBodySpin())
@@ -1025,16 +1025,16 @@ void Jastrow2_wf::updateVal(Wavefunction_data * wfdata, Sample_point * sample){
         
         if(parent->group(g).hasTwoBody())
           parent->group(g).two_body->updateVal(e,eebasis, newval_ee);
-          
+
 
         if(parent->group(g).hasThreeBody()) 
           parent->group(g).three_body.updateVal(e,eibasis_save(g), 
-                                                eebasis, newval_ee);
-	if(parent->group(g).hasThreeBodySpin()) 
+              eebasis, newval_ee);
+        if(parent->group(g).hasThreeBodySpin()) 
           parent->group(g).three_body_diffspin.updateVal(e,eibasis_save(g), 
-							  eebasis, newval_ee);
-	
-        
+              eebasis, newval_ee);
+
+
       }
 
       one_body_save(e,0)=newval_ei;
@@ -1732,17 +1732,17 @@ int Jastrow2_wf::get_twobody_ParmDeriv(Sample_point * sample,
 
   for(int g=0; g< ng; g++) {
     if(parent->group(g).hasTwoBody()&& parent->group(g).two_body->nparms()) {
-      
+
       Array3 <doublevar> eetotal(nelectrons, nelectrons, maxeebasis);
       eetotal=-1;
       Array3 <doublevar> eebasis(nelectrons, maxeebasis, 5);
       for(int e=0; e< nelectrons; e++) { 
-	parent->group(g).updateEEBasis(e,sample,eebasis);
-	for(int j=0; j< e; j++) { 
-	  for(int b=0; b< maxeebasis; b++) {
-	    eetotal(j,e,b)=eebasis(j,b,0);
-	  }
-	}
+        parent->group(g).updateEEBasis(e,sample,eebasis);
+        for(int j=0; j< e; j++) { 
+          for(int b=0; b< maxeebasis; b++) {
+            eetotal(j,e,b)=eebasis(j,b,0);
+          }
+        }
       }
       
 
@@ -1753,14 +1753,14 @@ int Jastrow2_wf::get_twobody_ParmDeriv(Sample_point * sample,
 
       int np=parent->group(g).two_body->nparms();
       for (int p=0; p<np; p++) {
-	parm_count++;
-	for (int i=0; i<nelectrons; i++) {
-	  for (int j=0; j<nelectrons; j++) {
-	    twobody_parm_deriv(i,j,parm_count)=eetotal(i,j,p);
-	  }
-	}
+        parm_count++;
+        for (int i=0; i<nelectrons; i++) {
+          for (int j=0; j<nelectrons; j++) {
+            twobody_parm_deriv(i,j,parm_count)=eetotal(i,j,p);
+          }
+        }
       }
-     
+
     }
   }
      
@@ -1794,60 +1794,58 @@ void Jastrow2_wf::plot1DInternals(Array1 <doublevar> & xdata,
       // BUT: if the parameters are frozen, we don't get them !!
       parent->group(g).two_body->getParms(parms);
       if ( parms.Size()==0 ) {
-	parent->group(g).two_body->unfreeze();
-	parent->group(g).two_body->getParms(parms);
-	// return wave function to the original state (we might want to
-	// continue in optimization after plotting)
-	parent->group(g).two_body->refreeze();
+        parent->group(g).two_body->unfreeze();
+        parent->group(g).two_body->getParms(parms);
+        // return wave function to the original state (we might want to
+        // continue in optimization after plotting)
+        parent->group(g).two_body->refreeze();
       }
 
       int nbasisvals=parent->group(g).two_body->nbasis_needed();
       Array1 <doublevar> basisvals;
       //basisvals.Resize(nbasisvals);
       if ( ( parms.Size()!=nbasisvals ) && ( parms.Size()!=2*nbasisvals ) ) {
-	error("Something is wrong in Jastrow2_wf::plot1DInternals, inconsistent number of parameters in the two-body part.");
+        error("Something is wrong in Jastrow2_wf::plot1DInternals, inconsistent number of parameters in the two-body part.");
       }
 
       int diff_spin=0;
       if ( parms.Size()==2*nbasisvals) {
-	diff_spin=1;
-	column2.Resize(xdata.Size());
-	column2=0.0;
+        diff_spin=1;
+        column2.Resize(xdata.Size());
+        column2=0.0;
       }
-      
+
       for ( int i=0; i<xdata.Size(); i++) {
-	r=0.0;
-	r(2)=xdata(i);    // x-direction
-	r(0)=r(2);        // norm
-	r(1)=r(0)*r(0);   // norm squared
-	parent->group(g).getEEbasisPlot(r,basisvals);
-	column(i)=0.0;
-	for ( int j=0; j<nbasisvals; j++ ) {
-	  column(i)+=parms(j)*basisvals(j);
-	  if ( diff_spin ) column2(i)+=parms(j+nbasisvals)*basisvals(j);
-	}
+        r=0.0;
+        r(2)=xdata(i);    // x-direction
+        r(0)=r(2);        // norm
+        r(1)=r(0)*r(0);   // norm squared
+        parent->group(g).getEEbasisPlot(r,basisvals);
+        column(i)=0.0;
+        for ( int j=0; j<nbasisvals; j++ ) {
+          column(i)+=parms(j)*basisvals(j);
+          if ( diff_spin ) column2(i)+=parms(j+nbasisvals)*basisvals(j);
+        }
       }
 
       data.push_back(column);
       if (!diff_spin) {
-	desc.push_back(dsc.str());
+        desc.push_back(dsc.str());
       } else {
-	data.push_back(column2);
-	dsc << ", like spins";
-	desc.push_back(dsc.str());
-	dsc.str("");
-	dsc << desc0 << "group " << g << ", two-body, unlike spins";
-	desc.push_back(dsc.str());
+        data.push_back(column2);
+        dsc << ", like spins";
+        desc.push_back(dsc.str());
+        dsc.str("");
+        dsc << desc0 << "group " << g << ", two-body, unlike spins";
+        desc.push_back(dsc.str());
       }
-		  
+
     } // if ( parent->group(g).hasTwoBody() ) {
 
     // JK: The one-body implementation is not very elegant. There is
     // probably a better way how to match coefficients (params) with
-    // basis functions on atoms. At this point, however, this is as far
-    // as I am prepared to go in this hide and seek game with too many
-    // classes and too many private variables
-
+    // basis functions on atoms.
+    
     if ( parent->group(g).hasOneBody() ) {
 
 
@@ -1861,9 +1859,9 @@ void Jastrow2_wf::plot1DInternals(Array1 <doublevar> & xdata,
       // parts, eventually)
       int natomkinds=0;
       for ( int at=0; at<natoms; at++ ) {
-	if ( parent->group(g).one_body.atom_kind(at) > natomkinds ) {
-	  natomkinds=parent->group(g).one_body.atom_kind(at);
-	}
+        if ( parent->group(g).one_body.atom_kind(at) > natomkinds ) {
+          natomkinds=parent->group(g).one_body.atom_kind(at);
+        }
       }
       natomkinds++;
 
@@ -1871,7 +1869,7 @@ void Jastrow2_wf::plot1DInternals(Array1 <doublevar> & xdata,
       Array1 <int> unique_atoms;
       unique_atoms.Resize(natomkinds);
       for ( int at=0; at<natoms; at++ ) {
-	unique_atoms(parent->group(g).one_body.atom_kind(at))=at;
+        unique_atoms(parent->group(g).one_body.atom_kind(at))=at;
       }
 
       // where is the start (and the end) of coefficients for given
@@ -1880,7 +1878,7 @@ void Jastrow2_wf::plot1DInternals(Array1 <doublevar> & xdata,
       basisstart.Resize(natomkinds+1);
       basisstart(0)=0;
       for ( int kind=0; kind < natomkinds; kind++ ) {
-	basisstart(kind+1)=basisstart(kind)+basissize(unique_atoms(kind));
+        basisstart(kind+1)=basisstart(kind)+basissize(unique_atoms(kind));
       }
 
       // getParms will resize the parms array for us, 
@@ -1888,37 +1886,37 @@ void Jastrow2_wf::plot1DInternals(Array1 <doublevar> & xdata,
       Array1 <doublevar> parms;
       parent->group(g).one_body.getParms(parms);
       if ( parms.Size()== 0 ) {
-	parent->group(g).one_body.unfreeze();
-	parent->group(g).one_body.getParms(parms);
-	// return wave function to the original state (we might want to
-	// continue in optimization after plotting)
-	parent->group(g).one_body.refreeze();
+        parent->group(g).one_body.unfreeze();
+        parent->group(g).one_body.getParms(parms);
+        // return wave function to the original state (we might want to
+        // continue in optimization after plotting)
+        parent->group(g).one_body.refreeze();
       }
-      
+
       Array1 <doublevar> basisvals;
       for ( int kind=0; kind<natomkinds; kind++ ) {
 
-	int at=unique_atoms(kind);
+        int at=unique_atoms(kind);
 
-	ostringstream dsc;
-	dsc << desc0 << "group " << g << ", one-body, center "
-	    << atomnames[at];
+        ostringstream dsc;
+        dsc << desc0 << "group " << g << ", one-body, center "
+          << atomnames[at];
 
-	for ( int i=0; i<xdata.Size(); i++) {
-	  r=0.0;
-	  r(2)=xdata(i);    // x-direction
-	  r(0)=r(2);        // norm
-	  r(1)=r(0)*r(0);   // norm squared
-	  parent->group(g).getEIbasisPlot(at,r,basisvals);
-	  column(i)=0.0;
-	  for ( int j=basisstart(kind); j<basisstart(kind+1); j++ ) {
-	    column(i)+=parms(j)*basisvals(j-basisstart(kind));
-	  }
-	}
+        for ( int i=0; i<xdata.Size(); i++) {
+          r=0.0;
+          r(2)=xdata(i);    // x-direction
+          r(0)=r(2);        // norm
+          r(1)=r(0)*r(0);   // norm squared
+          parent->group(g).getEIbasisPlot(at,r,basisvals);
+          column(i)=0.0;
+          for ( int j=basisstart(kind); j<basisstart(kind+1); j++ ) {
+            column(i)+=parms(j)*basisvals(j-basisstart(kind));
+          }
+        }
 
-	data.push_back(column);
-	desc.push_back(dsc.str());
-	
+        data.push_back(column);
+        desc.push_back(dsc.str());
+
       }
 
     } // // if ( parent->group(g).hasOneBody() ) {
@@ -1928,3 +1926,27 @@ void Jastrow2_wf::plot1DInternals(Array1 <doublevar> & xdata,
 }
 
 //--------------------------------------------------------------------------
+void Jastrow2_wf::evalTestPos(Array1 <doublevar> & pos, Sample_point * sample,
+    Array1 <Wf_return> & wf) { 
+
+  wf.Resize(nelectrons);
+  Wavefunction_storage * store=NULL;
+  generateStorage(store);
+  Array1 <doublevar> oldpos(3);
+
+  for(int e=0; e< nelectrons; e++) { 
+    wf(e).Resize(1,2);
+    saveUpdate(sample,e,store);
+    sample->getElectronPos(e,oldpos);
+    sample->setElectronPosNoNotify(e,pos);
+    electronIsStaleLap(e)=1; electronIsStaleVal(e)=1;
+    updateVal(parent,sample);
+    getVal(parent,e,wf(e));
+    restoreUpdate(sample,e,store);
+    sample->setElectronPosNoNotify(e,oldpos);
+  }
+
+  delete  store;
+}
+//--------------------------------------------------------------------------
+

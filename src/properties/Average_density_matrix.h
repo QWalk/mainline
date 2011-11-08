@@ -52,6 +52,15 @@ class Average_tbdm_basis:public Average_generator {
   int nstep_sample; //Number of steps to use when sampling the auxilliary points
   doublevar gen_sample(int nstep, doublevar  tstep, int e, Array2 <dcomplex> & movals, Sample_point * sample) ;
   void calc_mos(Sample_point *, int e, Array2 <dcomplex> & movals);
+  void evaluate_obdm(Wavefunction_data * wfdata, Wavefunction * wf,
+                        System * sys, Sample_point * sample, Average_return & avg);
+
+  void evaluate_tbdm(Wavefunction_data * wfdata, Wavefunction * wf,
+                        System * sys, Sample_point * sample, Average_return & avg);
+  void evaluate_old(Wavefunction_data * wfdata, Wavefunction * wf,
+                        System * sys, Sample_point * sample, Average_return & avg);
+  
+  
 
   enum tbdm_t { tbdm_uu,tbdm_ud, tbdm_du,tbdm_dd } ;
   int tbdm_index(tbdm_t typ, int i, int j, int k, int l) { 
@@ -62,6 +71,7 @@ class Average_tbdm_basis:public Average_generator {
   Array1 < int > rk; //the electron number that each position corresponds to
   bool complex_orbitals; 
   bool eval_tbdm;
+  bool eval_old;
   
 };
 

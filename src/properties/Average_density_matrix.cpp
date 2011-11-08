@@ -77,9 +77,106 @@ void Average_tbdm_basis::randomize(Wavefunction_data * wfdata, Wavefunction * wf
 }
 
 //----------------------------------------------------------------------
+
 void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
                         System * sys, Sample_point * sample, Average_return & avg) { 
+  if(eval_old) evaluate_old(wfdata,wf,sys,sample,avg);
+  else { 
+    if(eval_tbdm) evaluate_tbdm(wfdata,wf,sys,sample,avg);
+    else evaluate_obdm(wfdata,wf,sys,sample,avg);
+  }
+}
+
+
+
+
+//----------------------------------------------------------------------
+
+void Average_tbdm_basis::evaluate_obdm(Wavefunction_data * wfdata, Wavefunction * wf,
+                        System * sys, Sample_point * sample, Average_return & avg) { 
   avg.type="tbdm_basis";
+
+  wf->updateVal(wfdata,sample);
+  Wf_return wfval_base(wf->nfunc(),2);
+  wf->getVal(wfdata,0,wfval_base);
+  int nup=sys->nelectrons(0);
+  int ndown=sys->nelectrons(1);
+  int nelectrons=nup+ndown;
+
+  Array1 <Array2 <dcomplex> > movals1_base(nelectrons);
+  for(int e=0; e< nelectrons; e++) { 
+    movals1_base(e).Resize(nmo,1);
+    calc_mos(sample,e,movals1_base(e));
+  }
+  avg.vals.Resize(nmo+4*nmo*nmo);
+  avg.vals=0;
+
+  Array2 <dcomplex> movals1(nmo,1);
+  Array1 <Wf_return> wfs(nelectrons);
+
+  Wavefunction_storage * store;
+  wf->generateStorage(store);
+  for(int i=0; i< npoints_eval; i++) { 
+    Array1 <doublevar> oldpos(3);
+    sample->getElectronPos(0,oldpos);
+    sample->setElectronPosNoNotify(0,saved_r(i));
+    calc_mos(sample,0,movals1);
+    sample->setElectronPosNoNotify(0,oldpos);
+
+    Array1 <Wf_return> wf_eval;
+    wf->evalTestPos(saved_r(i),sample,wfs);
+
+    //Testing the evalTestPos
+    //for(int e=0; e< nelectrons; e++) { 
+    //  wfs(e).Resize(wf->nfunc(),2);
+    //  sample->getElectronPos(e,oldpos);
+    //  wf->saveUpdate(sample,e,store);
+    //  sample->setElectronPos(e,saved_r(i));
+    //  wf->updateVal(wfdata,sample);
+    //  wf->getVal(wfdata,e,wfs(e));
+    //  sample->setElectronPos(e,oldpos);
+    //  wf->restoreUpdate(sample,e,store);
+    //}
+
+    doublevar dist1=0;
+    for(int m=0; m < nmo; m++) 
+      dist1+=norm(movals1(m,0));
+
+    for(int orbnum=0; orbnum < nmo; orbnum++) { 
+      avg.vals(orbnum)+=norm(movals1(orbnum,0))/(dist1*npoints_eval);
+    }
+
+    for(int e=0; e< nelectrons; e++) { 
+      dcomplex psiratio_1b=exp(dcomplex(wfs(e).amp(0,0)-wfval_base.amp(0,0),
+            wfs(e).phase(0,0)-wfval_base.phase(0,0)));
+
+      int which_obdm=0;
+      int nelec_1b=nup;
+      if(e >= nup) { which_obdm=1; nelec_1b=ndown; } 
+      dcomplex tmp;
+      int place=0;
+      for(int orbnum=0; orbnum < nmo; orbnum++) { 
+        for(int orbnum2=0; orbnum2 < nmo; orbnum2++) { 
+          tmp=movals1(orbnum,0)*conj(movals1_base(e)(orbnum2,0))
+            *psiratio_1b/dist1;
+
+          avg.vals(nmo+2*which_obdm*nmo*nmo+place)+=tmp.real()/doublevar(npoints_eval);
+          avg.vals(nmo+2*which_obdm*nmo*nmo+place+1)+=tmp.imag()/doublevar(npoints_eval);
+
+          place+=2;
+        }
+      }
+
+    }
+  }
+  delete store;
+}
+
+void Average_tbdm_basis::evaluate_old(Wavefunction_data * wfdata, Wavefunction * wf,
+                        System * sys, Sample_point * sample, Average_return & avg) { 
+
+  avg.type="tbdm_basis";
+  
   //orbital normalization, then 1bdm up, 1bdm down, 2bdm up up, 2bdm up down 2bdm down up 2bdm down down, with everything complex
   if(eval_tbdm) { 
     avg.vals.Resize(nmo+4*nmo*nmo+8*nmo*nmo*nmo*nmo);
@@ -104,38 +201,6 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
     Array1 <doublevar> r1(3),r2(3),oldr1(3),oldr2(3);
     int k=rk(i);
     int l=rk(npoints_eval+i);
-    /*
-    int k=0,l=0;
-    
-    while(k==l) { 
-      k=int(rng.ulec()*(nup+ndown));
-      l=int(rng.ulec()*(nup+ndown));
-      if(nup==1 and ndown==1) { 
-        k=0; l=1;
-      }
-      else if(nup==1 or ndown==1) { 
-        error("Need to fix density_matrix");
-      }
-      else { 
-        if(i%4==0) { 
-          k=int(rng.ulec()*nup);
-          l=int(rng.ulec()*nup);
-        }
-        else if(i%4==1) { 
-          k=int(rng.ulec()*nup);
-          l=nup+int(rng.ulec()*ndown);
-        }
-        else if(i%4==2) { 
-          k=nup+int(rng.ulec()*ndown);
-          l=int(rng.ulec()*nup);
-        }
-        else if(i%4==3) { 
-          k=nup+int(rng.ulec()*ndown);
-          l=nup+int(rng.ulec()*ndown);
-        }
-      }
-    }
-    */
     //Calculate the orbital values for r1 and r2
     calc_mos(sample,k,movals1_old);
     calc_mos(sample,l,movals2_old);
@@ -144,6 +209,7 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
 
     r1=saved_r(i);
     r2=saved_r(npoints_eval+i);
+    
     sample->setElectronPos(k,r1);
     //doublevar dist1=gen_sample(nstep_sample,1.0,k,movals1, sample);
     doublevar dist1=0,dist2=0;
@@ -230,6 +296,7 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
     sample->setElectronPos(l,oldr2);
   }
 
+  
   int place=0;
   for(int i=0;i < nmo; i++) { 
     for(int j=0; j<nmo; j++) { 
@@ -240,6 +307,7 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
       }
     }
   }
+  
 
   if(eval_tbdm) { 
     place=0;
@@ -266,6 +334,134 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
 
   //cout << nupup << " " << nupdown << " " << ndownup << " " << ndowndown << endl;
 
+
+}
+
+void Average_tbdm_basis::evaluate_tbdm(Wavefunction_data * wfdata, Wavefunction * wf,
+                        System * sys, Sample_point * sample, Average_return & avg) { 
+  avg.type="tbdm_basis";
+
+  wf->updateVal(wfdata,sample);
+  Wf_return wfval_base(wf->nfunc(),2);
+  wf->getVal(wfdata,0,wfval_base);
+  int nup=sys->nelectrons(0);
+  int ndown=sys->nelectrons(1);
+  int nelectrons=nup+ndown;
+
+  Array1 <Array2 <dcomplex> > movals1_base(nelectrons);
+  for(int e=0; e< nelectrons; e++) { 
+    movals1_base(e).Resize(nmo,1);
+    calc_mos(sample,e,movals1_base(e));
+  }
+  
+  //orbital normalization, then 1bdm up, 1bdm down, 2bdm up up, 2bdm up down 2bdm down up 2bdm down down, with everything complex
+  avg.vals.Resize(nmo+4*nmo*nmo+8*nmo*nmo*nmo*nmo);
+  avg.vals=0;
+
+  Wavefunction_storage * store;
+  wf->generateStorage(store);
+ 
+
+  Wf_return wfval1(wf->nfunc(),2);
+  Array1 <Wf_return> wfval2(nelectrons);
+  Array2 <dcomplex> movals1(nmo,1),movals2(nmo,1);
+  Array1 <doublevar> oldpos1(3),oldpos2(3);
+  for(int i=0; i< npoints_eval; i++) { 
+    for(int e1=0; e1 < nelectrons; e1++) { 
+
+
+      //Evaluate all the quantities we will be needing here
+      sample->getElectronPos(e1,oldpos1);
+      wf->saveUpdate(sample,e1,store);
+      sample->setElectronPos(e1,saved_r(i));
+      calc_mos(sample,e1,movals1);
+      wf->updateVal(wfdata,sample);
+      wf->getVal(wfdata,e1,wfval1);
+      wf->evalTestPos(saved_r(i+npoints_eval),sample,wfval2);
+
+      sample->getElectronPos(0,oldpos2);
+      sample->setElectronPosNoNotify(0,saved_r(i+npoints_eval));
+      calc_mos(sample,0,movals2);
+      sample->setElectronPosNoNotify(0,oldpos2);
+     
+      sample->setElectronPos(e1,oldpos1);
+      wf->restoreUpdate(sample,e1,store);
+      //Done evaluating
+
+      //---Add to the OBDM
+     
+      doublevar dist1=0,dist2=0;
+      for(int m=0; m < nmo; m++)  { 
+        dist1+=norm(movals1(m,0));
+        dist2+=norm(movals2(m,0));
+      }
+      for(int orbnum=0; orbnum < nmo; orbnum++) { 
+        avg.vals(orbnum)+=norm(movals1(orbnum,0))/(dist1*npoints_eval);
+      }
+
+      dcomplex psiratio_1b=exp(dcomplex(wfval1.amp(0,0)-wfval_base.amp(0,0),
+            wfval1.phase(0,0)-wfval_base.phase(0,0)));
+
+      int which_obdm=0;
+      if(e1 >= nup) { which_obdm=1;  } 
+      dcomplex tmp;
+      int place=0;
+      for(int orbnum=0; orbnum < nmo; orbnum++) { 
+        for(int orbnum2=0; orbnum2 < nmo; orbnum2++) { 
+          tmp=movals1(orbnum,0)*conj(movals1_base(e1)(orbnum2,0))
+            *psiratio_1b/dist1;
+
+          avg.vals(nmo+2*which_obdm*nmo*nmo+place)+=tmp.real()/doublevar(npoints_eval);
+          avg.vals(nmo+2*which_obdm*nmo*nmo+place+1)+=tmp.imag()/doublevar(npoints_eval);
+
+          place+=2;
+        }
+      }
+      //---Add to the TBDM
+      
+      for(int e2=0; e2 < nelectrons; e2++)  { 
+        
+        if(e2!=e1)  { 
+          dcomplex psiratio_2b=exp(dcomplex(wfval2(e2).amp(0,0)-wfval_base.amp(0,0),
+                wfval2(e2).phase(0,0)-wfval_base.phase(0,0)));
+          tbdm_t which_tbdm;
+          if(e1 < nup and e2 < nup) { which_tbdm=tbdm_uu; } 
+          else if(e1 < nup and e2 >= nup) { which_tbdm=tbdm_ud; } 
+          else if(e1 >= nup and e2 < nup) { which_tbdm=tbdm_du;  } 
+          else if(e1 >= nup and e2 >= nup) { which_tbdm=tbdm_dd; } 
+          dcomplex orbind=psiratio_2b/(dist1*dist2*npoints_eval); 
+          dcomplex tmp1,tmp2,tmp3; 
+          for(int oi=0; oi < nmo; oi++) { 
+            tmp1=orbind*conj(movals1(oi,0));
+            for(int oj=0; oj < nmo; oj++) { 
+              tmp2=tmp1*conj(movals2(oj,0));
+              for(int ok=0; ok < nmo; ok++) {
+                tmp3=tmp2*movals1_base(e1)(ok,0);
+                for(int ol=0; ol < nmo; ol++) { 
+                  tmp=tmp3*movals1_base(e2)(ol,0);
+                  int ind=tbdm_index(which_tbdm,oi,oj,ok,ol);
+                  avg.vals(ind)+=tmp.real();
+                  avg.vals(ind+1)+=tmp.imag();
+                  /*
+                  tmp=conj(movals1(oi,0))*movals1_base(e1)(ok,0)
+                    *conj(movals2(oj,0))*movals1_base(e2)(ol,0)
+                    *psiratio_2b/dist1/dist2;
+                  int ind=tbdm_index(which_tbdm,oi,oj,ok,ol);
+                  avg.vals(ind)+=tmp.real()/doublevar(npoints_eval);
+                  avg.vals(ind+1)+=tmp.imag()/doublevar(npoints_eval);
+                  */
+                  //cout << "index " << ind << endl;
+                }
+              }
+            }
+          }
+          
+        }
+      }
+    }
+  }
+
+  delete store;
 
 }
 
@@ -319,6 +515,9 @@ void Average_tbdm_basis::read(System * sys, Wavefunction_data * wfdata, vector
   eval_tbdm=true;
   if(haskeyword(words,pos=0,"ONLY_OBDM"))
     eval_tbdm=false;
+
+  eval_old=false;
+  if(haskeyword(words,pos=0,"EVAL_OLD")) eval_old=true;
 
   //Since we rotate between the different pairs of spin channels, make sure
   //that npoints_eval is divisible by 4
