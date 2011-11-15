@@ -1302,18 +1302,13 @@ template <class T> inline void Slat_wf<T>::evalTestPos(Array1 <doublevar> & pos,
     Array1 <log_value <T> > new_detVals(ndet);
     int f=0;
     for(int det=0; det< ndet; det++)  {
-      //fill the molecular orbitals for this
-      //determinant
       for(int i = 0; i < nelectrons(s); i++) {
         modet(i)=movals(s)(parent->occupation(f,det,s)(i),0);
       }
-
-
       T ratio=1./InverseGetNewRatio(inverse(f,det,s),
           modet, parent->rede(e),
           nelectrons(s));
-
-      new_detVals(det)=ratio*detVal(f,det, s)*detVal(f,det,opps);
+      new_detVals(det)=T(parent->detwt(det))*ratio*detVal(f,det, s)*detVal(f,det,opps);
     }
     log_value<T> totval=sum(new_detVals);
     vals(f,0)=totval;
