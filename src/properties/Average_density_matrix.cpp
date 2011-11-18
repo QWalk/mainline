@@ -128,14 +128,15 @@ void Average_tbdm_basis::evaluate_obdm(Wavefunction_data * wfdata, Wavefunction 
 
     //Testing the evalTestPos
     //for(int e=0; e< nelectrons; e++) { 
-    //  wfs(e).Resize(wf->nfunc(),2);
+    //  Wf_return test_wf(wf->nfunc(),2);
     //  sample->getElectronPos(e,oldpos);
     //  wf->saveUpdate(sample,e,store);
     //  sample->setElectronPos(e,saved_r(i));
     //  wf->updateVal(wfdata,sample);
-    //  wf->getVal(wfdata,e,wfs(e));
+    //  wf->getVal(wfdata,e,test_wf);
     //  sample->setElectronPos(e,oldpos);
     //  wf->restoreUpdate(sample,e,store);
+    //  cout << "e " << e << " test " << test_wf.amp(0,0) << " evalTestPos " << wfs(e).amp(0,0) << endl;
     //}
 
     doublevar dist1=0;
@@ -151,8 +152,7 @@ void Average_tbdm_basis::evaluate_obdm(Wavefunction_data * wfdata, Wavefunction 
             wfs(e).phase(0,0)-wfval_base.phase(0,0)));
 
       int which_obdm=0;
-      int nelec_1b=nup;
-      if(e >= nup) { which_obdm=1; nelec_1b=ndown; } 
+      if(e >= nup) { which_obdm=1;  } 
       dcomplex tmp;
       int place=0;
       dcomplex prefactor=psiratio_1b/(dist1*npoints_eval);
@@ -171,6 +171,8 @@ void Average_tbdm_basis::evaluate_obdm(Wavefunction_data * wfdata, Wavefunction 
   }
   delete store;
 }
+
+//----------------------------------------------------------------------
 
 void Average_tbdm_basis::evaluate_old(Wavefunction_data * wfdata, Wavefunction * wf,
                         System * sys, Sample_point * sample, Average_return & avg) { 

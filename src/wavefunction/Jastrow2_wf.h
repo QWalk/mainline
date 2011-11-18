@@ -148,6 +148,7 @@ private:
   Array1 < Jastrow_group > group;
   int nelectrons;
   int natoms;
+  int nup;
 };
 
 

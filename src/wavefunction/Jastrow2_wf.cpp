@@ -728,6 +728,7 @@ void Jastrow2_wf_data::read(vector <string> & words,
   vector <string> atomlabels;
   sys->getAtomicLabels(atomlabels);
   natoms=atomlabels.size();
+  nup=sys->nelectrons(0);
   //cout << "jastrow2 done" << endl;
   
   
@@ -1977,64 +1978,77 @@ void Jastrow2_wf::evalTestPos(Array1 <doublevar> & pos, Sample_point * sample,
 
   //We've now calculated the basis functions for all the electrons and can 
   //get the wave function values
-  //Again doing two electrons, slightly inefficient, but the scaling is 
+  //Again doing two electrons per spin channel, slightly inefficient, but the scaling is 
   //still fine.
-  Array1 <doublevar> newval_ee(nelectrons);
+  //One could save some time by separating out the spin-dependent and spin-independent
+  //parts at the cost of code complexity, but so far it doesn't seem to be a 
+  //limiting factor for the RDM's
+
+  Array1 <Array1 <doublevar> > newval_ee(2); //one for each spin channel
   Array3 <doublevar> eibasis_tmp(parent->natoms,maxeibasis,5);
-  doublevar u_one=0;
+  doublevar u_one=0; 
   for(int i=0; i< nelectrons; i++) u_one+=one_body_save(i,0);
   doublevar newval_ei;
-  newval_ee=0.0;
-  for(int e=0; e< 2;e++) { 
-    newval_ei=0;
-    for(int e1=0; e1 < nelectrons; e1++) if(e1!=e) newval_ee(e1)=0;
+  int nup=parent->nup;
+  for(int s=0; s< 2; s++) { 
+    newval_ee(s).Resize(nelectrons);
+    newval_ee(s)=0.0;
+    int ne_spin;
+    if(s==0) ne_spin=min(2,nup);
+    else ne_spin=min(nup+2,nelectrons);
+    for(int e=s*nup; e< ne_spin;e++) { 
+      newval_ei=0;
+      for(int e1=0; e1 < nelectrons; e1++) if(e1!=e) newval_ee(s)(e1)=0;
 
-    for(int g=0; g< ngroups;g++) { 
-      if(parent->group(g).hasOneBody()) { 
-        parent->group(g).one_body.updateVal(e,eibasis(g),newval_ei);
-      }
-      if(parent->group(g).hasTwoBody()) 
-        parent->group(g).two_body->updateVal(e,eebasis(g),newval_ee);
-      //Here we have to do some shifting around of values
+      for(int g=0; g< ngroups;g++) { 
+        if(parent->group(g).hasOneBody()) { 
+          parent->group(g).one_body.updateVal(e,eibasis(g),newval_ei);
+        }
+        if(parent->group(g).hasTwoBody()) 
+          parent->group(g).two_body->updateVal(e,eebasis(g),newval_ee(s));
 
-      if(parent->group(g).hasThreeBody() || parent->group(g).hasThreeBodySpin()) {  
-        for(int i=0; i< parent->natoms; i++) { 
-          for(int j=0; j< maxeibasis; j++) { 
-            for(int d=0; d< 5; d++) { 
-              eibasis_tmp(i,j,d)=eibasis_save(g)(e,i,j,d);
-              eibasis_save(g)(e,i,j,d)=eibasis(g)(i,j,d);
+        //Here we have to do some shifting around of values
+        if(parent->group(g).hasThreeBody() || parent->group(g).hasThreeBodySpin()) {  
+          for(int i=0; i< parent->natoms; i++) { 
+            for(int j=0; j< maxeibasis; j++) { 
+              for(int d=0; d< 5; d++) { 
+                eibasis_tmp(i,j,d)=eibasis_save(g)(e,i,j,d);
+                eibasis_save(g)(e,i,j,d)=eibasis(g)(i,j,d);
+              }
             }
           }
-        }
-        if(parent->group(g).hasThreeBody()) 
-          parent->group(g).three_body.updateVal(e,eibasis_save(g), 
-              eebasis(g), newval_ee);
-        if(parent->group(g).hasThreeBodySpin()) 
-          parent->group(g).three_body_diffspin.updateVal(e,eibasis_save(g), 
-              eebasis(g), newval_ee);
-        for(int i=0; i< parent->natoms; i++) { 
-          for(int j=0; j< maxeibasis; j++) { 
-            for(int d=0; d< 5; d++) { 
-              eibasis_save(g)(e,i,j,d)=eibasis_tmp(i,j,d);
+          if(parent->group(g).hasThreeBody()) 
+            parent->group(g).three_body.updateVal(e,eibasis_save(g), 
+                eebasis(g), newval_ee(s));
+          if(parent->group(g).hasThreeBodySpin()) 
+            parent->group(g).three_body_diffspin.updateVal(e,eibasis_save(g), 
+                eebasis(g), newval_ee(s));
+          for(int i=0; i< parent->natoms; i++) { 
+            for(int j=0; j< maxeibasis; j++) { 
+              for(int d=0; d< 5; d++) { 
+                eibasis_save(g)(e,i,j,d)=eibasis_tmp(i,j,d);
+              }
             }
           }
+
         }
-        
+        //----
+
       }
-      //----
-      
     }
   }
   //Here we calculate the wave function for each of the electrons going to the 
   //test position
   for(int e=0; e< nelectrons; e++) { 
+    int s=0;
+    if( e >= nup ) s=1;
     wf(e).Resize(1,1);
     
     doublevar old_eval=0,new_eval=0;
     for(int i=0; i< e; i++) old_eval+=two_body_save(i,e,0);
     for(int j=e+1; j< nelectrons; j++) old_eval+=two_body_save(e,j,0);
-    for(int i=0; i< e; i++) new_eval+=newval_ee(i);
-    for(int j=e+1; j< nelectrons; j++) new_eval+=newval_ee(j);
+    for(int i=0; i< e; i++) new_eval+=newval_ee(s)(i);
+    for(int j=e+1; j< nelectrons; j++) new_eval+=newval_ee(s)(j);
     doublevar u=u_twobody+u_one //original
       +new_eval-old_eval+newval_ei-one_body_save(e,0);//updates
     wf(e).amp(0,0)=u;
