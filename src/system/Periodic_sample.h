@@ -73,6 +73,8 @@ public:
 
   */
   void setElectronPos(const int e,const Array1 <doublevar> & position);
+  void setElectronPosNoNotify(const int e, const Array1 <doublevar> & position);
+
   void translateElectron(const int e, const Array1 <doublevar> & trans);
   
   void getElectronPos(const int e, Array1 <doublevar> & R)

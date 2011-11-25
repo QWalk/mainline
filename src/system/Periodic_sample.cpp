@@ -543,7 +543,7 @@ void Periodic_sample::randomGuess()
 
 //----------------------------------------------------------------------
 
-void Periodic_sample::setElectronPos(const int e,
+void Periodic_sample::setElectronPosNoNotify(const int e,
                                    const Array1 <doublevar> & position)
 {
 
@@ -561,6 +561,11 @@ void Periodic_sample::setElectronPos(const int e,
   ionDistStale(e)=1;
   elecDistStale(e)=1;
   cenDistStale(e)=1;
+}
+
+void Periodic_sample::setElectronPos(const int e,
+    const Array1 <doublevar> & position) { 
+  setElectronPosNoNotify(e,position);
 
   if(wfObserver)
   {
