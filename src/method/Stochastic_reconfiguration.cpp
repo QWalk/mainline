@@ -18,7 +18,8 @@ void Stochastic_reconfiguration_method::read(vector <string> words,
   options=options_;
   if(!readvalue(words,pos=0, iterations, "ITERATIONS")) 
     iterations=30;
-
+  if(!readvalue(words,pos=0, vmc_nstep,"VMC_NSTEP"))
+    vmc_nstep=100;
   if(! readvalue(words, pos=0, wfoutputfile, "WFOUTPUT") )
       wfoutputfile=options.runid+".wfout";
   
@@ -192,7 +193,9 @@ void Stochastic_reconfiguration_method::run(Program_options & options, ostream &
 
 void Stochastic_reconfiguration_method::wavefunction_derivative(
     Array1 <doublevar> & energies,Array2<doublevar> & S, Array1 <doublevar> & en) { 
-  string vmc_section="VMC nconfig 1 nstep 100 timestep 1.0 nblock 20 average { WF_PARMDERIV } ";
+  string vmc_section="VMC nconfig 1 nstep ";
+  append_number(vmc_section,vmc_nstep);
+  vmc_section+=" timestep 1.0 nblock 20 average { WF_PARMDERIV } ";
   vector <string> words;
   string sep=" ";
   split(vmc_section,sep,words);

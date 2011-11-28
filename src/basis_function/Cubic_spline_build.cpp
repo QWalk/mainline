@@ -484,7 +484,7 @@ int Cubic_spline::readbasis(vector <string> & words,unsigned int & pos,
         case sym_10F:
           norm=1/sqrt(7.0);
           break;
-	case sym_9G:
+        case sym_9G:
         case sym_15G:
           norm=1/sqrt(9.0);
           break;
@@ -530,7 +530,7 @@ int Cubic_spline::readbasis(vector <string> & words,unsigned int & pos,
           case sym_10F:
             p=4;
             break;
-	  case sym_9G:
+          case sym_9G:
           case sym_15G:
             p=5;
             break;

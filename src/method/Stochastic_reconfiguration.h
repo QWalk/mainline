@@ -52,11 +52,12 @@ public:
   int showinfo(ostream & os);
 private:
   doublevar tau;
+  int iterations;
+  int vmc_nstep;   
   Wavefunction_data * wfdata;
   Pseudopotential * pseudo;
   System * sys;
   Primary guide_wf; 
-  int iterations;
   string wfoutputfile;
   Program_options options;
 
