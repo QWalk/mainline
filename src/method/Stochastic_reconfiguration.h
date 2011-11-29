@@ -54,6 +54,7 @@ private:
   doublevar tau;
   int iterations;
   int vmc_nstep;   
+  int nconfig_eval;
   Wavefunction_data * wfdata;
   Pseudopotential * pseudo;
   System * sys;
@@ -62,6 +63,14 @@ private:
   Program_options options;
 
   void wavefunction_derivative(Array1<doublevar> & energies,Array2 <doublevar> & S,Array1<doublevar> & en);
+  void wavefunction_energy(Array1 <doublevar> & en);
+  void line_minimization(Array2 <doublevar> & S, 
+    Array2 <doublevar> & Sinv, Array1 <doublevar> & energies,Array1 <doublevar> & alpha);
+  void correlated_evaluation(Array1 <Array1 <doublevar> > & alphas,int ref_alpha,Array2 <doublevar> & energies);
+  
+  
+  
+  void output_average_wf(Array2 <doublevar> & alpha_step,Array2 <doublevar> & energy_step, int nit_completed);
 
 };
 
