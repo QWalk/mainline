@@ -538,10 +538,13 @@ void Plot_method::plot_tbdm_file(Array3 <doublevar> & grid, Array1 <int> & D_arr
 
   int norb=orbs.GetDim(0);
   Array2 < Array2 <doublevar> > partial_sums(2,2);
+  Array1 <Array2 <doublevar> >  obdm_coeff(2);
   for(int s1=0;s1 < 2; s1++) { 
     for(int s2=0;s2 < 2; s2++) {
       partial_sums(s1,s2).Resize(norb,norb);
       partial_sums(s1,s2)=0.0;
+      obdm_coeff(s2).Resize(norb,norb);
+      obdm_coeff(s2)=0.0;
     }
   }
   mywalker->setElectronPos(0,r_ref);
@@ -559,7 +562,31 @@ void Plot_method::plot_tbdm_file(Array3 <doublevar> & grid, Array1 <int> & D_arr
       }
     }
   }
+
+  //The obdm is given by the trace over the tbdm.
+  for(int s1=0; s1 < 2; s1++) {
+    for(int s2=0; s2 < 2; s2++) { 
+      for(int i=0; i< norb; i++) {
+        for(int j=0; j< norb; j++) {
+          for(int l=0; l< norb; l++) { 
+            obdm_coeff(s2)(j,l)+=tbdm_coeff(s1,s2)(i,j,i,l);
+          }
+        }
+      }
+    }
+  }
+ /* 
+  for(int s1=0; s1 < 2; s1++) { 
+    cout << "obdm for spin " << s1 << endl;
+    for(int i=0; i< norb; i++) { 
+      for(int j=0; j< norb; j++) { 
+        cout << obdm_coeff(s1)(i,j) << " ";
+      }
+      cout << endl;
+    }
+  }
   cout << "done partial sums" << endl;
+  */
   int npts=grid.GetDim(2);
   int natoms=sysprop->nIons();
 
@@ -590,11 +617,15 @@ void Plot_method::plot_tbdm_file(Array3 <doublevar> & grid, Array1 <int> & D_arr
       os.setf(ios::scientific);
       for(int p=0; p< npts; p++) {
         double tbdm=0;
+        double obdens=0;
         for(int i=0; i< norb; i++) { 
           for(int j=0; j< norb; j++) { 
             tbdm+=partial_sums(s1,s2)(i,j)*grid(0,i,p)*grid(0,j,p);
+            obdens+=obdm_coeff(s2)(i,j)*grid(0,i,p)*grid(0,j,p);
           }
         }
+        tbdm/=obdens;
+        //tbdm=obdens;
         
         os <<setw(20)<<setprecision(10)<<tbdm;
         if(p%6 ==5) os << endl;
