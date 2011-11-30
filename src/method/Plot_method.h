@@ -32,6 +32,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Array.h"
 #include "MO_matrix.h"
 #include "Sample_point.h"
+#include "Array45.h"
 class System;
 class Wavefunction;
 class Program_options;
@@ -119,6 +120,17 @@ private:
   int totmo;
   Array2 <doublevar> LatticeVec;
   Array1 <doublevar> kpoint,origin;
+
+
+  //2-RDM plotting
+  void plot_tbdm_file(Array3 <doublevar> & grid, Array1 <int> & D_array1,
+    Array2 <doublevar> & resolution_array, Array1 <doublevar> & r_ref, 
+          Array2 <Array4 <doublevar> > & tbdm_coeff, string & cubeout);
+  void read_tbdm(string & infile, Array2<Array4<doublevar> > & tbdm_coeff);
+  string tbdm_coeff_file;
+  bool plot_tbdm;
+  Array1 <Array1 <doublevar> > tbdm_r_ref;
+
 };
 
 #endif //PLOT_METHOD_H_INCLUDED

@@ -186,6 +186,28 @@ void Plot_method::read(vector <string> words,
     }
   } 
 
+
+  //----------TBDM setup
+  plot_tbdm=false;
+  if(readvalue(words, pos=0,tbdm_coeff_file, "TBDM_COEFF")) { 
+    plot_tbdm=true;
+    vector <string> tbdm_r;
+    if(!readsection(words, pos=0,tbdm_r, "TBDM_R")) { 
+      error("Need TBDM_R");
+    }
+    if(tbdm_r.size()%3!=0) error("TBDM_R must have a multiple of 3 entries");
+    int nr=tbdm_r.size()/3;
+    tbdm_r_ref.Resize(nr);
+    int count=0;
+    for(int i=0; i< nr; i++) { 
+      tbdm_r_ref(i).Resize(3);
+      for(int d=0; d< 3; d++) { 
+        tbdm_r_ref(i)(d)=atof(tbdm_r[count++].c_str());
+      }
+    }
+  }
+  //----Done TBDM
+
 }
 
 /*!
@@ -472,7 +494,18 @@ void Plot_method::run(Program_options & options, ostream & output) {
   MPI_Barrier(MPI_Comm_grp);
 #endif
 
+  //----------------------------------TBDM plot
 
+  if(plot_tbdm) { 
+    Array2<Array4<doublevar> >  tbdm_coeff;
+    read_tbdm(tbdm_coeff_file,tbdm_coeff);
+    for(int i=0; i< tbdm_r_ref.GetDim(0); i++) {
+      string cubeout=options.runid+"tbdm";
+      append_number(cubeout,i);
+      plot_tbdm_file(grid,D_array1,resolution_array,tbdm_r_ref(i),tbdm_coeff,cubeout);
+    }
+    
+  }
 }
 
 
@@ -493,3 +526,118 @@ int Plot_method::showinfo(ostream & os)
   os<<"done"<<endl;
   return 1;
 }
+//----------------------------------------------------------------------
+
+
+void Plot_method::plot_tbdm_file(Array3 <doublevar> & grid, Array1 <int> & D_array1,
+    Array2 <doublevar> & resolution_array, Array1 <doublevar> & r_ref, 
+          Array2 <Array4 <doublevar> > & tbdm_coeff, string & cubeout) { 
+  cout << "plot tbdm" << endl;
+  if(use_complex) error("Don't support complex for now");
+  if(mpi_info.node!=0) error("Don't support parallel for now");
+
+  int norb=orbs.GetDim(0);
+  Array2 < Array2 <doublevar> > partial_sums(2,2);
+  for(int s1=0;s1 < 2; s1++) { 
+    for(int s2=0;s2 < 2; s2++) {
+      partial_sums(s1,s2).Resize(norb,norb);
+      partial_sums(s1,s2)=0.0;
+    }
+  }
+  mywalker->setElectronPos(0,r_ref);
+  mymomat->updateVal(mywalker,0,0,mymovals); 
+  for(int s1=0; s1 < 2; s1++) { 
+    for(int s2=0; s2 < 2; s2++) { 
+      for(int i=0; i< norb; i++) { 
+        for(int j=0; j< norb; j++) { 
+        for(int k=0; k< norb; k++) { 
+          for(int l=0; l< norb; l++) { 
+          partial_sums(s1,s2)(j,l)+=tbdm_coeff(s1,s2)(i,j,k,l)*mymovals(i,0)*mymovals(k,0);
+          }
+        }
+        }
+      }
+    }
+  }
+  cout << "done partial sums" << endl;
+  int npts=grid.GetDim(2);
+  int natoms=sysprop->nIons();
+
+  for(int s1=0; s1 < 2; s1++) { 
+    for(int s2=0; s2 < 2; s2++) { 
+      string outfile=cubeout;
+      if(s1==0 && s2==0) { outfile+="uu"; } 
+      else if(s1==0 && s2==1) { outfile+="ud"; } 
+      else if(s1==1 && s2==0) { outfile+="du"; } 
+      else if(s1==1 && s2==1) { outfile+="dd"; } 
+      outfile+=".cube";
+      ofstream os(outfile.c_str());
+      os << "QWalk plot output\n";
+      os << "TBDM \n";
+      os << "  " << natoms+1 << "   " << minmax(0) << "   "
+        << minmax(2) << "   " << minmax(4) << endl;
+      for(int i=0;i<3;i++)
+        os << D_array1(i) << "   " << resolution_array(i,0) <<"  "<<resolution_array(i,1)<<"  "<<resolution_array(i,2)<< endl;
+      Array1 <doublevar> pos(3);
+      for(int at=0; at< natoms; at++) {
+        mywalker->getIonPos(at,pos);
+        os << "   " << mywalker->getIonCharge(at) << "   0.0000    " << pos(0) 
+          <<"    " << pos(1) << "   " << pos(2) << endl;
+      }
+      os << "   " << 1 << "   0.0000    " << r_ref(0) 
+        <<"    " << r_ref(1) << "   " << r_ref(2) << endl;
+
+      os.setf(ios::scientific);
+      for(int p=0; p< npts; p++) {
+        double tbdm=0;
+        for(int i=0; i< norb; i++) { 
+          for(int j=0; j< norb; j++) { 
+            tbdm+=partial_sums(s1,s2)(i,j)*grid(0,i,p)*grid(0,j,p);
+          }
+        }
+        
+        os <<setw(20)<<setprecision(10)<<tbdm;
+        if(p%6 ==5) os << endl;
+      }
+      os << endl;
+    }
+  }
+      
+  cout << "done writing " << endl;
+
+  
+}
+//----------------------------------------------------------------------
+//The file format is as follows:
+//norb 5
+//upup updown downup downdown
+//upup updown downup downdown
+//and so on for 5*5*5*5 lines (for 5 orbitals)
+void Plot_method::read_tbdm(string & infile, Array2<Array4<doublevar> > & tbdm_coeff) { 
+  cout << "read_tbdm" << endl;
+  ifstream is(infile.c_str());
+  string dummy;
+  is >> dummy;
+  assert(dummy=="norb");
+  int norb;
+  is >> norb;
+  tbdm_coeff.Resize(2,2);
+  for(int s1=0; s1< 2; s1++) { 
+    for(int s2=0; s2 < 2; s2++) {
+      tbdm_coeff(s1,s2).Resize(norb,norb,norb,norb);
+    }
+  }
+
+  for(int i=0; i< norb; i++) { 
+    for(int j=0; j< norb; j++) { 
+      for(int k=0; k< norb; k++) { 
+        for(int l=0; l < norb; l++) { 
+          is >> tbdm_coeff(0,0)(i,j,k,l) >> tbdm_coeff(0,1)(i,j,k,l)
+            >> tbdm_coeff(1,0)(i,j,k,l) >> tbdm_coeff(1,1)(i,j,k,l);
+        }
+      }
+    }
+  }
+  cout << "done read" << endl;
+}
+//----------------------------------------------------------------------
