@@ -142,6 +142,9 @@ public:
   }
   virtual void updateVal(Sample_point *,int e,int listnum,Array2<T>&);
   virtual void updateLap(Sample_point *,int e, int listnum, Array2<T>&);
+  virtual void updateHessian(Sample_point * sample,
+			     int e, int listnum,Array2<T>&);
+
   MO_matrix_einspline() { } 
 };
 
@@ -323,6 +326,26 @@ template <class T> void MO_matrix_einspline<T>::updateVal(Sample_point * sample,
 //----------------------------------------------------------------------
 
 template <class T> void MO_matrix_einspline<T>::updateLap(Sample_point * sample,
+    int e,int listnum,Array2 <T> & newvals) {
+#ifdef USE_EINSPLINE
+  Array2 <T> hessvals(nmo_lists(listnum),1+ndim+ndim*(ndim+1)/2);
+  updateHessian(sample,e,listnum,hessvals);
+  for(int i=0; i < nmo_lists(listnum); i++) {
+    for (int d=0; d <= ndim; d++) {
+      newvals(i,d)=hessvals(i,d);
+    }
+    newvals(i,ndim+1)=hessvals(i,ndim+1);
+    for (int d=ndim+2; d <= 2*ndim; d++) {
+      newvals(i,ndim+1)+=hessvals(i,d);
+    }
+  }
+#endif
+}
+
+
+//----------------------------------------------------------------------
+
+template <class T> void MO_matrix_einspline<T>::updateHessian(Sample_point * sample,
     int e,int listnum,Array2 <T> & newvals) { 
 #ifdef USE_EINSPLINE
   Array1 <doublevar> pos(ndim),u(ndim);
@@ -401,12 +424,14 @@ template <class T> void MO_matrix_einspline<T>::updateLap(Sample_point * sample,
   */
   for(int i=0; i< nmo_lists(listnum); i++) { 
     newvals(i,0)=vals(i);
-    for(int d=0; d< ndim;d++) { 
-      newvals(i,d+1)=grad(i,d);
-    }
-    newvals(i,ndim+1)=0.0;
-    for(int d=0; d< ndim; d++) { 
-      newvals(i,ndim+1)+=hess(i,d,d);
+    int j=2*ndim+1;
+    for(int d1=0; d1 < ndim; d1++) {
+      newvals(i,d1+1)=grad(i,d1);
+      newvals(i,d1+1+ndim)=hess(i,d1,d1);
+      for(int d2=d1+1; d2 < ndim; d2++) {
+        newvals(i,j)=hess(i,d1,d2);
+        j++;
+      }
     }
   }
 
