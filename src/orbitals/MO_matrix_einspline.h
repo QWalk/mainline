@@ -385,11 +385,30 @@ template <class T> void MO_matrix_einspline<T>::updateHessian(Sample_point * sam
       for(int d2=0; d2 < ndim; d2++) {
         for(int d3=0; d3 < ndim; d3++) { 
           for(int d4=0; d4 < ndim; d4++) { 
-            tmp_hess(d1,d2)+=hess(i,d1,d2)*latvecinv(d3,d1)*latvecinv(d4,d2);
+            //tmp_hess(d1,d2)+=hess(i,d1,d2)*latvecinv(d3,d1)*latvecinv(d4,d2);
+            tmp_hess(d1,d2)+=hess(i,d3,d4)*latvecinv(d3,d1)*latvecinv(d4,d2);
+            
           }
         }
       }
     }
+    //-----------testing
+   /* 
+    T lap=0.0;
+    for(int d1=0; d1< ndim; d1++) { 
+      for(int d2=0; d2 < ndim; d2++) { 
+        for(int d3=0; d3 < ndim; d3++) { 
+          lap+=hess(i,d2,d3)*latvecinv(d2,d1)*latvecinv(d3,d1);
+        }
+      }
+    }
+
+    T lap2=0;
+    for(int d=0; d < ndim; d++) lap2+=tmp_hess(d,d);
+    cout << i << " lap " << lap << " lap2 " << lap2 << endl;
+    */
+    //-----------
+
     eval_kpoint_deriv(tmp_kpt,kr,vals(i),tmp_grad,tmp_hess);
     for(int d1=0; d1 < ndim; d1++) {
       grad(i,d1)=tmp_grad(d1);
@@ -409,19 +428,12 @@ template <class T> void MO_matrix_einspline<T>::updateHessian(Sample_point * sam
       }
     }
   }
-
-  for(int i=0; i< nmo_lists(listnum); i++) { 
-    T lap=0.0;
-    for(int d1=0; d1< ndim; d1++) { 
-      for(int d2=0; d2 < ndim; d2++) { 
-        for(int d3=0; d3 < ndim; d3++) { 
-          lap+=hess(i,d2,d3)*latvecinv(d2,d1)*latvecinv(d3,d1);
-        }
-      }
-    }
-    newvals(i,ndim+1)=lap;
-  }
-  */
+*/
+ 
+  //for(int i=0; i< nmo_lists(listnum); i++) { 
+    //newvals(i,ndim+1)=lap;
+  //}
+  
   for(int i=0; i< nmo_lists(listnum); i++) { 
     newvals(i,0)=vals(i);
     int j=2*ndim+1;
