@@ -301,7 +301,7 @@ template <class T> void MO_matrix_einspline<T>::updateVal(Sample_point * sample,
   u=0; 
   for(int d=0; d< ndim; d++) { 
     for(int d1=0; d1 < ndim; d1++) { 
-      u(d)+=pos(d1)*latvecinv(d,d1);
+      u(d)+=pos(d1)*latvecinv(d1,d);
     }
     u(d)-=floor(u(d));
   }
@@ -353,7 +353,7 @@ template <class T> void MO_matrix_einspline<T>::updateHessian(Sample_point * sam
   u=0;
   for(int d=0; d< ndim; d++) { 
     for(int d1=0; d1 < ndim; d1++) { 
-      u(d)+=pos(d1)*latvecinv(d,d1);
+      u(d)+=pos(d1)*latvecinv(d1,d);
     }
     u(d)-=floor(u(d));
   }
@@ -378,7 +378,7 @@ template <class T> void MO_matrix_einspline<T>::updateHessian(Sample_point * sam
     tmp_hess=T(0.0);
     for(int d1=0; d1 < ndim; d1++) { 
       for(int d2=0; d2< ndim; d2++) { 
-        tmp_grad(d1)+=latvecinv(d2,d1)*grad(i,d2);
+        tmp_grad(d1)+=latvecinv(d1,d2)*grad(i,d2);
       }
     }
     for(int d1=0; d1 < ndim; d1++) {
@@ -386,8 +386,9 @@ template <class T> void MO_matrix_einspline<T>::updateHessian(Sample_point * sam
         for(int d3=0; d3 < ndim; d3++) { 
           for(int d4=0; d4 < ndim; d4++) { 
             //tmp_hess(d1,d2)+=hess(i,d1,d2)*latvecinv(d3,d1)*latvecinv(d4,d2);
-            tmp_hess(d1,d2)+=hess(i,d3,d4)*latvecinv(d3,d1)*latvecinv(d4,d2);
-            
+            //tmp_hess(d1,d2)+=hess(i,d3,d4)*latvecinv(d3,d1)*latvecinv(d4,d2);
+            tmp_hess(d1,d2)+=hess(i,d3,d4)*latvecinv(d1,d3)*latvecinv(d2,d4);
+ 
           }
         }
       }
@@ -446,7 +447,6 @@ template <class T> void MO_matrix_einspline<T>::updateHessian(Sample_point * sam
       }
     }
   }
-
 #endif
 }
 //----------------------------------------------------------------------

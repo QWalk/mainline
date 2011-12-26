@@ -730,6 +730,8 @@ void Abinit_converter::write_orbitals(string  filename) {
     cout << "latvec " << d << " length " << len << " npts " << npts[d] << endl;
   }
 
+  
+
   int istart=mpi_info.node*npts[0]/mpi_info.nprocs;
   int iend=(mpi_info.node+1)*npts[0]/mpi_info.nprocs;
   int ni_this=iend-istart;
@@ -760,11 +762,13 @@ void Abinit_converter::write_orbitals(string  filename) {
         vector< complex <double> >::iterator 
           ptr=allorbitals.begin()+kk+jj*npts[2]+(ii-istart)*npts[2]*npts[1],
           orbn=orbnorm.begin();
+
          
         for(vector<WF_kpoint>::iterator w=wavefunctions.begin(); 
             w!=wavefunctions.end(); w++) { 
           //cout << mpi_info.node << " : begin eval " << endl;
-          w->evaluate_orbital(r,orbitals);
+          //w->evaluate_orbital(r,orbitals);
+          w->evaluate_orbital(prop,orbitals);
           vector< complex <double> >::iterator i=orbitals.begin();
           for(; i!= orbitals.end(); i++,orbn++) { 
             *ptr=*i;
@@ -1013,10 +1017,11 @@ void WF_kpoint::read_wf_from_wfk(FILE * wffile,vector <vector <double> > & latve
     g->resize(3);
   for(int g=0; g< npw; g++) { 
     for(int i=0; i< 3; i++) { 
-      gvec[g][i]=0.0;
-      for(int j=0; j< 3; j++) {  
-        gvec[g][i]+=2*pi*gprim[j][i]*tmpgvecs[g*3+j];
-      }
+      gvec[g][i]=2*pi*tmpgvecs[g*3+i];
+      //gvec[g][i]=0.0;
+      //for(int j=0; j< 3; j++) {  
+        //gvec[g][i]+=2*pi*gprim[j][i]*tmpgvecs[g*3+j];
+      //}
     }
   }
   delete [] tmpgvecs;

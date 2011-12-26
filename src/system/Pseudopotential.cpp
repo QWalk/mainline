@@ -809,6 +809,7 @@ void Pseudopotential::read(vector <vector <string> > & pseudotext,
       tempr(0)=r; tempr(1)=r*r; tempr(4)=r;
       getRadial(at,0, tempsample, tempr, v_l);
       getRadial(at,1, tempsample, tempr, v_l2);
+
       for(int l=0; l< numL(at)-1; l++)
       {
         if( (fabs(v_l(l)) > cutoff_threshold 
@@ -868,7 +869,7 @@ int Pseudopotential::showinfo(ostream & os)
 //	       << setw(10) << integralpt(at,i,2)
 //	       << setw(10)  << integralweight(at, i) << endl;
 //	  }	
-	os << "Cutoff for static calculation "<<cutoff(at)<<endl;
+        os << "Cutoff for static calculation "<<cutoff(at)<<endl;
         os << "Pseudopotential for spin up: \n";
         radial_basis(at,0)->showinfo(indent, os);
         os << "Pseudopotential for spin down: \n";
