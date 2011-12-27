@@ -521,7 +521,19 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
             sample->translateElectron(e, newpos);
             sample->updateEIDist();
             sample->getEIDist(e,at,newdist);
-	    
+            //cout << "ionpos " << ionpos(0) << " " << ionpos(1) << " " << ionpos(2) << endl;
+            //cout << "oldpos " << oldpos(0) << " " << oldpos(1) << " " << oldpos(2) << endl;
+            //cout << "newpos " << oldpos(0)+newpos(0) << " " << oldpos(1)+newpos(1) << 
+            //  " " << oldpos(2)+newpos(2) << endl;
+            //Array1 <doublevar> newpos_test(3);
+            //sample->getElectronPos(e,newpos_test);
+            //cout << "newpos_test " << newpos_test(0) << " " << newpos_test(1) << " "
+            //  << newpos_test(2) << endl;
+
+            //cout << "olddist " << olddist(0) << " newdist " << newdist(0) << endl;
+            //cout << "integralpt " << olddist(0)*integralpt(at,i,0) << " " << olddist(0)*integralpt(at,i,1) 
+            //  << " " << olddist(0)*integralpt(at,i,2) << endl;
+
             rDotR(i)=0;
             for(int d=0; d < 3; d++)
               rDotR(i)+=newdist(d+2)*olddist(d+2);
@@ -531,6 +543,7 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
             rDotR(i)/=(newdist(0)*olddist(0));  //divide by the magnitudes
             wf->updateVal(wfdata, sample);
             wf->getVal(wfdata, e, val); 
+            //----
             //cout << "signs " << base_sign << "  " << new_sign << endl;;
             for(int w=0; w< nwf; w++) {
               integralpts(w,i)=exp(val.amp(w,0)-oldWfVal.amp(w,0))
@@ -576,8 +589,7 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
               //------
             }
             sample->setElectronPos(e, oldpos);
-	    //wfStore.restoreUpdate(sample, wf, e);
-          } // for(int i=0; i< aip(at); i++) {
+          } 
 
           //--------------------
 
@@ -596,11 +608,12 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
         accum_local+=vLocal;
         accum_nonlocal+=nonlocal(0);
 
-        //cout << "vLocal  " << accum_local
-        // << "    nonlocal   " << accum_nonlocal
-        // << endl;
+        //cout << "atom " << at << " r " << olddist(0) <<   " vLocal  " << vLocal
+        // << "    nonlocal   " << nonlocal(0) << endl;
         for(int w=0; w< nwf; w++) {
           totalv(w)+=vLocal+nonlocal(w);
+          //totalv(w)+=nonlocal(w); 
+          //totalv(w)+=vLocal;
         }
 
 

@@ -942,7 +942,7 @@ void Abinit_converter::add_psp(string filename) {
       *v=atof(words[3].c_str());
     }
     vector <double> upos,uval;
-    make_uniform(pos,val,upos,uval,0.01);
+    make_uniform(pos,val,upos,uval,0.01,5.0);
     psp.psp_pos.push_back(upos);
     psp.psp_val.push_back(uval);
   }
@@ -963,6 +963,7 @@ void Abinit_converter::add_psp(string filename) {
       psp.psp_val[i][j]-=psp.psp_val[nl][j];
     }
   }
+
 
   psp.print_pseudo(cout);
   pspspline.push_back(psp);

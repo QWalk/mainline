@@ -43,7 +43,8 @@ void make_uniform(std::vector <double> & r,
                   std::vector <double> & vals,
                   std::vector <double> & ur,
                   std::vector <double> & uvals,
-                  double spacing) ;
+                  double spacing,
+                  double cutoff=-1) ;
 
 
 
