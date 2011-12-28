@@ -521,7 +521,19 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
             sample->translateElectron(e, newpos);
             sample->updateEIDist();
             sample->getEIDist(e,at,newdist);
-	    
+            //cout << "ionpos " << ionpos(0) << " " << ionpos(1) << " " << ionpos(2) << endl;
+            //cout << "oldpos " << oldpos(0) << " " << oldpos(1) << " " << oldpos(2) << endl;
+            //cout << "newpos " << oldpos(0)+newpos(0) << " " << oldpos(1)+newpos(1) << 
+            //  " " << oldpos(2)+newpos(2) << endl;
+            //Array1 <doublevar> newpos_test(3);
+            //sample->getElectronPos(e,newpos_test);
+            //cout << "newpos_test " << newpos_test(0) << " " << newpos_test(1) << " "
+            //  << newpos_test(2) << endl;
+
+            //cout << "olddist " << olddist(0) << " newdist " << newdist(0) << endl;
+            //cout << "integralpt " << olddist(0)*integralpt(at,i,0) << " " << olddist(0)*integralpt(at,i,1) 
+            //  << " " << olddist(0)*integralpt(at,i,2) << endl;
+
             rDotR(i)=0;
             for(int d=0; d < 3; d++)
               rDotR(i)+=newdist(d+2)*olddist(d+2);
@@ -531,6 +543,7 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
             rDotR(i)/=(newdist(0)*olddist(0));  //divide by the magnitudes
             wf->updateVal(wfdata, sample);
             wf->getVal(wfdata, e, val); 
+            //----
             //cout << "signs " << base_sign << "  " << new_sign << endl;;
             for(int w=0; w< nwf; w++) {
               integralpts(w,i)=exp(val.amp(w,0)-oldWfVal.amp(w,0))
@@ -576,8 +589,7 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
               //------
             }
             sample->setElectronPos(e, oldpos);
-	    //wfStore.restoreUpdate(sample, wf, e);
-          } // for(int i=0; i< aip(at); i++) {
+          } 
 
           //--------------------
 
@@ -596,11 +608,12 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
         accum_local+=vLocal;
         accum_nonlocal+=nonlocal(0);
 
-        //cout << "vLocal  " << accum_local
-        // << "    nonlocal   " << accum_nonlocal
-        // << endl;
+        //cout << "atom " << at << " r " << olddist(0) <<   " vLocal  " << vLocal
+        // << "    nonlocal   " << nonlocal(0) << endl;
         for(int w=0; w< nwf; w++) {
           totalv(w)+=vLocal+nonlocal(w);
+          //totalv(w)+=nonlocal(w); 
+          //totalv(w)+=vLocal;
         }
 
 
@@ -809,6 +822,7 @@ void Pseudopotential::read(vector <vector <string> > & pseudotext,
       tempr(0)=r; tempr(1)=r*r; tempr(4)=r;
       getRadial(at,0, tempsample, tempr, v_l);
       getRadial(at,1, tempsample, tempr, v_l2);
+
       for(int l=0; l< numL(at)-1; l++)
       {
         if( (fabs(v_l(l)) > cutoff_threshold 
@@ -868,7 +882,7 @@ int Pseudopotential::showinfo(ostream & os)
 //	       << setw(10) << integralpt(at,i,2)
 //	       << setw(10)  << integralweight(at, i) << endl;
 //	  }	
-	os << "Cutoff for static calculation "<<cutoff(at)<<endl;
+        os << "Cutoff for static calculation "<<cutoff(at)<<endl;
         os << "Pseudopotential for spin up: \n";
         radial_basis(at,0)->showinfo(indent, os);
         os << "Pseudopotential for spin down: \n";

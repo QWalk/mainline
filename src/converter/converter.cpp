@@ -52,10 +52,13 @@ void make_uniform(vector <double> & r,
                   vector <double> & vals,
                   vector <double> & ur,
                   vector <double> & uvals,
-                  double spacing) { 
-  double cutoff=r[r.size()-1]; //mostly for convienence..we work in terms of npts below
-                      //this can be set quite high, since QWalk will find where to cut it off anyway
-                      //(and fairly agressively)
+                  double spacing,
+                  double cutoff) { 
+  if(cutoff < 0) { 
+    cutoff=r[r.size()-1]; //mostly for convenience..we work in terms of npts below
+    //this can be set quite high, since QWalk will find where to cut it off anyway
+    //(and fairly agressively)
+  }
   int npts=int(cutoff/spacing);
   
   int interval=0;

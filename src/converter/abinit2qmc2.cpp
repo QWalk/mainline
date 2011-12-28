@@ -149,10 +149,10 @@ void extend_supercell(const vector <vector <double> > & supercell,
    }
    if(u[0]>=0 && u[0] < .99 && u[1]>=0 && u[1]<.99 && u[2]>=0 && u[2]<.99) {
      deltas.push_back(delta);
-  if(mpi_info.node ==0 ) { 
-     cout << "delta " << delta[0] << "  " << delta[1] << " " << delta[2] << endl;
-     cout << " u " << u[0] << " " << u[1] << " " << u[2] << endl;
-  }
+     //if(mpi_info.node ==0 ) { 
+     //  cout << "delta " << delta[0] << "  " << delta[1] << " " << delta[2] << endl;
+     //  cout << " u " << u[0] << " " << u[1] << " " << u[2] << endl;
+     //}
    }
  }
  superatoms.clear();
@@ -470,10 +470,10 @@ void Abinit_converter::read_wfk(string filename,
     Atom tmpat;
     tmpat.charge=znucltypat[typat[at]-1];
     tmpat.name=element_lookup_caps[int(tmpat.charge)];
+    for(int i=0; i< 3; i++) tmpat.pos[i]=0.0;
     for(int i=0; i< 3; i++) { 
-      tmpat.pos[i]=0.0;
       for(int j=0; j< 3; j++) {
-        tmpat.pos[i]+=latvec[i][j]*xred[at*3+j];
+        tmpat.pos[j]+=latvec[i][j]*xred[at*3+i];
       }
     }
     tmpat.print_atom(cout);
@@ -727,7 +727,10 @@ void Abinit_converter::write_orbitals(string  filename) {
     len=sqrt(len);
     npts[d]=int(len/grid_resolution)+1;
     res[d]=1.0/npts[d];
+    cout << "latvec " << d << " length " << len << " npts " << npts[d] << endl;
   }
+
+  
 
   int istart=mpi_info.node*npts[0]/mpi_info.nprocs;
   int iend=(mpi_info.node+1)*npts[0]/mpi_info.nprocs;
@@ -753,17 +756,19 @@ void Abinit_converter::write_orbitals(string  filename) {
         prop[0]=ii*res[0]; prop[1]=jj*res[1]; prop[2]=kk*res[2];
         for(int i=0; i< 3; i++) { 
           for(int j=0; j< 3; j++) { 
-            r[i]+=prop[j]*latvec[i][j];
+            r[j]+=prop[i]*latvec[i][j];
           }
         }
         vector< complex <double> >::iterator 
           ptr=allorbitals.begin()+kk+jj*npts[2]+(ii-istart)*npts[2]*npts[1],
           orbn=orbnorm.begin();
+
          
         for(vector<WF_kpoint>::iterator w=wavefunctions.begin(); 
             w!=wavefunctions.end(); w++) { 
           //cout << mpi_info.node << " : begin eval " << endl;
-          w->evaluate_orbital(r,orbitals);
+          //w->evaluate_orbital(r,orbitals);
+          w->evaluate_orbital(prop,orbitals);
           vector< complex <double> >::iterator i=orbitals.begin();
           for(; i!= orbitals.end(); i++,orbn++) { 
             *ptr=*i;
@@ -937,7 +942,7 @@ void Abinit_converter::add_psp(string filename) {
       *v=atof(words[3].c_str());
     }
     vector <double> upos,uval;
-    make_uniform(pos,val,upos,uval,0.01);
+    make_uniform(pos,val,upos,uval,0.01,5.0);
     psp.psp_pos.push_back(upos);
     psp.psp_val.push_back(uval);
   }
@@ -958,6 +963,7 @@ void Abinit_converter::add_psp(string filename) {
       psp.psp_val[i][j]-=psp.psp_val[nl][j];
     }
   }
+
 
   psp.print_pseudo(cout);
   pspspline.push_back(psp);
@@ -984,6 +990,13 @@ void WF_kpoint::read_wf_from_wfk(FILE * wffile,vector <vector <double> > & latve
   latvec=latvec_;
   vector <vector <double> > gprim;
   matrix_inverse(latvec,gprim);
+  for(int i=0; i< 3; i++) { 
+    cout << "gprim: ";
+    for(int j=0; j< 3; j++) { 
+      cout << gprim[i][j] << " ";
+    }
+    cout << endl;
+  }
   
   clear_header(wffile);
   int npw=read_int(wffile);
@@ -1005,10 +1018,11 @@ void WF_kpoint::read_wf_from_wfk(FILE * wffile,vector <vector <double> > & latve
     g->resize(3);
   for(int g=0; g< npw; g++) { 
     for(int i=0; i< 3; i++) { 
-      gvec[g][i]=0.0;
-      for(int j=0; j< 3; j++) { 
-        gvec[g][i]+=2*pi*gprim[j][i]*tmpgvecs[g*3+j];
-      }
+      gvec[g][i]=2*pi*tmpgvecs[g*3+i];
+      //gvec[g][i]=0.0;
+      //for(int j=0; j< 3; j++) {  
+        //gvec[g][i]+=2*pi*gprim[j][i]*tmpgvecs[g*3+j];
+      //}
     }
   }
   delete [] tmpgvecs;

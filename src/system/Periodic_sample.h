@@ -164,6 +164,9 @@ public:
   doublevar overallPhase() { return overall_phase; }
 private:
 
+
+  doublevar minimum_image(Array1 <doublevar> & r) ;
+  
   int nelectrons;
 
   Array2 <doublevar> elecpos; //electron positions
