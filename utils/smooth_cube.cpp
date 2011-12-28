@@ -90,8 +90,8 @@ int main(int argc, char ** argv) {
       cerr << "adding " << argv[i+1] << endl;
       ifstream is(argv[++i]);
       if(!is) {
-	cerr << "Couldn't open " << argv[i]
-	     << endl;
+        cerr << "Couldn't open " << argv[i]
+          << endl;
       }
       Cube_info ncube;
       ncube.read_cube(is);
@@ -105,8 +105,8 @@ int main(int argc, char ** argv) {
       cerr << "subtracting " << argv[i+1] << endl;
       ifstream is(argv[++i]);
       if(!is) {
-	cerr << "Couldn't open " << argv[i]
-	     << endl;
+        cerr << "Couldn't open " << argv[i]
+          << endl;
       }
       Cube_info ncube;
       ncube.read_cube(is);
@@ -135,8 +135,8 @@ int main(int argc, char ** argv) {
       cube.normalize();
     if(!strcmp(argv[i], "-proj")) { 
       if(i >= argc+4) {
-	cerr << "proj needs 4 arguments" << endl;
-	exit(1);
+        cerr << "proj needs 4 arguments" << endl;
+        exit(1);
       }
       vector <double> proj(3);
       proj[0]=atof(argv[++i]);
@@ -330,16 +330,16 @@ void Cube_info::add(Cube_info & ncube, double fac) {
   for(int d=0; d< 3; d++) {
     if(n[d]!=ncube.n[d]) {
       cerr << "Error: adding cube, but dimensions don't match"
-	   << ":d= " << d << " n[d] " << n[d] << " ncube.n[d] "
-	   << ncube.n[d] 
-	   << endl;
+        << ":d= " << d << " n[d] " << n[d] << " ncube.n[d] "
+        << ncube.n[d] 
+        << endl;
       exit(1);
     }
   }
 
   if(density.size()!=ncube.density.size()) {
     cerr << "densities aren't the same size in add()"
-	 << endl;
+      << endl;
     exit(1);
   }
 
@@ -349,7 +349,7 @@ void Cube_info::add(Cube_info & ncube, double fac) {
     *my+=fac*(*add);
     my++;
   }
-  
+
 }
 
 //----------------------------------------------------------------------

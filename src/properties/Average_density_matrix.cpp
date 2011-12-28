@@ -40,6 +40,10 @@ void Average_tbdm_basis::randomize(Wavefunction_data * wfdata, Wavefunction * wf
       else if(nup==1 or ndown==1) { 
         error("Need to fix density_matrix");
       }
+      else if(ndown==0) { 
+        k=int(rng.ulec()*nup);
+        l=int(rng.ulec()*nup);
+      }
       else { 
         if(i%4==0) { 
           k=int(rng.ulec()*nup);
@@ -444,7 +448,12 @@ void Average_tbdm_basis::evaluate_tbdm(Wavefunction_data * wfdata, Wavefunction 
                   int ind=tbdm_index(which_tbdm,oi,oj,ok,ol);
                   avg.vals(ind)+=tmp.real();
                   avg.vals(ind+1)+=tmp.imag();
-                  /*
+                  //cout << oi << oj << ok << ol  << " e " << e1 << e2  
+                  // << " mo1 " << movals1(oi,0).real() << " mo2 "<< movals2(oj,0).real()
+                  //  << " mo1_base " << movals1_base(e1)(ok,0).real() <<  " "
+                  //  << " mo2_base " << movals1_base(e2)(ol,0).real() 
+                   // << "val " << tmp.real() << endl;
+                 /* 
                   tmp=conj(movals1(oi,0))*movals1_base(e1)(ok,0)
                     *conj(movals2(oj,0))*movals1_base(e2)(ol,0)
                     *psiratio_2b/dist1/dist2;
