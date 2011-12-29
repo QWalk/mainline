@@ -256,7 +256,7 @@ template <class T> void MO_matrix_einspline<T>::read(vector <string> & words, un
   for(int i=0; i< nmo_file; i++) { 
     for(int d1=0; d1 < ndim; d1++) { 
       for(int d2=0; d2 < ndim; d2++) { 
-        kpoint(i,d2)+=tmp_kpt(i,d1)*latvecinv(d1,d2);
+        kpoint(i,d2)+=tmp_kpt(i,d1)*latvecinv(d2,d1);
       }
     }
   }
@@ -351,12 +351,15 @@ template <class T> void MO_matrix_einspline<T>::updateHessian(Sample_point * sam
   Array1 <doublevar> pos(ndim),u(ndim);
   sample->getElectronPos(e,pos);
   u=0;
+  //cout << "pos " << pos(0) << " " << pos(1) << " " << pos(2) << endl;
   for(int d=0; d< ndim; d++) { 
     for(int d1=0; d1 < ndim; d1++) { 
       u(d)+=pos(d1)*latvecinv(d1,d);
     }
     u(d)-=floor(u(d));
   }
+  //cout << "u " << u(0) << " " << u(1) << " " << u(2) << endl;
+
   Array1 <T> vals(nmo_lists(listnum));
   Array2 <T> grad(nmo_lists(listnum),ndim);
   Array3 <T> hess(nmo_lists(listnum),ndim,ndim);
@@ -394,7 +397,8 @@ template <class T> void MO_matrix_einspline<T>::updateHessian(Sample_point * sam
       }
     }
     //-----------testing
-   /* 
+    
+    /*
     T lap=0.0;
     for(int d1=0; d1< ndim; d1++) { 
       for(int d2=0; d2 < ndim; d2++) { 
