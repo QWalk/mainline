@@ -200,18 +200,15 @@ void Test_method::run(Program_options & options, ostream & output)
       new_epos(d)+=del;
       sample->setElectronPos(e, new_epos);
       //mywf->notify(all_electrons_move,0);
-      cout << "jjjj " << endl;
       mywf->updateLap(wfdata, sample);
-      cout << "jjkljlj" << endl;
       mywf->getLap(wfdata,e,test_wf);
       //mywf->updateVal(wfdata, sample);
       //mywf->getVal(wfdata,e,test_wf);
-      cout << "takederiv" << endl;
       doublevar ratio=exp(test_wf.amp(0,0)-first_calc(0).amp(0,0));
       doublevar derivative=(ratio-1)/del;
       doublevar phasederivative=(exp(test_wf.phase(0,0)-first_calc(0).phase(0,0))-1)/del;
       lap+=(test_wf.amp(0,d+1)*ratio-first_calc(e).amp(0,d+1))/del;
-     // phaselap+=(test_wf.phase(0,d+1)*ratio-first_calc(d).phase(0,d+1))/del;
+      phaselap+=(test_wf.phase(0,d+1)-first_calc(e).phase(0,d+1))/del;
       
       cout << "amplitude ";
       check_numbers(derivative,first_calc(e).amp(0,d+1),cout);
