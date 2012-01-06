@@ -532,11 +532,34 @@ int Plot_method::showinfo(ostream & os)
 void Plot_method::plot_tbdm_file(Array3 <doublevar> & grid, Array1 <int> & D_array1,
     Array2 <doublevar> & resolution_array, Array1 <doublevar> & r_ref, 
           Array2 <Array4 <doublevar> > & tbdm_coeff, string & cubeout) { 
-  cout << "plot tbdm" << endl;
   if(use_complex) error("Don't support complex for now");
   if(mpi_info.node!=0) error("Don't support parallel for now");
 
   int norb=orbs.GetDim(0);
+  int npts=grid.GetDim(2);
+  
+  Array2 <doublevar> norm_1b(2,2),norm_2b(2,2);
+  norm_1b=0;
+  norm_2b=0;
+  doublevar vol=Determinant(resolution_array,3);  
+  Array1 <doublevar> norm_orb(norb);
+  norm_orb=0;
+  for(int i=0; i< norb; i++) {
+    for(int p=0; p < npts; p++) { 
+      norm_orb(i)+=grid(0,i,p)*grid(0,i,p);
+    }
+    norm_orb(i)*=vol;
+    norm_orb(i)=sqrt(norm_orb(i));
+    //cout << "orb " << i << " norm " << norm_orb(i) << endl;
+    
+  }
+  for(int i=0; i< norb; i++) { 
+    for(int p=0; p < npts; p++) { 
+      grid(0,i,p)/=norm_orb(i);
+    }
+  }
+
+
   Array2 < Array2 <doublevar> > partial_sums(2,2);
   Array1 <Array2 <doublevar> >  obdm_coeff(2);
   for(int s1=0;s1 < 2; s1++) { 
@@ -549,19 +572,25 @@ void Plot_method::plot_tbdm_file(Array3 <doublevar> & grid, Array1 <int> & D_arr
   }
   mywalker->setElectronPos(0,r_ref);
   mymomat->updateVal(mywalker,0,0,mymovals); 
+  for(int i=0; i< norb; i++) { 
+    mymovals(i,0)/=norm_orb(i);
+  }
   for(int s1=0; s1 < 2; s1++) { 
     for(int s2=0; s2 < 2; s2++) { 
       for(int i=0; i< norb; i++) { 
         for(int j=0; j< norb; j++) { 
-        for(int k=0; k< norb; k++) { 
-          for(int l=0; l< norb; l++) { 
-          partial_sums(s1,s2)(j,l)+=tbdm_coeff(s1,s2)(i,j,k,l)*mymovals(i,0)*mymovals(k,0);
+          for(int k=0; k< norb; k++) { 
+            for(int l=0; l< norb; l++) { 
+              partial_sums(s1,s2)(j,l)+=tbdm_coeff(s1,s2)(i,j,k,l)*mymovals(i,0)*mymovals(k,0);
+            }
           }
-        }
         }
       }
     }
   }
+
+
+  
 
   //The obdm is given by the trace over the tbdm.
   for(int s1=0; s1 < 2; s1++) {
@@ -569,27 +598,55 @@ void Plot_method::plot_tbdm_file(Array3 <doublevar> & grid, Array1 <int> & D_arr
       for(int i=0; i< norb; i++) {
         for(int j=0; j< norb; j++) {
           for(int l=0; l< norb; l++) { 
-            obdm_coeff(s2)(j,l)+=tbdm_coeff(s1,s2)(i,j,i,l);
+            //divide by two for the two spin channels
+            obdm_coeff(s2)(j,l)+=tbdm_coeff(s1,s2)(i,j,i,l)/2.0;
           }
         }
       }
     }
   }
- /* 
+
+
+  /*
   for(int s1=0; s1 < 2; s1++) { 
-    cout << "obdm for spin " << s1 << endl;
+    for(int s2=0; s2 < 2; s2++) { 
+      doublevar trace=0.0;
+      for(int i=0; i< norb; i++) { 
+        for(int j=0; j< norb; j++) { 
+          trace+=tbdm_coeff(s1,s2)(i,j,i,j);
+        }
+      }
+      cout << "tbdm trace " << s1 << " " << s2 << " " << trace << endl;
+    }
+  }
+  for(int s1=0; s1 < 2; s1++) { 
     for(int i=0; i< norb; i++) { 
+      cout << "obdm ";
       for(int j=0; j< norb; j++) { 
         cout << obdm_coeff(s1)(i,j) << " ";
       }
       cout << endl;
     }
   }
-  cout << "done partial sums" << endl;
-  */
-  int npts=grid.GetDim(2);
+*/
+
+  Array1 <doublevar> obdens_base(2);
+  obdens_base=0.0;
+  for(int s=0; s< 2; s++) { 
+    for(int i=0; i< norb; i++) { 
+      for(int j=0; j< norb; j++) { 
+        obdens_base(s)+=obdm_coeff(s)(i,j)*mymovals(i,0)*mymovals(j,0);
+      }
+    }
+    //cout << "obdens_base " << obdens_base(s) << endl;
+  }
+  
+  
   int natoms=sysprop->nIons();
 
+  double min_tbdm=1e99;
+  double max_tbdm=0;
+  
   for(int s1=0; s1 < 2; s1++) { 
     for(int s2=0; s2 < 2; s2++) { 
       string outfile=cubeout;
@@ -604,7 +661,8 @@ void Plot_method::plot_tbdm_file(Array3 <doublevar> & grid, Array1 <int> & D_arr
       os << "  " << natoms+1 << "   " << minmax(0) << "   "
         << minmax(2) << "   " << minmax(4) << endl;
       for(int i=0;i<3;i++)
-        os << D_array1(i) << "   " << resolution_array(i,0) <<"  "<<resolution_array(i,1)<<"  "<<resolution_array(i,2)<< endl;
+        os << D_array1(i) << "   " << resolution_array(i,0) 
+          <<"  "<<resolution_array(i,1)<<"  "<<resolution_array(i,2)<< endl;
       Array1 <doublevar> pos(3);
       for(int at=0; at< natoms; at++) {
         mywalker->getIonPos(at,pos);
@@ -624,18 +682,33 @@ void Plot_method::plot_tbdm_file(Array3 <doublevar> & grid, Array1 <int> & D_arr
             obdens+=obdm_coeff(s2)(i,j)*grid(0,i,p)*grid(0,j,p);
           }
         }
-        tbdm/=obdens;
-        //tbdm=obdens;
+
+        norm_1b(s1,s2)+=obdens;
+        norm_2b(s1,s2)+=tbdm/obdens_base(s1);
         
+        //cout << "tbdm " << tbdm << " obdens " << obdens << " obdens_base " << obdens_base(s1) << endl;
+        //tbdm-=(obdens*obdens_base(s1));
+        //tbdm/=obdens_base(s1);
+        //tbdm=obdens;
+        //tbdm=tbdm/obdens_base(s1)-obdens;
+        tbdm=tbdm/(obdens_base(s1))-obdens;
+
         os <<setw(20)<<setprecision(10)<<tbdm;
         if(p%6 ==5) os << endl;
+        if(tbdm < min_tbdm) min_tbdm=tbdm;
+        if(tbdm > max_tbdm) max_tbdm=tbdm;
       }
-      os << endl;
+      os << endl;  
     }
   }
       
-  cout << "done writing " << endl;
-
+  //for(int s1=0;s1 < 2; s1++) { 
+  //  for(int s2=0;s2 < 2; s2++) { 
+  //    cout << "norm "  << s1 << "  " << s2 << " 1b norm " << norm_1b(s1,s2)*vol  
+  //       << " 2b norm " << norm_2b(s1,s2)*vol << endl;
+  //  }
+  //}
+  cout << cubeout << "  min  " << min_tbdm << " max " << max_tbdm << " range " << max_tbdm-min_tbdm <<  endl;
   
 }
 //----------------------------------------------------------------------
@@ -665,6 +738,26 @@ void Plot_method::read_tbdm(string & infile, Array2<Array4<doublevar> > & tbdm_c
         for(int l=0; l < norb; l++) { 
           is >> tbdm_coeff(0,0)(i,j,k,l) >> tbdm_coeff(0,1)(i,j,k,l)
             >> tbdm_coeff(1,0)(i,j,k,l) >> tbdm_coeff(1,1)(i,j,k,l);
+        }
+      }
+    }
+  }
+
+  for(int s1=0;s1 < 2; s1++) { 
+    for(int s2=0; s2 < 2; s2++) { 
+      double trace=0;
+      for(int i=0; i< norb; i++) { 
+        for(int j=0; j< norb; j++) { 
+          trace+=tbdm_coeff(s1,s2)(i,j,i,j);
+        }
+      }
+      for(int i=0; i< norb; i++) { 
+        for(int j=0; j < norb; j++) { 
+          for(int k=0; k< norb; k++) { 
+            for(int l=0; l< norb; l++) { 
+              tbdm_coeff(s1,s2)(i,j,k,l)/=trace;
+            }
+          }
         }
       }
     }

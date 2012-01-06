@@ -3,6 +3,7 @@
 #include "gesqua.h"
 #include "ulec.h"
 #include "Average_density_matrix.h"
+#include "Average_region_fluctuation.h"
 #include "Properties_point.h"
 
 //-----------------------------------------------------------------------------
@@ -35,6 +36,8 @@ int decide_averager(string & label, Average_generator *& avg) {
     avg=new Average_line_density;
   else if(caseless_eq(label,"TBDM_BASIS")) 
     avg=new Average_tbdm_basis;
+  else if(caseless_eq(label,"REGION_FLUCTUATION"))
+    avg=new Average_region_fluctuation;
   else if(caseless_eq(label,"WF_PARMDERIV")) 
     avg=new Average_wf_parmderivs;
   else 
