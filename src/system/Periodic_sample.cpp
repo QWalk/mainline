@@ -251,32 +251,25 @@ doublevar Periodic_sample::minimum_image(Array1 <doublevar> & r) {
 
   doublevar height2=parent->smallestheight*parent->smallestheight*.25;
   int nlat=lattice_basis.GetDim(0);
-  static Array1 <doublevar> tmpvec(3),rmin(3);
+  //static Array1 <doublevar> tmpvec(3),rmin(3);
+  doublevar tmpvec[3],rmin[3];
   doublevar tmpdis=0,dismin=1e99;
   for(int a=0; a < nlat; a++) { 
     tmpdis=0;
-    tmpvec=0;
     for(int d=0; d < 3; d++) { 
-      tmpvec(d)=r(d)+lattice_basis(a,d);
-      tmpdis+=tmpvec(d)*tmpvec(d);
-      //cout << "tmpvec " << tmpvec(0) << " " << tmpvec(1) << "  " << tmpvec(2) << endl;
-      //cout << "r " << r(0) << " " << r(1) <<" " << r(2) << endl;
-      //cout << "lattice basis " << lattice_basis(a,0) << " " << lattice_basis(a,1) << " "
-      //  << lattice_basis(a,2) << endl;
+      tmpvec[d]=r(d)+lattice_basis(a,d);
+      tmpdis+=tmpvec[d]*tmpvec[d];
     }
-    if(tmpdis < height2) { 
-      rmin=tmpvec;
+    if(tmpdis < dismin) { 
+      for(int d=0; d< 3; d++) rmin[d]=tmpvec[d];
       dismin=tmpdis;
       //cout << "dismin " << dismin << endl;
-      break;
+      if(tmpdis< height2)
+        break;
     }
-    else if(tmpdis < dismin) { 
-      rmin=tmpvec;
-      dismin=tmpdis;
-      //cout << "dismin " << dismin << endl;
-    }
+    if(tmpdis < dismin) break;
   }
-  r=rmin;
+  for(int d=0; d< 3; d++) r[d]=rmin[d];
   return dismin;
 }
 
