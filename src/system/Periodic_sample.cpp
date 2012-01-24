@@ -254,6 +254,10 @@ doublevar Periodic_sample::minimum_image(Array1 <doublevar> & r) {
   //static Array1 <doublevar> tmpvec(3),rmin(3);
   doublevar tmpvec[3],rmin[3];
   doublevar tmpdis=0,dismin=1e99;
+  for(int d=0;d < 3; d++) 
+    tmpdis+=r[d]*r[d];
+  if(tmpdis < height2) return tmpdis;
+
   for(int a=0; a < nlat; a++) { 
     tmpdis=0;
     for(int d=0; d < 3; d++) { 
@@ -267,7 +271,7 @@ doublevar Periodic_sample::minimum_image(Array1 <doublevar> & r) {
       if(tmpdis< height2)
         break;
     }
-    if(tmpdis < dismin) break;
+    if(tmpdis < height2) break;
   }
   for(int d=0; d< 3; d++) r[d]=rmin[d];
   return dismin;

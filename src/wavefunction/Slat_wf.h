@@ -382,14 +382,15 @@ template<class T>inline void Slat_wf<T>::saveUpdate(Sample_point * sample, int e
 
     for(int f=0; f< nfunc_; f++) {
       for(int det=0; det<ndet; det++) {
-        store->inverse_temp(f,det,s)=inverse(f,det,s);
+        //store->inverse_temp(f,det,s)=inverse(f,det,s);
         store->detVal_temp(f,det,s)=detVal(f,det,s);
       }
     }
 
 
+    int norb=moVal.GetDim(2);
     for(int d=0; d< 5; d++) {
-      for(int i=0; i< moVal.GetDim(2); i++) {
+      for(int i=0; i< norb; i++) {
         store->moVal_temp(d,i)=moVal(d,e,i);
       }
     }
@@ -417,10 +418,13 @@ template<class T>inline void Slat_wf<T>::restoreUpdate(Sample_point * sample, in
     }
     for(int f=0; f< nfunc_; f++) {
       for(int det=0; det < ndet; det++) {
-        inverse(f,det,s)=store->inverse_temp(f,det,s);
+        //inverse(f,det,s)=store->inverse_temp(f,det,s);
         detVal(f,det,s)=store->detVal_temp(f,det,s);
       }
     }
+    //It seems to be faster to update the inverse than to save it and
+    //recover it.
+    updateInverse(parent,e);
 
     electronIsStaleVal(e)=0;
     electronIsStaleLap(e)=0;
