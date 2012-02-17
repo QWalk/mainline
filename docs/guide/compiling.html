@@ -19,13 +19,13 @@ also very important in large calculations!)  See make/Linux.mk for an example
 of a fairly well-optimized .mk file.
 
 Makefile variables:
-
-CXX: C++ compiler.  For example, for a serial compile, set this to g++.  For
+<table>
+  <tr> <td> CXX <td> C++ compiler.  For example, for a serial compile, set this to g++.  For
 parallel, set it to mpiCC or mpicxx (or mpic++).
 
-CXXFLAGS: Flags to pass to the compiler.  Put optimization (-O2) flags, etc
+  <br> <td> CXXFLAGS <td> Flags to pass to the compiler.  Put optimization (-O2) flags, etc
 here.  Must also include the option "$(INCLUDEPATH)"
-
+</table>
 DEBUG: Define any debugging flags here.  An optimized DEBUG might be
 '-DNDEBUG'.  A safe and slow DEBUG could be 
 '-DDEBUG_WRITE -DRANGE_CHECKING'
