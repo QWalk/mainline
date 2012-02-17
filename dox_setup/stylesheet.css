@@ -339,8 +339,9 @@ hr.footer {
 /* @group Member Descriptions */
 
 table.memberdecls {
-	border-spacing: 0px;
-	padding: 0px;
+/*	border-spacing: 0px;*/
+/*	padding: 0px;*/
+        border: 1px solid black
 }
 
 .mdescLeft, .mdescRight,
@@ -613,11 +614,14 @@ address {
 
 table.doxtable {
 	border-collapse:collapse;
+	border: 1px solid #2D4068;
+  
 }
 
 table.doxtable td, table.doxtable th {
 	border: 1px solid #2D4068;
 	padding: 3px 7px 2px;
+  
 }
 
 table.doxtable th {
