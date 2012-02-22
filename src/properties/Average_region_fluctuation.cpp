@@ -153,19 +153,148 @@ void Average_region_fluctuation::count_regions(System * sys,
     }
   }
 
-  /*
-  Array1 <int> nelec_found(2);
-  nelec_found=0;
-  for(int s=0;s < 2; s++) {
-    for(int at=0; at< natoms; at++) { 
-      nelec_found(s)+=n_in_regions(s,at);
-    }
-    n_in_regions(s,natoms)=nelec(s)-nelec_found(s);
+}
+
+
+//#####################################################################
+//----------------------------------------------------------------------
+
+void Average_region_density_matrix::randomize(Wavefunction_data * wfdata, Wavefunction * wf,
+                        System * sys, Sample_point * sample) {
+  randomize(sys);
+}
+
+void Average_region_density_matrix::randomize(System * sys) { 
+   int nsample=saved_r.GetDim(0);
+   Array1 <doublevar> ran(3);
+   for(int i=0; i < nsample; i++) { 
+     saved_r(i)=0.0;
+
+     for(int d=0; d< 3; d++) ran(d)=rng.ulec();
+     for(int d1=0;d1 < 3; d1++) { 
+       for(int d2=0; d2 < 3; d2++) { 
+         saved_r(i)(d1)+=origin(d1)+latvec(d2,d1)*ran(d2);
+       }
+     }
+   }
+}
+//----------------------------------------------------------------------
+
+void Average_region_density_matrix::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+                        System * sys, Sample_point * sample, Average_return & avg) { 
+  avg.type="region_density_matrix";
+  avg.vals.Resize(nregion*nregion*2*2);//the two is for the spins, two more for complex
+  avg.vals=0.0;
+  wf->updateVal(wfdata,sample);
+  Wf_return wfval_base(wf->nfunc(),2);
+  wf->getVal(wfdata,0,wfval_base);
+  int nup=sys->nelectrons(0);
+  int ndown=sys->nelectrons(1);
+  int nelectrons=nup+ndown;
+
+  Sample_point * sample_tmp=NULL;
+  sys->generateSample(sample_tmp);
+  
+  Array1 <int> base_region(nelectrons);
+  for(int e=0; e< nelectrons; e++) { 
+    base_region(e)=which_region(sys,sample,e);
   }
-  */
+  
+  int nsample=saved_r.GetDim(0);
+  for(int i=0; i < nsample; i++) { 
+    Array1 <Wf_return> wf_eval;
+    wf->evalTestPos(saved_r(i),sample,wf_eval);
 
 
+    sample_tmp->setElectronPos(0,saved_r(i));
+    int region=which_region(sys,sample_tmp,0);
+
+    for(int e=0; e< nelectrons; e++) { 
+      dcomplex psiratio=exp(dcomplex(wf_eval(e).amp(0,0)-wfval_base.amp(0,0),
+            wf_eval(e).phase(0,0)-wfval_base.phase(0,0)));
+      int s=0;
+      if(e >=nup) s=1;
+      int indx=2*(s*nregion*nregion+region*nregion+base_region(e));
+      avg.vals(indx)+=psiratio.real()/nsample;
+      avg.vals(indx+1)+=psiratio.imag()/nsample;
+
+    }
+
+  }
+  delete sample_tmp; 
+}
+//----------------------------------------------------------------------
+int Average_region_density_matrix::which_region(System * sys, 
+    Sample_point * sample,int e) { 
+
+  int natoms=sys->nIons();
+  Array1 <doublevar> r(5);
+  int atmin=0;
+  doublevar rmin=1e99;
+  for(int at=0; at < natoms; at++) { 
+
+    sample->getEIDist(e,at,r);
+    if(r(0)< rmin) {
+      rmin=r(0);
+      atmin=at;
+    }
+  }
+
+  return atmin;
 }
 
 //----------------------------------------------------------------------
 
+void Average_region_density_matrix::read(System * sys, Wavefunction_data * wfdata, vector
+                    <string> & words) { 
+  unsigned int pos=0;
+  int nsample=100;
+  saved_r.Resize(nsample);
+  for(int i=0; i< nsample; i++) saved_r(i).Resize(3);
+
+  int natoms=sys->nIons();
+  nregion=natoms;
+  latvec.Resize(3,3);
+  origin.Resize(3);
+  if(sys->getBounds(latvec)) { 
+    sys->getorigin(origin); 
+  }
+  else { 
+    Array1 <doublevar> mi(3),ma(3),pos(3);
+    mi=1e99;
+    ma=-1e99;
+    for(int i=0; i< natoms; i++) { 
+      sys->getIonPos(i,pos);
+      for(int d=0;d < 3; d++) { 
+        if(pos(d)< mi(d)) mi(d)=pos(d);
+        if(pos(d)> ma(d)) ma(d)=pos(d);
+      }
+    }
+    cout << "jjj " << endl;
+    doublevar extra_space=4.0;
+    latvec=0.0;
+    for(int d=0; d< 3; d++) {
+      origin(d)=mi(d)-extra_space;
+      latvec(d,d)=ma(d)+extra_space;
+    }
+  }
+  randomize(sys);
+}
+//----------------------------------------------------------------------
+
+
+void Average_region_density_matrix::write_init(string & indent, ostream & os) { 
+  os << indent << "REGION_DENSITY_MATRIX" << endl;
+  os << indent << "nregion " << nregion << endl;
+}
+//----------------------------------------------------------------------
+void Average_region_density_matrix::read(vector <string> & words) { 
+  unsigned int pos=0;
+  readvalue(words,pos=0,nregion,"NREGION");
+}
+
+
+
+void Average_region_density_matrix::write_summary(Average_return &avg,Average_return &err, ostream & os) { 
+
+}

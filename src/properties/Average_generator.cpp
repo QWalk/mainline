@@ -38,6 +38,8 @@ int decide_averager(string & label, Average_generator *& avg) {
     avg=new Average_tbdm_basis;
   else if(caseless_eq(label,"REGION_FLUCTUATION"))
     avg=new Average_region_fluctuation;
+  else if(caseless_eq(label,"REGION_DENSITY_MATRIX"))
+    avg=new Average_region_density_matrix;
   else if(caseless_eq(label,"WF_PARMDERIV")) 
     avg=new Average_wf_parmderivs;
   else 

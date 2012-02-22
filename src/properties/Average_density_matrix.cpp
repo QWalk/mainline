@@ -84,11 +84,13 @@ void Average_tbdm_basis::randomize(Wavefunction_data * wfdata, Wavefunction * wf
 
 void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
                         System * sys, Sample_point * sample, Average_return & avg) { 
+  cout << "eval " << endl;
   if(eval_old) evaluate_old(wfdata,wf,sys,sample,avg);
   else { 
     if(eval_tbdm) evaluate_tbdm(wfdata,wf,sys,sample,avg);
     else evaluate_obdm(wfdata,wf,sys,sample,avg);
   }
+  cout << "done " << endl;
 }
 
 
@@ -345,6 +347,7 @@ void Average_tbdm_basis::evaluate_old(Wavefunction_data * wfdata, Wavefunction *
 
 void Average_tbdm_basis::evaluate_tbdm(Wavefunction_data * wfdata, Wavefunction * wf,
                         System * sys, Sample_point * sample, Average_return & avg) { 
+  cout << "evaluate_tbdm" << endl;
   avg.type="tbdm_basis";
 
   wf->updateVal(wfdata,sample);
@@ -440,14 +443,15 @@ void Average_tbdm_basis::evaluate_tbdm(Wavefunction_data * wfdata, Wavefunction 
           for(int oi=0; oi < nmo; oi++) { 
             tmp1=orbind*conj(movals1(oi,0));
             for(int oj=0; oj < nmo; oj++) { 
+              int ok=oi; int ol=oj;
               tmp2=tmp1*conj(movals2(oj,0));
-              for(int ok=0; ok < nmo; ok++) {
+              //for(int ok=0; ok < nmo; ok++) {
                 tmp3=tmp2*movals1_base(e1)(ok,0);
-                for(int ol=0; ol < nmo; ol++) { 
+                //for(int ol=0; ol < nmo; ol++) { 
                   tmp=tmp3*movals1_base(e2)(ol,0);
                   int ind=tbdm_index(which_tbdm,oi,oj,ok,ol);
-                  avg.vals(ind)+=tmp.real();
-                  avg.vals(ind+1)+=tmp.imag();
+                  avg.vals.v[ind]+=tmp.real();
+                  avg.vals.v[ind+1]+=tmp.imag();
                   //cout << oi << oj << ok << ol  << " e " << e1 << e2  
                   // << " mo1 " << movals1(oi,0).real() << " mo2 "<< movals2(oj,0).real()
                   //  << " mo1_base " << movals1_base(e1)(ok,0).real() <<  " "
@@ -464,8 +468,8 @@ void Average_tbdm_basis::evaluate_tbdm(Wavefunction_data * wfdata, Wavefunction 
                   //cout << "index " << ind << endl;
                 }
               }
-            }
-          }
+           // }
+          //}
           
         }
       }
@@ -474,6 +478,7 @@ void Average_tbdm_basis::evaluate_tbdm(Wavefunction_data * wfdata, Wavefunction 
 
   delete store;
 
+  cout << "done " << endl;
 }
 
 //----------------------------------------------------------------------

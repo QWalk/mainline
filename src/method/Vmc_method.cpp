@@ -444,28 +444,15 @@ void Vmc_method::runSample(Properties_manager & prop,
           for(int a=0; a < average_var.GetDim(1); a++) { 
             average_var(0,a)->evaluate(wfdata(si),wf(si),sys(si),sample(si),pt,pt.avgrets(si,a));
           }
-          //doublevar tmpweight=0.0;
-          //for(int sj=0; sj < nsys; sj++)  
-          //  tmpweight+=exp(2*(wf_value(sj).amp(0,0)-wf_value(si).amp(0,0)));
           
           pt.weight(si)=jacobian(si)*exp(2*(wf_value(si).amp(0,0)-wf_value(s).amp(0,0)));
         }
           
 
-        //mygather.gatherData(pt, pseudo, sys, wfdata, wf, 
-        //                    sample, guidewf);
-        
         for(int i=0; i< densplt.GetDim(0); i++)
           densplt(i)->accumulate(sample(0),1.0);
         for(int i=0; i< nldensplt.GetDim(0); i++)
           nldensplt(i)->accumulate(sample(0),1.0,wfdata(0),wf(0));
-       /* 
-        pt.avgrets.Resize(1,average_var.GetDim(0));
-        for(int i=0; i< average_var.GetDim(0); i++) { 
-          average_var(i)->randomize(wfdata,wf,sys,sample);
-          average_var(i)->evaluate(wfdata, wf, sys, sample, pt.avgrets(0,i));
-        }
-        */
         pt.parent=walker;
         pt.nchildren=1; pt.children(0)=1;
         prop.insertPoint(step, walker, pt);
