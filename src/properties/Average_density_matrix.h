@@ -72,6 +72,7 @@ class Average_tbdm_basis:public Average_generator {
   bool complex_orbitals; 
   bool eval_tbdm;
   bool eval_old;
+  bool tbdm_diagonal;
   
 };
 

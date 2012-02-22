@@ -84,13 +84,11 @@ void Average_tbdm_basis::randomize(Wavefunction_data * wfdata, Wavefunction * wf
 
 void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
                         System * sys, Sample_point * sample, Average_return & avg) { 
-  cout << "eval " << endl;
   if(eval_old) evaluate_old(wfdata,wf,sys,sample,avg);
   else { 
     if(eval_tbdm) evaluate_tbdm(wfdata,wf,sys,sample,avg);
     else evaluate_obdm(wfdata,wf,sys,sample,avg);
   }
-  cout << "done " << endl;
 }
 
 
@@ -347,7 +345,6 @@ void Average_tbdm_basis::evaluate_old(Wavefunction_data * wfdata, Wavefunction *
 
 void Average_tbdm_basis::evaluate_tbdm(Wavefunction_data * wfdata, Wavefunction * wf,
                         System * sys, Sample_point * sample, Average_return & avg) { 
-  cout << "evaluate_tbdm" << endl;
   avg.type="tbdm_basis";
 
   wf->updateVal(wfdata,sample);
@@ -364,7 +361,13 @@ void Average_tbdm_basis::evaluate_tbdm(Wavefunction_data * wfdata, Wavefunction 
   }
   
   //orbital normalization, then 1bdm up, 1bdm down, 2bdm up up, 2bdm up down 2bdm down up 2bdm down down, with everything complex
-  avg.vals.Resize(nmo+4*nmo*nmo+8*nmo*nmo*nmo*nmo);
+  if(tbdm_diagonal)
+    avg.vals.Resize(nmo+16*nmo*nmo);
+  else 
+    avg.vals.Resize(nmo+4*nmo*nmo+8*nmo*nmo*nmo*nmo);
+
+
+  if(!tbdm_diagonal) error("Need to code up offdiagonal tbdm");
   avg.vals=0;
 
   Wavefunction_storage * store;
@@ -440,37 +443,20 @@ void Average_tbdm_basis::evaluate_tbdm(Wavefunction_data * wfdata, Wavefunction 
           else if(e1 >= nup and e2 >= nup) { which_tbdm=tbdm_dd; } 
           dcomplex orbind=psiratio_2b/(dist1*dist2*npoints_eval); 
           dcomplex tmp1,tmp2,tmp3; 
-          for(int oi=0; oi < nmo; oi++) { 
-            tmp1=orbind*conj(movals1(oi,0));
-            for(int oj=0; oj < nmo; oj++) { 
-              int ok=oi; int ol=oj;
-              tmp2=tmp1*conj(movals2(oj,0));
-              //for(int ok=0; ok < nmo; ok++) {
+          if(tbdm_diagonal) { 
+            int ind=nmo+4*nmo*nmo+2*which_tbdm*nmo*nmo;
+            for(int oi=0; oi < nmo; oi++) { 
+              tmp1=orbind*conj(movals1(oi,0));
+              for(int oj=0; oj < nmo; oj++) { 
+                int ok=oi; int ol=oj;
+                tmp2=tmp1*conj(movals2(oj,0));
                 tmp3=tmp2*movals1_base(e1)(ok,0);
-                //for(int ol=0; ol < nmo; ol++) { 
-                  tmp=tmp3*movals1_base(e2)(ol,0);
-                  int ind=tbdm_index(which_tbdm,oi,oj,ok,ol);
-                  avg.vals.v[ind]+=tmp.real();
-                  avg.vals.v[ind+1]+=tmp.imag();
-                  //cout << oi << oj << ok << ol  << " e " << e1 << e2  
-                  // << " mo1 " << movals1(oi,0).real() << " mo2 "<< movals2(oj,0).real()
-                  //  << " mo1_base " << movals1_base(e1)(ok,0).real() <<  " "
-                  //  << " mo2_base " << movals1_base(e2)(ol,0).real() 
-                   // << "val " << tmp.real() << endl;
-                 /* 
-                  tmp=conj(movals1(oi,0))*movals1_base(e1)(ok,0)
-                    *conj(movals2(oj,0))*movals1_base(e2)(ol,0)
-                    *psiratio_2b/dist1/dist2;
-                  int ind=tbdm_index(which_tbdm,oi,oj,ok,ol);
-                  avg.vals(ind)+=tmp.real()/doublevar(npoints_eval);
-                  avg.vals(ind+1)+=tmp.imag()/doublevar(npoints_eval);
-                  */
-                  //cout << "index " << ind << endl;
-                }
+                tmp=tmp3*movals1_base(e2)(ol,0);
+                avg.vals.v[ind++]+=tmp.real();
+                avg.vals.v[ind++]+=tmp.imag();
               }
-           // }
-          //}
-          
+            }
+          } //TBDM_DIAGONAL
         }
       }
     }
@@ -478,7 +464,6 @@ void Average_tbdm_basis::evaluate_tbdm(Wavefunction_data * wfdata, Wavefunction 
 
   delete store;
 
-  cout << "done " << endl;
 }
 
 //----------------------------------------------------------------------
@@ -535,6 +520,8 @@ void Average_tbdm_basis::read(System * sys, Wavefunction_data * wfdata, vector
   eval_old=false;
   if(haskeyword(words,pos=0,"EVAL_OLD")) eval_old=true;
 
+  tbdm_diagonal=false;
+  if(haskeyword(words,pos=0,"TBDM_DIAGONAL")) tbdm_diagonal=true;
   //Since we rotate between the different pairs of spin channels, make sure
   //that npoints_eval is divisible by 4
   if(npoints_eval%4!=0) {
@@ -567,6 +554,9 @@ void Average_tbdm_basis::write_init(string & indent, ostream & os) {
   if(!eval_tbdm) { 
     os << indent << "ONLY_OBDM" << endl;
   }
+  if(tbdm_diagonal) { 
+    os << indent << "TBDM_DIAGONAL" << endl;
+  }
   if(complex_orbitals) { 
     os << indent << "CORBITALS { \n";
     cmomat->writeinput(indent,os); 
@@ -597,6 +587,8 @@ void Average_tbdm_basis::read(vector <string> & words) {
   readvalue(words,pos=0,npoints_eval,"NPOINTS");
   if(haskeyword(words, pos=0,"ONLY_OBDM")) eval_tbdm=false;
   else eval_tbdm=true;
+  if(haskeyword(words,pos=0,"TBDM_DIAGONAL")) tbdm_diagonal=true;
+  else tbdm_diagonal=false;
 }
 //----------------------------------------------------------------------
 void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, ostream & os) { 
@@ -660,6 +652,36 @@ void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, 
       << setw(colwidth) << "downdown" << setw(colwidth) << "downdown err"
       << endl;
     dcomplex uu,uu_err,ud,ud_err,du,du_err,dd,dd_err;
+
+    if(tbdm_diagonal) { 
+      for(int i=0; i< nmo; i++) { 
+        for(int j=0; j< nmo; j++) { 
+          doublevar norm=sqrt(avg.vals(i)*avg.vals(i)*avg.vals(j)*avg.vals(j));
+          int induu=nmo+4*nmo*nmo+2*i*nmo+2*j;
+          int indud=induu+2*nmo*nmo;
+          int inddu=indud+2*nmo*nmo;
+          int inddd=inddu+2*nmo*nmo;
+          uu=dcomplex(avg.vals(induu),avg.vals(induu+1))/norm;
+          uu_err=dcomplex(err.vals(induu),err.vals(induu+1))/norm;
+          ud=dcomplex(avg.vals(indud),avg.vals(indud+1))/norm;
+          ud_err=dcomplex(err.vals(indud),err.vals(indud+1))/norm;
+          du=dcomplex(avg.vals(inddu),avg.vals(inddu+1))/norm;
+          du_err=dcomplex(err.vals(inddu),err.vals(inddu+1))/norm;
+          dd=dcomplex(avg.vals(inddd),avg.vals(inddd+1))/norm;
+          dd_err=dcomplex(err.vals(inddd),err.vals(inddd+1))/norm;
+
+
+          os << setw(10) << i << setw(10) << j << setw(10) << i <<  setw(10) << j 
+            << setw(colwidth) << uu << setw(colwidth) << uu_err
+            << setw(colwidth) << ud << setw(colwidth) << ud_err
+            << setw(colwidth) << du << setw(colwidth) << du_err
+            << setw(colwidth) << dd << setw(colwidth) << dd_err
+            << endl;
+        }
+      }
+
+    }
+/*
     for(int i=0; i< nmo ; i++) { 
       for(int j=0; j<nmo; j++) { 
         for(int k=0; k< nmo; k++) {
@@ -691,6 +713,7 @@ void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, 
       }
 
     }
+    */
   }
 
 
