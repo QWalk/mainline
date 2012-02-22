@@ -50,7 +50,7 @@ template <class T> struct log_value {
 template<> inline log_value<doublevar>::log_value(doublevar t) {
     doublevar ft=fabs(t);
     if(ft > 0) logval=log(ft); 
-    else logval=-1e99;
+    else logval=-1e201;
     sign=t<0?-1:1; 
 }
 

@@ -397,6 +397,8 @@ void Vmc_method::runSample(Properties_manager & prop,
                 wf(s)->getVal(wfdata(s),0,wfval);
                 cout << "step " << e << " amp " << wfval.amp(0,0) 
                   << " phase " << cos(wfval.phase(0,0)) << endl;
+                cout << "pos " << newpos(0) << " " << newpos(1) << " " 
+                  << newpos(2) << endl;
               }
               
               if(acc>0) {

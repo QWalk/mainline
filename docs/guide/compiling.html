@@ -18,53 +18,52 @@ CXX and CXXFLAGS; the rest are performance and debugging-related(these are
 also very important in large calculations!)  See make/Linux.mk for an example
 of a fairly well-optimized .mk file.
 
-Makefile variables:
-
-CXX: C++ compiler.  For example, for a serial compile, set this to g++.  For
-parallel, set it to mpiCC or mpicxx (or mpic++).
-
-CXXFLAGS: Flags to pass to the compiler.  Put optimization (-O2) flags, etc
-here.  Must also include the option "$(INCLUDEPATH)"
-
-DEBUG: Define any debugging flags here.  An optimized DEBUG might be
-'-DNDEBUG'.  A safe and slow DEBUG could be 
-'-DDEBUG_WRITE -DRANGE_CHECKING'
-
-LDFLAGS: Linker flags.  Usually you don't need anything here, but some 
-compilers need '-lm' for the math libraries.
-
-BLAS_LIBS: The BLAS libraries(for example: -L/usr/lib -lcblas
-
-LAPACK_LIBS: LAPACK libs(as BLAS) (ex. -L/opt/lapack/lib -llapack)
-
-LAPACK_INCLUDE: LAPACK headers (for examples -I/opt/lapack/
-
-
-DEPENDMAKER: If you have gcc, it should be g++ -MM -I $(INCLUDEPATH).
-
-
 List of preprocessor flags(these may be defined by -D[FLAG] with most
 compilers.  List them in the CXXFLAGS variable along with any optimization
-flags.)
+flags.)  These turn on/off the use of external libraries.
 
-DEBUG_WRITE: Enable extra debugging output.
+<table>
+  <tr> <td> DEBUG_WRITE <td> Enable extra debugging output.</tr>
+  <tr> <td> RANGE_CHECKING <td> Enable range checking of arrays.  Big performance hit if you
+        turn this on! </td>
 
-RANGE_CHECKING: Enable range checking of arrays.  Big performance hit if you
-turn this on!
+  <tr> <td> NDEBUG <td> Turn off assert()'s in code.  For less safety and better performance
+        set this flag.</td>
 
-NDEBUG: Turn off assert()'s in code.  For less safety and better performance
-set this flag.
-
-USE_BLAS: Enable usage of CBLAS libraries.  This will enable BLAS in some
+  <tr> <td> USE_BLAS <td> Enable usage of CBLAS libraries.  This will enable BLAS in some
 of the linear algebra routine and enable BLAS_MO, which is a very fast MO
 evaluator for some archetectures(Itanium is one that really benefits from this).
-You must also set the BLAS_LIBS and BLAS_INCLUDE variables.
+You must also set the BLAS_LIBS and BLAS_INCLUDE variables. </tr>
 
-USE_LAPACK:  Enables usage of LAPACK libraries in pw2lcao.  It's not used
-in the main program, but improves pw2lcao's performance by several orders of
-magnitude.  You must also set the LAPACK_LIBS and BLAS_INCLUDE variables.
+  <tr> <td> USE_LAPACK <td>  Enables usage of LAPACK libraries. You must also set the LAPACK_LIBS and BLAS_INCLUDE variables.</tr>
 
-USE_MPI:  Enable use of MPI parallelization.  For large calculations, this is
-quite necessary.
+  <tr> <td> USE_MPI <td>  Enable use of MPI parallelization.  For large calculations, this is quite necessary. </tr>
 
+  <tr> <td> USE_EINSPLINE <td> Enable EINSPLINE library.  EINSPLINE_INCLUDE and EINSPLINE_LIBS must be defined. </tr>
+</table>
+
+
+
+Makefile variables:
+<table>
+  <tr> <td> CXX <td> C++ compiler.  For example, for a serial compile, set this to g++.  For
+        parallel, set it to mpiCC or mpicxx (or mpic++). </tr>
+  <tr> <td> CXXFLAGS <td> Flags to pass to the compiler.  Put optimization (-O2) flags, etc
+        here.  Must also include the option "$(INCLUDEPATH)" </tr>
+  <tr> <td> DEBUG <td> Define any debugging flags here.  An optimized DEBUG might be
+            '-DNDEBUG'.  A safe and slow DEBUG could be 
+            '-DDEBUG_WRITE -DRANGE_CHECKING' </tr>
+
+  <tr> <td> LDFLAGS <td>  Linker flags.  Usually you don't need anything here, but some 
+      compilers need '-lm' for the math libraries. </tr>
+  <tr> <td> BLAS_LIBS <td>  The BLAS libraries(for example: -L/usr/lib -lcblas </tr>
+  <tr> <td> LAPACK_LIBS <td>  LAPACK libs(as BLAS) (ex. -L/opt/lapack/lib -llapack) </tr>
+  <tr> <td> LAPACK_INCLUDE <td> LAPACK headers (for examples -I/opt/lapack/ </tr>
+  <tr> <td> DEPENDMAKER <td> If you have gcc, it should be g++ -MM -I $(INCLUDEPATH) </tr>
+  <tr> <td> EINSPLINE_LIBS <td> The location of the EINSPLINE libs (ex. -L/usr/local/lib -leinspline) </tr>
+  <tr> <td> EINSPLINE_INCLUDE <td> The location of the EINSPLINE headers (ex. -I/usr/local/include/einspline) </tr>
+
+</table>
+
+</pre>
 */

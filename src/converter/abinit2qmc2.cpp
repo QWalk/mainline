@@ -685,7 +685,12 @@ void Abinit_converter::write_files(string basename, bool no_orb, vector <vector<
     for(vector<WF_kpoint>::iterator wf=wavefunctions.begin(); 
         wf!= wfend; wf++) { 
       sys_kpt[0]=wf->kpoint(0); sys_kpt[1]=wf->kpoint(1); sys_kpt[2]=wf->kpoint(2);
-      //for(int d=0; d< 3; d++) kpoint[d]=sys_kpt[d]*super_expansion;
+      for(int d1=0; d1< 3; d1++) {
+        kpoint[d1]=0.0;
+        for(int d2=0; d2< 3; d2++) { 
+          kpoint[d1]+=sys_kpt[d2]*supercell[d2][d1];
+        }
+      }
       if(extend_occupation(supercell,wavefunctions,sys_kpt,tot_occupation,spin_polarized)) { 
         string super_name=basename;
         //append_number(super_name,super_expansion);
