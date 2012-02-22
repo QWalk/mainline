@@ -382,7 +382,7 @@ template<class T>inline void Slat_wf<T>::saveUpdate(Sample_point * sample, int e
 
     for(int f=0; f< nfunc_; f++) {
       for(int det=0; det<ndet; det++) {
-        //store->inverse_temp(f,det,s)=inverse(f,det,s);
+        store->inverse_temp(f,det,s)=inverse(f,det,s);
         store->detVal_temp(f,det,s)=detVal(f,det,s);
       }
     }
@@ -418,13 +418,14 @@ template<class T>inline void Slat_wf<T>::restoreUpdate(Sample_point * sample, in
     }
     for(int f=0; f< nfunc_; f++) {
       for(int det=0; det < ndet; det++) {
-        //inverse(f,det,s)=store->inverse_temp(f,det,s);
+        inverse(f,det,s)=store->inverse_temp(f,det,s);
         detVal(f,det,s)=store->detVal_temp(f,det,s);
       }
     }
     //It seems to be faster to update the inverse than to save it and
-    //recover it.
-    updateInverse(parent,e);
+    //recover it.  However, it complicates the implementation too much.
+    //For now, we'll disable it.
+    //updateInverse(parent,e);
 
     electronIsStaleVal(e)=0;
     electronIsStaleLap(e)=0;
@@ -915,6 +916,7 @@ template <class T> inline void Slat_wf<T>::calcVal(Slat_wf_data * dataptr, Sampl
 }
 
 //------------------------------------------------------------------------
+inline doublevar real(doublevar & a) { return a; } 
 
 template <class T>inline void Slat_wf<T>::updateInverse(Slat_wf_data * dataptr, int e) { 
   int maxmatsize=max(nelectrons(0),nelectrons(1));
@@ -924,18 +926,7 @@ template <class T>inline void Slat_wf<T>::updateInverse(Slat_wf_data * dataptr, 
     for(int det=0; det< ndet; det++)  {
       //fill the molecular orbitals for this
       //determinant
-      if(abs(detVal(f,det,s).logval) > -1e200) { 
-        for(int i = 0; i < nelectrons(s); i++) {
-          modet(i)=moVal(0,e,dataptr->occupation(f,det,s)(i));
-        }
-        T ratio=1./InverseUpdateColumn(inverse(f,det,s),
-                                     modet, dataptr->rede(e),
-                                     nelectrons(s));
-
-        detVal(f,det, s)=ratio*detVal(f,det, s);
-      }
-      else { 
-        
+      if(real(detVal(f,det,s).logval) < -1e200) { 
         Array2 <T> allmos(nelectrons(s), nelectrons(s));
         for(int e=0; e< nelectrons(s); e++) {
           int curre=s*nelectrons(0)+e;
@@ -943,10 +934,21 @@ template <class T>inline void Slat_wf<T>::updateInverse(Slat_wf_data * dataptr, 
             allmos(e,i)=moVal(0,curre, dataptr->occupation(f,det,s)(i));
           }
         }
-        
-        
+
+
         detVal(f,det,s)=
           TransposeInverseMatrix(allmos,inverse(f,det,s), nelectrons(s));
+
+      }
+      else { 
+        for(int i = 0; i < nelectrons(s); i++) {
+          modet(i)=moVal(0,e,dataptr->occupation(f,det,s)(i));
+        }
+        T ratio=1./InverseUpdateColumn(inverse(f,det,s),
+            modet, dataptr->rede(e),
+            nelectrons(s));
+
+        detVal(f,det, s)=ratio*detVal(f,det, s);
       }
     }
   }
