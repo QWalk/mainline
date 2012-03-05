@@ -39,7 +39,7 @@ void read_lattice_vector(istream & is, vector <string> & currline,
 void read_lattice_constant(istream & is,vector <string> & currline,double & lattice_constant);
 
 void read_atoms(istream & is, vector <string> & currline, 
-                         vector <Atom> & atoms,coord_t & coord_type);
+                         vector <Atom> & atoms,coord_t & coord_type,bool use_siesta2);
 
 void read_mo_coefficients(istream & is, vector <string> & currline,
                           Slat_wf_writer & slwriter, vector < vector <vector <dcomplex> > > & moCoeff,
@@ -70,6 +70,7 @@ int main(int argc, char ** argv) {
   if(argc < 2) {
     cout << "usage: siesta2qmc < -o basename > < -fold fold_dir nfold > [siesta stdout]\n";
     cout << "  -o          use basename as the prefix for QWalk.  Defaults to qwalk\n";
+    cout << "  -siesta2    read Siesta version 2 output files\n";
     exit(1);
   }
   
@@ -78,7 +79,7 @@ int main(int argc, char ** argv) {
   string outputname="qwalk";
   int fold_dir=-1;
   int nfold=0;
-  
+  bool use_siesta2=false; 
   for(int i=1; i< argc-1; i++) { 
     if(!strcmp(argv[i],"-o") && i+1 < argc) { 
       outputname=argv[++i];
@@ -87,6 +88,9 @@ int main(int argc, char ** argv) {
       fold_dir=atoi(argv[++i]);
       nfold=atoi(argv[++i]);
     }
+    if(!strcmp(argv[i],"-siesta2"))
+      use_siesta2=true;
+
   }
   string infilename=argv[argc-1];
   
@@ -127,10 +131,12 @@ int main(int argc, char ** argv) {
   while(getline(is,line)) { 
     currline.clear();
     split(line, space, currline);
-    read_atoms(is,currline,atoms, coord_type);
+
+    read_atoms(is,currline,atoms, coord_type,use_siesta2);
     read_lattice_vector(is,currline,latvec);
     read_lattice_constant(is,currline,lattice_constant);
-    //read_mo_coefficients(is, currline, slwriter, moCoeff, kpoints);
+    if(use_siesta2)
+      read_mo_coefficients(is, currline, slwriter, moCoeff, kpoints);
 
     if(currline.size()> 6 && currline[2]=="spin" && currline[3]=="polarization") { 
       spin_pol=atoi(currline[6].c_str());
@@ -153,8 +159,10 @@ int main(int argc, char ** argv) {
   }
   is.close();
 
-  string wffilename=systemlabel+".WFSX";
-  read_mo_coefficients_wfsx(wffilename, slwriter,moCoeff,kpoints);
+  if(!use_siesta2) { 
+    string wffilename=systemlabel+".WFSX";
+    read_mo_coefficients_wfsx(wffilename, slwriter,moCoeff,kpoints);
+  }
   
   if(slwriter.calctype=="") { 
     cout << "Couldn't find wave function coefficients.  You may want to make sure that \n"
@@ -433,7 +441,7 @@ int main(int argc, char ** argv) {
 //###########################################################################
 
 void read_atoms(istream & is, vector <string> & currline, 
-                vector <Atom> & atoms, coord_t & coord_type) {
+                vector <Atom> & atoms, coord_t & coord_type,bool use_siesta2) {
   string space=" ";
   if(currline.size() > 3 && currline[0]=="outcoor:" && currline[2]=="coordinates") { 
     atoms.clear(); //so we always take the last set of atoms.
@@ -468,8 +476,10 @@ void read_atoms(istream & is, vector <string> & currline,
     while(currline.size() > 0) { 
       cout << "atom line " << line << endl;
       Atom tmpatom;
-      //tmpatom.name=currline[4];  //this is good for siesta2.0
-      tmpatom.name=currline[5];    //This is for siesta3.1
+      if(use_siesta2) 
+        tmpatom.name=currline[4];  //this is good for siesta2.0
+      else 
+        tmpatom.name=currline[5];    //This is for siesta3.1
       //This is the *label*, not the charge, so that will be changed later(in the psp reading)
       tmpatom.charge=atoi(currline[3].c_str()); 
       for(int i=0; i< 3; i++) { 
