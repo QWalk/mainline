@@ -355,8 +355,12 @@ doublevar Optimize_method::variance(int n, Array1 <double> & parms, double & val
   if(check) { 
     if(fabs(weightsum(0)) < 1e-14)
       error("sum of weights is ", weightsum(0), " this is way too small");
-    if(val > 1e14)
+    if(val > 1e14) { 
+      cout << "en " << en_tot/weight_tot << " kin " << avgkin/weight_tot 
+        << " pot " << avgpot/weight_tot << " nonloc " << avgnon/weight_tot << endl;
+      
       error("variance is too large: ", val );
+    }
   }
   //cout << "avg en " << en_tot/weight_tot  << "  " << << endl;
   
@@ -401,6 +405,7 @@ doublevar Optimize_method::derivatives(int n, Array1 <double> & parms, Array1 <d
     
     Array1 <doublevar> nonloc_deriv(nparms);
     nonloc_deriv=0;
+    nonloc=0.0;
     if(update_psp) { 
       if(wfdata->supports(parameter_derivatives)) { 
         pseudo->calcNonlocParmDeriv(wfdata, sys,sample, wf,
@@ -505,8 +510,13 @@ doublevar Optimize_method::derivatives(int n, Array1 <double> & parms, Array1 <d
   if(check) { 
     if(fabs(weightsum(0)) < 1e-14)
       error("sum of weights is ", weightsum(0), " this is way too small");
-    if(val > 1e14)
+    if(val > 1e14) {
+      cout << "en " << en_tot/weight_tot << " kin " << avgkin/weight_tot 
+        << " pot " << avgpot/weight_tot << " nonloc " << avgnon/weight_tot << endl;
+      
+      
       error("variance is too large: ", val );
+    }
   }
   
   return en_tot/weight_tot;  
