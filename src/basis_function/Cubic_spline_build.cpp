@@ -159,7 +159,8 @@ int Cubic_spline::read(
   enforce_cusp=false;
   if(readvalue(words, pos=0, cusp, "CUSP")) enforce_cusp=true;
 
-  if(!readvalue(words,pos=0, cusp_matching, "CUSP_MATCHING")) cusp_matching=0.1;
+  match_sto=false;
+  if(readvalue(words, pos=0, cusp_matching, "CUSP_MATCHING")) match_sto=true;
   
   zero_derivative=false;
   if(haskeyword(words, pos=0, "ZERO_DERIVATIVE")) zero_derivative=true;
@@ -581,29 +582,32 @@ int Cubic_spline::readbasis(vector <string> & words,unsigned int & pos,
     }
     ypn=(y(n-1) - y(n-2) ) /spacing;
     
-    if(enforce_cusp) { //inspired from J. Chem. Phys. 130, 114107 (2009)
+    if(enforce_cusp) { 
+      double der=cusp/double(symmetry_lvalue(symmetry(funcNum))+1);      
+      yp1=der;
+
+      // KMR:  using an STO near the atom should be a separate decision from 
+      // passing the first derivative to the spliner
+      if(match_sto) { //inspired from J. Chem. Phys. 130, 114107 (2009)
       //Here, we match the value, first derivative, and second derivative to the 
       //given smooth function at some correction radius rc.  We can then safely
       //replace the function from [0:rc] with the Slater function.
       //cout << "enforcing cusp" << endl;
-      double der=cusp/double(symmetry_lvalue(symmetry(funcNum))+1);
-      
-      yp1=der;
-      double rc=cusp_matching;
-      int closest=rc/spacing;
-      rc=x(closest);
-      //cout << "rc " << rc << endl;
-      double curve=(y(closest+1)+y(closest-1)-2*y(closest))/(spacing*spacing);
-      double deriv=(y(closest+1)-y(closest-1))/(2*spacing);
-      double f=y(closest);
-      double b=(deriv*der*der-curve*der)/(curve*der*rc*rc+curve*rc*2-deriv*der*der*rc*rc-deriv*4*der*rc-2*deriv);
-      double a=curve/(exp(der*rc)*(der*der*(1+b*rc*rc)+4*der*b*rc+2*b));
-      double c=f-a*exp(der*rc)*(1+b*rc*rc);
-      //cout << "a " << a << " b " << b << " c " << c << endl;
-      for(int j=0; j <= closest; j++) {
-        y(j)=a*exp(der*x(j))*(1+b*x(j)*x(j))+c;
-      }
-      
+	double rc=cusp_matching;
+	int closest=rc/spacing;
+	rc=x(closest);
+	//cout << "rc " << rc << endl;
+	double curve=(y(closest+1)+y(closest-1)-2*y(closest))/(spacing*spacing);
+	double deriv=(y(closest+1)-y(closest-1))/(2*spacing);
+	double f=y(closest);
+	double b=(deriv*der*der-curve*der)/(curve*der*rc*rc+curve*rc*2-deriv*der*der*rc*rc-deriv*4*der*rc-2*deriv);
+	double a=curve/(exp(der*rc)*(der*der*(1+b*rc*rc)+4*der*b*rc+2*b));
+	double c=f-a*exp(der*rc)*(1+b*rc*rc);
+	//cout << "a " << a << " b " << b << " c " << c << endl;
+	for(int j=0; j <= closest; j++) {
+	  y(j)=a*exp(der*x(j))*(1+b*x(j)*x(j))+c;
+	}
+      } 
     }
     /*
     for(int j=0; j< n; j++) { 
