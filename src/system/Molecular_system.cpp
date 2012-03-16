@@ -66,6 +66,19 @@ int Molecular_system::read(vector <string> & words,
   nspin(0)=atoi(spintxt[0].c_str());
   nspin(1)=atoi(spintxt[1].c_str());
 
+  //restrcit initial walkers to a given range
+  vector <string> inirangetxt;
+  if(readsection(words, pos=0, inirangetxt, "INIRANGE")) {
+    cout << "You are using a range of initial walkers other than default." << endl;
+    if(inirangetxt.size()==0){
+      error("You want to restrict the range of initial walkers, but you didn't give a range");
+    }
+    inirange=atof(inirangetxt[0].c_str());
+  }
+  else {
+    inirange=3.0;
+  }
+  
   //use a bounding box if it's given
   vector <string> boxtxt;
   if(readsection(words, pos=0, boxtxt, "BOUNDING_BOX")) {

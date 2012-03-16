@@ -96,6 +96,7 @@ private:
   bool renormalize; //!< Whether or not to renormalize the basis functions
 
   bool enforce_cusp; //!< whether or not to force the spline to have a cusp (only works for SPLINE inputs for now)
+  bool match_sto; //!< whether to replace the basis function with a Slater-type orbital on the interval [o:rc]
   bool zero_derivative; //!< whether or not force zero derivative at the nucleus (strictly no cusp), if we want to treat the cusp in Jastrow
   double cusp;
   double cusp_matching; //!< the radius at which the cusp should take over from the rest of the basis function

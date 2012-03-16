@@ -194,7 +194,8 @@ void Molecular_sample::init(System * sys) {
 void Molecular_sample::randomGuess()
 {
   //cout << "randomGuess " << endl;
-  const doublevar range=3.0;  //range of the cube around atoms to fill
+  //here we set range equal to 3.0 or the value given in the System section
+  const doublevar range=parent->inirange; //range of the cube around atoms to fill
   Array1 <doublevar> trialPos(3);
 
   Array1 <doublevar> ioncenter(3); ioncenter=0;

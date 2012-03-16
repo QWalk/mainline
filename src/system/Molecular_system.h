@@ -101,6 +101,7 @@ private:
   int use_bounding_box;
 
   Array1 <doublevar> electric_field; 
+  doublevar inirange;
 };
 
 #endif //MOLECULAR_SYSTEM_H_INCLUDED
