@@ -1047,7 +1047,7 @@ void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis ) {
           rads.push_back(rad); vals.push_back(val);
         }
         vector <double> urad, uval;
-        smooth_grid(rads,vals);
+        //smooth_grid(rads,vals);
         pad_spline(rads,vals);
         urad=rads; uval=vals;
         //make_uniform(rads,vals,urad,uval);
@@ -1067,7 +1067,7 @@ void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis ) {
     int nbasis=basis.size();
     for(int i=0; i< nbasis; i++) { 
       if(basis[i].label==at->name) { 
-	at->basis=i;
+        at->basis=i;
       }
     }
   }
@@ -1143,7 +1143,7 @@ void read_psp(vector <Atom> & atoms, vector <Spline_pseudo_writer> & pseudo) {
         val[i]*= 0.5/rad[i];
       }
       vector <double> urad, uval;
-      make_uniform(rad,val,urad,uval,0.05);
+      make_uniform(rad,val,urad,uval,0.02);
       
       if(l < nl_down) { 
         down_rad[currl]=urad;

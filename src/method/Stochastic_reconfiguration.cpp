@@ -67,6 +67,7 @@ void Stochastic_reconfiguration_method::run(Program_options & options, ostream &
   cout.precision(1);
   int nit_completed=0;
   for(int it=0; it< iterations; it++) {
+    cout << "_________start iteration_______" << endl;
     //cout << "wf derivative " << endl;
     wavefunction_derivative(energies,S,en);
 
@@ -125,7 +126,7 @@ void Stochastic_reconfiguration_method::line_minimization(Array2 <doublevar> & S
   int ntau=5;
 
   InvertMatrix(S,Sinv,nparms+1);
-  double  tau_prefactor[5]={0.3,0.666,1.0,2.0,3.0};
+  double  tau_prefactor[5]={0.0,0.25,0.5,0.75,1.0};
   Array1 <doublevar> x(nparms+1);
   Array1 <Array1 <doublevar> > alphas(ntau);
 
@@ -183,25 +184,32 @@ void Stochastic_reconfiguration_method::line_minimization(Array2 <doublevar> & S
   for(int n=0; n< ntau; n++) { 
     doublevar t=tau_prefactor[n]*tau;
     doublevar f=coeff(0)+coeff(1)*t+coeff(2)*t*t;
-    //cout << t << " " << f << " " << energies_corr(n,0) << endl;
+    cout << t << " " << f << " " << energies_corr(n,0) << endl;
   }
   doublevar min_tau=-coeff(1)/(2*coeff(2));
   if(coeff(2) < 0) min_tau=0;
   min_tau=min(min_tau,tau_prefactor[ntau-1]*tau);
   min_tau=max(min_tau,0.0);
-  //cout << "min_tau " << min_tau << endl;
+  cout << "min_tau " << min_tau << endl;
  
   for(int i=0; i <nparms+1; i++) { 
     for(int j=0; j< nparms+1; j++) { 
       x(i)+=Sinv(i,j)*(S(0,j)-min_tau*energies(j));
     }
   }
-  //cout << "x ";
-  //for(int i=0; i< nparms+1; i++) cout << x(i) << " ";
-  //cout << endl;
-  for(int i=0; i< nparms; i++) { 
-    alpha(i)=save_alpha(i)+x(i+1)/x(0);
+  cout << "save_alpha ";
+  for(int i=0; i< nparms+1; i++) cout << save_alpha(i) << " ";
+  cout << endl;
+  
+  cout << "x ";
+  for(int i=0; i< nparms+1; i++) cout << x(i) << " ";
+  cout << endl;
+  if(min_tau > 1e-4) { 
+    for(int i=0; i< nparms; i++) { 
+      alpha(i)=save_alpha(i)+x(i+1)/x(0);
+    }
   }
+  else alpha=save_alpha;
   
   //cout << "done line minimization" << endl;
   
@@ -251,20 +259,27 @@ void Stochastic_reconfiguration_method::correlated_evaluation(Array1 <Array1 <do
        all_energies(w,config)=pt.energy(0);
      }
   }
-  Array1 <doublevar> avg_energies(nwfs),avg_weight(nwfs);
+  Array1 <doublevar> avg_energies(nwfs),avg_weight(nwfs),avg_var(nwfs);
   avg_energies=0.0;
   avg_weight=0.0;
+  avg_var=0.0;
   for(int w=0; w< nwfs; w++) {
+    doublevar avg_en_unweight=0;
     for(int config=0; config < nconfig_eval; config++)  { 
       doublevar weight=exp(2*(wf_vals(w,config).amp(0,0)-wf_vals(ref_alpha,config).amp(0,0)));
       avg_energies(w)+=weight*all_energies(w,config)/nconfig_eval;
+      avg_en_unweight+=all_energies(w,config)/nconfig_eval;
       avg_weight(w)+=weight/nconfig_eval;
     }
+    for(int config=0; config < nconfig_eval; config++) { 
+      avg_var(w)+=(all_energies(w,config)-avg_en_unweight)*(all_energies(w,config)-avg_en_unweight);
+    }
+    avg_var(w)=sqrt(avg_var(w))/nconfig_eval;
   }
  
   energies.Resize(nwfs,2);
   for(int w=0; w< nwfs; w++) { 
-    energies(w,0)=avg_energies(w)/avg_weight(w);
+    energies(w,0)=avg_energies(w)/avg_weight(w)+0.1*avg_var(w);
     //cout << w << " " << avg_energies(w)/avg_weight(w) <<
     //   "  " << avg_energies(w) << "  " << avg_weight(w) << endl;
     
