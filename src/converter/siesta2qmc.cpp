@@ -994,7 +994,65 @@ else if(r[j] > cut) newvals[j]=0.0;
 void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis ) {
   vector <string> unique_atoms;
   find_unique_atoms(atoms,unique_atoms);
-  
+
+  for(vector<string>::iterator nm=unique_atoms.begin(); 
+      nm!=unique_atoms.end(); nm++) { 
+    Spline_basis_writer tmp_basis;
+    tmp_basis.label=*nm;
+    string filename=*nm+".ion";
+    ifstream in(filename.c_str());
+    if(!in) {
+      cout << "Couldn't open " << filename.c_str() << endl;
+      exit(1);
+    }
+    string dummy;
+    while(true) { 
+      in >> dummy;
+      cout <<" dummy " << dummy << endl;
+      if(dummy=="</preamble>") 
+        break;
+    }
+    in.ignore(180,'\n');
+    for(int i=0; i< 6; i++) in.ignore(180,'\n');
+    int lmax, nl;
+    in >> lmax >> nl;
+    cout << "lmax " << lmax << " nl " << nl << endl;
+    for(int i=0; i< 3; i++) in.ignore(180,'\n');
+    for(int spline=0; spline < nl; spline++) { 
+      int el;
+      in >> el;in.ignore(180,'\n');
+      int npts; in >> npts; in.ignore(180,'\n');
+      switch(el) { 
+        case 0:
+          tmp_basis.types.push_back("S");
+          break;
+        case 1:
+          tmp_basis.types.push_back("P_siesta");
+          break;
+        case 2:
+          tmp_basis.types.push_back("5D_siesta");
+          break;
+        case 3:
+          tmp_basis.types.push_back("7F_siesta");
+          break;
+        default:
+          cout << "Don't support this l-value.  Bug the maintainer." << endl;
+          exit(1);
+      }
+      vector <double> rads, vals;
+      double rad,val;
+      for(int i=0; i< npts; i++) { 
+        in >> rad ; in >> val;
+        rads.push_back(rad); vals.push_back(val);
+      }
+      vector <double> urad, uval;
+      pad_spline(rads,vals);
+      tmp_basis.rad.push_back(rads);
+      tmp_basis.vals.push_back(vals);
+    }
+    basis.push_back(tmp_basis);
+  }
+ /* 
   for(vector<string>::iterator nm=unique_atoms.begin();
       nm != unique_atoms.end(); nm++) { 
     Spline_basis_writer tmp_basis;
@@ -1047,7 +1105,7 @@ void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis ) {
           rads.push_back(rad); vals.push_back(val);
         }
         vector <double> urad, uval;
-        smooth_grid(rads,vals);
+        //smooth_grid(rads,vals);
         pad_spline(rads,vals);
         urad=rads; uval=vals;
         //make_uniform(rads,vals,urad,uval);
@@ -1059,6 +1117,7 @@ void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis ) {
     }
     basis.push_back(tmp_basis);
   }
+  */
   
   //We only have one basis object per atom name type, so 
   //assigning the basis number is pretty easy.
@@ -1067,7 +1126,7 @@ void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis ) {
     int nbasis=basis.size();
     for(int i=0; i< nbasis; i++) { 
       if(basis[i].label==at->name) { 
-	at->basis=i;
+        at->basis=i;
       }
     }
   }
@@ -1143,7 +1202,7 @@ void read_psp(vector <Atom> & atoms, vector <Spline_pseudo_writer> & pseudo) {
         val[i]*= 0.5/rad[i];
       }
       vector <double> urad, uval;
-      make_uniform(rad,val,urad,uval,0.05);
+      make_uniform(rad,val,urad,uval,0.02);
       
       if(l < nl_down) { 
         down_rad[currl]=urad;
