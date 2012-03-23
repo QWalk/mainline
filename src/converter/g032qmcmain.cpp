@@ -590,7 +590,24 @@ int main_read_g03logfile( /* input */
 
   // basis set 
   strv.clear();
-    keyin="AO basis set in the form of general basis input:";
+
+  /*************************************************** 
+   * modified by Yanbin, 03/16/2012
+   * change "keyin" variable: 
+   * 	Gaussian 09, the line in the log file is changed to
+   * 	"AO basis set in the form of general basis input (Overlap normalization):"
+   * Original code
+   *
+   *    keyin="AO basis set in the form of general basis input:";
+   *    
+   * Change to 
+   *
+   *    keyin="AO basis set in the form of general basis input";
+   *
+   ***************************************************/
+
+
+    keyin="AO basis set in the form of general basis input";
     nskip= 0; nread=0; keyout="";  /* use lastkey_is_spc */
     ret=filekeyinput_get_stringv(
        /* input */
