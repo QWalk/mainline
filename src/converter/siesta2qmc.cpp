@@ -30,6 +30,7 @@
 #include "Pseudo_writer.h"
 #include "wf_writer.h"
 #include "vecmath.h"
+#include <complex>
 
 using namespace std;
 enum coord_t { bohr, ang, scaled, fractional };
@@ -63,6 +64,14 @@ void reciprocal_lattice_vectors(vector < vector <double > > &latvec,
 void kpoint_to_frac_coords(vector < vector <double> > &recip_latvec,
 			   vector < vector <double> > &kpoints,
 			   vector < vector <double> > &kpoints_frac);
+
+
+void mo_analysis(vector <Atom> & atoms,
+                 vector <Spline_basis_writer> & basis,
+                 vector <vector <vector <dcomplex> > > & moCoeff,
+                 vector < vector <double> > &kpoints,
+                 ostream & os); 
+
 //###########################################################################
 
 
@@ -80,6 +89,7 @@ int main(int argc, char ** argv) {
   int fold_dir=-1;
   int nfold=0;
   bool use_siesta2=false; 
+  bool analyze_mo=false;
   for(int i=1; i< argc-1; i++) { 
     if(!strcmp(argv[i],"-o") && i+1 < argc) { 
       outputname=argv[++i];
@@ -90,6 +100,9 @@ int main(int argc, char ** argv) {
     }
     if(!strcmp(argv[i],"-siesta2"))
       use_siesta2=true;
+    if(!strcmp(argv[i],"-analyze_mo"))
+      analyze_mo=true;
+    
 
   }
   string infilename=argv[argc-1];
@@ -437,6 +450,10 @@ int main(int argc, char ** argv) {
       sysout.close();
       
     }
+
+  if(analyze_mo) 
+    mo_analysis(atoms,basis,moCoeff,kpoints,cout);
+    
 }
 //###########################################################################
 
@@ -1368,4 +1385,103 @@ void fix_basis_norm(vector <Atom> & atoms,
   
   
 }
+//----------------------------------------------------------------------
 
+void mo_analysis(vector <Atom> & atoms,
+                 vector <Spline_basis_writer> & basis,
+                 vector <vector <vector <dcomplex> > > & moCoeff,
+                 vector < vector <double> > &kpoints,
+                 ostream & os) { 
+  int nk=kpoints.size();
+  assert(moCoeff.size()==nk);
+  int nmo=moCoeff[0].size();
+  int nbasis=moCoeff[0][0].size();
+  int natoms=atoms.size();
+  
+  vector <string> pnames(3);
+  pnames[0]="y   ";
+  pnames[1]="z   ";
+  pnames[2]="x   ";
+  vector <string> dnames(5);
+  dnames[0]="xy  ";
+  dnames[1]="yz  ";
+  dnames[2]="z2r2  ";
+  dnames[3]="xz  ";
+  dnames[4]="x2y2  ";
+  vector <string> fnames(7);
+  fnames[0]="Fm3   ";
+  fnames[1]="Fxyz  ";
+  fnames[2]="Fm1   ";
+  fnames[3]="F0    ";
+  fnames[4]="Fp1   ";
+  fnames[5]="Fp2   ";
+  fnames[6]="Fp3   ";
+  
+  double print_thresh=0.1;
+  for(int k=0; k< nk; k++) { 
+    os << "\n######################\n";
+    os << "kpoint  " << kpoints[k][0] << " " << kpoints[k][1] << " " << kpoints[k][2] << endl;
+
+    for(int mo=0; mo < nmo; mo++) { 
+      os << "\n----------------\n";
+      os << "MO " << mo+1 << endl;
+      double max_norm=0;
+      for(int b=0; b< nbasis; b++) { 
+        double nor=norm(moCoeff[k][mo][b]);
+        if(nor > max_norm) max_norm=nor;
+      }
+      print_thresh=0.1*max_norm;
+
+      int func=0;
+    for(int at=0; at < natoms; at++) {
+      int bas=atoms[at].basis;
+      int nbasis=basis[bas].types.size();
+      for(int i=0; i< nbasis; i++) {
+        if(basis[bas].types[i] == "S") {
+          if(norm(moCoeff[k][mo][func]) > print_thresh) {
+            os << atoms[at].name<< at  << "  S     " << moCoeff[k][mo][func]<< endl;
+          }
+          func++;
+        }
+        else if(basis[bas].types[i] == "P_siesta") {
+          for(int j=0; j< 3; j++) {
+            if(norm(moCoeff[k][mo][func]) > print_thresh) {
+              os << atoms[at].name << at << "  "  << "P" 
+                << pnames[j] << " " << moCoeff[k][mo][func]
+                << endl;
+            }
+            func++;
+          }
+        }
+        else if(basis[bas].types[i] == "5D_siesta") {
+          for(int j=0; j< 5; j++) {
+            if(norm(moCoeff[k][mo][func]) > print_thresh) {
+              os << atoms[at].name << at << "  "   << "D" 
+                << dnames[j] << " " <<  moCoeff[k][mo][func]
+                << endl;
+            }
+            func++;
+          }
+        }
+        else if(basis[bas].types[i] == "7F_siesta") {
+          for(int j=0; j< 7; j++) {
+            if(norm(moCoeff[k][mo][func]) > print_thresh) {
+              os << atoms[at].name << at << "  "   << "F" 
+                << fnames[j] << " " <<  moCoeff[k][mo][func]
+                << endl;
+            }
+            func++;
+          }
+        }
+        else {
+          cout << "unknown type " << basis[bas].types[i] << endl;
+          exit(1);
+        }
+      } 
+    }
+
+    }
+  }
+
+
+}

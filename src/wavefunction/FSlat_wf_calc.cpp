@@ -763,34 +763,34 @@ int FSlat_wf::getParmDeriv(Wavefunction_data *  wfdata,
     }
     if(parent->use_csf){
       if(parent->all_weights)
-	assert(nparms<parent->ncsf+1);
+        assert(nparms<parent->ncsf+1);
       else
-	assert(nparms<parent->ncsf);
+        assert(nparms<parent->ncsf);
       int counter=0;
       derivatives.gradient=0.0;
       for(int csf=0; csf< parent->ncsf; csf++) {
-	if(parent->all_weights){
-	  if(csf >= nparms_start && csf <= nparms_end ){
-	    for(int j=1;j<parent->CSF(csf).GetDim(0);j++){
-	      derivatives.gradient(csf-nparms_start)+=parent->CSF(csf)(j)*detVal(0,counter,0)*detVal(0,counter,1);
-	      counter++;
-	    }
-	  }
-	  else{
-	    counter+=parent->CSF(csf).GetDim(0)-1;
-	  }
-	}
-	else{
-	  if(csf > nparms_start && csf <= nparms_end ){
-	    for(int j=1;j<parent->CSF(csf).GetDim(0);j++){
-	      derivatives.gradient(csf-1-nparms_start)+=parent->CSF(csf)(j)*detVal(0,counter,0)*detVal(0,counter,1);
-	      counter++;
-	    }
-	  }
-	  else{
-	    counter+=parent->CSF(csf).GetDim(0)-1;
-	  }
-	}
+        if(parent->all_weights){
+          if(csf >= nparms_start && csf <= nparms_end ){
+            for(int j=1;j<parent->CSF(csf).GetDim(0);j++){
+              derivatives.gradient(csf-nparms_start)+=parent->CSF(csf)(j)*detVal(0,counter,0)*detVal(0,counter,1);
+              counter++;
+            }
+          }
+          else{
+            counter+=parent->CSF(csf).GetDim(0)-1;
+          }
+        }
+        else{
+          if(csf > nparms_start && csf <= nparms_end ){
+            for(int j=1;j<parent->CSF(csf).GetDim(0);j++){
+              derivatives.gradient(csf-1-nparms_start)+=parent->CSF(csf)(j)*detVal(0,counter,0)*detVal(0,counter,1);
+              counter++;
+            }
+          }
+          else{
+            counter+=parent->CSF(csf).GetDim(0)-1;
+          }
+        }
       }
       for(int csf=0; csf< nparms; csf++) {
         derivatives.gradient(csf)/=sum; 
@@ -800,16 +800,16 @@ int FSlat_wf::getParmDeriv(Wavefunction_data *  wfdata,
     }
     else{
       for(int det=0; det < ndet; det++) {
-	if(parent->all_weights){
-	  if(det >= nparms_start && det <= nparms_end )
-	    derivatives.gradient(det-nparms_start)=detVal(0,det,0)*detVal(0,det,1);
-	}
-	else{
-	  if(det > nparms_start && det <= nparms_end )
-	    derivatives.gradient(det-1-nparms_start)=detVal(0,det,0)*detVal(0,det,1);
-	}
+        if(parent->all_weights){
+          if(det >= nparms_start && det <= nparms_end )
+            derivatives.gradient(det-nparms_start)=detVal(0,det,0)*detVal(0,det,1);
+        }
+        else{
+          if(det > nparms_start && det <= nparms_end )
+            derivatives.gradient(det-1-nparms_start)=detVal(0,det,0)*detVal(0,det,1);
+        }
       }
-      
+
       for(int det=0; det < nparms; det++) {
         derivatives.gradient(det)/=sum; 
       }

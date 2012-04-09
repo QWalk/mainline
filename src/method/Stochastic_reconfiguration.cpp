@@ -26,7 +26,7 @@ void Stochastic_reconfiguration_method::read(vector <string> words,
     nconfig_eval=200;
   
   if(!readvalue(words, pos=0, tau, "TAU") )
-    tau=0.5;
+    tau=0.1;
   
   allocate(options.systemtext[0],  sys);
   sys->generatePseudo(options.pseudotext, pseudo);
@@ -130,6 +130,8 @@ void Stochastic_reconfiguration_method::line_minimization(Array2 <doublevar> & S
   Array1 <doublevar> x(nparms+1);
   Array1 <Array1 <doublevar> > alphas(ntau);
 
+  Array1 <doublevar> en(2);
+  Array2 <doublevar> energies_corr(ntau,2);
   for(int n=0; n < ntau; n++) { 
     doublevar tmp_tau=tau_prefactor[n]*tau;
     x=0.0;
@@ -144,15 +146,38 @@ void Stochastic_reconfiguration_method::line_minimization(Array2 <doublevar> & S
     for(int i=0; i< nparms; i++) { 
       alpha(i)=save_alpha(i)+x(i+1)/x(0);
     }
-    //wfdata->setVarParms(alpha);
-    //wavefunction_energy(en);
-   // cout << tmp_tau << "  " << en(0) << "  " << en(1) << endl;
+    wfdata->setVarParms(alpha);
+    wavefunction_energy(en);
+    cout << tmp_tau << "  " << en(0) << "  " << en(1) << endl;
     alphas(n)=alpha;
+    energies_corr(n,0)=en(0);
+    energies_corr(n,1)=en(1);
+    if(en(1) > 2*energies_corr(0,1)) {  
+      //if the variance is really high, 
+      //then we've already gone too far; let's not waste time
+      ntau=n;
+      break;
+    }
   }
  
-  Array2 <doublevar> energies_corr(ntau,2);
-  correlated_evaluation(alphas,3,energies_corr);
+//  Array2 <doublevar> energies_corr(ntau,2);
+  //correlated_evaluation(alphas,3,energies_corr);
 
+  doublevar mixing=0.1;
+  doublevar min_en=energies_corr(0,0)+energies_corr(0,1)*energies_corr(0,1)*mixing;
+  doublevar min_n=0;
+  for(int n=0; n< ntau; n++) { 
+    cout << tau_prefactor[n]*tau << " " << energies_corr(n,0) << " +/- " << energies_corr(n,1) 
+      << " func " << energies_corr(n,1)*energies_corr(n,1)*mixing+energies_corr(n,0) << endl;
+    doublevar opt_val=energies_corr(n,0)+energies_corr(n,1)*energies_corr(n,1)*mixing;
+    if(opt_val < min_en) { 
+      min_en=opt_val;
+      min_n=n;
+    }
+  }
+  alpha=alphas(min_n);
+
+/*
   //Now do a least-squares fit to a quadratic model
   Array2 <doublevar> tmatrix(3,3),tmatrixinv(3,3);
   Array1 <doublevar> coeff(3),data(3);
@@ -210,7 +235,7 @@ void Stochastic_reconfiguration_method::line_minimization(Array2 <doublevar> & S
     }
   }
   else alpha=save_alpha;
-  
+  */
   //cout << "done line minimization" << endl;
   
 }
@@ -279,7 +304,8 @@ void Stochastic_reconfiguration_method::correlated_evaluation(Array1 <Array1 <do
  
   energies.Resize(nwfs,2);
   for(int w=0; w< nwfs; w++) { 
-    energies(w,0)=avg_energies(w)/avg_weight(w)+0.1*avg_var(w);
+    energies(w,0)=avg_energies(w)/avg_weight(w);//+0.1*avg_var(w);
+    energies(w,1)=avg_var(w);
     //cout << w << " " << avg_energies(w)/avg_weight(w) <<
     //   "  " << avg_energies(w) << "  " << avg_weight(w) << endl;
     
@@ -346,6 +372,24 @@ void Stochastic_reconfiguration_method::wavefunction_derivative(
   Properties_final_average final;
   prop.getFinal(final);
   Average_return &  deriv_avg=final.avgavg(0,0);
+  Average_return & deriv_err=final.avgerr(0,0);
+
+  bool nonzero_element=false;
+  for(int i=0; i< deriv_avg.vals.GetDim(0); i++) { 
+    //cout << "avg deriv " << deriv_avg.vals(i) << " " << deriv_err.vals(i) << endl;
+    if( fabs(deriv_avg.vals(i))/deriv_err.vals(i) < 3)  
+      deriv_avg.vals(i)=0.0;
+    else 
+      nonzero_element=true;
+  }
+  if(!nonzero_element) { 
+    cout << "WARNING: set all elements to zero because they are not significant."
+      << " Increasing vmc_nstep to " << vmc_nstep*4<< endl;
+    vmc_nstep*=4;
+    wavefunction_derivative(energies, S,en);
+    return;
+  }
+
   int n=wfdata->nparms();
   energies.Resize(n+1);
   for(int i=0; i< n; i++) {
