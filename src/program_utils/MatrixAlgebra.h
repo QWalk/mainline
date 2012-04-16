@@ -161,6 +161,9 @@ void lubksb(Array2 <doublevar> & a, int n, Array1 <int> & indx,
 void EigenSystemSolverRealSymmetricMatrix(const Array2 < doublevar > & Ain, Array1 < doublevar> & evals, Array2 < doublevar> & evecs);
 
 void GeneralizedEigenSystemSolverRealSymmetricMatrices(const Array2 < doublevar > & Ain, const Array2 < doublevar> & Bin, Array1 < doublevar> & evals, Array2 < doublevar> & evecs);
+void GeneralizedEigenSystemSolverComplexGeneralMatrices(Array2 < dcomplex > & Ain, 
+         Array1 <dcomplex> & W, Array2 <dcomplex> & VL, Array2 <dcomplex> & VR); 
+
 
 void sort_abs_values_descending(const Array1 <doublevar> & vals, Array1 <doublevar> & newvals, Array1 <int> & list);
 void sort_according_list(const Array1 <doublevar> & vals, Array1 <doublevar> & newvals, const Array1 <int> & list);
@@ -180,6 +183,11 @@ extern "C" {
   void dgetrf_(int * m, int * n, double * A, int * lda, int * ipiv, int *info);
   void dgetrs_(char * trans, int *n, int * nrhs, double * A, int * lda, 
                int *ipiv, double * B, int * ldb, int * info);
+
+  void zgeev_(char * JOBVL, char * JOBVR,int * N,void * A,int * lda,
+      void * W, void *VL, int *LDVL,void * VR, int *LDVR,
+      void * WORK, int * LWORK,void * RWORK, int * INFO);
+
 };
 #endif
 

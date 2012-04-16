@@ -18,7 +18,8 @@ MY_SOURCES:= \
 	Split_sample.cpp \
         Stochastic_reconfiguration.cpp \
 	Test_method.cpp \
-	Vmc_method.cpp 
+	Vmc_method.cpp  \
+        Wannier_method.cpp
 
 
 SOURCES:= $(SOURCES) $(addprefix method/,$(MY_SOURCES))
