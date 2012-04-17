@@ -97,12 +97,14 @@ void make_rotation_matrix(const Array2 <doublevar> & A,
   for(int i=0; i< n; i++) B(i,i)=1.0;
 
   Array2 <doublevar> tmp(n,n),tmp2(n,n);
+  Array1 <doublevar> tmpveci(n),tmpvecj(n);
   doublevar s,co;
   for(int i=0; i< n; i++) { 
     for(int j=i+1; j < n; j++) { 
       if(fabs(A(i,j)) > 1e-12) {
         co=cos(A(i,j));
         s=sin(A(i,j));
+        /*
         tmp2=0.0;
         tmp=0.0;
         for(int k=0; k< n; k++) tmp2(k,k)=1.0;
@@ -124,8 +126,20 @@ void make_rotation_matrix(const Array2 <doublevar> & A,
           tmp(j,c)+=tmp2(j,i)*B(i,c);
         }
         B=tmp;
+        */
         //------
-        
+        for(int c=0; c< n; c++) {
+          tmpveci(c)=B(i,c);
+          tmpvecj(c)=B(j,c);
+        }
+        for(int c=0;c < n; c++) {
+          B(i,c)*=co;
+          B(j,c)*=co;
+        }
+        for(int c=0; c< n; c++) {
+          B(i,c)+= -s*tmpvecj(c);
+          B(j,c)+= s*tmpveci(c);
+        }
       }
     }
   }
@@ -490,7 +504,7 @@ void Wannier_method::optimize_rotation(Array3 <dcomplex> &  eikr,
     }    
     cout << "tstep " << best_tstep << " rms " << sqrt(func2) <<  " bohr max change " << max_change <<endl;
     doublevar threshold=0.0001;
-    doublevar rloc_thresh=0.01;
+    doublevar rloc_thresh=0.0001;
     if(max_change < threshold) break;
     if(abs(best_func-fbase) < rloc_thresh) break;
     
