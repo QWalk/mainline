@@ -58,6 +58,9 @@ private:
   void calculate_overlap(Array1 <int> &  orb_list, Array3 <dcomplex> & eikr, Array2 <doublevar> & phi2phi2);
   void optimize_rotation(Array3 <dcomplex> &  eikr,Array2 <doublevar> & R ); 
   
+  doublevar evaluate_local(const Array3 <dcomplex> & eikr,
+    Array2 <doublevar> & Rgen, Array2 <doublevar> & R)  ;
+  
   Array1 < Array1  <int> > orbital_groups;	//groups of orbitals to localize together
   doublevar resolution;	//grid coarsness: 10=coarser 0.1=finer
   MO_matrix * mymomat; //will hold MO information

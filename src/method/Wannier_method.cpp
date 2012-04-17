@@ -103,7 +103,6 @@ void make_rotation_matrix(const Array2 <doublevar> & A,
       if(fabs(A(i,j)) > 1e-12) {
         co=cos(A(i,j));
         s=sin(A(i,j));
-        //very very inefficient, for testing..
         tmp2=0.0;
         tmp=0.0;
         for(int k=0; k< n; k++) tmp2(k,k)=1.0;
@@ -112,6 +111,7 @@ void make_rotation_matrix(const Array2 <doublevar> & A,
         tmp2(j,i)=s;
         tmp2(j,j)=co;
         
+        //very very inefficient, for testing..
         //MultiplyMatrices(tmp2,B,tmp,n);
         tmp=0;
         for(int a=0; a< n; a++) { 
@@ -120,29 +120,17 @@ void make_rotation_matrix(const Array2 <doublevar> & A,
           }
         }
         for(int c=0; c< n; c++) { 
-          //tmp(i,c)+=tmp2(i,i)*B(i,c);
           tmp(i,c)+=tmp2(i,j)*B(j,c);
           tmp(j,c)+=tmp2(j,i)*B(i,c);
-          //tmp(j,c)+=tmp2(j,j)*B(j,c);
         }
         B=tmp;
         //------
         
-        //for(int k=0; k< n; k++) { 
-          
-        //} 
-     //     a=B(i,i)*co-B(i,j)*s;
-    //     b=B(i,j)*co-B(j,j)*s;
-    //      c=B(j,i)*co+B(i,i)*s;
-    //      d=B(j,j)*co+B(i,j)*s;
-    //    B(i,i)=a;
-    //    B(i,j)=b;
-    //    B(j,i)=c;
-    //    B(j,j)=d;
       }
     }
   }
 
+  /*
   cout << "rotation matrix " << endl;
   for(int i=0; i< n; i++) { 
     for(int j=0; j< n; j++) { 
@@ -150,6 +138,7 @@ void make_rotation_matrix(const Array2 <doublevar> & A,
     }
     cout << endl;
   }
+  */
 
 
 }
@@ -368,6 +357,57 @@ void Wannier_method::calculate_overlap(Array1 <int> & orb_list,
 }
 //----------------------------------------------------------------------
 //
+//
+//
+doublevar Wannier_method::evaluate_local(const Array3 <dcomplex> & eikr,
+    Array2 <doublevar> & Rgen, Array2 <doublevar> & R) { 
+  int norb=Rgen.GetDim(0);
+  Array2 <doublevar> gvec(3,3);
+  sys->getPrimRecipLattice(gvec);
+  Array1 <doublevar> gnorm(3);
+  gnorm=0;
+  for(int d=0;d < 3; d++) {
+    for(int d1=0; d1 < 3; d1++) { 
+      gnorm(d)+=gvec(d,d1)*gvec(d,d1);
+    }
+    gnorm(d)=sqrt(gnorm(d));
+  }
+
+  Array2 <dcomplex> tmp(norb,norb),tmp2(norb,norb);
+  
+  make_rotation_matrix(Rgen,R);
+  doublevar func=0;
+  for(int d=0; d< 3; d++) {
+    tmp=0.0;
+    for(int i=0; i< norb; i++) { 
+      for(int j=0; j< norb; j++) {
+        for(int k=0; k< norb; k++) { 
+          tmp(i,k)+=eikr(d,i,j)*R(k,j);
+        }
+      }
+    }
+    tmp2=0;
+    for(int i=0; i< norb; i++) { 
+      for(int j=0; j< norb; j++) { 
+        for(int k=0; k< norb; k++) { 
+          tmp2(i,k)+=R(i,j)*tmp(j,k);
+        }
+      }
+    }
+    //cout << "========for d=" << d << endl;
+
+    for(int i=0; i< norb; i++)  { 
+      doublevar f=  -log(norm(tmp2(i,i)))/(gnorm(d)*gnorm(d));
+      func+=f;
+
+      // cout << setw(9) << f;
+    }
+  }
+    //cout << endl;
+  return func/(3*norb);
+
+}
+//----------------------------------------------------------------------
 void Wannier_method::optimize_rotation(Array3 <dcomplex> &  eikr,
     Array2 <doublevar> & R ) { 
     
@@ -391,13 +431,74 @@ void Wannier_method::optimize_rotation(Array3 <dcomplex> &  eikr,
   }
 
 
-  Array2 <doublevar> Rgen(norb,norb); 
+  Array2 <doublevar> Rgen(norb,norb),Rgen_save(norb,norb); 
   //R(norb,norb);
   R.Resize(norb,norb);
-  Array2 <dcomplex> tmp(norb,norb),tmp2(norb,norb);
+  //Array2 <dcomplex> tmp(norb,norb),tmp2(norb,norb);
+  Array2 <doublevar> deriv(norb,norb);
   Rgen=0.0;
-  for(int step=0; step < 30; step++) { 
+  doublevar max_tstep=1.0;
+  for(int step=0; step < 200; step++) { 
+    doublevar fbase=evaluate_local(eikr,Rgen,R);
+    for(int ii=0; ii <norb; ii++) { 
+      for(int jj=ii+1; jj < norb; jj++) { 
+        doublevar save_rgeniijj=Rgen(ii,jj);
+        doublevar h=1e-9;
+        Rgen(ii,jj)+=h;
+        doublevar func=evaluate_local(eikr,Rgen,R);
+        deriv(ii,jj)=(func-fbase)/h;
+        Rgen(ii,jj)=save_rgeniijj;
+      }
+    }
+
+
+    Rgen_save=Rgen;
+    doublevar best_func=1e99, best_tstep=0.0;
+    bool made_move=false;
+    while (!made_move) { 
+      for(doublevar tstep=0.00; tstep < max_tstep; tstep+=0.1*max_tstep) { 
+        for(int ii=0; ii< norb;ii++) { 
+          for(int jj=ii+1; jj < norb; jj++) { 
+            Rgen(ii,jj)=Rgen_save(ii,jj)-tstep*deriv(ii,jj);
+          }
+        }
+        doublevar func=evaluate_local(eikr,Rgen,R);
+        if(func < best_func) { 
+          best_func=func;
+          best_tstep=tstep;
+        }
+        cout << "    tstep " << tstep << "   " << func << endl;
+      }
+      if(abs(best_tstep) > 0.2*max_tstep) made_move=true;
+      else max_tstep*=0.5;
+    }
+
+
+    for(int ii=0; ii< norb;ii++) { 
+      for(int jj=ii+1; jj < norb; jj++) { 
+        Rgen(ii,jj)=Rgen_save(ii,jj)-best_tstep*deriv(ii,jj);
+      }
+    }
+    doublevar func2=evaluate_local(eikr,Rgen,R);
+    doublevar max_change=0;
+    for(int ii=0; ii < norb; ii++) { 
+      for(int jj=ii+1; jj< norb; jj++) { 
+         doublevar change=abs(Rgen(ii,jj)-Rgen_save(ii,jj));
+         if(change > max_change) max_change=change;
+      }
+
+    }    
+    cout << "tstep " << best_tstep << " rms " << sqrt(func2) <<  " bohr max change " << max_change <<endl;
+    doublevar threshold=0.0001;
+    doublevar rloc_thresh=0.01;
+    if(max_change < threshold) break;
+    if(abs(best_func-fbase) < rloc_thresh) break;
+    
+    
+
+    /*
     bool moved=false;
+    
     for(int ii=0; ii< norb; ii++) { 
       for(int jj=ii+1; jj< norb; jj++) { 
         doublevar save_rgeniijj=Rgen(ii,jj);
@@ -407,43 +508,13 @@ void Wannier_method::optimize_rotation(Array3 <dcomplex> &  eikr,
           cout << "############ for del = " << del << endl;
 
           Rgen(ii,jj)=save_rgeniijj+del;
-          make_rotation_matrix(Rgen,R);
-          doublevar func=0;
-          for(int d=0; d< 3; d++) {
-            tmp=0.0;
-            for(int i=0; i< norb; i++) { 
-              for(int j=0; j< norb; j++) {
-                for(int k=0; k< norb; k++) { 
-                  tmp(i,k)+=eikr(d,i,j)*R(k,j);
-                }
-              }
-            }
-            tmp2=0;
-            for(int i=0; i< norb; i++) { 
-              for(int j=0; j< norb; j++) { 
-                for(int k=0; k< norb; k++) { 
-                  tmp2(i,k)+=R(i,j)*tmp(j,k);
-                }
-              }
-            }
-            cout << "========for d=" << d << endl;
-            
-            for(int i=0; i< norb; i++)  { 
-              doublevar f=  -log(norm(tmp2(i,i)))/(gnorm(d)*gnorm(d));
-              func+=f;
+          doublevar func=evaluate_local(eikr,Rgen,R);
 
-              cout << setw(9) << f;
-            }
-            cout << endl;
-            
-
-          }
           if(func < best_f) { 
             best_f=func;
             best_del=del;
           }
-          
-          cout << "ii " <<ii << " jj " << jj << " del " << del << " func " << func << endl;
+          cout << "func " << func << endl;
         }
 
         Rgen(ii,jj)=save_rgeniijj+best_del;
@@ -451,6 +522,7 @@ void Wannier_method::optimize_rotation(Array3 <dcomplex> &  eikr,
       }
     }
     if(!moved) break;
+    */
   }
   make_rotation_matrix(Rgen,R);
   
