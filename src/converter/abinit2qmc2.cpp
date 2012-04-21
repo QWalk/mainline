@@ -204,6 +204,9 @@ public:
 //----------------------------------------------------------------------
 class Abinit_converter { 
   public:
+    Abinit_converter() { 
+      grid_resolution=0.2;
+    }
     void readabinitout(string filename,vector <vector<double> > & selected_kpt);
     void add_psp(string filename);
 
@@ -211,6 +214,7 @@ class Abinit_converter {
     void write_orbitals(string  filename);
     void write_sys(string filename);
     void write_slater(string filename);
+    void set_resolution(double res) { grid_resolution=res; } 
   private:
     void read_wfk(string filename, vector <vector <double> > & selected_kpt);
     //void read_wf_from_wfk(FILE * wffile,vector<double> & occupation);
@@ -263,6 +267,7 @@ int main(int argc, char ** argv) {
     for(int y=0; y < 3; y++) supercell[x][y]=0.0;
   for(int x=0; x < 3; x++) supercell[x][x]=1.0;
   bool no_orb=false;
+  double resolution=0.2;
   for(int i=1; i< argc; i++) { 
     if(!strcmp(argv[i],"-o") && i<argc-1)
       outbase=argv[++i];
@@ -276,6 +281,10 @@ int main(int argc, char ** argv) {
     else if(!strcmp(argv[i],"-no-orb")) { 
       no_orb=true;
     }
+    else if(!strcmp(argv[i],"-resolution") && i < argc-1) { 
+      resolution=atof(argv[++i]);
+    }
+
     else if(!strcmp(argv[i],"-supercell") && i < argc-9) {
       for(int x=0; x< 3; x++) { 
         for(int y=0; y < 3; y++) { 
@@ -290,6 +299,7 @@ int main(int argc, char ** argv) {
   }
 
   Abinit_converter abconverter;
+  abconverter.set_resolution(resolution);
   abconverter.readabinitout(abinit_out,selected_kpt);
   abconverter.write_files(outbase,no_orb,supercell);
 #ifdef USE_MPI
@@ -469,7 +479,6 @@ void Abinit_converter::read_wfk(string filename,
   if(mpi_info.node==0)
     cout << "Number of spin channels " << nsppol << endl;
 
-  grid_resolution=0.2;
 
   //cout << "Lattice vectors " << endl;
   latvec.resize(3);

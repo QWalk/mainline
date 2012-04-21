@@ -30,6 +30,7 @@
 #include "Pseudo_writer.h"
 #include "wf_writer.h"
 #include "vecmath.h"
+#include <complex>
 
 using namespace std;
 enum coord_t { bohr, ang, scaled, fractional };
@@ -48,6 +49,8 @@ void read_mo_coefficients_wfsx(string & filename,
                           Slat_wf_writer & slwriter, 
                           vector <vector <vector <dcomplex> > > & moCoeff,
                           vector < vector <double> > &kpoints);
+void is_molecule(istream & is,vector <string> & currline,bool & molecule);
+
 
 
 //reads in the basis for each type of atom
@@ -63,6 +66,14 @@ void reciprocal_lattice_vectors(vector < vector <double > > &latvec,
 void kpoint_to_frac_coords(vector < vector <double> > &recip_latvec,
 			   vector < vector <double> > &kpoints,
 			   vector < vector <double> > &kpoints_frac);
+
+
+void mo_analysis(vector <Atom> & atoms,
+                 vector <Spline_basis_writer> & basis,
+                 vector <vector <vector <dcomplex> > > & moCoeff,
+                 vector < vector <double> > &kpoints,
+                 ostream & os); 
+
 //###########################################################################
 
 
@@ -80,6 +91,8 @@ int main(int argc, char ** argv) {
   int fold_dir=-1;
   int nfold=0;
   bool use_siesta2=false; 
+  bool analyze_mo=false;
+  bool molecule=false;
   for(int i=1; i< argc-1; i++) { 
     if(!strcmp(argv[i],"-o") && i+1 < argc) { 
       outputname=argv[++i];
@@ -90,6 +103,9 @@ int main(int argc, char ** argv) {
     }
     if(!strcmp(argv[i],"-siesta2"))
       use_siesta2=true;
+    if(!strcmp(argv[i],"-analyze_mo"))
+      analyze_mo=true;
+    
 
   }
   string infilename=argv[argc-1];
@@ -135,6 +151,7 @@ int main(int argc, char ** argv) {
     read_atoms(is,currline,atoms, coord_type,use_siesta2);
     read_lattice_vector(is,currline,latvec);
     read_lattice_constant(is,currline,lattice_constant);
+    is_molecule(is,currline,molecule);
     if(use_siesta2)
       read_mo_coefficients(is, currline, slwriter, moCoeff, kpoints);
 
@@ -226,60 +243,62 @@ int main(int argc, char ** argv) {
   //Correct phase shift for atoms not at the origin in complex wfns
   //Easiest to use k-points in siesta format which are reciprocal of
   //normal bohr coordinates
-  int f = 0; //index for the correct basis functions to shift
-  
-  for(unsigned int at=0; at< atoms.size(); at++) {
-    int bas=atoms[at].basis;
-    int nfunc=basis[bas].nfunc();
-    int temp_f = f;
-    for (int n = 0; n < num_kpoints; ++n) {
-      f = temp_f;
-      dcomplex kdotr=0;
-      for(int d=0; d< 3; d++) 
-        kdotr += kpoints[n][d] * (atoms[at].pos[d] - origin[d]);
-      kdotr = exp(kdotr*dcomplex(0.0,1.0));
-      for(int i=0; i< nfunc; i++) {
-        for(int mo=0; mo < moCoeff[n].size(); mo++) {
-          moCoeff[n][mo][f] *= kdotr;
-        }
-        f++;
-      }
-    }
-  }
+  //
+  if(!molecule) { 
+    int f = 0; //index for the correct basis functions to shift
 
-  //Make sure all the atoms are inside the simulation cell
-  //Taking care of phase factors for general k-points
-  //This is problem if left to qwalk for complex k-points
-
-  f = 0;
-
-  for(unsigned int at=0; at< atoms.size(); at++) {
-    vector <int> nshift;
-    int bas=atoms[at].basis;
-    int nfunc=basis[bas].nfunc();
-    if(shiftobj.enforcepbc(atoms[at].pos, latvec, nshift)) {
-      cout << "at " << at << "  shifted " << nshift[0] << "  " << nshift[1] 
-        << "   " << nshift[2] << endl;
+    for(unsigned int at=0; at< atoms.size(); at++) {
+      int bas=atoms[at].basis;
+      int nfunc=basis[bas].nfunc();
       int temp_f = f;
       for (int n = 0; n < num_kpoints; ++n) {
         f = temp_f;
-        dcomplex kdots=0;
+        dcomplex kdotr=0;
         for(int d=0; d< 3; d++) 
-          kdots+=kpoints_frac[n][d]*nshift[d];
-        //kdots=cos(pi*kdots);
-        kdots=exp(pi*kdots*dcomplex(0.0,1.0));
-        //cout << "kdots " << kdots << endl;
+          kdotr += kpoints[n][d] * (atoms[at].pos[d] - origin[d]);
+        kdotr = exp(kdotr*dcomplex(0.0,1.0));
         for(int i=0; i< nfunc; i++) {
           for(int mo=0; mo < moCoeff[n].size(); mo++) {
-            moCoeff[n][mo][f]*=kdots;
+            moCoeff[n][mo][f] *= kdotr;
           }
           f++;
         }
       }
     }
-    else f+=nfunc;
-  }
 
+    //Make sure all the atoms are inside the simulation cell
+    //Taking care of phase factors for general k-points
+    //This is problem if left to qwalk for complex k-points
+
+    f = 0;
+
+    for(unsigned int at=0; at< atoms.size(); at++) {
+      vector <int> nshift;
+      int bas=atoms[at].basis;
+      int nfunc=basis[bas].nfunc();
+      if(shiftobj.enforcepbc(atoms[at].pos, latvec, nshift)) {
+        cout << "at " << at << "  shifted " << nshift[0] << "  " << nshift[1] 
+          << "   " << nshift[2] << endl;
+        int temp_f = f;
+        for (int n = 0; n < num_kpoints; ++n) {
+          f = temp_f;
+          dcomplex kdots=0;
+          for(int d=0; d< 3; d++) 
+            kdots+=kpoints_frac[n][d]*nshift[d];
+          //kdots=cos(pi*kdots);
+          kdots=exp(pi*kdots*dcomplex(0.0,1.0));
+          //cout << "kdots " << kdots << endl;
+          for(int i=0; i< nfunc; i++) {
+            for(int mo=0; mo < moCoeff[n].size(); mo++) {
+              moCoeff[n][mo][f]*=kdots;
+            }
+            f++;
+          }
+        }
+      }
+      else f+=nfunc;
+    }
+  }
 
   
   
@@ -401,7 +420,12 @@ int main(int argc, char ** argv) {
       //May want to add a command-line switch to print out a molecule
       
       ofstream sysout(sysoutname.c_str());
-      sysout << "SYSTEM { PERIODIC \n";
+      if(molecule) { 
+        sysout << "SYSTEM { MOLECULE \n";
+      }
+      else { 
+        sysout << "SYSTEM { PERIODIC \n";
+      }
       sysout << "  NSPIN { " << slwriter.nup << "  "
 	     << slwriter.ndown << " } \n";
       for(int at=0; at <natoms; at++) {
@@ -437,6 +461,10 @@ int main(int argc, char ** argv) {
       sysout.close();
       
     }
+
+  if(analyze_mo) 
+    mo_analysis(atoms,basis,moCoeff,kpoints,cout);
+    
 }
 //###########################################################################
 
@@ -531,6 +559,18 @@ void read_lattice_constant(istream & is,vector <string> & currline,double & latt
     if(currline[2]=="Ang") lattice_constant/=0.529177;
   }
 }
+
+
+//##########################################################################
+
+void is_molecule(istream & is,vector <string> & currline,bool & molecule) { 
+  if(currline.size() > 4 && currline[1]=="System"
+        && currline[2]=="type" ) { 
+    if(currline[4]=="molecule") molecule=true;
+    else molecule=false;
+  }
+}
+
 
 //##########################################################################
 //Need reciprocal lattice vectors to properly normalize k-points under certain
@@ -1368,4 +1408,103 @@ void fix_basis_norm(vector <Atom> & atoms,
   
   
 }
+//----------------------------------------------------------------------
 
+void mo_analysis(vector <Atom> & atoms,
+                 vector <Spline_basis_writer> & basis,
+                 vector <vector <vector <dcomplex> > > & moCoeff,
+                 vector < vector <double> > &kpoints,
+                 ostream & os) { 
+  int nk=kpoints.size();
+  assert(moCoeff.size()==nk);
+  int nmo=moCoeff[0].size();
+  int nbasis=moCoeff[0][0].size();
+  int natoms=atoms.size();
+  
+  vector <string> pnames(3);
+  pnames[0]="y   ";
+  pnames[1]="z   ";
+  pnames[2]="x   ";
+  vector <string> dnames(5);
+  dnames[0]="xy  ";
+  dnames[1]="yz  ";
+  dnames[2]="z2r2  ";
+  dnames[3]="xz  ";
+  dnames[4]="x2y2  ";
+  vector <string> fnames(7);
+  fnames[0]="Fm3   ";
+  fnames[1]="Fxyz  ";
+  fnames[2]="Fm1   ";
+  fnames[3]="F0    ";
+  fnames[4]="Fp1   ";
+  fnames[5]="Fp2   ";
+  fnames[6]="Fp3   ";
+  
+  double print_thresh=0.1;
+  for(int k=0; k< nk; k++) { 
+    os << "\n######################\n";
+    os << "kpoint  " << kpoints[k][0] << " " << kpoints[k][1] << " " << kpoints[k][2] << endl;
+
+    for(int mo=0; mo < nmo; mo++) { 
+      os << "\n----------------\n";
+      os << "MO " << mo+1 << endl;
+      double max_norm=0;
+      for(int b=0; b< nbasis; b++) { 
+        double nor=norm(moCoeff[k][mo][b]);
+        if(nor > max_norm) max_norm=nor;
+      }
+      print_thresh=0.1*max_norm;
+
+      int func=0;
+    for(int at=0; at < natoms; at++) {
+      int bas=atoms[at].basis;
+      int nbasis=basis[bas].types.size();
+      for(int i=0; i< nbasis; i++) {
+        if(basis[bas].types[i] == "S") {
+          if(norm(moCoeff[k][mo][func]) > print_thresh) {
+            os << atoms[at].name<< at  << "  S     " << moCoeff[k][mo][func]<< endl;
+          }
+          func++;
+        }
+        else if(basis[bas].types[i] == "P_siesta") {
+          for(int j=0; j< 3; j++) {
+            if(norm(moCoeff[k][mo][func]) > print_thresh) {
+              os << atoms[at].name << at << "  "  << "P" 
+                << pnames[j] << " " << moCoeff[k][mo][func]
+                << endl;
+            }
+            func++;
+          }
+        }
+        else if(basis[bas].types[i] == "5D_siesta") {
+          for(int j=0; j< 5; j++) {
+            if(norm(moCoeff[k][mo][func]) > print_thresh) {
+              os << atoms[at].name << at << "  "   << "D" 
+                << dnames[j] << " " <<  moCoeff[k][mo][func]
+                << endl;
+            }
+            func++;
+          }
+        }
+        else if(basis[bas].types[i] == "7F_siesta") {
+          for(int j=0; j< 7; j++) {
+            if(norm(moCoeff[k][mo][func]) > print_thresh) {
+              os << atoms[at].name << at << "  "   << "F" 
+                << fnames[j] << " " <<  moCoeff[k][mo][func]
+                << endl;
+            }
+            func++;
+          }
+        }
+        else {
+          cout << "unknown type " << basis[bas].types[i] << endl;
+          exit(1);
+        }
+      } 
+    }
+
+    }
+  }
+
+
+}

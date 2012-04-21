@@ -1819,10 +1819,35 @@ static int psstr_find_Lrange(/*input*/
      int start)
 {
    for (int i = start+1; i< psstr.size(); i++) {
-     string str =  psstr[i].substr(38,10);  /* find Angular */
-     if (strlen_trim(str.c_str())>0) { return i-1; }
+
+   /**********************************************************
+    * Modified by Yanbin, 03/16/2012
+    * find "Center" first, then "Angular"
+    *     Gaussian09, the "Center" line has less than 38 characters
+    * Original code
+    *
+    *        string str =  psstr[i].substr(38,10);  // find Angular 
+    *        if (strlen_trim(str.c_str())>0) { return i-1; }
+    *        str =  psstr[i].substr( 0 ,10);        // find Center
+    *        if (strlen_trim(str.c_str())>0) { return i-1; }
+    *
+    * Change to
+    *
+    *        string str;
+    *        str =  psstr[i].substr( 0 ,10);        // find Center
+    *        if (strlen_trim(str.c_str())>0) { return i-1; }
+    *        str =  psstr[i].substr(38,10);  // find Angular 
+    *        if (strlen_trim(str.c_str())>0) { return i-1; }
+    *********************************************************/
+
+
+
+     string str;
      str =  psstr[i].substr( 0 ,10);   /* find Center */
      if (strlen_trim(str.c_str())>0) { return i-1; }
+     str =  psstr[i].substr(38,10);  /* find Angular */
+     if (strlen_trim(str.c_str())>0) { return i-1; }
+
    }
    return psstr.size()-1;
 }

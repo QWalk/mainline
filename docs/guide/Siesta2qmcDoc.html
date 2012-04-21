@@ -3,7 +3,7 @@
 
 \section description Description
 
-Basic usage: siesta2qmc -o [outputroot]  [siesta output file] <br>
+Basic usage: siesta2qmc [-siesta2] -o [outputroot]  [siesta output file] <br>
 
 If outputroot is not given, it will default to qwalk.
 
@@ -13,7 +13,6 @@ Getting a good trial wave function from Siesta can be a little
 tricky, so here are some techniques that have worked in the past.
 These are not guaranteed to obtain the most accurate numbers possible,
 so be careful!
-
 
 
 \subsection options Options
@@ -33,6 +32,22 @@ coefficients unless the lattice constant is given explicitly.  If you
 are doing an actual molecule, you may want to change PERIODIC in the
 QWalk .sys file to MOLECULE, which will increase the speed and accuracy.
 
+The converter also supports non-gamma k-points, which can be printed out in the
+Siesta input file as following:
+<pre>
+%block WaveFuncKPoints
+0.0 0.0 0.0
+2.0 0.0 0.0
+0.0 2.0 0.0
+0.0 0.0 2.0
+2.0 2.0 0.0
+0.0 2.0 2.0
+2.0 0.0 2.0
+2.0 2.0 2.0
+%endblock WaveFuncKPoints
+</pre>
+for example, for a 2x2x2 Monkhorst Pack grid.
+
 \subsection pseudo Pseudopotential
 
 One can use the pseudopotentials written for QMC, although they can be
@@ -50,9 +65,14 @@ the binding energy of small molecules.
 You may find that you need to use a larger basis set than is typical for
 Siesta.  It appears that a triple-zeta quality with polarization or better
 is necessary.  If the basis set is too small, the variance of the local
-energy is too large, because the basis cannot describe the one-body
+energy is large, because the basis cannot describe the one-body
 part of the wave function well enough.  For molecules, you may also
 need to extend the cutoff radius of the basis functions significantly to
 keep the variance down and the wave function accurate.
+
+
+\subsection Siesta version 2
+
+The option -siesta2 activates Siesta version 2 mode.  
 
 */
