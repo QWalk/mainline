@@ -49,6 +49,8 @@ void read_mo_coefficients_wfsx(string & filename,
                           Slat_wf_writer & slwriter, 
                           vector <vector <vector <dcomplex> > > & moCoeff,
                           vector < vector <double> > &kpoints);
+void is_molecule(istream & is,vector <string> & currline,bool & molecule);
+
 
 
 //reads in the basis for each type of atom
@@ -90,6 +92,7 @@ int main(int argc, char ** argv) {
   int nfold=0;
   bool use_siesta2=false; 
   bool analyze_mo=false;
+  bool molecule=false;
   for(int i=1; i< argc-1; i++) { 
     if(!strcmp(argv[i],"-o") && i+1 < argc) { 
       outputname=argv[++i];
@@ -148,6 +151,7 @@ int main(int argc, char ** argv) {
     read_atoms(is,currline,atoms, coord_type,use_siesta2);
     read_lattice_vector(is,currline,latvec);
     read_lattice_constant(is,currline,lattice_constant);
+    is_molecule(is,currline,molecule);
     if(use_siesta2)
       read_mo_coefficients(is, currline, slwriter, moCoeff, kpoints);
 
@@ -239,60 +243,62 @@ int main(int argc, char ** argv) {
   //Correct phase shift for atoms not at the origin in complex wfns
   //Easiest to use k-points in siesta format which are reciprocal of
   //normal bohr coordinates
-  int f = 0; //index for the correct basis functions to shift
-  
-  for(unsigned int at=0; at< atoms.size(); at++) {
-    int bas=atoms[at].basis;
-    int nfunc=basis[bas].nfunc();
-    int temp_f = f;
-    for (int n = 0; n < num_kpoints; ++n) {
-      f = temp_f;
-      dcomplex kdotr=0;
-      for(int d=0; d< 3; d++) 
-        kdotr += kpoints[n][d] * (atoms[at].pos[d] - origin[d]);
-      kdotr = exp(kdotr*dcomplex(0.0,1.0));
-      for(int i=0; i< nfunc; i++) {
-        for(int mo=0; mo < moCoeff[n].size(); mo++) {
-          moCoeff[n][mo][f] *= kdotr;
-        }
-        f++;
-      }
-    }
-  }
+  //
+  if(!molecule) { 
+    int f = 0; //index for the correct basis functions to shift
 
-  //Make sure all the atoms are inside the simulation cell
-  //Taking care of phase factors for general k-points
-  //This is problem if left to qwalk for complex k-points
-
-  f = 0;
-
-  for(unsigned int at=0; at< atoms.size(); at++) {
-    vector <int> nshift;
-    int bas=atoms[at].basis;
-    int nfunc=basis[bas].nfunc();
-    if(shiftobj.enforcepbc(atoms[at].pos, latvec, nshift)) {
-      cout << "at " << at << "  shifted " << nshift[0] << "  " << nshift[1] 
-        << "   " << nshift[2] << endl;
+    for(unsigned int at=0; at< atoms.size(); at++) {
+      int bas=atoms[at].basis;
+      int nfunc=basis[bas].nfunc();
       int temp_f = f;
       for (int n = 0; n < num_kpoints; ++n) {
         f = temp_f;
-        dcomplex kdots=0;
+        dcomplex kdotr=0;
         for(int d=0; d< 3; d++) 
-          kdots+=kpoints_frac[n][d]*nshift[d];
-        //kdots=cos(pi*kdots);
-        kdots=exp(pi*kdots*dcomplex(0.0,1.0));
-        //cout << "kdots " << kdots << endl;
+          kdotr += kpoints[n][d] * (atoms[at].pos[d] - origin[d]);
+        kdotr = exp(kdotr*dcomplex(0.0,1.0));
         for(int i=0; i< nfunc; i++) {
           for(int mo=0; mo < moCoeff[n].size(); mo++) {
-            moCoeff[n][mo][f]*=kdots;
+            moCoeff[n][mo][f] *= kdotr;
           }
           f++;
         }
       }
     }
-    else f+=nfunc;
-  }
 
+    //Make sure all the atoms are inside the simulation cell
+    //Taking care of phase factors for general k-points
+    //This is problem if left to qwalk for complex k-points
+
+    f = 0;
+
+    for(unsigned int at=0; at< atoms.size(); at++) {
+      vector <int> nshift;
+      int bas=atoms[at].basis;
+      int nfunc=basis[bas].nfunc();
+      if(shiftobj.enforcepbc(atoms[at].pos, latvec, nshift)) {
+        cout << "at " << at << "  shifted " << nshift[0] << "  " << nshift[1] 
+          << "   " << nshift[2] << endl;
+        int temp_f = f;
+        for (int n = 0; n < num_kpoints; ++n) {
+          f = temp_f;
+          dcomplex kdots=0;
+          for(int d=0; d< 3; d++) 
+            kdots+=kpoints_frac[n][d]*nshift[d];
+          //kdots=cos(pi*kdots);
+          kdots=exp(pi*kdots*dcomplex(0.0,1.0));
+          //cout << "kdots " << kdots << endl;
+          for(int i=0; i< nfunc; i++) {
+            for(int mo=0; mo < moCoeff[n].size(); mo++) {
+              moCoeff[n][mo][f]*=kdots;
+            }
+            f++;
+          }
+        }
+      }
+      else f+=nfunc;
+    }
+  }
 
   
   
@@ -414,7 +420,12 @@ int main(int argc, char ** argv) {
       //May want to add a command-line switch to print out a molecule
       
       ofstream sysout(sysoutname.c_str());
-      sysout << "SYSTEM { PERIODIC \n";
+      if(molecule) { 
+        sysout << "SYSTEM { MOLECULE \n";
+      }
+      else { 
+        sysout << "SYSTEM { PERIODIC \n";
+      }
       sysout << "  NSPIN { " << slwriter.nup << "  "
 	     << slwriter.ndown << " } \n";
       for(int at=0; at <natoms; at++) {
@@ -548,6 +559,18 @@ void read_lattice_constant(istream & is,vector <string> & currline,double & latt
     if(currline[2]=="Ang") lattice_constant/=0.529177;
   }
 }
+
+
+//##########################################################################
+
+void is_molecule(istream & is,vector <string> & currline,bool & molecule) { 
+  if(currline.size() > 4 && currline[1]=="System"
+        && currline[2]=="type" ) { 
+    if(currline[4]=="molecule") molecule=true;
+    else molecule=false;
+  }
+}
+
 
 //##########################################################################
 //Need reciprocal lattice vectors to properly normalize k-points under certain
