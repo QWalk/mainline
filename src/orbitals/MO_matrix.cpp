@@ -334,8 +334,10 @@ int readorb(istream & input, Center_set & centers,
   {
     //input >> dummy;
     //cout << dummy << endl;
+    //cout << i << endl;
     if(!(input >> coeff(i)))
       error("Didn't find all the MO coefficients I should've");
+
   }
 
   //cout << "done readorb" << endl;

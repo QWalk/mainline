@@ -222,6 +222,7 @@ int Periodic_system::read(vector <string> & words,
   }
   
   //Test the center calculation..
+  //
   //ofstream cenout("tmp.centers");
   //for(int cen=0; cen < ncenters; cen++) {
   //  int at=equiv_atom(cen);

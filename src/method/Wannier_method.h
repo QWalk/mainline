@@ -60,6 +60,9 @@ private:
   
   doublevar evaluate_local(const Array3 <dcomplex> & eikr,
     Array2 <doublevar> & Rgen, Array2 <doublevar> & R)  ;
+  doublevar eval_tstep(Array3 <dcomplex> & eikr, Array2 <doublevar> & Rgen,
+    Array2 <doublevar> & Rgen_save, Array2 <doublevar> & deriv, doublevar tstep,
+    Array2 <doublevar> & R);
   
   Array1 < Array1  <int> > orbital_groups;	//groups of orbitals to localize together
   doublevar resolution;	//grid coarsness: 10=coarser 0.1=finer

@@ -24,6 +24,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "qmc_io.h"
 #include "System.h"
 #include "MatrixAlgebra.h"
+#include "ulec.h"
 /*!
 Read the "words" from the method section in the input file
 via doinput() parsing, and store section information in private
@@ -230,25 +231,14 @@ void make_rotation_matrix_notworking(const Array2 <doublevar> & A,
  
 */
 void Wannier_method::run(Program_options & options, ostream & output) {
-
-  Array3 <dcomplex> eikr;
-  Array2 <doublevar> phi2phi2;
-  cout << "calc overlap " << endl;
   int ngroups=orbital_groups.GetDim(0);
-  Array1 <Array2 <doublevar> > R(ngroups);
-
-  for(int i=0; i< ngroups; i++) { 
-    calculate_overlap(orbital_groups(i),eikr,phi2phi2);
-    optimize_rotation(eikr,R(i));
-  }
-
+  
   int ntotorbs=0;
   for(int i=0; i< ngroups; i++) { 
-    ntotorbs+=R(i).GetDim(0);
+    ntotorbs+=orbital_groups(i).GetDim(0);
   }
   Array1 <int> allorbs(ntotorbs);
-  Array2 <doublevar> Rtot(ntotorbs,ntotorbs);
-  Rtot=0.0;
+
 
   int count=0;
   for(int i=0; i< ngroups; i++) { 
@@ -256,6 +246,33 @@ void Wannier_method::run(Program_options & options, ostream & output) {
       allorbs(count++)=orbital_groups(i)(j);
     }
   }
+
+  /*
+  Array2 <doublevar> rtmp(allorbs.GetDim(0),allorbs.GetDim(0));
+  rtmp=0.0;
+  for(int i=0; i< allorbs.GetDim(0); i++) { 
+    rtmp(i,i)=1.0;
+  }
+
+  ofstream test("test.orb");
+  mymomat->writeorb(test, rtmp,allorbs);
+  test.close();
+
+  return;
+*/
+
+  Array3 <dcomplex> eikr;
+  Array2 <doublevar> phi2phi2;
+  cout << "calc overlap " << endl;
+  Array1 <Array2 <doublevar> > R(ngroups);
+
+  for(int i=0; i< ngroups; i++) { 
+    calculate_overlap(orbital_groups(i),eikr,phi2phi2);
+    optimize_rotation(eikr,R(i));
+  }
+
+  Array2 <doublevar> Rtot(ntotorbs,ntotorbs);
+  Rtot=0.0;
 
   count=0;
   for(int i=0; i< ngroups; i++) { 
@@ -361,10 +378,13 @@ void Wannier_method::calculate_overlap(Array1 <int> & orb_list,
       }
     }
   }
+  cout << "square overlap " << endl;
   for(int i=0; i < norb; i++) { 
     for(int j=0; j< norb; j++) { 
-      phi2phi2(i,j)/=totpts;
+      phi2phi2(i,j)/=(norm_orb(i)*norm_orb(i)*norm_orb(j)*norm_orb(j));
+      cout << sqrt(phi2phi2(i,j)) << " ";
     }
+    cout << endl;
   }
 
 
@@ -421,6 +441,18 @@ doublevar Wannier_method::evaluate_local(const Array3 <dcomplex> & eikr,
   return func/(3*norb);
 
 }
+doublevar Wannier_method::eval_tstep(Array3 <dcomplex> & eikr, Array2 <doublevar> & Rgen,
+    Array2 <doublevar> & Rgen_save, Array2 <doublevar> & deriv, doublevar tstep,
+    Array2 <doublevar> & R) { 
+  int norb=Rgen.GetDim(0);
+  for(int ii=0; ii< norb;ii++) { 
+    for(int jj=ii+1; jj < norb; jj++) { 
+      Rgen(ii,jj)=Rgen_save(ii,jj)-tstep*deriv(ii,jj);
+    }
+  }
+  return evaluate_local(eikr,Rgen,R);
+}
+
 //----------------------------------------------------------------------
 void Wannier_method::optimize_rotation(Array3 <dcomplex> &  eikr,
     Array2 <doublevar> & R ) { 
@@ -451,8 +483,13 @@ void Wannier_method::optimize_rotation(Array3 <dcomplex> &  eikr,
   //Array2 <dcomplex> tmp(norb,norb),tmp2(norb,norb);
   Array2 <doublevar> deriv(norb,norb);
   Rgen=0.0;
-  doublevar max_tstep=1.0;
-  for(int step=0; step < 200; step++) { 
+  for(int ii=0; ii< norb; ii++) { 
+    for(int jj=ii+1; jj< norb; jj++) { 
+      Rgen(ii,jj)=rng.gasdev()*pi;
+    }
+  }
+  doublevar max_tstep=2.0;
+  for(int step=0; step < 800; step++) { 
     doublevar fbase=evaluate_local(eikr,Rgen,R);
     for(int ii=0; ii <norb; ii++) { 
       for(int jj=ii+1; jj < norb; jj++) { 
@@ -465,9 +502,66 @@ void Wannier_method::optimize_rotation(Array3 <dcomplex> &  eikr,
       }
     }
 
+    doublevar rloc_thresh=0.0001;
+    
 
     Rgen_save=Rgen;
     doublevar best_func=1e99, best_tstep=0.0;
+    doublevar bracket_tstep=0.0;
+    doublevar last_func=fbase;
+    for(doublevar tstep=0.01; tstep < 20.0; tstep*=2.0) { 
+      doublevar func=eval_tstep(eikr,Rgen,Rgen_save,deriv,tstep,R);
+      cout << "tstep " << tstep << " func " << func << endl;
+      if(func > fbase or func > last_func) {
+        bracket_tstep=tstep;
+        break;
+      }
+      else last_func=func;
+    }
+
+    cout << "bracket_tstep " << bracket_tstep << endl;
+    doublevar resphi=2.-(1.+sqrt(5.))/2.;
+    doublevar a=0, b=resphi*bracket_tstep, c=bracket_tstep;
+    doublevar af=fbase, bf=eval_tstep(eikr,Rgen,Rgen_save,deriv,b,R), cf=eval_tstep(eikr,Rgen,Rgen_save,deriv,bracket_tstep,R);
+    cout << "first step  a,b,c " << a << " " << b << "  " << c 
+        << " funcs " << af << " " << bf << " " << cf << endl;
+    
+    for(int it=0; it < 20; it++) { 
+      doublevar d,df;
+      if( (c-b) > (b-a))   
+        d=b+resphi*(c-b);
+      else 
+        d=b-resphi*(b-a);
+      df=eval_tstep(eikr,Rgen,Rgen_save,deriv,d,R);
+      if(df < bf) { 
+        if( (c-b) > (b-a) ) {
+          a=b;
+          af=bf;
+          b=d;
+          bf=df;
+        }
+        else { 
+          c=b;
+          cf=bf;
+          b=d;
+          bf=df;
+        }
+      }
+      else { 
+        if( (c-b) > (b-a) ) { 
+          c=d;
+          cf=df;
+        }
+        else { 
+          a=d;
+          af=df;
+        }
+      }
+      cout << "step " << it << " a,b,c " << a << " " << b << "  " << c 
+        << " funcs " << af << " " << bf << " " << cf << endl;
+    }
+    best_tstep=b;
+    /*
     bool made_move=false;
     while (!made_move) { 
       for(doublevar tstep=0.00; tstep < max_tstep; tstep+=0.1*max_tstep) { 
@@ -483,9 +577,13 @@ void Wannier_method::optimize_rotation(Array3 <dcomplex> &  eikr,
         }
         cout << "    tstep " << tstep << "   " << func << endl;
       }
-      if(abs(best_tstep) > 0.2*max_tstep) made_move=true;
-      else max_tstep*=0.5;
+      if(abs(best_tstep) < 0.2*max_tstep)
+        max_tstep*=0.5;
+      else if(abs(best_tstep-max_tstep) < 1e-14)
+        max_tstep*=2.0;
+      else made_move=true;
     }
+    */
 
 
     for(int ii=0; ii< norb;ii++) { 
@@ -504,7 +602,6 @@ void Wannier_method::optimize_rotation(Array3 <dcomplex> &  eikr,
     }    
     cout << "tstep " << best_tstep << " rms " << sqrt(func2) <<  " bohr max change " << max_change <<endl;
     doublevar threshold=0.0001;
-    doublevar rloc_thresh=0.0001;
     if(max_change < threshold) break;
     if(abs(best_func-fbase) < rloc_thresh) break;
     

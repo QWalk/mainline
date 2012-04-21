@@ -278,20 +278,25 @@ template<class T> void MO_matrix_cutoff<T>::writeorb(ostream & os,
 
   os.precision(15);
   int counter=0;
+  int totfuncs=0;
+  for(int ion=0; ion<centers.equiv_centers.GetDim(0); ion++) {
+    for(int n=0; n< centers.nbasis(centers.equiv_centers(ion,0)); n++) {
+      int fnum=centers.basis(centers.equiv_centers(ion,0),n);
+      totfuncs+=basis(fnum)->nfunc();
+    }
+  }
+  
   for(int m=0; m < nmo_write; m++) {
     int mo=moList(m);
-    for(int ion=0; ion<centers.equiv_centers.GetDim(0); ion++)
-    {
+    
+    for(int ion=0; ion<centers.equiv_centers.GetDim(0); ion++) {
       int f=0;
-
-      for(int n=0; n< centers.nbasis(centers.equiv_centers(ion,0)); n++)
-      {
-        int fnum=centers.basis(ion,n);
+      for(int n=0; n< centers.nbasis(centers.equiv_centers(ion,0)); n++) {
+        int fnum=centers.basis(centers.equiv_centers(ion,0),n);
         int imax=basis(fnum)->nfunc();
 
-        for(int i=0; i<imax; i++)
-        {
-          os << mo+1 << "  "   << f+1 << "   " << ion+1 << "   " << counter+1 << endl;
+        for(int i=0; i<imax; i++) {
+          os << m+1 << "  "   << f+1 << "   " << ion+1 << "   " << counter+1 << endl;
           f++;  //keep a total of functions on center
           counter++;
         } //i
@@ -301,7 +306,7 @@ template<class T> void MO_matrix_cutoff<T>::writeorb(ostream & os,
   os << "COEFFICIENTS\n";
   ifstream orbin(orbfile.c_str());
   //rotate_orb(orbin, os, rotation, moList, totbasis);
-  rotate_orb(orbin, os, rotation, moList, int((totbasis/centers.size())*centers.equiv_centers.GetDim(0)));
+  rotate_orb(orbin, os, rotation, moList, totfuncs);
   orbin.close();
 
 
