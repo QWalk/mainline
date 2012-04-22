@@ -105,6 +105,8 @@ int main(int argc, char ** argv) {
       use_siesta2=true;
     if(!strcmp(argv[i],"-analyze_mo"))
       analyze_mo=true;
+    if(!strcmp(argv[i],"-molecule"))
+      molecule=true;
     
 
   }
@@ -151,7 +153,8 @@ int main(int argc, char ** argv) {
     read_atoms(is,currline,atoms, coord_type,use_siesta2);
     read_lattice_vector(is,currline,latvec);
     read_lattice_constant(is,currline,lattice_constant);
-    is_molecule(is,currline,molecule);
+    if(!molecule)
+      is_molecule(is,currline,molecule);
     if(use_siesta2)
       read_mo_coefficients(is, currline, slwriter, moCoeff, kpoints);
 
