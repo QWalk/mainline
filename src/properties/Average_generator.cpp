@@ -1694,18 +1694,14 @@ void Average_wf_parmderivs::read(vector <string> & words) {
 //-----------------------------------------------------------------------------
 void Average_wf_parmderivs::write_summary(Average_return &avg ,Average_return & err, ostream & os) { 
    os << "Wavefunction parameter derivatives" << endl;
-   /*
-   int n=avg.vals.GetDim(0)/2;
+   
+   int n=sqrt(1+avg.vals.GetDim(0))-1;
+   
    os << "energy " << endl;
    for(int i=0; i < n; i++) { 
-     os << i << " " << avg.vals(i) << " +/- " << err.vals(i) << endl;
+     os << i << " " << avg.vals(i) << " +/- " << err.vals(i) 
+        << " " << avg.vals(n+i) << " +/- " << err.vals(n+i) <<  endl;
    }
-   os << "Wavefunction energy*parameter derivatives " << endl;
-   for(int i=0; i< n; i++) { 
-     for(int j=0; j< n; j++) { 
-       os << i << " " << j << " " << avg.vals(2*n+i*n+j) << " +/- " << err.vals(2*n+i*n+j) << endl;
-     }
-   }
-*/
+   
 }
 //-----------------------------------------------------------------------------

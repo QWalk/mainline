@@ -146,10 +146,11 @@ void Stochastic_reconfiguration_method::line_minimization(Array2 <doublevar> & S
     for(int i=0; i< nparms; i++) { 
       alpha(i)=save_alpha(i)+x(i+1)/x(0);
     }
+    alphas(n)=alpha;
+/*    
     wfdata->setVarParms(alpha);
     wavefunction_energy(en);
     cout << tmp_tau << "  " << en(0) << "  " << en(1) << endl;
-    alphas(n)=alpha;
     energies_corr(n,0)=en(0);
     energies_corr(n,1)=en(1);
     if(en(1) > 2*energies_corr(0,1)) {  
@@ -158,18 +159,24 @@ void Stochastic_reconfiguration_method::line_minimization(Array2 <doublevar> & S
       ntau=n;
       break;
     }
+    */
   }
  
-//  Array2 <doublevar> energies_corr(ntau,2);
-  //correlated_evaluation(alphas,3,energies_corr);
+  Array2 <doublevar> energies_corr2(ntau,2);
+  correlated_evaluation(alphas,0,energies_corr2);
 
   doublevar mixing=0.1;
   doublevar min_en=energies_corr(0,0)+energies_corr(0,1)*energies_corr(0,1)*mixing;
   doublevar min_n=0;
   for(int n=0; n< ntau; n++) { 
-    cout << tau_prefactor[n]*tau << " " << energies_corr(n,0) << " +/- " << energies_corr(n,1) 
-      << " func " << energies_corr(n,1)*energies_corr(n,1)*mixing+energies_corr(n,0) << endl;
-    doublevar opt_val=energies_corr(n,0)+energies_corr(n,1)*energies_corr(n,1)*mixing;
+//    cout << tau_prefactor[n]*tau << " " << energies_corr(n,0) << " +/- " << energies_corr(n,1) 
+//      << " func " << energies_corr(n,1)*energies_corr(n,1)*mixing+energies_corr(n,0) << endl;
+    //cout << tau_prefactor[n]*tau << " " << energies_corr(n,0) << " +/- " << energies_corr(n,1)
+    //  << " correlated " << energies_corr2(n,0) << endl;
+    single_write(cout,tau_prefactor[n]*tau," " ,energies_corr2(n,0)," ");
+    single_write(cout,energies_corr2(n,1),"\n");
+    //doublevar opt_val=energies_corr(n,0)+energies_corr(n,1)*energies_corr(n,1)*mixing;
+    doublevar opt_val=energies_corr2(n,0);
     if(opt_val < min_en) { 
       min_en=opt_val;
       min_n=n;
@@ -421,7 +428,7 @@ void Stochastic_reconfiguration_method::wavefunction_energy(
     Array1 <doublevar> & energies) {
   string vmc_section="VMC nconfig 1 nstep ";
   append_number(vmc_section,vmc_nstep);
-  vmc_section+=" timestep 1.0 nblock 20  ";
+  vmc_section+=" timestep 1.0 nblock 32  ";
   vector <string> words;
   string sep=" ";
   split(vmc_section,sep,words);
