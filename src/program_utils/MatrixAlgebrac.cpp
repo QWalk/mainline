@@ -61,6 +61,27 @@ int dsygv(int itype, char jobz, char uplo,  int  n,
 }
 
 
+int dgeev(char JOBVL, char JOBVR,int N,doublevar * A,int lda,
+    doublevar * WR, doublevar * WI, doublevar* VL, int LDVL,doublevar * VR, int LDVR,
+    doublevar * WORK, int LWORK) { 
+  int INFO;
+  dgeev_(&JOBVL,&JOBVR, &N,A,&lda,WR,WI,VL,&LDVL,VR,&LDVR,WORK, &LWORK,&INFO);
+  return INFO;
+}
+
+
+
+int zgeev(char JOBVL, char JOBVR,int N,dcomplex * A,int lda,
+    dcomplex * W, dcomplex* VL, int LDVL,dcomplex * VR, int LDVR,
+    dcomplex * WORK, int LWORK, dcomplex * RWORK) { 
+  int INFO;
+  zgeev_(&JOBVL,&JOBVR, &N,A,&lda,W,VL,&LDVL,VR,&LDVR,WORK, &LWORK,RWORK,&INFO);
+  return INFO;
+}
+
+    
+
+
 int dgetrf(int m, int n, double * A, int lda, int * ipiv) { 
   int info;
   dgetrf_(&m, &n, A, &lda, ipiv, &info);
@@ -1460,6 +1481,99 @@ void GeneralizedEigenSystemSolverRealSymmetricMatrices(const Array2 < doublevar 
    EigenSystemSolverRealSymmetricMatrix(A_renorm,evals,evecs);
 #endif //END OF NO LAPACK
 }
+
+//----------------------------------------------------------------------
+
+void GeneralizedEigenSystemSolverComplexGeneralMatrices(Array2 < dcomplex > & Ain, 
+         Array1 <dcomplex> & W, Array2 <dcomplex> & VL, Array2 <dcomplex> & VR) { 
+#ifdef USE_LAPACK //if LAPACK
+  int N=Ain.dim[0];
+  
+  Array2 <dcomplex> A_temp=Ain; //,VL(N,N),VR(N,N);
+  Array1 <dcomplex> WORK,RWORK(2*N);
+  W.Resize(N);
+  VL.Resize(N,N);
+  VR.Resize(N,N);
+
+  int info;
+  int NB=64;
+  int NMAX=N;
+  int lda=NMAX;
+  int ldb=NMAX;
+  int LWORK=(NB+2)*NMAX;
+  WORK.Resize(LWORK);
+
+  //info=dsygv(1, 'V', 'U' , N,  A_temp.v,  lda,  B_temp.v, ldb, W.v, WORK.v, LWORK);
+
+  info=  zgeev('V','V',N,A_temp.v, lda,W.v,VL.v,lda,VR.v,lda,WORK.v, LWORK,RWORK.v);
+
+  if(info>0)
+    error("Internal error in the LAPACK routine zgeev");
+  if(info<0)
+    error("Problem with the input parameter of LAPACK routine dsyevr in position ",-info);
+
+//  for (int i=0; i<N; i++)
+//    evals(i)=W[N-1-i];
+
+ // for (int i=0; i<N; i++) {
+ //   for (int j=0; j<N; j++) {
+ //     evecs(j,i)=A_temp(N-1-i,j);
+ //   }
+ // }
+ //END OF LAPACK 
+#else //IF NO LAPACK
+  error("need LAPACK for eigensystem solver for general matrices");
+#endif //END OF NO LAPACK
+}
+
+
+
+
+void GeneralizedEigenSystemSolverRealGeneralMatrices(Array2 < doublevar > & Ain, 
+         Array1 <dcomplex> & W, Array2 <doublevar> & VL, Array2 <doublevar> & VR) { 
+#ifdef USE_LAPACK //if LAPACK
+  int N=Ain.dim[0];
+  
+  Array2 <doublevar> A_temp=Ain; //,VL(N,N),VR(N,N);
+  Array1 <doublevar> WORK,RWORK(2*N),WI(N),WR(N);
+  WI.Resize(N);
+  VL.Resize(N,N);
+  VR.Resize(N,N);
+
+  int info;
+  int NB=64;
+  int NMAX=N;
+  int lda=NMAX;
+  int ldb=NMAX;
+  int LWORK=5*NMAX;
+  WORK.Resize(LWORK);
+
+
+  info=  dgeev('V','V',N,A_temp.v, lda,WR.v,WI.v,VL.v,lda,VR.v,lda,WORK.v,LWORK);
+
+  if(info>0)
+    error("Internal error in the LAPACK routine dgeev",info);
+  if(info<0)
+    error("Problem with the input parameter of LAPACK routine dgeev in position ",-info);
+  W.Resize(N);
+  for(int i=0; i< N; i++) { 
+    W(i)=dcomplex(WR(i),WI(i));
+  }
+
+//  for (int i=0; i<N; i++)
+//    evals(i)=W[N-1-i];
+
+ // for (int i=0; i<N; i++) {
+ //   for (int j=0; j<N; j++) {
+ //     evecs(j,i)=A_temp(N-1-i,j);
+ //   }
+ // }
+ //END OF LAPACK 
+#else //IF NO LAPACK
+  error("need LAPACK for eigensystem solver for general matrices");
+#endif //END OF NO LAPACK
+}
+
 
 
 

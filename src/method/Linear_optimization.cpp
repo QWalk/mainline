@@ -4,7 +4,7 @@
 #include "Guiding_function.h"
 #include "System.h"
 #include "Pseudopotential.h"
-#include "Stochastic_reconfiguration.h"
+#include "Linear_optimization.h"
 #include "qmc_io.h"
 #include "Program_options.h"
 #include "MatrixAlgebra.h"
@@ -12,7 +12,7 @@
 #include "Properties_average.h"
 #include "Properties_block.h"
 
-void Stochastic_reconfiguration_method::read(vector <string> words,
+void Linear_optimization_method::read(vector <string> words,
             unsigned int & pos, Program_options & options_) { 
 
   options=options_;
@@ -41,19 +41,20 @@ void Stochastic_reconfiguration_method::read(vector <string> words,
 
 //----------------------------------------------------------------------
 
-int Stochastic_reconfiguration_method::showinfo(ostream & os) { 
+int Linear_optimization_method::showinfo(ostream & os) { 
   os << "Tau  " << tau << endl;
   return 1;
 }
 
 //----------------------------------------------------------------------
 
-void Stochastic_reconfiguration_method::run(Program_options & options, ostream & output) { 
+void Linear_optimization_method::run(Program_options & options, ostream & output) { 
   int nparms=wfdata->nparms();
   Array1 <doublevar> x(nparms+1); 
-  Array2 <doublevar> S(nparms+1,nparms+1),Sinv(nparms+1,nparms+1),tmp_S(nparms+1,nparms+1);
+  Array2 <doublevar> S(nparms+1,nparms+1),Sinv(nparms+1,nparms+1);
+  Array2 <doublevar> H(nparms+1,nparms+1);
   Array1 <doublevar> alpha(nparms); 
-  Array1 <doublevar> energies(nparms+1),tmp_energies(nparms+1);
+ 
   wfdata->getVarParms(alpha); 
   Array1 <doublevar> en,tmp_en;
   Array2 <doublevar> energy_step(iterations,2);
@@ -64,15 +65,12 @@ void Stochastic_reconfiguration_method::run(Program_options & options, ostream &
   //for(int i=0; i<nparms; i++) 
   //  cout << alpha(i) << " ";
   //cout << endl;
-  cout.precision(1);
-  int nit_completed=0;
   for(int it=0; it< iterations; it++) {
-    cout << "_________start iteration_______" << endl;
     //cout << "wf derivative " << endl;
-    wavefunction_derivative(energies,S,en);
+    wavefunction_derivative(H,S,en);
 
     output << "energy " << en(0) << " +/- " << en(1) << endl;
-    line_minimization(S,Sinv,energies,alpha);
+    line_minimization(S,Sinv,H,alpha);
     //cout << "alpha ";
     //for(int i=0; i< nparms; i++) cout << alpha(i) << " ";
     //cout << endl;
@@ -90,19 +88,6 @@ void Stochastic_reconfiguration_method::run(Program_options & options, ostream &
     }
   }
 
-  //cout << "alphas " << endl;
-  //
-  /*
-  Array1 <Array1 <doublevar> > alphas(iterations);
-  for(int it=0; it< iterations; it++) { 
-    alphas(it).Resize(nparms);
-    for(int p=0; p< nparms; p++) {
-      alphas(it)(p)=alpha_step(it,p);
-    }
-  }
-  Array2 <doublevar> energies_iteration(iterations,2);
-  correlated_evaluation(alphas,iterations/2,energies_iteration);
-  */
 
 #ifdef USE_MPI
   MPI_Barrier(MPI_Comm_grp);
@@ -118,105 +103,170 @@ void Stochastic_reconfiguration_method::run(Program_options & options, ostream &
 
 //----------------------------------------------------------------------
 
-void Stochastic_reconfiguration_method::line_minimization(Array2 <doublevar> & S, 
-    Array2 <doublevar> & Sinv, Array1 <doublevar> & energies, Array1 <doublevar> & alpha) { 
-  int nparms=S.GetDim(0)-1;
-  Array1 <doublevar> save_alpha=alpha;
-
-  int ntau=5;
-  vector <int> parms_nonzero;
-  parms_nonzero.reserve(nparms+1);
-  //for(int i=0; i < nparms+1; i++) { 
-  //  cout << " S " ;
-  //  for(int j=0; j< nparms+1; j++) { 
-  //    cout << " " << setprecision(2) << S(i,j) << " ";
-  //  }
-  //  cout << endl;
-  //}
-
-  for(int i=0; i < nparms+1; i++) { 
+void Linear_optimization_method::line_minimization(Array2 <doublevar> & S, 
+    Array2 <doublevar> & Sinv, Array2 <doublevar> & H, Array1 <doublevar> & alpha) { 
+  int nparms=wfdata->nparms();
+  Sinv.Resize(nparms+1,nparms+1);
+  doublevar stabilization=0.0;
+  for(int i=1; i< nparms+1; i++) H(i,i)+=stabilization;
+  
+  cout << "here " << endl;
+  for(int i=0; i< nparms+1; i++) { 
+    cout << "S ";
     for(int j=0; j< nparms+1; j++) { 
-      if( fabs(S(i,j)) > 1e-15 or fabs(S(j,i)) > 1e-15) {
-        parms_nonzero.push_back(i);
-        break;
-      }
+      cout <<  S(i,j) << " ";
     }
+    cout << endl;
   }
-  int nparms_nonzero=parms_nonzero.size();
-  cout << "parms " << nparms << " number of parms that matter: " << nparms_nonzero-1 << endl;
-  Array1 <doublevar> en(2);
-  Array2 <doublevar> energies_corr(ntau,2);
-  double  tau_prefactor[5]={0.0,0.25,0.5,0.75,1.0};
-  Array1 <doublevar> x(nparms+1);
-  Array1 <Array1 <doublevar> > alphas(ntau);
- /* 
-  Array2 <doublevar> S_tmp(nparms_nonzero,nparms_nonzero);
-  for(int i=0; i< nparms_nonzero; i++)  { 
-    cout << "S_tmp ";
-    for(int j=0; j< nparms_nonzero; j++)  { 
-      S_tmp(i,j)=S(parms_nonzero[i],parms_nonzero[j]);
-      cout << setprecision(2) << S_tmp(i,j) << " ";
+  for(int i=0; i< nparms+1; i++) { 
+    cout << "H ";
+    for(int j=0; j< nparms+1; j++) { 
+      cout <<  H(i,j) << " ";
     }
     cout << endl;
   }
   
-  InvertMatrix(S_tmp,Sinv,nparms_nonzero);
-  for(int n=0; n < ntau; n++) { 
-    doublevar tmp_tau=tau_prefactor[n]*tau;
-    x=0.0;
-    for(int i=0; i< nparms_nonzero; i++) {
-      for(int j=0; j< nparms_nonzero;j++) {
-        x(i)+=Sinv(i,j)*(S_tmp(0,j)-tmp_tau*energies(parms_nonzero[j]));
-      }
-    }
-    alpha=save_alpha;
-    for(int i=0; i< nparms_nonzero-1; i++) { 
-      alpha(parms_nonzero[i])+=x(i+1)/x(0);
-    }
-    alphas(n)=alpha;
-  }
-  */
-
-  for(int n=0; n< ntau; n++) { 
-    doublevar tmp_tau=10*tau_prefactor[n]*tau;
-    for(int i=0; i< nparms; i++) {
-      alpha(i)=save_alpha(i)-tmp_tau*energies(i+1);
-      cout << "tau " << tmp_tau << "alpha " << alpha(i) << "derivative " << energies(i+1) << endl;
-    }
-    alphas(n)=alpha;
-  }
-/*
+  Sinv=0.0;
   InvertMatrix(S,Sinv,nparms+1);
-
-  for(int n=0; n < ntau; n++) { 
-    doublevar tmp_tau=tau_prefactor[n]*tau;
-    x=0.0;
-    for(int i=0; i <nparms+1; i++) { 
-      for(int j=0; j< nparms+1; j++) { 
-        x(i)+=Sinv(i,j)*(S(0,j)-tmp_tau*energies(j));
+  
+  for(int i=0; i< nparms+1; i++) { 
+    cout << "Sinv ";
+    for(int j=0; j< nparms+1; j++) { 
+      cout <<  Sinv(i,j) << " ";
+    }
+    cout << endl;
+  }
+  
+  
+  Array2 <doublevar> prodmatrix(nparms+1,nparms+1);
+  prodmatrix=0.0;
+  for(int i=0; i< nparms+1; i++) {
+    for(int j=0; j< nparms+1; j++) { 
+      for(int k=0; k< nparms+1; k++) { 
+        prodmatrix(i,k)+=Sinv(i,j)*H(j,k);
       }
     }
-    for(int i=0; i< nparms; i++) { 
-      alpha(i)=save_alpha(i)+x(i+1)/x(0);
+  }
+
+  for(int i=0; i< nparms+1; i++) { 
+    cout << "P ";
+    for(int j=0; j< nparms+1; j++) { 
+      cout << setprecision(2) << prodmatrix(i,j) << " ";
     }
-    alphas(n)=alpha;
+    cout << endl;
+  }
+  
+  Array1 <dcomplex> W(nparms+1);
+  Array2 <doublevar> VL(nparms+1,nparms+1), VR(nparms+1,nparms+1);
+  GeneralizedEigenSystemSolverRealGeneralMatrices(prodmatrix,W,VL,VR);
+  
+  int min_index=0;
+  int min_eigenval=W(0).real();
+  
+  for(int i=0; i< nparms+1; i++) { 
+    cout << "eigenvalue " << i << " " << W(i) << endl;
+    if(W(i).real() < min_eigenval) { 
+      min_index=i;
+      min_eigenval=W(i).real();
+    }
+  }
+
+  for(int i=0; i< nparms+1; i++ ) {
+    cout << "VR ";
+    for(int j=0; j< nparms+1; j++) { 
+      cout << VR(i,j) << " ";
+    }
+    cout << endl;
+  }
+
+
+  for(int i=0; i< nparms+1; i++ ) {
+    cout << "VL ";
+    for(int j=0; j< nparms+1; j++) { 
+      cout << VL(i,j) << " ";
+    }
+    cout << endl;
+  }
+  
+
+  Array1 <doublevar> dp(nparms+1);
+  cout << "initial eigenvector ";
+  for(int i=0; i < nparms+1; i++) { 
+    dp(i)=VL(min_index,i);
+    cout << dp(i) << " ";
+  }
+  cout << endl;
+
+  for(int i=1; i< nparms+1; i++) dp(i)/=dp(0);
+  dp(0)=1.0;
+
+  cout << "Parameter variation ";
+  for(int i=0; i< nparms+1; i++) 
+    cout << dp(i) << " ";
+  cout << endl;
+
+  doublevar xi=0.5;
+  Array1 <doublevar> norm(nparms+1);
+  /*
+  norm=0.;
+  doublevar denominator_sum=0.0;
+  for(int j=1; j < nparms+1; j++) { 
+    for(int k=1; k< nparms+1; k++) { 
+      denominator_sum+=dp(j)*dp(k)*S(j,k);
+    }
+  }
+  
+  for(int i=1; i< nparms+1; i++) { 
+    double numerator_sum=0.0;
+    double denominator_sum=0.0;
+    for(int j=1; j < nparms+1; j++) { 
+      numerator_sum+=dp(j)*S(i,j);
+    }
+    norm(i)=-(1-xi)*numerator_sum/(1-xi+xi*sqrt(1+denominator_sum));
   }
   */
-  cout.precision(15); 
+  doublevar D=1.0;
+  for(int j=1; j< nparms+1; j++) { 
+    D+=2*S(0,j)*dp(j);
+    for(int k=0; k< nparms+1; k++) {
+      D+=S(j,k)*dp(j)*dp(k);
+    }
+  }
+  for(int i=1; i< nparms+1;  i++) { 
+    doublevar num_sum=0.0;
+    doublevar denom_sum=0.0;
+    for(int j=1; j < nparms+1; j++) { 
+      num_sum+=S(i,j)*dp(j);
+      denom_sum+=S(0,j)*dp(j);
+    }
+    norm(i)=-(xi*D*S(0,i)+(1-xi)*(S(0,i)+num_sum))
+      /(xi*D+(1-xi)*(1+denom_sum));
+  }
+
+
+
+
+  doublevar renorm_dp=0.;
+  for(int i=1; i< nparms+1; i++) { 
+    renorm_dp+=norm(i)*dp(i);
+  }
+  cout << "renorm_dp " << renorm_dp << endl;
+
+  for(int i=0; i< nparms; i++) { 
+    alpha(i)+=dp(i+1)/(1-renorm_dp);
+    cout << "new alpha " << alpha(i) << endl;
+  }
+
+
+/*
   Array2 <doublevar> energies_corr2(ntau,2);
   correlated_evaluation(alphas,0,energies_corr2);
-
   doublevar mixing=0.1;
   doublevar min_en=energies_corr(0,0)+energies_corr(0,1)*energies_corr(0,1)*mixing;
   doublevar min_n=0;
   for(int n=0; n< ntau; n++) { 
-//    cout << tau_prefactor[n]*tau << " " << energies_corr(n,0) << " +/- " << energies_corr(n,1) 
-//      << " func " << energies_corr(n,1)*energies_corr(n,1)*mixing+energies_corr(n,0) << endl;
-    //cout << tau_prefactor[n]*tau << " " << energies_corr(n,0) << " +/- " << energies_corr(n,1)
-    //  << " correlated " << energies_corr2(n,0) << endl;
     single_write(cout,tau_prefactor[n]*tau," " ,energies_corr2(n,0)," ");
     single_write(cout,energies_corr2(n,1),"\n");
-    //doublevar opt_val=energies_corr(n,0)+energies_corr(n,1)*energies_corr(n,1)*mixing;
     doublevar opt_val=energies_corr2(n,0);
     if(opt_val < min_en && energies_corr2(n,1) < 1.5*energies_corr2(0,1) ) { 
       min_en=opt_val;
@@ -229,74 +279,14 @@ void Stochastic_reconfiguration_method::line_minimization(Array2 <doublevar> & S
     cout << alpha(i) << " ";
   }
   cout << endl;
-
-/*
-  //Now do a least-squares fit to a quadratic model
-  Array2 <doublevar> tmatrix(3,3),tmatrixinv(3,3);
-  Array1 <doublevar> coeff(3),data(3);
-  tmatrix=0.0; data=0.0;
-  tmatrix(0,0)=ntau;
-  for(int n=0; n< ntau; n++) { 
-    doublevar t=tau_prefactor[n]*tau;
-    doublevar t2=t*t, t3=t*t*t,t4=t*t*t*t;
-    tmatrix(0,1)+=t;
-    tmatrix(1,0)+=t;
-    tmatrix(1,1)+=t2;
-    tmatrix(0,2)+=t2;
-    tmatrix(2,0)+=t2;
-    tmatrix(1,2)+=t3;
-    tmatrix(2,1)+=t3;
-    tmatrix(2,2)+=t4;
-    doublevar d=energies_corr(n,0);
-    data(0)+=d;
-    data(1)+=d*t;
-    data(2)+=d*t*t;
-  }
-  InvertMatrix(tmatrix,tmatrixinv,3);
-  coeff=0;
-  for(int i=0; i< 3; i++) {
-    for(int j=0; j< 3; j++) { 
-      coeff(i)+=tmatrixinv(i,j)*data(j);
-    }
-  }
-  for(int n=0; n< ntau; n++) { 
-    doublevar t=tau_prefactor[n]*tau;
-    doublevar f=coeff(0)+coeff(1)*t+coeff(2)*t*t;
-    cout << t << " " << f << " " << energies_corr(n,0) << endl;
-  }
-  doublevar min_tau=-coeff(1)/(2*coeff(2));
-  if(coeff(2) < 0) min_tau=0;
-  min_tau=min(min_tau,tau_prefactor[ntau-1]*tau);
-  min_tau=max(min_tau,0.0);
-  cout << "min_tau " << min_tau << endl;
- 
-  for(int i=0; i <nparms+1; i++) { 
-    for(int j=0; j< nparms+1; j++) { 
-      x(i)+=Sinv(i,j)*(S(0,j)-min_tau*energies(j));
-    }
-  }
-  cout << "save_alpha ";
-  for(int i=0; i< nparms+1; i++) cout << save_alpha(i) << " ";
-  cout << endl;
-  
-  cout << "x ";
-  for(int i=0; i< nparms+1; i++) cout << x(i) << " ";
-  cout << endl;
-  if(min_tau > 1e-4) { 
-    for(int i=0; i< nparms; i++) { 
-      alpha(i)=save_alpha(i)+x(i+1)/x(0);
-    }
-  }
-  else alpha=save_alpha;
-  */
-  //cout << "done line minimization" << endl;
+*/
   
 }
 //----------------------------------------------------------------------
 
 #include "Guiding_function.h"
 #include "Split_sample.h"
-void Stochastic_reconfiguration_method::correlated_evaluation(Array1 <Array1 <doublevar> > & alphas,int ref_alpha,Array2 <doublevar> & energies) {
+void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar> > & alphas,int ref_alpha,Array2 <doublevar> & energies) {
   Sample_point * sample=NULL;
   Wavefunction * wf=NULL;
   sys->generateSample(sample);
@@ -372,42 +362,10 @@ void Stochastic_reconfiguration_method::correlated_evaluation(Array1 <Array1 <do
 
 //----------------------------------------------------------------------
 
-void Stochastic_reconfiguration_method::output_average_wf(Array2 <doublevar> & alpha_step, 
-    Array2 <doublevar> & energy_step, int nit_completed) { 
-  int nparms=alpha_step.GetDim(0);
-  assert(alpha_step.GetDim(1) >= nit_completed);
-  int navg=0;
-  Array1 <doublevar> avg_alpha(nparms);
-  avg_alpha=0;
-  Array1 <doublevar> ref_en(2);
-  ref_en(0)=energy_step(nit_completed-1,0);
-  ref_en(1)=energy_step(nit_completed-1,1);
-
-  for(int  it=0; it < nit_completed; it++) { 
-    if(energy_step(it,0)-ref_en(0) < 2*ref_en(1)) { 
-      navg++;
-      for(int i=0; i< nparms; i++) 
-        avg_alpha(i)+=alpha_step(it,i);
-    }
-  }
-
-  for(int i=0; i< nparms; i++) avg_alpha(i)/=navg;
-  wfdata->setVarParms(avg_alpha);
-
-  wfdata->renormalize();
-  string indentation="";
-  ofstream wfoutput(wfoutputfile.c_str());
-  wfoutput.precision(15);
-  wfdata->writeinput(indentation,wfoutput);
-  wfoutput.close();
-
-}
-
-//----------------------------------------------------------------------
 
 
-void Stochastic_reconfiguration_method::wavefunction_derivative(
-    Array1 <doublevar> & energies,Array2<doublevar> & S, Array1 <doublevar> & en) { 
+void Linear_optimization_method::wavefunction_derivative(
+    Array2 <doublevar> & H,Array2<doublevar> & S, Array1 <doublevar> & en) { 
   string vmc_section="VMC nconfig 1 nstep ";
   append_number(vmc_section,vmc_nstep);
   vmc_section+=" timestep 1.0 nblock 20 average { WF_PARMDERIV } ";
@@ -430,54 +388,74 @@ void Stochastic_reconfiguration_method::wavefunction_derivative(
   bool nonzero_element=false;
   for(int i=0; i< deriv_avg.vals.GetDim(0); i++) { 
     //cout << "avg deriv " << deriv_avg.vals(i) << " " << deriv_err.vals(i) << endl;
-    //holding the significance to 4 sigmas.
-    if( fabs(deriv_avg.vals(i))/deriv_err.vals(i) < 10)  
-      deriv_avg.vals(i)=0.0;
-    else 
-      nonzero_element=true;
+    //holding the significance to some number of sigmas.
+    //if( fabs(deriv_avg.vals(i))/deriv_err.vals(i) < 3)  
+    //  deriv_avg.vals(i)=0.0;
+    //else 
+    //  nonzero_element=true;
+    nonzero_element=true;
   }
   if(!nonzero_element) { 
     cout << "WARNING: set all elements to zero because they are not significant."
       << " Increasing vmc_nstep to " << vmc_nstep*4<< endl;
     vmc_nstep*=4;
-    wavefunction_derivative(energies, S,en);
+    wavefunction_derivative(H, S,en);
     return;
   }
 
   int n=wfdata->nparms();
-  energies.Resize(n+1);
-  energies(0)=final.avg(Properties_types::total_energy,0);
-  en.Resize(2);
-  en(0)=energies(0);
-  en(1)=sqrt(final.err(Properties_types::total_energy,0));
-  cout << "derivative " << endl;
-  for(int i=0; i< n; i++) {
-    //energies(i+1)=deriv_avg.vals(i)-deriv_avg.vals(n+i)*en(0);
-    energies(i+1)=2*(deriv_avg.vals(i)-deriv_avg.vals(n+i)*en(0));
-    cout << i << " " << energies(i+1) << " +/- " << 
-      deriv_err.vals(i)  << " and " << deriv_err.vals(n+i)
-       << " and " << en(1) << endl;
-  }
-  
-  //cout << "energy " << en(0) <<  " +/- " << en(1) << endl;
-  S.Resize(n+1,n+1);
-  S(0,0)=1;
   for(int i=0; i< n; i++) { 
+    cout << "energy derivative " << deriv_avg.vals(2*n+i) << endl;
+  }
+  H.Resize(n+1,n+1);
+  S.Resize(n+1,n+1);
+  H=0.; S=0.;
+  en.Resize(2);
+  en(0)=final.avg(Properties_types::total_energy,0);
+  en(1)=sqrt(final.err(Properties_types::total_energy,0));
+  S(0,0)=1;
+  //S(0,0)=deriv_avg.vals(3*n+3*n*n);
+  doublevar s_renorm=sqrt(deriv_avg.vals(3*n+3*n*n));
+  for(int i=0; i < n; i++) { 
+    //S(0,i+1)=0.0;
+    //S(i+1,0)=0.0;
     S(0,i+1)=deriv_avg.vals(n+i);
     S(i+1,0)=deriv_avg.vals(n+i);
   }
   for(int i=0; i< n; i++) { 
     for(int j=0; j< n; j++) { 
-      S(i+1,j+1)=deriv_avg.vals(2*n+i*n+j);
+      //S(i+1,j+1)=(deriv_avg.vals(3*n+i*n+j)-deriv_avg.vals(n+i)*deriv_avg.vals(n+j))/s_renorm;
+      S(i+1,j+1)=deriv_avg.vals(3*n+i*n+j);
     }
   }
+  H(0,0)=en(0);
+  for(int i=0; i < n; i++) { 
+    //H(i+1,0)=deriv_avg.vals(i)-en(0)*deriv_avg.vals(n+i);
+    //H(0,i+1)=H(i+1,0)+deriv_avg.vals(2*n+i);
+    H(i+1,0)=deriv_avg.vals(i);
+    H(0,i+1)=deriv_avg.vals(2*n+i);
+  }
+  
+  for(int i=0; i< n; i++) { 
+    for(int j=0; j< n; j++) { 
+      H(i+1,j+1)=deriv_avg.vals(3*n+2*n*n+i*n+j);
+     // H(i+1,j+1)=deriv_avg.vals(3*n+n*n+i*n+j)
+     //   -deriv_avg.vals(n+i)*deriv_avg.vals(j)
+     //   -deriv_avg.vals(n+j)*deriv_avg.vals(i)
+     //   +deriv_avg.vals(n+i)*deriv_avg.vals(n+j)*en(0)
+     //   +deriv_avg.vals(3*n+2*n*n+i*n+j)
+     //   -deriv_avg.vals(2*n+j)*deriv_avg.vals(n+i);
+      
+    }
+  }
+        
   
 }
 
 
 //----------------------------------------------------------------------
 
-void Stochastic_reconfiguration_method::wavefunction_energy(
+void Linear_optimization_method::wavefunction_energy(
     Array1 <doublevar> & energies) {
   string vmc_section="VMC nconfig 1 nstep ";
   append_number(vmc_section,vmc_nstep);
