@@ -5,6 +5,7 @@ MY_SOURCES:= \
 	Rndmc_method.cpp \
 	Force_fitter.cpp \
 	Levenberg_Marquardt.cpp \
+        Linear_optimization.cpp \
         Localize_method.cpp \
 	Nodes_method.cpp \
         Shdmc_method.cpp \
@@ -16,7 +17,6 @@ MY_SOURCES:= \
 	Qmc_method.cpp \
 	Reptation_method.cpp \
 	Split_sample.cpp \
-        Stochastic_reconfiguration.cpp \
 	Test_method.cpp \
 	Vmc_method.cpp 
 
