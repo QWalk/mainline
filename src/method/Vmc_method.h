@@ -104,6 +104,7 @@ private:
   int nstep;
   int nconfig;
   int ndecorr;
+  bool auto_timestep;
   string storeconfig;
   string readconfig;
   string log_label;

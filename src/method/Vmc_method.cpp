@@ -39,21 +39,26 @@ void Vmc_method::read(vector <string> words,
   ndim=3;
 
   if(!readvalue(words, pos=0, nblock, "NBLOCK"))
-    error("Need NBLOCK in VMC section");
+    nblock=100;
   if(!readvalue(words, pos=0, nconfig, "NCONFIG"))
-    error("Need NCONFIG in METHOD section.");
+    nconfig=1;
   if(!readvalue(words, pos=0, nstep, "NSTEP"))
-    error("Need NSTEP in VMC section");
-  if(!readvalue(words, pos=0, timestep, "TIMESTEP"))
-    error("Need TIMESTEP in VMC section");
+    nstep=100;
+  if(!readvalue(words, pos=0, timestep, "TIMESTEP")) { 
+    auto_timestep=true;
+    timestep=1.0;
+  }
+  else auto_timestep=true;
 
   //optional options
 
   if(!readvalue(words, pos=0, ndecorr, "NDECORR"))
     ndecorr=2;
 
-  readvalue(words, pos=0, storeconfig, "STORECONFIG");
-  readvalue(words, pos=0, readconfig, "READCONFIG");
+  if(!readvalue(words, pos=0, storeconfig, "STORECONFIG")) 
+    storeconfig=options.runid+".config";
+  if(!readvalue(words, pos=0, readconfig, "READCONFIG"))
+    readconfig=options.runid+".config";
   
 
   if(!readvalue(words, pos=0, log_label, "LABEL"))
@@ -255,7 +260,14 @@ void Vmc_method::readcheck(string & filename) {
    */
   config_pos.Resize(0);
   if(filename!="") { 
-    read_configurations(filename, config_pos);
+    ifstream test(filename.c_str());
+    if(test) { 
+      test.close();
+      read_configurations(filename, config_pos);
+    }
+    else { 
+      single_write(cout,"Could not open ",filename,". Generating configurations from scratch\n");
+    }
   }
   if(config_pos.GetDim(0) < nconfig) { 
     Array1 <Config_save_point> tmpconfig=config_pos;
@@ -357,6 +369,7 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
     int nwf_guide=wf->nfunc();
     Dynamics_info dinfo;
 
+    doublevar acceptance=0;
     for(int walker=0; walker<nconfig; walker++) {  
       
       config_pos(walker).restorePos(sample);
@@ -404,10 +417,13 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
               
               if(acc>0) {
                 age(walker, e)=0;
+                acceptance+=1;
+                if(auto_timestep) timestep+=0.01;
               }
               else {
                 age(walker,e)++;
                 if(age(walker,e) > maxlife) maxlife=age(walker,e);
+                if(auto_timestep) timestep-=0.01;
               }
               avglifetime(block)+=age(walker, e);
            }  //electron
@@ -452,6 +468,7 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
       for(int i=0; i< nldensplt.GetDim(0); i++)
         nldensplt(i)->write(log_label);
     }
+    acceptance/=nstep*ndecorr*nelectrons;
     //Output for the block
     if(output) {
       if(global_options::rappture ) { 
@@ -464,8 +481,10 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
       }
       output << "****Block " << block 
              << " avg life " << avglifetime(block)/(nstep*nconfig*ndecorr*nelectrons)
-             << " max life " << double(maxlife)/double(ndecorr)
-             << endl;
+             << " max life " << double(maxlife)/double(ndecorr);
+      
+      if(auto_timestep) output << " timestep " << timestep;
+      output << endl;
 
       sampler->showStats(output);
       sampler->resetStats();
