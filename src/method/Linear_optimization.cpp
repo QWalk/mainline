@@ -103,67 +103,28 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
 
 //----------------------------------------------------------------------
 
-void Linear_optimization_method::line_minimization(Array2 <doublevar> & S, 
-    Array2 <doublevar> & Sinv, Array2 <doublevar> & H, Array1 <doublevar> & alpha) { 
-  int nparms=wfdata->nparms();
-  Sinv.Resize(nparms+1,nparms+1);
-  doublevar stabilization=0.0;
-  for(int i=1; i< nparms+1; i++) H(i,i)+=stabilization;
-  
-  cout << "here " << endl;
-  for(int i=0; i< nparms+1; i++) { 
-    cout << "S ";
-    for(int j=0; j< nparms+1; j++) { 
-      cout <<  S(i,j) << " ";
-    }
-    cout << endl;
-  }
-  for(int i=0; i< nparms+1; i++) { 
-    cout << "H ";
-    for(int j=0; j< nparms+1; j++) { 
-      cout <<  H(i,j) << " ";
-    }
-    cout << endl;
-  }
-  
-  Sinv=0.0;
-  InvertMatrix(S,Sinv,nparms+1);
-  
-  for(int i=0; i< nparms+1; i++) { 
-    cout << "Sinv ";
-    for(int j=0; j< nparms+1; j++) { 
-      cout <<  Sinv(i,j) << " ";
-    }
-    cout << endl;
-  }
-  
-  
-  Array2 <doublevar> prodmatrix(nparms+1,nparms+1);
-  prodmatrix=0.0;
-  for(int i=0; i< nparms+1; i++) {
-    for(int j=0; j< nparms+1; j++) { 
-      for(int k=0; k< nparms+1; k++) { 
-        prodmatrix(i,k)+=Sinv(i,j)*H(j,k);
-      }
-    }
-  }
+void find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv, 
+    Array2 <doublevar> & H, Array1 <doublevar> & delta_alpha,doublevar stabilization) { 
+  int n=S.GetDim(0);
+  assert(S.GetDim(1)==n);
+  assert(H.GetDim(0)==n);
+  assert(H.GetDim(1)==n);
 
-  for(int i=0; i< nparms+1; i++) { 
-    cout << "P ";
-    for(int j=0; j< nparms+1; j++) { 
-      cout << setprecision(2) << prodmatrix(i,j) << " ";
-    }
-    cout << endl;
-  }
-  
-  Array1 <dcomplex> W(nparms+1);
-  Array2 <doublevar> VL(nparms+1,nparms+1), VR(nparms+1,nparms+1);
+  Sinv.Resize(n,n);
+  for(int i=1; i< n; i++) H(i,i)+=stabilization;
+  InvertMatrix(S,Sinv,n);
+
+  Array2 <doublevar> prodmatrix(n,n);
+
+  MultiplyMatrices(Sinv,H,prodmatrix,n);
+  Array1 <dcomplex> W(n);
+  Array2 <doublevar> VL(n,n), VR(n,n);
   GeneralizedEigenSystemSolverRealGeneralMatrices(prodmatrix,W,VL,VR);
   
   int min_index=0;
   int min_eigenval=W(0).real();
   
-  for(int i=0; i< nparms+1; i++) { 
+  for(int i=0; i< n; i++) { 
     cout << "eigenvalue " << i << " " << W(i) << endl;
     if(W(i).real() < min_eigenval) { 
       min_index=i;
@@ -171,71 +132,30 @@ void Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
     }
   }
 
-  for(int i=0; i< nparms+1; i++ ) {
-    cout << "VR ";
-    for(int j=0; j< nparms+1; j++) { 
-      cout << VR(i,j) << " ";
-    }
-    cout << endl;
-  }
-
-
-  for(int i=0; i< nparms+1; i++ ) {
-    cout << "VL ";
-    for(int j=0; j< nparms+1; j++) { 
-      cout << VL(i,j) << " ";
-    }
-    cout << endl;
-  }
-  
-
-  Array1 <doublevar> dp(nparms+1);
+  Array1 <doublevar> dp(n);
   cout << "initial eigenvector ";
-  for(int i=0; i < nparms+1; i++) { 
+  for(int i=0; i < n; i++) { 
     dp(i)=VL(min_index,i);
     cout << dp(i) << " ";
   }
   cout << endl;
 
-  for(int i=1; i< nparms+1; i++) dp(i)/=dp(0);
+  for(int i=1; i< n; i++) dp(i)/=dp(0);
   dp(0)=1.0;
 
-  cout << "Parameter variation ";
-  for(int i=0; i< nparms+1; i++) 
-    cout << dp(i) << " ";
-  cout << endl;
-
   doublevar xi=0.5;
-  Array1 <doublevar> norm(nparms+1);
-  /*
-  norm=0.;
-  doublevar denominator_sum=0.0;
-  for(int j=1; j < nparms+1; j++) { 
-    for(int k=1; k< nparms+1; k++) { 
-      denominator_sum+=dp(j)*dp(k)*S(j,k);
-    }
-  }
-  
-  for(int i=1; i< nparms+1; i++) { 
-    double numerator_sum=0.0;
-    double denominator_sum=0.0;
-    for(int j=1; j < nparms+1; j++) { 
-      numerator_sum+=dp(j)*S(i,j);
-    }
-    norm(i)=-(1-xi)*numerator_sum/(1-xi+xi*sqrt(1+denominator_sum));
-  }
-  */
+  Array1 <doublevar> norm(n);
   doublevar D=1.0;
-  for(int j=1; j< nparms+1; j++) { 
+  for(int j=1; j< n; j++) { 
     D+=2*S(0,j)*dp(j);
-    for(int k=0; k< nparms+1; k++) {
+    for(int k=0; k< n; k++) {
       D+=S(j,k)*dp(j)*dp(k);
     }
   }
-  for(int i=1; i< nparms+1;  i++) { 
+  for(int i=1; i< n;  i++) { 
     doublevar num_sum=0.0;
     doublevar denom_sum=0.0;
-    for(int j=1; j < nparms+1; j++) { 
+    for(int j=1; j < n; j++) { 
       num_sum+=S(i,j)*dp(j);
       denom_sum+=S(0,j)*dp(j);
     }
@@ -247,40 +167,63 @@ void Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
 
 
   doublevar renorm_dp=0.;
-  for(int i=1; i< nparms+1; i++) { 
+  for(int i=1; i< n; i++) { 
     renorm_dp+=norm(i)*dp(i);
   }
-  cout << "renorm_dp " << renorm_dp << endl;
 
-  for(int i=0; i< nparms; i++) { 
-    alpha(i)+=dp(i+1)/(1-renorm_dp);
-    cout << "new alpha " << alpha(i) << endl;
+
+  delta_alpha.Resize(n-1);
+  for(int i=0; i< n-1; i++) { 
+    delta_alpha(i)=dp(i+1)/(1-renorm_dp);
   }
 
+  
+  for(int i=1; i< n; i++) H(i,i)-=stabilization;
+  
+}
 
-/*
-  Array2 <doublevar> energies_corr2(ntau,2);
-  correlated_evaluation(alphas,0,energies_corr2);
-  doublevar mixing=0.1;
-  doublevar min_en=energies_corr(0,0)+energies_corr(0,1)*energies_corr(0,1)*mixing;
-  doublevar min_n=0;
-  for(int n=0; n< ntau; n++) { 
-    single_write(cout,tau_prefactor[n]*tau," " ,energies_corr2(n,0)," ");
-    single_write(cout,energies_corr2(n,1),"\n");
-    doublevar opt_val=energies_corr2(n,0);
-    if(opt_val < min_en && energies_corr2(n,1) < 1.5*energies_corr2(0,1) ) { 
-      min_en=opt_val;
-      min_n=n;
+//--------------------------------------------------------------------
+
+void Linear_optimization_method::line_minimization(Array2 <doublevar> & S, 
+    Array2 <doublevar> & Sinv, Array2 <doublevar> & H, Array1 <doublevar> & alpha) { 
+  int nparms=wfdata->nparms();
+  vector<doublevar> stabilization;
+  stabilization.push_back(0.0);
+  stabilization.push_back(0.0);
+  stabilization.push_back(1.0);
+  stabilization.push_back(10.0);
+  stabilization.push_back(100.0);
+  stabilization.push_back(1000.0);
+  int nstabil=stabilization.size();
+
+  Array1 <Array1 <doublevar> > alphas(nstabil);
+  alphas(0)=alpha;
+  
+  for(int i=1; i< nstabil; i++) { 
+    find_directions(S,Sinv,H,alphas(i),stabilization[i]);
+    cout << "assigning alpha" << alphas(i).GetDim(0) << " " << alpha.GetDim(0) << endl;
+    for(int j=0; j< alpha.GetDim(0); j++) { 
+      alphas(i)(j)+=alpha(j);
     }
   }
-  alpha=alphas(min_n);
+  cout << "correlated evaluation " << endl;
+  Array2 <doublevar> energies_corr2(nstabil,2);
+  correlated_evaluation(alphas,0,energies_corr2);
+  doublevar min_en=energies_corr2(0,0);
+  int min_alpha=0;
+  for(int n=0; n< nstabil; n++) { 
+    single_write(cout,stabilization[n]," ",energies_corr2(n,0),"\n");
+    if(energies_corr2(n,0) < min_en) { 
+      min_en=energies_corr2(n,0);
+      min_alpha=n;
+    }
+  }
+  alpha=alphas(min_alpha);
   cout << "alpha ";
   for(int i=0; i< nparms;i++) {
     cout << alpha(i) << " ";
   }
   cout << endl;
-*/
-  
 }
 //----------------------------------------------------------------------
 
@@ -385,23 +328,6 @@ void Linear_optimization_method::wavefunction_derivative(
   Average_return &  deriv_avg=final.avgavg(0,0);
   Average_return & deriv_err=final.avgerr(0,0);
 
-  bool nonzero_element=false;
-  for(int i=0; i< deriv_avg.vals.GetDim(0); i++) { 
-    //cout << "avg deriv " << deriv_avg.vals(i) << " " << deriv_err.vals(i) << endl;
-    //holding the significance to some number of sigmas.
-    //if( fabs(deriv_avg.vals(i))/deriv_err.vals(i) < 3)  
-    //  deriv_avg.vals(i)=0.0;
-    //else 
-    //  nonzero_element=true;
-    nonzero_element=true;
-  }
-  if(!nonzero_element) { 
-    cout << "WARNING: set all elements to zero because they are not significant."
-      << " Increasing vmc_nstep to " << vmc_nstep*4<< endl;
-    vmc_nstep*=4;
-    wavefunction_derivative(H, S,en);
-    return;
-  }
 
   int n=wfdata->nparms();
   for(int i=0; i< n; i++) { 
@@ -427,6 +353,9 @@ void Linear_optimization_method::wavefunction_derivative(
       //S(i+1,j+1)=(deriv_avg.vals(3*n+i*n+j)-deriv_avg.vals(n+i)*deriv_avg.vals(n+j))/s_renorm;
       S(i+1,j+1)=deriv_avg.vals(3*n+i*n+j);
     }
+  }
+  for(int i=0; i< n; i++) { 
+    if(fabs(S(i+1,i+1)) < 1e-15) S(i+1,i+1)=1.0;
   }
   H(0,0)=en(0);
   for(int i=0; i < n; i++) { 
