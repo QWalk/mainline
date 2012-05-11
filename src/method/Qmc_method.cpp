@@ -32,7 +32,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Postprocess_method.h"
 #include "Plot1d_method.h"
 #include "Rmc_corr_method.h"
-#include "Stochastic_reconfiguration.h"
 #include "Linear_optimization.h"
 
 int allocate(vector <string> & words,
@@ -83,8 +82,6 @@ int allocate(vector <string> & words,
   else if(caseless_eq(words[0],"PLOT1D"))
     methptr=new Plot1D_method;
 
-  else if(caseless_eq(words[0],"SR"))
-    methptr=new Stochastic_reconfiguration_method;
   else if(caseless_eq(words[0],"LINEAR"))
     methptr=new Linear_optimization_method;
   
