@@ -26,6 +26,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "ulec.h"
 #include "Program_options.h"
 #include "average.h"
+#include "Generate_sample.h"
 
 
 void Dmc_method::read(vector <string> words,
@@ -54,7 +55,8 @@ void Dmc_method::read(vector <string> words,
     error("Need TIMESTEP in METHOD section");
 
   if(!readvalue(words, pos=0, readconfig, "READCONFIG"))
-    error("Must give READCONFIG for DMC");
+    readconfig=options.runid+".config";
+    //error("Must give READCONFIG for DMC");
 
   //optional options
 
@@ -76,7 +78,8 @@ void Dmc_method::read(vector <string> words,
   }
   else pure_dmc=0;
 
-  readvalue(words, pos=0, storeconfig, "STORECONFIG");
+  if(!readvalue(words, pos=0, storeconfig, "STORECONFIG"))
+    storeconfig=options.runid+".config";
 
   if(!readvalue(words, pos=0, log_label, "LABEL"))
     log_label="dmc";
@@ -683,63 +686,18 @@ void Dmc_method::restorecheckpoint(string & filename, System * sys,
                                     Wavefunction_data * wfdata,
                                     Pseudopotential * pseudo) {
 
-/*
-  ifstream checkfile(filename.c_str());
-  if(!checkfile) 
-    error("Couldn't open ", filename);
-  long int is1, is2;
-  string dummy;
-  checkfile >> dummy;
-  if(dummy != "RANDNUM") error("Expected RANDNUM in checkfile");
-  checkfile >> is1 >> is2;
-  rng.seed(is1, is2);
-
-  Array1 <Wf_return > value_temp(nconfig);
-  Array2 <doublevar> energy_temp(nconfig, nwf);
-
-
-  int ncread=0; //Number of configs read
-  int nwread=0; //number of weights read
-  while(checkfile >> dummy && 
-	( ncread < nconfig && nwread < nconfig) ) {
-
-    
-    if(read_config(dummy, checkfile, sample)) { 
-      pts(ncread++).config_pos.savePos(sample);
-      
-    }
-
-    if(dummy=="DMC") {
-      checkfile >> dummy;
-      if(dummy != "{") error("Need a { after DMC");
-      checkfile >> dummy >> pts(nwread).weight;
-      if(dummy != "DMCWEIGHT") {
-        error("expected DMCWEIGHT, got ", dummy);
-      }
-      int nwf_temp;
-      checkfile >> dummy >> nwf_temp;
-      if(dummy != "VALEN") {
-        error("expected VALEN, got ", dummy);
-      }
-      if(nwf_temp != nwf) {
-        error("Wrong number of wavefunctions in the checkpoint file");
-      }
-      
-      //Retrieve the old values and energies from the file
-      value_temp(nwread).Resize(nwf, 2);
-      
-      for(int w=0; w< nwf; w++) {
-        checkfile >> value_temp(nwread).phase(w,0) 
-		  >> value_temp(nwread).amp(w,0) 
-                  >> energy_temp(nwread,w);
-      }
-      nwread++;
-
-    }
-
+  ifstream is(filename.c_str());
+  if(is) { 
+    is.close();
+    read_configurations(filename, pts);
   }
- */
-  read_configurations(filename, pts);
+  else { 
+    Array1 <Config_save_point>  configs;
+    generate_sample(sample,wf,wfdata,guidingwf,nconfig,configs);
+    pts.Resize(nconfig);
+    for(int i=0; i< nconfig; i++) 
+      pts(i).config_pos=configs(i);
+  }
   int ncread=pts.GetDim(0);
   
   //cout << "ncread " << ncread << "  nwread " << nwread << endl;
@@ -763,14 +721,6 @@ void Dmc_method::restorecheckpoint(string & filename, System * sys,
   find_cutoffs();
 
   updateEtrial(start_feedback);
-/*
-  if(do_cdmc) { 
-    if(ncread!=nwread) {
-      cout << "WARNING! do_cdmc and ncread!=nwread " << endl;
-    }
-    cdmcReWeight(energy_temp, value_temp);
-  }
-*/
     
 }
 
