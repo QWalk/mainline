@@ -352,7 +352,7 @@ void Wannier_method::calculate_overlap(Array1 <int> & orb_list,
           for(int d1=0; d1 < 3; d1++) {
             gdotr+=gvec(d,d1)*x(d1);
           }
-          dcomplex exp_tmp=exp(dcomplex(0,-1)*gdotr);
+          dcomplex exp_tmp=exp(dcomplex(0,-1)*pi*gdotr);
           for(int i=0; i< norb; i++) { 
             for(int j=0; j< norb; j++) { 
               eikr(d,i,j)+=exp_tmp*mymovals(i,0)*mymovals(j,0);
@@ -483,11 +483,11 @@ void Wannier_method::optimize_rotation(Array3 <dcomplex> &  eikr,
   //Array2 <dcomplex> tmp(norb,norb),tmp2(norb,norb);
   Array2 <doublevar> deriv(norb,norb);
   Rgen=0.0;
-  for(int ii=0; ii< norb; ii++) { 
-    for(int jj=ii+1; jj< norb; jj++) { 
-      Rgen(ii,jj)=rng.gasdev()*pi;
-    }
-  }
+  //for(int ii=0; ii< norb; ii++) { 
+  //  for(int jj=ii+1; jj< norb; jj++) { 
+  //    Rgen(ii,jj)=rng.gasdev()*pi;
+  //  }
+  //}
   doublevar max_tstep=2.0;
   for(int step=0; step < 800; step++) { 
     doublevar fbase=evaluate_local(eikr,Rgen,R);
