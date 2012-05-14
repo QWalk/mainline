@@ -18,8 +18,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
  
 */
 
-#ifndef STOCHASTIC_RECONFIGURATION_H_INCLUDED
-#define STOCHASTIC_RECONFIGURATION_H_INCLUDED
+#ifndef LINEAR_OPTIMIZATION_H_INCLUDED
+#define LINEAR_OPTIMIZATION_H_INCLUDED
 
 #include "Qmc_std.h"
 #include "Qmc_method.h"
@@ -31,21 +31,21 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Pseudopotential.h"
 #include "Program_options.h"
 
-class Stochastic_reconfiguration_method : public Qmc_method
+class Linear_optimization_method : public Qmc_method
 {
 public:
   void read(vector <string> words,
             unsigned int & pos,
             Program_options & options);
   void run(Program_options & options, ostream & output);
-  ~Stochastic_reconfiguration_method()
+  ~Linear_optimization_method()
   {
     if(pseudo) delete pseudo;
     if(sys) delete sys;
     if(wfdata) delete wfdata;
   }
 
-  Stochastic_reconfiguration_method() { 
+  Linear_optimization_method() { 
     wfdata=NULL; sys=NULL;
     pseudo=NULL;
   }
@@ -62,17 +62,16 @@ private:
   string wfoutputfile;
   Program_options options;
 
-  void wavefunction_derivative(Array1<doublevar> & energies,Array2 <doublevar> & S,Array1<doublevar> & en);
+  void wavefunction_derivative(Array2<doublevar> & H,Array2 <doublevar> & S,Array1<doublevar> & en);
   void wavefunction_energy(Array1 <doublevar> & en);
   void line_minimization(Array2 <doublevar> & S, 
-    Array2 <doublevar> & Sinv, Array1 <doublevar> & energies,Array1 <doublevar> & alpha);
+    Array2 <doublevar> & Sinv, Array2 <doublevar> & H,Array1 <doublevar> & alpha);
   void correlated_evaluation(Array1 <Array1 <doublevar> > & alphas,int ref_alpha,Array2 <doublevar> & energies);
   
   
   
-  void output_average_wf(Array2 <doublevar> & alpha_step,Array2 <doublevar> & energy_step, int nit_completed);
 
 };
 
-#endif //STOCHASTIC_RECONFIGURATION_H_INCLUDED
+#endif //LINEAR_OPTIMIZATION_H_INCLUDED
 

@@ -267,7 +267,6 @@ void Average_twobody_correlation::evaluate(Wavefunction_data * wfdata, Wavefunct
   avg.vals.Resize(2*npoints); //for like and unlike
   avg.vals=0;
   int nup=sys->nelectrons(0);
-  int ndown=nelectrons-nup;
   sample->updateEEDist();
   Array1 <doublevar> dist(5);
   for(int e=0; e< nup; e++) {
@@ -1236,7 +1235,7 @@ void Average_spherical_density::write_init(string & indent, ostream & os) {
   os << indent << "cutoff " << dR*npoints << endl;
   os << indent << "nfunc " <<  nfunc << endl;
   os << indent << "BASIS { ";
-  for(int i=0; i<basistext.size();i++)
+  for(unsigned int i=0; i<basistext.size();i++)
     os << basistext[i]<<" ";
   os <<" } "<<endl;
 }
@@ -1300,8 +1299,8 @@ void Average_spherical_density::write_summary(Average_return & avg, Average_retu
   string indent="  ";
   basis->showinfo(indent, os);
   os <<"Spin-up and spin-down density in above basis"<<endl;
-  doublevar summ1=0;
-  doublevar summ2=0;
+  //doublevar summ1=0;
+  //doublevar summ2=0;
   for(int i=0; i< nfunc; i++) {
     os << i+1 <<setw(20)<<setprecision(10)<< avg.vals(i) <<setw(20)<<setprecision(10)<<  err.vals(i);
     os <<setw(20)<<setprecision(10)<< avg.vals(i+nfunc) <<setw(20)<<setprecision(10)<<  err.vals(i+nfunc) << endl;
@@ -1435,7 +1434,7 @@ void Average_spherical_density_grid::evaluate(Wavefunction_data * wfdata, Wavefu
     }
     for( int i=0; i<npoints; i++) {
       if(distance > i*dR && distance< (i+1)*dR){
-	doublevar r=(i+0.5)*dR;
+	//doublevar r=(i+0.5)*dR;
 	if(e<nup){
 	  // if(i==0){
 	  //  cout <<"electron # "<<e+1<< "very close to origin: R= "<<distance<<" value "<<1.0/(distance2*4.0*pi*dR)<<endl;
@@ -1593,7 +1592,6 @@ void Average_line_density::evaluate(Wavefunction_data * wfdata, Wavefunction * w
   avg.vals.Resize(2*npoints); //for up and down
   avg.vals=0;
   int nup=sys->nelectrons(0);
-  int ndown=nelectrons-nup;
   Array1 <doublevar> epos(3);
   for(int e=0; e< nelectrons; e++) {
     sample->getElectronPos(e,epos);
@@ -1636,11 +1634,11 @@ void Average_line_density::read(vector <string> & words) {
   vector <string> sec;
   readsection(words, pos=0,sec, "direction");
   vec.Resize(sec.size());
-  for(int i=0; i< sec.size(); i++) vec(i)=atof(sec[i].c_str());
+  for(unsigned int i=0; i< sec.size(); i++) vec(i)=atof(sec[i].c_str());
   sec.clear();
   readsection(words,pos=0, sec, "origin");
   origin.Resize(sec.size());
-  for(int i=0; i< sec.size(); i++) origin(i)=atof(sec[i].c_str());
+  for(unsigned int i=0; i< sec.size(); i++) origin(i)=atof(sec[i].c_str());
 
 }
 //-----------------------------------------------------------------------------
@@ -1677,16 +1675,59 @@ void Average_wf_parmderivs::evaluate(Wavefunction_data * wfdata, Wavefunction * 
   if(!wf->getParmDeriv(wfdata, sample,deriv)) { 
     error("WF needs to support parmderivs for now.");
   }
-  avg.vals.Resize(2*nparms+nparms*nparms);
+  avg.vals.Resize(3*nparms+3*nparms*nparms+1);
+  
   for(int i=0; i< nparms; i++) { 
     avg.vals(i)=deriv.gradient(i)*pt.energy(0);
     avg.vals(nparms+i)=deriv.gradient(i);
   }
   for(int i=0;i< nparms; i++) { 
     for(int j=0; j< nparms; j++) { 
-      avg.vals(2*nparms+i*nparms+j)=deriv.gradient(i)*deriv.gradient(j);
+      avg.vals(3*nparms+i*nparms+j)=deriv.gradient(i)*deriv.gradient(j);
     }
   }
+  int offset=3*nparms+nparms*nparms;
+  for(int i=0; i< nparms; i++) { 
+    for(int j=0; j< nparms; j++) { 
+      avg.vals(offset+i*nparms+j)=deriv.gradient(i)*deriv.gradient(j)*pt.energy(0);
+    }
+  }
+
+
+  //approximate the derivative of elocal by finite differences
+  //and assuming that only the kinetic energy changes (this neglects the
+  //pseudopotential changes for now..)
+  
+  Array1 <doublevar> el(nparms),kin(1);
+  Array1 <doublevar> alpha0(nparms),alpha(nparms);
+  wfdata->getVarParms(alpha0);
+  doublevar base_kinetic=pt.kinetic(0);
+  doublevar delta=1e-10;
+  for(int i=0; i< nparms; i++) { 
+    alpha=alpha0;
+    alpha(i)+=delta;
+    wfdata->setVarParms(alpha);
+    wf->notify(all_electrons_move,0);
+    wf->updateLap(wfdata,sample);
+    sys->calcKinetic(wfdata,sample,wf,kin);
+    el(i)=(kin(0)-base_kinetic)/delta;
+  }
+  wfdata->setVarParms(alpha0);
+
+  for(int i=0; i< nparms; i++) { 
+    avg.vals(2*nparms+i)=el(i);
+  }
+  offset+=nparms*nparms;
+  for(int i=0; i< nparms; i++) {
+    for(int j=0; j< nparms; j++) { 
+      avg.vals(offset+i*nparms+j)=deriv.gradient(i)*el(j);
+    }
+  }
+  
+  avg.vals(offset+nparms*nparms)=exp(2*pt.wf_val.amp(0,0));
+
+
+
 }
 //-----------------------------------------------------------------------------
 void Average_wf_parmderivs::read(System * sys, Wavefunction_data * wfdata, vector
