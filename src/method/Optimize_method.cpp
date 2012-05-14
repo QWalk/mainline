@@ -22,20 +22,15 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Program_options.h"
 #include "ulec.h"
 #include "System.h"
+#include "Generate_sample.h"
 void Optimize_method::read(vector <string> words,
                            unsigned int & pos,
                            Program_options & options)
 {
 
-  pos=0;
   if(!readvalue(words, pos=0, nconfig, "NCONFIG"))
-  {
-    error("Need NCONFIG in METHOD section");
-  }
-  pos=0;
- 
-  pos=0;
-  if(!readvalue(words,pos, eref, "EREF"))
+    nconfig=max(2048/mpi_info.nprocs,1);
+  if(!readvalue(words,pos=0, eref, "EREF"))
     guess_eref=1;
   else guess_eref=0;
   
@@ -90,9 +85,7 @@ void Optimize_method::read(vector <string> words,
     min_function=min_variance;
   }
 
-  string readconfig;
-  if(!readvalue(words, pos=0, readconfig, "READCONFIG"))
-    error("READCONFIG required for OPTIMIZE method!");
+  readvalue(words, pos=0, readconfig, "READCONFIG");
   update_psp=0;
   if(haskeyword(words, pos=0, "UPDATE_PSP")) update_psp=1;
 
@@ -100,19 +93,6 @@ void Optimize_method::read(vector <string> words,
   allocate(options.systemtext[0],  sys);
   sys->generatePseudo(options.pseudotext, pseudo);
   sys->generateSample(sample);
-  read_configurations(readconfig,config_pos);
-  int configsread=config_pos.GetDim(0);
-
-
-  if(configsread < nconfig)
-  {
-    nconfig=configsread;
-    cout << "processor " << mpi_info.node << " : "
-    << "WARNING: Didn't find enough configurations in the "
-    << "file.  Running optimization with only " << nconfig
-    << " sample points." << endl;
-  }
-
 
   debug_write(cout, "wfdata allocate\n");
   wfdata=NULL;
@@ -200,6 +180,27 @@ void Optimize_method::run(Program_options & options, ostream & output)
   local_energy.Resize(nconfig);
   wfdata->generateWavefunction(wf);
   sample->attachObserver(wf);
+
+  if(readconfig=="") {
+    Primary guidewf;
+    generate_sample(sample,wf,wfdata,&guidewf,nconfig,config_pos);
+  }
+  else read_configurations(readconfig,config_pos);
+  int configsread=config_pos.GetDim(0);
+
+
+  if(configsread < nconfig)
+  {
+    nconfig=configsread;
+    cout << "processor " << mpi_info.node << " : "
+    << "WARNING: Didn't find enough configurations in the "
+    << "file.  Running optimization with only " << nconfig
+    << " sample points." << endl;
+  }
+
+
+
+
   for(int walker=0; walker < nconfig; walker++)  {
     config_pos(walker).restorePos(sample);
     nfunctions=wf->nfunc();

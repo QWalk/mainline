@@ -92,6 +92,7 @@ private:
   Wavefunction * wf;
   Wavefunction_data * wfdata;
   Pseudopotential * pseudo;
+  string readconfig;
   
   Array1 <doublevar> last_ens;
 };
