@@ -42,18 +42,19 @@ void Dmc_method::read(vector <string> words,
   //required options
 
   
-  if(!readvalue(words, pos=0, nblock, "NBLOCK"))
-    error("Need NBLOCK in METHOD section");
-  
-  if(!readvalue(words, pos=0, nconfig, "NCONFIG"))
-    error("Need NCONFIG in METHOD section");
-
-  if(!readvalue(words, pos=0, nstep, "NSTEP"))
-    error("Need NSTEP in METHOD section");
 
   if(!readvalue(words, pos=0, timestep, "TIMESTEP"))
     error("Need TIMESTEP in METHOD section");
 
+  if(!readvalue(words, pos=0, nblock, "NBLOCK"))
+    nblock=100;
+  
+  if(!readvalue(words, pos=0, nconfig, "NCONFIG"))
+    nconfig=max(2048/mpi_info.nprocs,1);
+
+  if(!readvalue(words, pos=0, nstep, "NSTEP"))
+    nstep=max(int(1.0/timestep+0.5),1);
+  
   if(!readvalue(words, pos=0, readconfig, "READCONFIG"))
     readconfig=options.runid+".config";
     //error("Must give READCONFIG for DMC");
