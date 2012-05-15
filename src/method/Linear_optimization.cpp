@@ -125,7 +125,8 @@ void find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
   int min_eigenval=W(0).real();
   
   for(int i=0; i< n; i++) { 
-    cout << "eigenvalue " << i << " " << W(i) << endl;
+    single_write(cout,"eigenvalue ",i," ");
+    single_write(cout,W(i),"\n");
     if(W(i).real() < min_eigenval) { 
       min_index=i;
       min_eigenval=W(i).real();
@@ -133,12 +134,12 @@ void find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
   }
 
   Array1 <doublevar> dp(n);
-  cout << "initial eigenvector ";
+  single_write(cout,"initial eigenvector ");
   for(int i=0; i < n; i++) { 
     dp(i)=VL(min_index,i);
-    cout << dp(i) << " ";
+    single_write(cout,dp(i)," ");
   }
-  cout << endl;
+  single_write(cout,"\n");
 
   for(int i=1; i< n; i++) dp(i)/=dp(0);
   dp(0)=1.0;
@@ -201,12 +202,11 @@ void Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   
   for(int i=1; i< nstabil; i++) { 
     find_directions(S,Sinv,H,alphas(i),stabilization[i]);
-    cout << "assigning alpha" << alphas(i).GetDim(0) << " " << alpha.GetDim(0) << endl;
+    //cout << "assigning alpha" << alphas(i).GetDim(0) << " " << alpha.GetDim(0) << endl;
     for(int j=0; j< alpha.GetDim(0); j++) { 
       alphas(i)(j)+=alpha(j);
     }
   }
-  cout << "correlated evaluation " << endl;
   Array2 <doublevar> energies_corr2(nstabil,2);
   correlated_evaluation(alphas,0,energies_corr2);
   doublevar min_en=energies_corr2(0,0);
@@ -219,40 +219,24 @@ void Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
     }
   }
   alpha=alphas(min_alpha);
-  cout << "alpha ";
-  for(int i=0; i< nparms;i++) {
-    cout << alpha(i) << " ";
-  }
-  cout << endl;
+  //cout << "alpha ";
+  //for(int i=0; i< nparms;i++) {
+  //  cout << alpha(i) << " ";
+  //}
+  //cout << endl;
 }
 //----------------------------------------------------------------------
 
-#include "Guiding_function.h"
-#include "Split_sample.h"
+#include "Generate_sample.h"
 void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar> > & alphas,int ref_alpha,Array2 <doublevar> & energies) {
   Sample_point * sample=NULL;
   Wavefunction * wf=NULL;
   sys->generateSample(sample);
   wfdata->generateWavefunction(wf);
   sample->attachObserver(wf);
-  int nstep=10;
-  doublevar timestep=0.3;
   Array1 <Config_save_point> config_pos(nconfig_eval);
-  Split_sampler sampler;
-  sampler.setRecursionDepth(2);
-  Dynamics_info dinfo;
   Primary guide;
-  sample->randomGuess();
-  int nelectrons=sample->electronSize();
-  wfdata->setVarParms(alphas(ref_alpha));
-  for(int config=0; config < nconfig_eval; config++) { 
-    for(int step=0; step < nstep; step++) { 
-      for(int e=0; e < nelectrons; e++) { 
-        sampler.sample(e,sample,wf,wfdata,&guide,dinfo,timestep);
-      }
-    }
-    config_pos(config).savePos(sample);
-  }
+  generate_sample(sample,wf,wfdata,&guide,nconfig_eval,config_pos);
 
   Properties_gather mygather;
   int nwfs=alphas.GetDim(0);
@@ -309,9 +293,9 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
 
 void Linear_optimization_method::wavefunction_derivative(
     Array2 <doublevar> & H,Array2<doublevar> & S, Array1 <doublevar> & en) { 
-  string vmc_section="VMC nconfig 1 nstep ";
+  string vmc_section="VMC nstep ";
   append_number(vmc_section,vmc_nstep);
-  vmc_section+=" timestep 1.0 nblock 20 average { WF_PARMDERIV } ";
+  vmc_section+="  nblock 20 average { WF_PARMDERIV } ";
   vector <string> words;
   string sep=" ";
   split(vmc_section,sep,words);
@@ -319,7 +303,7 @@ void Linear_optimization_method::wavefunction_derivative(
   Vmc_method vmc;
   vmc.read(words,pos,options);
   Properties_manager prop;
-  string name=options.runid+"vmcout";
+  string name=options.runid+".vmcout";
   ofstream vmcout;
   if(mpi_info.node==0) vmcout.open(name.c_str());
   vmc.runWithVariables(prop,sys,wfdata,pseudo,vmcout);
@@ -331,7 +315,7 @@ void Linear_optimization_method::wavefunction_derivative(
 
   int n=wfdata->nparms();
   for(int i=0; i< n; i++) { 
-    cout << "energy derivative " << deriv_avg.vals(2*n+i) << endl;
+    single_write(cout, "energy derivative ",deriv_avg.vals(2*n+i),"\n");
   }
   H.Resize(n+1,n+1);
   S.Resize(n+1,n+1);
