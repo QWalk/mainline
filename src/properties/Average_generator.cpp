@@ -1699,7 +1699,6 @@ void Average_wf_parmderivs::evaluate(Wavefunction_data * wfdata, Wavefunction * 
     alpha=alpha0;
     alpha(i)+=delta;
     wfdata->setVarParms(alpha);
-    wf->notify(all_electrons_move,0);
     wf->updateLap(wfdata,sample);
     sys->calcKinetic(wfdata,sample,wf,kin);
     el(i)=(kin(0)-base_kinetic)/delta;
