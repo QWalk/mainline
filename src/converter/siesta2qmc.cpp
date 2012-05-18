@@ -798,11 +798,13 @@ void uread(char * p,int ncount,FILE * file) {
  * so we have to clear it since we know when the writes come from  readwfx.f in the Utilities/
  * directory in the SIESTA distribution.
  * */
-void clear_header(FILE * file) { 
+void clear_header(FILE * file,int n) { 
 //char buff[4];
 //  fread(buff,sizeof(char),4,file);
-  int a=read_int(file);
-  //cout << "cleared header: represents " << a << " bytes " << endl;
+  for(int i=0; i< n; i++) {
+    int a=read_int(file);
+//    cout << "cleared header: represents " << a << " bytes " << endl;
+  }
 }
 
 
@@ -820,18 +822,24 @@ void read_mo_coefficients_wfsx(string & filename,
     exit(1);
   }
 
-  clear_header(wffile);
-  int nk;
+  int n_head=1;
+  clear_header(wffile,n_head);
+  int nk=read_int(wffile);
+  if(nk==0) { 
+    cout << "Detected 64-bit pointers..adjusting" << endl;
+    nk=read_int(wffile);
+    n_head=2;
+  }
+    
   int gamma;
-  nk=read_int(wffile);
   fread(&gamma,sizeof(int),1,wffile);
-  //cout << "nk " << nk << " gamma " << gamma << " size of int " << sizeof(int) << endl;
-  clear_header(wffile);clear_header(wffile);
+  cout << "nk " << nk << " gamma " << gamma << " size of int " << sizeof(int) << endl;
+  clear_header(wffile,n_head);clear_header(wffile,n_head);
   int nspin=read_int(wffile);
-  clear_header(wffile); clear_header(wffile);
+  clear_header(wffile,n_head); clear_header(wffile,n_head);
   int nuotot=read_int(wffile); //number of basis orbitals
-  //cout << "nspin " << nspin << " nuotot " << nuotot << endl;
-  clear_header(wffile); clear_header(wffile);
+  cout << "nspin " << nspin << " nuotot " << nuotot << endl;
+  clear_header(wffile,n_head); clear_header(wffile,n_head);
 
 
   if(nspin==1) { 
@@ -840,7 +848,7 @@ void read_mo_coefficients_wfsx(string & filename,
   else if(nspin==2) { 
     slwriter.calctype="UHF";
   }
-  else { cout << "error reading nspin " << endl; exit(1); }
+  else { cout << "error reading nspin " << nspin << endl; exit(1); }
 
   
 
@@ -856,42 +864,42 @@ void read_mo_coefficients_wfsx(string & filename,
     //cout << "iaorb " << iaorb << " iphorb " << iphorb << " labelfis " << labelfis
     //  << " cnfigfio " << cnfigfio << " symfio " << symfio << endl;
   }
-  clear_header(wffile); 
+  clear_header(wffile,n_head); 
   kpoints.resize(nk);
   moCoeff.resize(nk);
   for(int ik=0; ik < nk; ik++) { 
     for(int ispin=0; ispin < nspin; ispin++) { 
       vector <double> k(3);
       double kpoint_weight;
-      clear_header(wffile);
+      clear_header(wffile,n_head);
       int iik=read_int(wffile);
       uread(&k[0],3,wffile);
       kpoint_weight=read_double(wffile);
-      clear_header(wffile);
+      clear_header(wffile,n_head);
       //cout << "ik " << iik << " k " << k[0] << " " << k[1] << " " << k[2] << "  weight " << kpoint_weight << endl;
       kpoints[ik]=k;
       assert(ik+1==iik);
-      clear_header(wffile);
+      clear_header(wffile,n_head);
       int iispin=read_int(wffile);
-      clear_header(wffile);
+      clear_header(wffile,n_head);
       //cout << "ispin " << ispin << " " << iispin << endl;
       assert(ispin+1==iispin);
-      clear_header(wffile);
+      clear_header(wffile,n_head);
       int nwflist=read_int(wffile);
-      clear_header(wffile);
+      clear_header(wffile,n_head);
       //cout << "nwflist " << nwflist << endl;
       for(int iw=0; iw < nwflist; iw++) { 
-        clear_header(wffile);
+        clear_header(wffile,n_head);
         int indwf=read_int(wffile);
-        clear_header(wffile);
-        clear_header(wffile);
+        clear_header(wffile,n_head);
+        clear_header(wffile,n_head);
         double energy=read_double(wffile);
-        clear_header(wffile);
-        clear_header(wffile);
+        clear_header(wffile,n_head);
+        clear_header(wffile,n_head);
         if(gamma) { 
           vector <float> psi(nuotot);
           uread(&psi[0],nuotot,wffile);
-          clear_header(wffile);
+          clear_header(wffile,n_head);
           vector <dcomplex> orb(nuotot);
           for(int j=0; j< nuotot; j++) { 
             orb[j]=psi[j];
@@ -907,7 +915,7 @@ void read_mo_coefficients_wfsx(string & filename,
         else { 
           vector <float> psi(2*nuotot);
           uread(&psi[0],2*nuotot,wffile);
-          clear_header(wffile);
+          clear_header(wffile,n_head);
           vector <dcomplex> orb(nuotot);
           for(int j=0; j< nuotot; j++) { 
             orb[j]=complex<float>(psi[2*j],psi[2*j+1]);
@@ -1051,7 +1059,7 @@ void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis ) {
     string dummy;
     while(true) { 
       in >> dummy;
-      cout <<" dummy " << dummy << endl;
+      //cout <<" dummy " << dummy << endl;
       if(dummy=="</preamble>") 
         break;
     }
