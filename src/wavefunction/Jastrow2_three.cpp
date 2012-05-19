@@ -135,6 +135,68 @@ int Jastrow_threebody_piece::showinfo(string & indent, ostream & os) {
 //--------------------------------------------------------------------------
 
 
+inline void eval_threebody_derivative(doublevar parm,
+    double * eiek, double * eiel, double * eijk, double * eijl, 
+    double * ee, double sign,
+    double * lap0, double * lap1) { 
+  /*
+  doublevar vkl=parm*(eibasis(e,at,k,0)*eibasis(j,at,el,0)
+      +eibasis(j,at,k,0)*eibasis(e,at,el,0));
+
+
+  for(int d=1; d< 5; d++) {
+    vkl_e[d]=parm*(eibasis(e,at,k,d)*eibasis(j,at,el,0)
+        +eibasis(j,at,k,0)*eibasis(e,at,el,d));
+    vkl_j[d]=parm*(eibasis(e,at,k,0)*eibasis(j,at,el,d)
+        +eibasis(j,at,k,d)*eibasis(e,at,el,0));
+  } 
+  lap(0,j,0)+=vkl*eebasis(j,m,0);
+  doublevar dot_e=0, dot_j=0;
+  for(int d=1; d< 4; d++) {
+    lap(0,j,d)+=vkl_e[d]*eebasis(j,m,0);
+    lap(0,j,d)-=vkl*eebasis(j,m,d);
+    lap(1,j,d)+=vkl_j[d]*eebasis(j,m,0);
+    lap(1,j,d)+=vkl*eebasis(j,m,d);
+
+    dot_e+=vkl_e[d]*eebasis(j,m,d);
+    dot_j+=vkl_j[d]*eebasis(j,m,d);
+  }
+
+
+  lap(0,j,4)+=vkl*eebasis(j,m,4);
+  lap(1,j,4)+=vkl*eebasis(j,m,4);
+
+  lap(0,j,4)+=vkl_e[4]*eebasis(j,m,0);
+  lap(1,j,4)+=vkl_j[4]*eebasis(j,m,0);
+
+  lap(0,j,4)-=2*dot_e;
+  lap(1,j,4)+=2*dot_j;
+  */
+  doublevar vkl=parm*(eiek[0]*eijl[0]+eiel[0]*eijk[0]);
+  doublevar  vkl_e[5],vkl_j[5];
+  for(int d=1; d< 5; d++) {
+    vkl_e[d]=parm*(eiek[d]*eijl[0]+eijk[0]*eiel[d]);
+    vkl_j[d]=parm*(eiek[0]*eijl[d]+eijk[d]*eiel[0]);
+  }
+  lap0[0]+=vkl*ee[0];
+  doublevar dot_e=0,dot_j=0;
+  for(int d=1; d< 4; d++) { 
+    lap0[d]+=vkl_e[d]*ee[0];
+    lap0[d]-=sign*vkl*ee[d];
+    lap1[d]+=vkl_j[d]*ee[0];
+    lap1[d]+=sign*vkl*ee[d];
+    dot_e+=vkl_e[d]*ee[d];
+    dot_j+=vkl_j[d]*ee[d];
+  }
+  lap0[4]+=vkl*ee[4];
+  lap1[4]+=vkl*ee[4];
+  lap0[4]+=vkl_e[4]*ee[0];
+  lap1[4]+=vkl_j[4]*ee[0];
+  lap0[4]-=2*sign*dot_e;
+  lap1[4]+=2*sign*dot_j;
+    
+} 
+
 
 void Jastrow_threebody_piece::updateLap(int e,
                  const Array4 <doublevar> & eibasis,
@@ -150,80 +212,155 @@ void Jastrow_threebody_piece::updateLap(int e,
   assert(lap.GetDim(1) >= nelectrons);
   Array1 <doublevar> vkl_e(5); //derivative wrt e of a_e a_j + a_j a_e
   Array1 <doublevar> vkl_j(5); //wrt j
-  
+
   const doublevar tiny=1e-14;
   //cout << "updateLap " << endl;
+
+  //Find electrons with non-zero basis
+  int nelectrons_nonzero=0;
+  Array1 <int> electrons_nonzero(nelectrons);
+  for(int j=0; j< nelectrons; j++) { 
+    bool in_range=false;
+    for(int m=0; m < eebasis.GetDim(1); m++) { 
+      if(fabs(eebasis(j,m,0)) > tiny) {
+        in_range=true;
+      }
+    }
+    if(in_range and e!=j) {
+      electrons_nonzero(nelectrons_nonzero++)=j;
+    }
+  }
+  //cout << nelectrons << " " << nelectrons_nonzero << endl;
+
+
+  int ei_nb=eibasis.GetDim(2);
+  int ee_nb=eebasis.GetDim(1);
+  int nd=5;
+  //Scaling factors for the electron-ion basis
+  int ei_s1=eibasis.GetDim(1)*eibasis.GetDim(2)*eibasis.GetDim(3);
+  int ei_s2=eibasis.GetDim(2)*eibasis.GetDim(3);
+  int ei_s3=eibasis.GetDim(3);
+
   for(int at=0; at < natoms; at++) {
     int p=parm_centers(at);
-    
+
     for(int i=0; i< _nparms(p); i++) {
       doublevar parm=unique_parameters(p,i);
       int k=klm(i,0), el=klm(i,1), m=klm(i,2);
       if(fabs(eibasis(e,at,k,0)) > tiny
-	 || fabs(eibasis(e,at,el,0)) > tiny) { 
-	for(int j=0; j< e; j++) {
-	  doublevar vkl=parm*(eibasis(e,at,k,0)*eibasis(j,at,el,0)
-			      +eibasis(j,at,k,0)*eibasis(e,at,el,0));
-	  
-	  
-	  for(int d=1; d< 5; d++) {
-	    vkl_e[d]=parm*(eibasis(e,at,k,d)*eibasis(j,at,el,0)
-			   +eibasis(j,at,k,0)*eibasis(e,at,el,d));
-	    vkl_j[d]=parm*(eibasis(e,at,k,0)*eibasis(j,at,el,d)
-			   +eibasis(j,at,k,d)*eibasis(e,at,el,0));
-	  } 
-	  lap(0,j,0)+=vkl*eebasis(j,m,0);
-	  doublevar dot_e=0, dot_j=0;
-	  for(int d=1; d< 4; d++) {
-	    lap(0,j,d)+=vkl_e[d]*eebasis(j,m,0);
-	    lap(0,j,d)-=vkl*eebasis(j,m,d);
-	    lap(1,j,d)+=vkl_j[d]*eebasis(j,m,0);
-	    lap(1,j,d)+=vkl*eebasis(j,m,d);
-	    
-	    dot_e+=vkl_e[d]*eebasis(j,m,d);
-	    dot_j+=vkl_j[d]*eebasis(j,m,d);
-	  }
-	  
-	  
-	  lap(0,j,4)+=vkl*eebasis(j,m,4);
-	  lap(1,j,4)+=vkl*eebasis(j,m,4);
-	  
-	  lap(0,j,4)+=vkl_e[4]*eebasis(j,m,0);
-	  lap(1,j,4)+=vkl_j[4]*eebasis(j,m,0);
-	  
-	  lap(0,j,4)-=2*dot_e;
-	  lap(1,j,4)+=2*dot_j;
-	}
-	for(int j=e+1; j< nelectrons; j++) {
-	  doublevar vkl=parm*(eibasis(e,at,k,0)*eibasis(j,at,el,0)
-			      +eibasis(j,at,k,0)*eibasis(e,at,el,0));
-	  for(int d=1; d< 5; d++) {
-	    vkl_e[d]=parm*(eibasis(e,at,k,d)*eibasis(j,at,el,0)
-			   +eibasis(j,at,k,0)*eibasis(e,at,el,d));
-	    vkl_j[d]=parm*(eibasis(e,at,k,0)*eibasis(j,at,el,d)
-			   +eibasis(j,at,k,d)*eibasis(e,at,el,0));
-	  } 
-	  
-	  lap(0,j,0)+=vkl*eebasis(j,m,0);
-	  doublevar dot_e=0, dot_j=0;
-	  for(int d=1; d< 4; d++) {
-	    lap(0,j,d)+=vkl_e[d]*eebasis(j,m,0);
-	    lap(0,j,d)+=vkl*eebasis(j,m,d);
-	    lap(1,j,d)+=vkl_j[d]*eebasis(j,m,0);
-	    lap(1,j,d)-=vkl*eebasis(j,m,d);
-	    
-	    dot_e+=vkl_e[d]*eebasis(j,m,d);
-	    dot_j+=vkl_j[d]*eebasis(j,m,d);
-	  }
-	  lap(0,j,4)+=vkl*eebasis(j,m,4);
-	  lap(1,j,4)+=vkl*eebasis(j,m,4);
-	  
-	  lap(0,j,4)+=vkl_e[4]*eebasis(j,m,0);
-	  lap(1,j,4)+=vkl_j[4]*eebasis(j,m,0);
-	  
-	  lap(0,j,4)+=2*dot_e;
-	  lap(1,j,4)-=2*dot_j;
-	}
+          || fabs(eibasis(e,at,el,0)) > tiny) { 
+        
+        //lap=0;
+        
+        for(int jj=0; jj< nelectrons_nonzero; jj++) {
+          int j=electrons_nonzero(jj);
+          double sign=1;
+          if( j> e) sign=-1;
+          eval_threebody_derivative(parm,
+              eibasis.v+ e*ei_s1 + at*ei_s2 + k *ei_s3,
+              eibasis.v+ e*ei_s1 + at*ei_s2 + el*ei_s3,
+              eibasis.v+ j*ei_s1 + at*ei_s2 + k *ei_s3,
+              eibasis.v+ j*ei_s1 + at*ei_s2 + el*ei_s3,
+              eebasis.v+ j*ee_nb*nd + m*nd,
+              sign,
+              lap.v+j*nd,
+              lap.v+nelectrons*nd+j*nd);
+        }
+        
+        
+
+        //for(int j=0; j < nelectrons; j++) { 
+        //  cout << "new lap ";
+        //  for(int d=0; d< 5; d++) 
+        //    cout << lap(0,j,d) << " ";
+        //  cout << endl;
+        //}
+        
+          
+//------------        
+      //lap=0;
+      
+        /*
+      for(int j=0; j< e; j++) { 
+        doublevar vkl=parm*(eibasis(e,at,k,0)*eibasis(j,at,el,0)
+            +eibasis(j,at,k,0)*eibasis(e,at,el,0));
+
+
+          for(int d=1; d< 5; d++) {
+            vkl_e[d]=parm*(eibasis(e,at,k,d)*eibasis(j,at,el,0)
+                +eibasis(j,at,k,0)*eibasis(e,at,el,d));
+            vkl_j[d]=parm*(eibasis(e,at,k,0)*eibasis(j,at,el,d)
+                +eibasis(j,at,k,d)*eibasis(e,at,el,0));
+          } 
+          lap(0,j,0)+=vkl*eebasis(j,m,0);
+          doublevar dot_e=0, dot_j=0;
+          for(int d=1; d< 4; d++) {
+            lap(0,j,d)+=vkl_e[d]*eebasis(j,m,0);
+            lap(0,j,d)-=vkl*eebasis(j,m,d);
+            lap(1,j,d)+=vkl_j[d]*eebasis(j,m,0);
+            lap(1,j,d)+=vkl*eebasis(j,m,d);
+
+            dot_e+=vkl_e[d]*eebasis(j,m,d);
+            dot_j+=vkl_j[d]*eebasis(j,m,d);
+          }
+
+          //cout << "old: vkl " << vkl << endl;
+          //cout << "old: dot_e " << dot_e <<  "dot_j " << dot_j << endl;
+          
+
+          lap(0,j,4)+=vkl*eebasis(j,m,4);
+          lap(1,j,4)+=vkl*eebasis(j,m,4);
+
+          lap(0,j,4)+=vkl_e[4]*eebasis(j,m,0);
+          lap(1,j,4)+=vkl_j[4]*eebasis(j,m,0);
+
+          lap(0,j,4)-=2*dot_e;
+          lap(1,j,4)+=2*dot_j;
+        }
+        
+        
+        for(int j=e+1; j< nelectrons; j++) {
+          doublevar vkl=parm*(eibasis(e,at,k,0)*eibasis(j,at,el,0)
+              +eibasis(j,at,k,0)*eibasis(e,at,el,0));
+          for(int d=1; d< 5; d++) {
+            vkl_e[d]=parm*(eibasis(e,at,k,d)*eibasis(j,at,el,0)
+                +eibasis(j,at,k,0)*eibasis(e,at,el,d));
+            vkl_j[d]=parm*(eibasis(e,at,k,0)*eibasis(j,at,el,d)
+                +eibasis(j,at,k,d)*eibasis(e,at,el,0));
+          } 
+
+          lap(0,j,0)+=vkl*eebasis(j,m,0);
+          doublevar dot_e=0, dot_j=0;
+          for(int d=1; d< 4; d++) {
+            lap(0,j,d)+=vkl_e[d]*eebasis(j,m,0);
+            lap(0,j,d)+=vkl*eebasis(j,m,d);
+            lap(1,j,d)+=vkl_j[d]*eebasis(j,m,0);
+            lap(1,j,d)-=vkl*eebasis(j,m,d);
+
+            dot_e+=vkl_e[d]*eebasis(j,m,d);
+            dot_j+=vkl_j[d]*eebasis(j,m,d);
+          }
+          //cout << "old: vkl " << vkl << endl;
+          //cout << "old: dot_e " << dot_e <<  "dot_j " << dot_j << endl;
+          
+          lap(0,j,4)+=vkl*eebasis(j,m,4);
+          lap(1,j,4)+=vkl*eebasis(j,m,4);
+
+          lap(0,j,4)+=vkl_e[4]*eebasis(j,m,0);
+          lap(1,j,4)+=vkl_j[4]*eebasis(j,m,0);
+
+          lap(0,j,4)+=2*dot_e;
+          lap(1,j,4)-=2*dot_j;
+        }
+      */
+        //for(int j=0; j < nelectrons; j++) { 
+        //  cout << "old lap ";
+        //  for(int d=0; d< 5; d++) 
+         //   cout << lap(0,j,d) << " ";
+         // cout << endl;
+        //}
+        
+        
       }
     }
   }
@@ -236,13 +373,12 @@ void Jastrow_threebody_piece::updateVal(int e,
                                          const Array4 <doublevar> & eibasis,
                                          const Array3 <doublevar> & eebasis,
                                          Array1 <doublevar> & updated_val) {
-  
+
   assert(eibasis.GetDim(1) >= parm_centers.GetDim(0));
   int natoms=parm_centers.GetDim(0);
   int nelectrons=eebasis.GetDim(0);
 
   const doublevar tiny=1e-14;
-  doublevar vkl;
   //cout << "updateLap " << endl;
   for(int at=0; at < natoms; at++) {
     int p=parm_centers(at);
@@ -252,12 +388,13 @@ void Jastrow_threebody_piece::updateVal(int e,
       if(fabs(eibasis(e,at,k,0)) > tiny
           || fabs(eibasis(e,at,el,0)) > tiny) { 
         for(int j=0; j< e; j++) {
-          vkl=parm*(eibasis(e,at,k,0)*eibasis(j,at,el,0)
+
+          doublevar vkl=parm*(eibasis(e,at,k,0)*eibasis(j,at,el,0)
               +eibasis(j,at,k,0)*eibasis(e,at,el,0));
           updated_val(j)+=vkl*eebasis(j,m,0);
         }
         for(int j=e+1; j< nelectrons; j++) {
-          vkl=parm*(eibasis(e,at,k,0)*eibasis(j,at,el,0)
+          doublevar vkl=parm*(eibasis(e,at,k,0)*eibasis(j,at,el,0)
               +eibasis(j,at,k,0)*eibasis(e,at,el,0));
           updated_val(j)+=vkl*eebasis(j,m,0);
         }

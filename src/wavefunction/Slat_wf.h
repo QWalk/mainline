@@ -147,7 +147,7 @@ private:
   Array3 < Array2 <T> > inverse;
   //!<inverse of the value part of the mo_values array transposed
 
-  Array3 <log_value<T> > detVal;
+  Array3 <log_value<T> > detVal; //function #, determinant #, spin
 
   //Variables for a static(electrons not moving) calculation
   int staticSample;
@@ -687,6 +687,7 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
   
   derivatives.gradient.Resize(nparms);
   derivatives.hessian.Resize(nparms, nparms);
+  derivatives.lapderiv.Resize(nparms);
  /* 
   if(parent->optimize_mo) {
     //get values of determinats with 1 and 2 rows differentiated
@@ -874,10 +875,29 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
       return 1;
     }
     else{
+/*
+      Array1 <log_value <doublevar> > detgrads(ndet);
+      int lapnum=4;
+      for(int det=0; det < ndet; det++) {
+        doublevar temp=0;
+        for(int i=0; i< nelectrons(s); i++) { 
+          for(int j=0; j<nelectrons(s); j++) {
+            temp+=moVal(i , e, dataptr->occupation(f,det,s)(j) )
+              *inverse(f,det,s)(dataptr->rede(e), j);
+          }
+        }
+        detgrads(det)=temp*dataptr->detwt(det);//*detVal(f,det,s)*detVal(f,det,opp)*invtotval;
+        detgrads(det)*=detVal(f,det,s);
+        detgrads(det)*=detVal(f,det,opp);
+        detgrads(det)*=invtotval;
+      }
+      */
+      
       for(int det=0; det < ndet; det++) {
         if(parent->all_weights){
-          if(det >= nparms_start && det <= nparms_end )
+          if(det >= nparms_start && det <= nparms_end ) { 
             derivatives.gradient(det-nparms_start)=(detVal(0,det,0)*detVal(0,det,1)).val();
+          }
         }
         else{
           if(det > nparms_start && det <= nparms_end )

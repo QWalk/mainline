@@ -156,11 +156,14 @@ struct Wf_return {
 
 struct Parm_deriv_return { 
   int need_hessian;
+  int need_lapderiv;
   int nparms_start,nparms_end;
   Array1 <doublevar> gradient;
-  Array2 <doublevar> hessian;
+  Array2 <doublevar> hessian;  
+  Array1 <doublevar> lapderiv;  //Parameter derivative of the laplacian of the wave function
   Parm_deriv_return() { 
     need_hessian=0;
+    need_lapderiv=0;
     nparms_start=nparms_end=0;
   }
 };
