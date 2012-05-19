@@ -39,21 +39,26 @@ void Vmc_method::read(vector <string> words,
   ndim=3;
 
   if(!readvalue(words, pos=0, nblock, "NBLOCK"))
-    error("Need NBLOCK in VMC section");
+    nblock=100;
   if(!readvalue(words, pos=0, nconfig, "NCONFIG"))
-    error("Need NCONFIG in METHOD section.");
+    nconfig=1;
   if(!readvalue(words, pos=0, nstep, "NSTEP"))
-    error("Need NSTEP in VMC section");
-  if(!readvalue(words, pos=0, timestep, "TIMESTEP"))
-    error("Need TIMESTEP in VMC section");
+    nstep=100;
+  if(!readvalue(words, pos=0, timestep, "TIMESTEP")) { 
+    auto_timestep=true;
+    timestep=1.0;
+  }
+  else auto_timestep=true;
 
   //optional options
 
   if(!readvalue(words, pos=0, ndecorr, "NDECORR"))
     ndecorr=2;
 
-  readvalue(words, pos=0, storeconfig, "STORECONFIG");
-  readvalue(words, pos=0, readconfig, "READCONFIG");
+  if(!readvalue(words, pos=0, storeconfig, "STORECONFIG")) 
+    storeconfig=options.runid+".config";
+  if(!readvalue(words, pos=0, readconfig, "READCONFIG"))
+    readconfig=options.runid+".config";
   
 
   if(!readvalue(words, pos=0, log_label, "LABEL"))
@@ -70,11 +75,7 @@ void Vmc_method::read(vector <string> words,
   if(!readsection(words, pos=0, dynsec, "DYNAMICS")) 
     dynsec.push_back("SPLIT");
 
-  int nsys=options.systemtext.size();
-  sampler.Resize(nsys);
-  sampler=NULL;
-  for(int i=0; i< nsys; i++) 
-    allocate(dynsec, sampler(i));
+  allocate(dynsec, sampler);
   
   vector<string> tmp_dens;
   pos=0;
@@ -131,29 +132,23 @@ int Vmc_method::generateVariables(Program_options & options) {
     error("Need to call Vmc_method::read() before generateVariables()");
   }
   have_generated_variables=1;
-  int nsys=options.systemtext.size();
-  if(options.twftext.size()!=nsys)  
-    error("Need the same number of SYSTEM and TRIALFUNC sections in VMC");
-  sys.Resize(nsys);
-  wfdata.Resize(nsys);
-  sys=NULL;
-  wfdata=NULL;
 
-
-  for(int s=0; s < nsys; s++) {  
-    allocate(options.systemtext[s], sys(s) );
-    allocate(options.twftext[s], sys(s), wfdata(s));
-  }
+  debug_write(cout, "System\n");
+  allocate(options.systemtext[0], sysprop );
+  debug_write(cout, "Wave function\n");
+  if(options.twftext.size() < 1)
+    error("Need TRIALFUNC section for VMC");
+  allocate(options.twftext[0], sysprop, mywfdata);
   debug_write(cout, "Pseudopotential\n");
-  sys(0)->generatePseudo(options.pseudotext, pseudo);
+  sysprop->generatePseudo(options.pseudotext, pseudo);
   
   densplt.Resize(dens_words.size());
   for(int i=0; i< densplt.GetDim(0); i++) {
-    allocate(dens_words[i], sys(0), options.runid,densplt(i));
+    allocate(dens_words[i], sysprop, options.runid,densplt(i));
   }
   nldensplt.Resize(nldens_words.size());
   for(int i=0; i< nldensplt.GetDim(0); i++) {
-    allocate(nldens_words[i], sys(0), options.runid,nldensplt(i));
+    allocate(nldens_words[i], sysprop, options.runid,nldensplt(i));
   }
 
   return 1;
@@ -162,26 +157,19 @@ int Vmc_method::generateVariables(Program_options & options) {
 
 //----------------------------------------------------------------------
 
-int Vmc_method::allocateIntermediateVariables() { 
+int Vmc_method::allocateIntermediateVariables(System * locsys, 
+                                              Wavefunction_data * locwfdata) {
 
   debug_write(cout, "temporary variables\n");
-  int nsys=sys.GetDim(0);
-  sample.Resize(nsys);
-  wf.Resize(nsys);
-  sample=NULL;
-  wf=NULL;
-  for(int s=0; s< nsys; s++) { 
-    sys(s)->generateSample(sample(s));
-    wfdata(s)->generateWavefunction(wf(s));
-    sample(s)->attachObserver(wf(s));
-  } 
+  locsys->generateSample(sample);
+  locwfdata->generateWavefunction(wf);
+  sample->attachObserver(wf);
+
   
-  average_var.Resize(nsys,avg_words.size());
+  average_var.Resize(avg_words.size());
   average_var=NULL;
-  for(int i=0; i< average_var.GetDim(1); i++) { 
-    for(int s=0;s < nsys; s++) { 
-      allocate(avg_words[i], sys(s), wfdata(s), average_var(s,i));
-    }
+  for(int i=0; i< average_var.GetDim(0); i++) { 
+    allocate(avg_words[i], locsys, locwfdata, average_var(i));
   }
   
   
@@ -191,19 +179,14 @@ int Vmc_method::allocateIntermediateVariables() {
 //----------------------------------------------------------------------
 
 int Vmc_method::deallocateIntermediateVariables() {
-  int nsys=wf.GetDim(0);
-  for(int s=0; s< nsys; s++) {
-    if(wf(s)) delete wf(s);
-    wf(s)=NULL;
-    if(sample(s)) delete sample(s);
-    sample(s)=NULL;
-  }
+  if(wf) delete wf;
+  wf=NULL;
+  if(sample) delete sample;
+  sample=NULL;
   
-  for(int i=0; i< average_var.GetDim(1); i++) { 
-    for(int s=0; s< nsys; s++) { 
-      if(average_var(s,i)) delete average_var(s,i);
-      average_var(s,i)=NULL;
-    }
+  for(int i=0; i< average_var.GetDim(0); i++) { 
+    if(average_var(i)) delete average_var(i);
+    average_var(i)=NULL;
   }
   return 1;
 }
@@ -217,11 +200,11 @@ int Vmc_method::showinfo(ostream & os)
   if(os)
   {
     if(have_generated_variables) {
-      sys(0)->showinfo(os);
+      sysprop->showinfo(os);
       os << endl << endl;
       os << "                               Wavefunction  "
          << endl << endl;
-      wfdata(0)->showinfo(os);
+      mywfdata->showinfo(os);
       pseudo->showinfo(os);
       os << endl;
     }
@@ -235,7 +218,7 @@ int Vmc_method::showinfo(ostream & os)
     os << "Timestep: " <<                      timestep  << endl;
     os << "Guiding wavefunction: " << guidetype << endl;
     string indent="  ";
-    sampler(0)->showinfo(indent, os);
+    sampler->showinfo(indent, os);
 
     os << endl;
     return 1;
@@ -247,12 +230,46 @@ int Vmc_method::showinfo(ostream & os)
 //----------------------------------------------------------------------
 
 void Vmc_method::readcheck(string & filename) {
+  /*
+  int configsread=0;
+
+  config_pos.Resize(nconfig);
+
+  if(filename != "") { 
+
+    ifstream checkfile(filename.c_str());
+    if(!checkfile) 
+      error("Couldn't open ", filename);
+    
+    long int is1, is2;
+    string dummy;
+    checkfile >> dummy;
+    if(dummy != "RANDNUM") error("Expected RANDNUM in checkfile");
+    checkfile >> is1 >> is2;
+    rng.seed(is1, is2);  
+
+
+    while(checkfile >>dummy && configsread < nconfig) {
+      if(read_config(dummy, checkfile, sample)) {
+        config_pos(configsread++).savePos(sample);
+      }
+      
+    }
+    checkfile.close();
+  }
+   */
   config_pos.Resize(0);
   if(filename!="") { 
-    read_configurations(filename, config_pos);
-    if(config_pos.GetDim(0) != nconfig) { 
-      error("Number of configurations is different in ",filename);
-    /*
+    ifstream test(filename.c_str());
+    if(test) { 
+      test.close();
+      read_configurations(filename, config_pos);
+    }
+    else { 
+      single_write(cout,"Could not open ",filename,". Generating configurations from scratch\n");
+    }
+  }
+  if(config_pos.GetDim(0) < nconfig) { 
     Array1 <Config_save_point> tmpconfig=config_pos;
     config_pos.Resize(nconfig);
     for(int i=0; i< tmpconfig.GetDim(0); i++) { config_pos(i)=tmpconfig(i);} 
@@ -260,20 +277,7 @@ void Vmc_method::readcheck(string & filename) {
       sample->randomGuess();
       config_pos(i).savePos(sample);
     }
-    */
-    }   
-  }
-  else { 
-    config_pos.Resize(nconfig);
-    int nsys=sys.GetDim(0);
-    if(nconfig%nsys!=0) error("nconfig needs to be a constant multiple of nsys");
-    for(int i=0; i< nconfig; i++) { 
-      int s=0;
-      config_pos(i).system=s;
-      sample(s)->randomGuess();
-      config_pos(i).configs.savePos(sample(s));
-    }
-  }
+  }   
 }
 
 //----------------------------------------------------------------------
@@ -281,6 +285,27 @@ void Vmc_method::readcheck(string & filename) {
 void Vmc_method::storecheck(string & filename, int append) {
   
   if(filename=="") return;
+/*
+  ofstream checkfile;
+  if(append) checkfile.open(filename.c_str(), ios::app);
+  else checkfile.open(filename.c_str());
+  if(!checkfile) error("Couldn't open ", filename);
+  checkfile.precision(15);
+  
+  long int is1, is2;
+  rng.getseed(is1, is2);
+  checkfile << "RANDNUM " << is1 << "  " << is2 << endl;
+  for(int i=0; i< nconfig; i++) {
+    checkfile << "SAMPLE_POINT { \n";
+    config_pos(i).restorePos(sample);
+    write_config(checkfile, sample);
+    checkfile << "}\n\n";
+  }
+
+  checkfile.close();  
+
+  string tmpfilename="tmp.config";
+   */
   write_configurations(filename, config_pos);
 }
 
@@ -304,48 +329,31 @@ void Vmc_method::run(Program_options & options, ostream & output) {
   }
 
   myprop.setLog(logfile, log_label);
-  runSample(myprop, output);
+  runWithVariables(myprop, sysprop, mywfdata, pseudo,output);
 }
 
-//----------------------------------------------------------------------
 
 /*!
 
 */
 void Vmc_method::runWithVariables(Properties_manager & prop, 
-                                  System * sys_, 
-                                  Wavefunction_data * wfdata_,
-                                  Pseudopotential * pseudo_,
-                                  ostream & output) { 
-  int nsys=1;
-  sys.Resize(nsys);
-  wfdata.Resize(nsys);
-  sys(0)=sys_;
-  wfdata(0)=wfdata_;
-  pseudo=pseudo_;
-  runSample(prop,output);
-  sys=NULL;
-  pseudo=NULL;
-  wfdata=NULL;
-
-  
-}
-//----------------------------------------------------------------------
-
-
-void Vmc_method::runSample(Properties_manager & prop,
+                                  System * sys, 
+                                  Wavefunction_data * wfdata,
+                                  Pseudopotential * psp,
                                   ostream & output)
 {
 
-  nelectrons=sys(0)->nelectrons(0)+sys(0)->nelectrons(1);
-  int nsys=sys.GetDim(0);
-  allocateIntermediateVariables();
-  readcheck(readconfig);
-  cout.precision(10);
+  nelectrons=sys->nelectrons(0)+sys->nelectrons(1);
+
   
+  allocateIntermediateVariables(sys, wfdata);
+  readcheck(readconfig);
+
+  cout.precision(10);
+
   if(output) output << "Entering VMC" << endl;
 
-  prop.setSize(nsys, nblock, nstep, nconfig, sys(0), wfdata(0));
+  prop.setSize(wf->nfunc(), nblock, nstep, nconfig, sys, wfdata);
   output.precision(10);
   prop.initializeLog(average_var);
   //our averaging variables
@@ -356,25 +364,30 @@ void Vmc_method::runSample(Properties_manager & prop,
   age=0;
   Array1 <doublevar> diffusion_rate(nblock,0.0);
 
+ 
   for(int block=0; block< nblock; block++) {
-    int nwf_guide=wf(0)->nfunc();
+    int nwf_guide=wf->nfunc();
     Dynamics_info dinfo;
+
+    doublevar acceptance=0;
     for(int walker=0; walker<nconfig; walker++) {  
-      int s=config_pos(walker).system; 
-      config_pos(walker).configs.restorePos(sample(s));
-      wf(s)->notify(all_electrons_move,0);
+      
+      config_pos(walker).restorePos(sample);
+      wf->notify(all_electrons_move,0);
      
-      wf(s)->updateLap(wfdata(s), sample(s));
+      wf->updateLap(wfdata, sample);
+      
       if(print_wf_vals) { 
         Wf_return wfval(nwf_guide,2);
-        wf(s)->getVal(wfdata(s),0, wfval);
+        wf->getVal(wfdata,0, wfval);
         cout << "node " << mpi_info.node << "  amp " << wfval.amp(0,0) 
           << " phase " << cos(wfval.phase(0,0)) << endl;
       }
+      
       for(int step=0; step< nstep; step++) {
         Array1 <doublevar> rotx(3), roty(3), rotz(3);
         generate_random_rotation(rotx, roty, rotz);
-        pseudo->rotateQuadrature(rotx, roty, rotz);
+        psp->rotateQuadrature(rotx, roty, rotz);
 
         //------------------------------------------
         
@@ -383,10 +396,11 @@ void Vmc_method::runSample(Properties_manager & prop,
         for(int decorr=0; decorr< ndecorr; decorr++) {
 
             for(int e=0; e<nelectrons; e++) {
-              sample(s)->getElectronPos(e,oldpos);
-              int acc=sampler(s)->sample(e,sample(s), wf(s), 
-                                 wfdata(s), guidewf,dinfo, timestep);
-              sample(s)->getElectronPos(e,newpos);
+              sample->getElectronPos(e,oldpos);
+              
+              int acc=sampler->sample(e,sample, wf, 
+                                 wfdata, guidewf,dinfo, timestep);
+              sample->getElectronPos(e,newpos);
               
               for(int d=0; d< 3; d++) {
                 diffusion_rate(block)+=(newpos(d)-oldpos(d))                  
@@ -394,7 +408,7 @@ void Vmc_method::runSample(Properties_manager & prop,
               }
               if(print_wf_vals) { 
                 Wf_return wfval(nwf_guide, 2);
-                wf(s)->getVal(wfdata(s),0,wfval);
+                wf->getVal(wfdata,0,wfval);
                 cout << "step " << e << " amp " << wfval.amp(0,0) 
                   << " phase " << cos(wfval.phase(0,0)) << endl;
                 cout << "pos " << newpos(0) << " " << newpos(1) << " " 
@@ -403,58 +417,33 @@ void Vmc_method::runSample(Properties_manager & prop,
               
               if(acc>0) {
                 age(walker, e)=0;
+                acceptance+=1;
+                if(auto_timestep) timestep+=0.01;
               }
               else {
                 age(walker,e)++;
                 if(age(walker,e) > maxlife) maxlife=age(walker,e);
+                if(auto_timestep) timestep-=0.01;
               }
               avglifetime(block)+=age(walker, e);
            }  //electron
         }  //decorrelation
           
+        
         Properties_point pt;
-        pt.setSize(nsys);
-        pt.avgrets.Resize(average_var.GetDim(0),average_var.GetDim(1));
-        Array1 <doublevar> jacobian(nsys,1.0);
-        Array1 <Wf_return> wf_value(nsys);
-        for(int si=0; si< nsys; si++) { 
-          if(s!=si) { 
-            jacobian(si)=warper.warp_all(sample(s),sample(si));
-            wf(si)->updateLap(wfdata(si), sample(si));
-          }
-          wf_value(si).Resize(wf(si)->nfunc(),2);
-          wf(si)->getVal(wfdata(si),0,wf_value(si));
-          //We'll only use the first average_var in order to preserve
-          //correlated sampling.  Note that in some corner cases, this
-          //may give the wrong behavior.
-          for(int a=0; a < average_var.GetDim(1); a++) { 
-            average_var(0,a)->randomize(wfdata(si),wf(si),sys(si),sample(si));
-          }
-        }
-        int nrandvar=pseudo->nTest();
-        Array1 <doublevar> rand_num(nrandvar);
-        for(int i=0; i< nrandvar; i++) rand_num(i)=rng.ulec();
-        for(int si=0; si < nsys; si++) {
-          Array1 <doublevar> kinetic(wf(si)->nfunc()),nonlocal(wf(si)->nfunc());
-          sys(si)->calcKinetic(wfdata(si),sample(si),wf(si),kinetic);
-          pt.kinetic(si)=kinetic(0);
-          pt.potential(si)=sys(si)->calcLoc(sample(si));
-          pseudo->calcNonlocWithTest(wfdata(si), sys(si), sample(si), 
-              wf(si),rand_num,nonlocal);
-          pt.nonlocal(si)=nonlocal(0);
-          //jacobian_save(i)=tot_jacobian;
-          for(int a=0; a < average_var.GetDim(1); a++) { 
-            average_var(0,a)->evaluate(wfdata(si),wf(si),sys(si),sample(si),pt,pt.avgrets(si,a));
-          }
-          
-          pt.weight(si)=jacobian(si)*exp(2*(wf_value(si).amp(0,0)-wf_value(s).amp(0,0)));
-        }
-          
-
+        mygather.gatherData(pt, psp, sys, wfdata, wf, 
+                            sample, guidewf);
+        
         for(int i=0; i< densplt.GetDim(0); i++)
-          densplt(i)->accumulate(sample(0),1.0);
+          densplt(i)->accumulate(sample,1.0);
         for(int i=0; i< nldensplt.GetDim(0); i++)
-          nldensplt(i)->accumulate(sample(0),1.0,wfdata(0),wf(0));
+          nldensplt(i)->accumulate(sample,1.0,wfdata,wf);
+        
+        pt.avgrets.Resize(1,average_var.GetDim(0));
+        for(int i=0; i< average_var.GetDim(0); i++) { 
+          average_var(i)->randomize(wfdata,wf,sys,sample);
+          average_var(i)->evaluate(wfdata, wf, sys, sample,pt, pt.avgrets(0,i));
+        }
         pt.parent=walker;
         pt.nchildren=1; pt.children(0)=1;
         prop.insertPoint(step, walker, pt);
@@ -462,13 +451,16 @@ void Vmc_method::runSample(Properties_manager & prop,
         //This may screw up if we have >1 walker!
         if(config_trace!="" && block >0) {
           if(nconfig !=1) error("trace only works with nconfig=1");
-          config_pos(walker).configs.savePos(sample(s));
+          config_pos(walker).savePos(sample);
           storecheck(config_trace,1);
         }
         
       }   //step
-      config_pos(walker).configs.savePos(sample(s));
+      
+      config_pos(walker).savePos(sample);
+      
     }   //walker
+
     prop.endBlock();
     if(!low_io || block==nblock-1) { 
       storecheck(storeconfig);
@@ -477,6 +469,7 @@ void Vmc_method::runSample(Properties_manager & prop,
       for(int i=0; i< nldensplt.GetDim(0); i++)
         nldensplt(i)->write(log_label);
     }
+    acceptance/=nstep*ndecorr*nelectrons;
     //Output for the block
     if(output) {
       if(global_options::rappture ) { 
@@ -489,23 +482,24 @@ void Vmc_method::runSample(Properties_manager & prop,
       }
       output << "****Block " << block 
              << " avg life " << avglifetime(block)/(nstep*nconfig*ndecorr*nelectrons)
-             << " max life " << double(maxlife)/double(ndecorr)
-             << endl;
+             << " max life " << double(maxlife)/double(ndecorr);
+      
+      if(auto_timestep) output << " timestep " << timestep;
+      output << endl;
 
-      for(int s=0; s< nsys; s++) { 
-        sampler(s)->showStats(output);
-        sampler(s)->resetStats();
-      }
+      sampler->showStats(output);
+      sampler->resetStats();
       prop.printBlockSummary(output);
       output << endl;
     }
   }              //blocks done
 
 
+
   if(output) {
     output << "-----------------Run Ended------------\n" << endl;
 
-    //prop.printSummary(output, average_var);
+    prop.printSummary(output, average_var);
     output << endl;
     output << "Maximum lifetime " << double(maxlife)/double(ndecorr)
            << " steps "<<  endl;
@@ -517,49 +511,10 @@ void Vmc_method::runSample(Properties_manager & prop,
     output << "Average lifetime : " << avglife << " steps " << endl;
     output << "VMC Done. \n";
   }
-  cout << "done output " << endl; 
-  for(int s=0; s< nsys; s++) {
-    wfdata(s)->clearObserver();
-  }
-  cout << "deallocate " << endl;
+ 
+  wfdata->clearObserver();
   deallocateIntermediateVariables();
 }
 
 //------------------------------------------------------------------------
-//######################################################################
-
-void Vmc_point::mpiSend(int node) { 
-  configs.mpiSend(node);
-  MPI_Send(system,node);
-}
-
-void Vmc_point::mpiReceive(int node) { 
-  configs.mpiReceive(node);
-  MPI_Recv(system,node);
-}
-
-void Vmc_point::read(istream & is) { 
-  configs.read(is);
-  long int filepos=is.tellg();
-  string dum; is >> dum;
-  if(!caseless_eq(dum,"VMC")) { 
-    is.seekg(filepos);
-    return;
-  }
-  else system=0;
-  is >> dum;
-  is >> dum >> system;
-  //is >> dum; //clear the } 
-
-}
-
-void Vmc_point::write(ostream & os) { 
-  string indent="";
-  configs.write(os);
-  os << "VMC  { \n";
-     os << "system " << system << endl;
-  os << " } \n";
-}
-//######################################################################
-
 
