@@ -352,7 +352,7 @@ void Wannier_method::calculate_overlap(Array1 <int> & orb_list,
           for(int d1=0; d1 < 3; d1++) {
             gdotr+=gvec(d,d1)*x(d1);
           }
-          dcomplex exp_tmp=exp(dcomplex(0,-1)*pi*gdotr);
+          dcomplex exp_tmp=exp(dcomplex(0,-1)*2.*pi*gdotr);
           for(int i=0; i< norb; i++) { 
             for(int j=0; j< norb; j++) { 
               eikr(d,i,j)+=exp_tmp*mymovals(i,0)*mymovals(j,0);
