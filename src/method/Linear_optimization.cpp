@@ -77,11 +77,13 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
     //cout << "setvarparms " << alpha.GetDim(0) <<  endl;
     wfdata->setVarParms(alpha);
     wfdata->renormalize();
-    string indentation="";
-    ofstream wfoutput(wfoutputfile.c_str());
-    wfoutput.precision(15);
-    wfdata->writeinput(indentation,wfoutput);
-    wfoutput.close();
+    if(mpi_info.node==0) { 
+      string indentation="";
+      ofstream wfoutput(wfoutputfile.c_str());
+      wfoutput.precision(15);
+      wfdata->writeinput(indentation,wfoutput);
+      wfoutput.close();
+    }
     
     for(int i=0; i< nparms; i++) {
       alpha_step(it,i)=alpha(i);
