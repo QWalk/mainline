@@ -257,6 +257,7 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
   avg_energies=0.0;
   avg_weight=0.0;
   avg_var=0.0;
+  doublevar min_weight=1e99,max_weight=-1e99;
   for(int w=0; w< nwfs; w++) {
     doublevar avg_en_unweight=0;
     for(int config=0; config < nconfig_eval; config++)  { 
@@ -264,13 +265,24 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
       avg_energies(w)+=weight*all_energies(w,config)/nconfig_eval;
       avg_en_unweight+=all_energies(w,config)/nconfig_eval;
       avg_weight(w)+=weight/nconfig_eval;
+      if(weight < min_weight) min_weight=weight;
+      if(weight > max_weight) max_weight=weight;
     }
     for(int config=0; config < nconfig_eval; config++) { 
       avg_var(w)+=(all_energies(w,config)-avg_en_unweight)*(all_energies(w,config)-avg_en_unweight);
     }
     avg_var(w)=sqrt(avg_var(w))/nconfig_eval;
   }
+
+  for(int w=0; w< nwfs; w++) { 
+    avg_energies(w)=parallel_sum(avg_energies(w));
+    avg_weight(w)=parallel_sum(avg_weight(w));
+    avg_var(w)=parallel_sum(avg_var(w))/mpi_info.nprocs;
+  }
  
+
+  debug_write(cout,"min_weight ",min_weight, " max_weight ");
+  debug_write(cout,max_weight, "\n");
   energies.Resize(nwfs,2);
   for(int w=0; w< nwfs; w++) { 
     energies(w,0)=avg_energies(w)/avg_weight(w);//+0.1*avg_var(w);
