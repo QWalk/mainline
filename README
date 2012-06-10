@@ -1,5 +1,4 @@
 
-
 To build:
 
 for the impatient: cd src; make;
@@ -39,6 +38,10 @@ LAPACK_LIBS: LAPACK libs(as BLAS) (ex. -L/opt/lapack/lib -llapack)
 
 LAPACK_INCLUDE: LAPACK headers (for examples -I/opt/lapack/
 
+EINSPLINE_LIBS: Einspline libs
+
+EINSPLINE_INCLUDE: Einspline include directory
+
 
 DEPENDMAKER: If you have gcc, it should be g++ -MM -I $(INCLUDEPATH).
 
@@ -66,3 +69,5 @@ magnitude.  You must also set the LAPACK_LIBS and BLAS_INCLUDE variables.
 
 USE_MPI:  Enable use of MPI parallelization.  For large calculations, this is
 quite necessary.
+
+USE_EINSPLINE: Use the einspline libraries from Ken Esler to evaluate blips.  EINSPLINE_LIBS and EINSPLINE_INCLUDE must also be set.
