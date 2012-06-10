@@ -23,13 +23,15 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Program_options.h"
 #include "ulec.h"
 #include "System.h"
+#include "Generate_sample.h"
+
 void Optimize_method2::read(vector <string> words,
                            unsigned int & pos,
                            Program_options & options)
 {
-  if(!readvalue(words, pos=0, nconfig, "NCONFIG")){
-    error("Need NCONFIG in METHOD section");
-  }
+ 
+  if(!readvalue(words, pos=0, nconfig, "NCONFIG"))
+    nconfig=max(2048/mpi_info.nprocs,1);
   
   if(!readvalue(words,pos=0, iterations, "ITERATIONS"))
     iterations=30;
@@ -100,7 +102,7 @@ void Optimize_method2::read(vector <string> words,
 
   string readconfig;
   if(!readvalue(words, pos=0, readconfig, "READCONFIG"))
-    error("READCONFIG required for OPTIMIZE2 method!");
+    readconfig="";
 
 
   //--Set up variables
@@ -173,9 +175,14 @@ void Optimize_method2::readcheck(string & readconfig) {
   dmc_weight=1.0;
   
   if(readconfig ==""){
-    error("No file name given for READCONFIG ", readconfig);
+    Primary guidewf;
+    generate_sample(sample(0),wf(0),wfdata,&guidewf,nconfig,config_pos);
+
+    //error("No file name given for READCONFIG ", readconfig);
   }
-  read_configurations(readconfig, config_pos);
+  else { 
+    read_configurations(readconfig, config_pos);
+  }
   if(config_pos.GetDim(0) < nconfig) { 
     error("Not enough configurations in ", readconfig);
   }

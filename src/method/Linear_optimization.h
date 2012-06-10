@@ -51,7 +51,6 @@ public:
   }
   int showinfo(ostream & os);
 private:
-  doublevar tau;
   int iterations;
   int vmc_nstep;   
   int nconfig_eval;
@@ -68,9 +67,6 @@ private:
     Array2 <doublevar> & Sinv, Array2 <doublevar> & H,Array1 <doublevar> & alpha);
   void correlated_evaluation(Array1 <Array1 <doublevar> > & alphas,int ref_alpha,Array2 <doublevar> & energies);
   
-  
-  
-
 };
 
 #endif //LINEAR_OPTIMIZATION_H_INCLUDED

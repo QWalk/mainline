@@ -25,8 +25,6 @@ void Linear_optimization_method::read(vector <string> words,
   if(!readvalue(words,pos=0,nconfig_eval,"FIT_NCONFIG")) 
     nconfig_eval=200;
   
-  if(!readvalue(words, pos=0, tau, "TAU") )
-    tau=0.1;
   
   allocate(options.systemtext[0],  sys);
   sys->generatePseudo(options.pseudotext, pseudo);
@@ -42,7 +40,6 @@ void Linear_optimization_method::read(vector <string> words,
 //----------------------------------------------------------------------
 
 int Linear_optimization_method::showinfo(ostream & os) { 
-  os << "Tau  " << tau << endl;
   return 1;
 }
 
