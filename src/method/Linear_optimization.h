@@ -54,6 +54,7 @@ private:
   int iterations;
   int vmc_nstep;   
   int nconfig_eval;
+  doublevar en_convergence;
   Wavefunction_data * wfdata;
   Pseudopotential * pseudo;
   System * sys;
@@ -63,7 +64,8 @@ private:
 
   void wavefunction_derivative(Array2<doublevar> & H,Array2 <doublevar> & S,Array1<doublevar> & en);
   void wavefunction_energy(Array1 <doublevar> & en);
-  void line_minimization(Array2 <doublevar> & S, 
+  //returns the estimated energy change
+  double line_minimization(Array2 <doublevar> & S, 
     Array2 <doublevar> & Sinv, Array2 <doublevar> & H,Array1 <doublevar> & alpha);
   void correlated_evaluation(Array1 <Array1 <doublevar> > & alphas,int ref_alpha,Array2 <doublevar> & energies);
   

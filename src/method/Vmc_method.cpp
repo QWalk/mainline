@@ -48,7 +48,7 @@ void Vmc_method::read(vector <string> words,
     auto_timestep=true;
     timestep=1.0;
   }
-  else auto_timestep=true;
+  else auto_timestep=false;
 
   //optional options
 
@@ -418,12 +418,10 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
               if(acc>0) {
                 age(walker, e)=0;
                 acceptance+=1;
-                if(auto_timestep) timestep+=0.01;
               }
               else {
                 age(walker,e)++;
                 if(age(walker,e) > maxlife) maxlife=age(walker,e);
-                if(auto_timestep) timestep-=0.01;
               }
               avglifetime(block)+=age(walker, e);
            }  //electron
@@ -435,6 +433,7 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
                             sample, guidewf);
         
         for(int i=0; i< densplt.GetDim(0); i++)
+
           densplt(i)->accumulate(sample,1.0);
         for(int i=0; i< nldensplt.GetDim(0); i++)
           nldensplt(i)->accumulate(sample,1.0,wfdata,wf);
@@ -469,6 +468,10 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
         nldensplt(i)->write(log_label);
     }
     acceptance/=nstep*ndecorr*nelectrons;
+    if(auto_timestep) { 
+      if(acceptance < 0.4) timestep -=0.1;
+      if(acceptance > 0.6) timestep +=0.1;
+    }
     //Output for the block
     if(output) {
       if(global_options::rappture ) { 

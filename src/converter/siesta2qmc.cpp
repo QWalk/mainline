@@ -1073,6 +1073,7 @@ void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis ) {
       int el;
       in >> el;in.ignore(180,'\n');
       int npts; in >> npts; in.ignore(180,'\n');
+      cout << "l " << el << " npts " << npts << endl;
       switch(el) { 
         case 0:
           tmp_basis.types.push_back("S");
@@ -1095,6 +1096,7 @@ void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis ) {
       for(int i=0; i< npts; i++) { 
         in >> rad ; in >> val;
         rads.push_back(rad); vals.push_back(val);
+        //cout << "r " << rad << " " << val << endl;
       }
       vector <double> urad, uval;
       pad_spline(rads,vals);
@@ -1180,6 +1182,7 @@ void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis ) {
         at->basis=i;
       }
     }
+
   }
 }
 

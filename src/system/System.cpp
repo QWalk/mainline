@@ -72,9 +72,9 @@ void System::calcKinetic(Wavefunction_data * wfdata,
       wf->getLap(wfdata, e, temp);
       lap(w)+=temp.amp(w,4);
       if ( temp.is_complex==1 ) {
-	lap(w)-=(  temp.phase(w,1)*temp.phase(w,1)
-		  +temp.phase(w,2)*temp.phase(w,2)
-		  +temp.phase(w,3)*temp.phase(w,3) );
+        lap(w)-=(  temp.phase(w,1)*temp.phase(w,1)
+            +temp.phase(w,2)*temp.phase(w,2)
+            +temp.phase(w,3)*temp.phase(w,3) );
       }
       //cout << "total laplacian: " << lap(0) <<  " amp  " 
       //  << temp.amp(w,4) << endl;
