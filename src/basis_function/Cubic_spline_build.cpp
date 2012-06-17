@@ -57,7 +57,7 @@ string Cubic_spline::symmetry_lookup(symmetry_type s) {
        return string("5D_siesta");
        break;
      case sym_F_siesta:
-       return string("F_siesta");
+       return string("7F_siesta");
        break;
      default:
        error("Cubic_spline::symmetry_lookup found unknown symmetry");
