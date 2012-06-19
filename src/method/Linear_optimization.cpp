@@ -1,4 +1,4 @@
-
+#include "ulec.h"
 #include "Wavefunction_data.h"
 #include "Sample_point.h"
 #include "Guiding_function.h"
@@ -24,8 +24,8 @@ void Linear_optimization_method::read(vector <string> words,
       wfoutputfile=options.runid+".wfout";
   if(!readvalue(words,pos=0,nconfig_eval,"FIT_NCONFIG")) 
     nconfig_eval=200;
-  
-  
+  if(!readvalue(words,pos=0,en_convergence,"EN_CONVERGENCE"))
+    en_convergence=0.01;
   allocate(options.systemtext[0],  sys);
   sys->generatePseudo(options.pseudotext, pseudo);
   wfdata=NULL;
@@ -64,14 +64,22 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
   //cout << endl;
   for(int it=0; it< iterations; it++) {
     //cout << "wf derivative " << endl;
+    Array1 <doublevar> olden=en;
     wavefunction_derivative(H,S,en);
 
     output << "energy " << en(0) << " +/- " << en(1) << endl;
-    line_minimization(S,Sinv,H,alpha);
-    //cout << "alpha ";
-    //for(int i=0; i< nparms; i++) cout << alpha(i) << " ";
-    //cout << endl;
-    //cout << "setvarparms " << alpha.GetDim(0) <<  endl;
+    if(it > 0) 
+      output << "  energy change " << en(0)-olden(0) 
+        << " +/- " << sqrt(en(1)*en(1)+olden(1)*olden(1)) << endl;
+    
+    doublevar endiff= line_minimization(S,Sinv,H,alpha);
+
+    output << "Step: Estimated change in energy: " << endiff << endl;
+    if(endiff >= 0) { 
+      vmc_nstep*=4;
+      output << "Did not find a downhill move; setting vmc_nstep to "
+        << vmc_nstep << endl;
+    }
     wfdata->setVarParms(alpha);
     wfdata->renormalize();
     if(mpi_info.node==0) { 
@@ -184,7 +192,7 @@ void find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
 
 //--------------------------------------------------------------------
 
-void Linear_optimization_method::line_minimization(Array2 <doublevar> & S, 
+doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S, 
     Array2 <doublevar> & Sinv, Array2 <doublevar> & H, Array1 <doublevar> & alpha) { 
   int nparms=wfdata->nparms();
   vector<doublevar> stabilization;
@@ -207,7 +215,27 @@ void Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
     }
   }
   Array2 <doublevar> energies_corr2(nstabil,2);
-  correlated_evaluation(alphas,0,energies_corr2);
+  bool significant_stabil=false;
+  while(!significant_stabil) { 
+    significant_stabil=true;
+    correlated_evaluation(alphas,0,energies_corr2);
+    int n=1;
+    doublevar diff=energies_corr2(n,0)-energies_corr2(0,0);
+    if( fabs(diff)/energies_corr2(n,1) < 3.0) significant_stabil=false;
+
+    if(2*energies_corr2(n,1) < en_convergence and !significant_stabil){
+      alpha=alphas(0);
+      return 0;
+    }
+
+
+
+    if(!significant_stabil) {
+      nconfig_eval*=4;
+      debug_write(cout,"fit not significant, increasing resolution: ",nconfig_eval,"\n");
+    }
+    
+  }
   doublevar min_en=energies_corr2(0,0);
   int min_alpha=0;
   for(int n=0; n< nstabil; n++) { 
@@ -218,11 +246,7 @@ void Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
     }
   }
   alpha=alphas(min_alpha);
-  //cout << "alpha ";
-  //for(int i=0; i< nparms;i++) {
-  //  cout << alpha(i) << " ";
-  //}
-  //cout << endl;
+  return energies_corr2(min_alpha,0)-energies_corr2(0,0);
 }
 //----------------------------------------------------------------------
 
@@ -242,36 +266,58 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
   Array2 <doublevar> all_energies(nwfs,nconfig_eval);
   Array2 <Wf_return> wf_vals(nwfs,nconfig_eval);
   Properties_point pt;
+  Array1 <doublevar> kinetic(1),ecp(1,0.0),pseudo_test(pseudo->nTest());
+  doublevar local;
   for(int config=0; config < nconfig_eval; config++) { 
      config_pos(config).restorePos(sample);
+     for(int i=0; i < pseudo_test.GetDim(0); i++) 
+       pseudo_test(i)=rng.ulec();
+
      for(int w=0; w< nwfs; w++) {
        wfdata->setVarParms(alphas(w));
-       wf->updateVal(wfdata,sample);
+       wf->updateLap(wfdata,sample);
        wf_vals(w,config).Resize(wf->nfunc(),2);
        wf->getVal(wfdata,0,wf_vals(w,config));
-       mygather.gatherData(pt,pseudo,sys,wfdata,wf,sample,&guide);
-       all_energies(w,config)=pt.energy(0);
+       local=sys->calcLoc(sample);
+       sys->calcKinetic(wfdata,sample,wf,kinetic);
+       pseudo->calcNonlocWithTest(wfdata,sys,sample,wf,pseudo_test,ecp);
+       all_energies(w,config)=local+kinetic(0)+ecp(0);
      }
+
   }
-  Array1 <doublevar> avg_energies(nwfs),avg_weight(nwfs),avg_var(nwfs);
-  avg_energies=0.0;
-  avg_weight=0.0;
-  avg_var=0.0;
+
+  Array1 <doublevar> avg_energies(nwfs,0.0),avg_weight(nwfs,0.0),avg_var(nwfs,0.0);
+  Array1 <doublevar> covariance(nwfs,0.0),diff_var(nwfs,0.0);
+  Array1 <doublevar> avg_en_unweight(nwfs,0.0);
+  Array2 <doublevar> diff_en(nwfs,nconfig_eval,0.0);
   doublevar min_weight=1e99,max_weight=-1e99;
   for(int w=0; w< nwfs; w++) {
-    doublevar avg_en_unweight=0;
     for(int config=0; config < nconfig_eval; config++)  { 
       doublevar weight=exp(2*(wf_vals(w,config).amp(0,0)-wf_vals(ref_alpha,config).amp(0,0)));
       avg_energies(w)+=weight*all_energies(w,config)/nconfig_eval;
-      avg_en_unweight+=all_energies(w,config)/nconfig_eval;
+      avg_en_unweight(w)+=all_energies(w,config)/nconfig_eval;
       avg_weight(w)+=weight/nconfig_eval;
+      diff_en(w,config)=weight*all_energies(w,config)-all_energies(0,config);
       if(weight < min_weight) min_weight=weight;
       if(weight > max_weight) max_weight=weight;
     }
     for(int config=0; config < nconfig_eval; config++) { 
-      avg_var(w)+=(all_energies(w,config)-avg_en_unweight)*(all_energies(w,config)-avg_en_unweight);
+      avg_var(w)+=(all_energies(w,config)-avg_en_unweight(w)) 
+                 *(all_energies(w,config)-avg_en_unweight(w));
     }
     avg_var(w)=sqrt(avg_var(w))/nconfig_eval;
+  }
+  for(int w=0; w< nwfs; w++) { 
+    doublevar diff=avg_energies(w)-avg_energies(0);
+    for(int config=0; config < nconfig_eval; config++) { 
+      covariance(w)+=(all_energies(w,config)-avg_en_unweight(w))
+                    *(all_energies(0,config)-avg_en_unweight(0));
+      
+      diff_var(w)+=(diff_en(w,config)-diff)
+                  *(diff_en(w,config)-diff);
+    }
+    covariance(w)/=nconfig_eval;
+    diff_var(w)=sqrt(diff_var(w))/nconfig_eval;
   }
 
   for(int w=0; w< nwfs; w++) { 
@@ -286,10 +332,12 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
   energies.Resize(nwfs,2);
   for(int w=0; w< nwfs; w++) { 
     energies(w,0)=avg_energies(w)/avg_weight(w);//+0.1*avg_var(w);
-    energies(w,1)=avg_var(w);
-    //cout << w << " " << avg_energies(w)/avg_weight(w) <<
-    //   "  " << avg_energies(w) << "  " << avg_weight(w) << endl;
-    
+    energies(w,1)=diff_var(w);
+    if(mpi_info.node==0) { 
+      cout << "endiff " << energies(w,0)-energies(0,0) 
+        << " covariance " << covariance(w)  << " estimated error " 
+        << diff_var(w) << endl;
+    }
   }
   //cout << "done " << endl;
   wfdata->clearObserver();

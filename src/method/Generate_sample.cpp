@@ -64,11 +64,13 @@ void generate_sample(Sample_point * sample,
   configs.Resize(nconfig);
   for(int config=0; config < nconfig; config++) { 
     have_moved_enough=false;
+    nmoves=0.0;
     while(!have_moved_enough) { 
       for(int e=0; e< nelectrons; e++) { 
         int acc=sampler.sample(e,sample,wf,wfdata,guidewf,dinfo,timestep);
-        if(dinfo.acceptance > target_acceptance) timestep+=tstep_delta;
-        else timestep-=tstep_delta;
+// Adjusting the timestep here biases the walk slighly.
+//        if(dinfo.acceptance > target_acceptance) timestep+=tstep_delta;
+//        else timestep-=tstep_delta;
         if(acc>0) nmoves(e)++;
       }
       have_moved_enough=true;
