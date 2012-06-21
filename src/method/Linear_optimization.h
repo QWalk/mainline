@@ -30,7 +30,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "System.h"
 #include "Pseudopotential.h"
 #include "Program_options.h"
-
+class Average_return;
 class Linear_optimization_method : public Qmc_method
 {
 public:
@@ -54,6 +54,7 @@ private:
   int iterations;
   int vmc_nstep;   
   int nconfig_eval;
+  doublevar sig_H_threshold;
   doublevar en_convergence;
   Wavefunction_data * wfdata;
   Pseudopotential * pseudo;
@@ -68,6 +69,7 @@ private:
   double line_minimization(Array2 <doublevar> & S, 
     Array2 <doublevar> & Sinv, Array2 <doublevar> & H,Array1 <doublevar> & alpha);
   void correlated_evaluation(Array1 <Array1 <doublevar> > & alphas,int ref_alpha,Array2 <doublevar> & energies);
+  bool deriv_is_significant(Average_return & avg, Average_return & err,int n);
   
 };
 
