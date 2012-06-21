@@ -1692,12 +1692,9 @@ void Average_wf_parmderivs::evaluate(Wavefunction_data * wfdata, Wavefunction * 
       avg.vals(offset+i*nparms+j)=deriv.gradient(i)*deriv.gradient(j)*pt.energy(0);
     }
   }
-
-
   //approximate the derivative of elocal by finite differences
   //and assuming that only the kinetic energy changes (this neglects the
   //pseudopotential changes for now..)
-  
   Array1 <doublevar> el(nparms),kin(1);
   Array1 <doublevar> alpha0(nparms),alpha(nparms);
   wfdata->getVarParms(alpha0);
@@ -1724,9 +1721,6 @@ void Average_wf_parmderivs::evaluate(Wavefunction_data * wfdata, Wavefunction * 
   }
   
   avg.vals(offset+nparms*nparms)=exp(2*pt.wf_val.amp(0,0));
-
-
-
 }
 //-----------------------------------------------------------------------------
 void Average_wf_parmderivs::read(System * sys, Wavefunction_data * wfdata, vector

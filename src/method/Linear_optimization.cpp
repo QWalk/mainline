@@ -26,6 +26,8 @@ void Linear_optimization_method::read(vector <string> words,
     nconfig_eval=200;
   if(!readvalue(words,pos=0,en_convergence,"EN_CONVERGENCE"))
     en_convergence=0.01;
+  if(!readvalue(words,pos=0,sig_H_threshold,"SIG_H_THRESHOLD"))
+    sig_H_threshold=0.3;
   allocate(options.systemtext[0],  sys);
   sys->generatePseudo(options.pseudotext, pseudo);
   wfdata=NULL;
@@ -200,8 +202,6 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   stabilization.push_back(0.0);
   stabilization.push_back(1.0);
   stabilization.push_back(10.0);
-  stabilization.push_back(100.0);
-  stabilization.push_back(1000.0);
   int nstabil=stabilization.size();
 
   Array1 <Array1 <doublevar> > alphas(nstabil);
@@ -214,16 +214,19 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
       alphas(i)(j)+=alpha(j);
     }
   }
+  //alpha=alphas(1);
+  //return -1; 
   Array2 <doublevar> energies_corr2(nstabil,2);
   bool significant_stabil=false;
   while(!significant_stabil) { 
     significant_stabil=true;
     correlated_evaluation(alphas,0,energies_corr2);
-    int n=1;
-    doublevar diff=energies_corr2(n,0)-energies_corr2(0,0);
-    if( fabs(diff)/energies_corr2(n,1) < 3.0) significant_stabil=false;
+    for(int n=1; n< nstabil; n++) {
+      doublevar diff=energies_corr2(n,0)-energies_corr2(0,0);
+      if( fabs(diff)/energies_corr2(n,1) > 3.0) significant_stabil=true;
+    }
 
-    if(2*energies_corr2(n,1) < en_convergence and !significant_stabil){
+    if(2*energies_corr2(1,1) < en_convergence and !significant_stabil){
       alpha=alphas(0);
       return 0;
     }
@@ -232,7 +235,7 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
 
     if(!significant_stabil) {
       nconfig_eval*=4;
-      debug_write(cout,"fit not significant, increasing resolution: ",nconfig_eval,"\n");
+      single_write(cout,"fit not significant, increasing resolution: ",nconfig_eval,"\n");
     }
     
   }
@@ -240,7 +243,8 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   int min_alpha=0;
   for(int n=0; n< nstabil; n++) { 
     single_write(cout,stabilization[n]," ",energies_corr2(n,0),"\n");
-    if(energies_corr2(n,0) < min_en) { 
+    if(energies_corr2(n,0) < min_en
+        && fabs(energies_corr2(n,0))/energies_corr2(n,1) > 2.0 ) { 
       min_en=energies_corr2(n,0);
       min_alpha=n;
     }
@@ -286,8 +290,8 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
 
   }
 
-  Array1 <doublevar> avg_energies(nwfs,0.0),avg_weight(nwfs,0.0),avg_var(nwfs,0.0);
-  Array1 <doublevar> covariance(nwfs,0.0),diff_var(nwfs,0.0);
+  Array1 <doublevar> avg_energies(nwfs,0.0),avg_weight(nwfs,0.0);
+  Array1 <doublevar> diff_var(nwfs,0.0);
   Array1 <doublevar> avg_en_unweight(nwfs,0.0);
   Array2 <doublevar> diff_en(nwfs,nconfig_eval,0.0);
   doublevar min_weight=1e99,max_weight=-1e99;
@@ -297,35 +301,27 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
       avg_energies(w)+=weight*all_energies(w,config)/nconfig_eval;
       avg_en_unweight(w)+=all_energies(w,config)/nconfig_eval;
       avg_weight(w)+=weight/nconfig_eval;
-      diff_en(w,config)=weight*all_energies(w,config)-all_energies(0,config);
+      diff_en(w,config)=all_energies(w,config)-all_energies(0,config);
       if(weight < min_weight) min_weight=weight;
       if(weight > max_weight) max_weight=weight;
     }
-    for(int config=0; config < nconfig_eval; config++) { 
-      avg_var(w)+=(all_energies(w,config)-avg_en_unweight(w)) 
-                 *(all_energies(w,config)-avg_en_unweight(w));
-    }
-    avg_var(w)=sqrt(avg_var(w))/nconfig_eval;
   }
-  for(int w=0; w< nwfs; w++) { 
-    doublevar diff=avg_energies(w)-avg_energies(0);
-    for(int config=0; config < nconfig_eval; config++) { 
-      covariance(w)+=(all_energies(w,config)-avg_en_unweight(w))
-                    *(all_energies(0,config)-avg_en_unweight(0));
-      
-      diff_var(w)+=(diff_en(w,config)-diff)
-                  *(diff_en(w,config)-diff);
-    }
-    covariance(w)/=nconfig_eval;
-    diff_var(w)=sqrt(diff_var(w))/nconfig_eval;
-  }
-
   for(int w=0; w< nwfs; w++) { 
     avg_energies(w)=parallel_sum(avg_energies(w));
     avg_weight(w)=parallel_sum(avg_weight(w));
-    avg_var(w)=parallel_sum(avg_var(w))/mpi_info.nprocs;
   }
- 
+
+  for(int w=0; w< nwfs; w++) { 
+    doublevar diff=avg_energies(w)/avg_weight(w)-avg_energies(0);
+    cout << w << " diff " << diff << endl;
+    for(int config=0; config < nconfig_eval; config++) { 
+      diff_var(w)+=(diff_en(w,config)-diff)
+                  *(diff_en(w,config)-diff);
+    }
+    int npts=nconfig_eval*mpi_info.nprocs;    
+    diff_var(w)=parallel_sum(diff_var(w))/npts;
+    diff_var(w)=sqrt(diff_var(w)/npts);
+  }
 
   debug_write(cout,"min_weight ",min_weight, " max_weight ");
   debug_write(cout,max_weight, "\n");
@@ -335,7 +331,7 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
     energies(w,1)=diff_var(w);
     if(mpi_info.node==0) { 
       cout << "endiff " << energies(w,0)-energies(0,0) 
-        << " covariance " << covariance(w)  << " estimated error " 
+        <<  " estimated error " 
         << diff_var(w) << endl;
     }
   }
@@ -349,32 +345,84 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
 //----------------------------------------------------------------------
 
 
+bool  Linear_optimization_method::deriv_is_significant(Average_return & avg,
+    Average_return & err,
+    int n) { 
+  doublevar thresh=3; //Number of sigmas above which we consider this significant
+  int nsig_S0=0;
+  for(int i=0; i< n; i++) {
+    if(fabs(avg.vals(n+i)/err.vals(n+i)) > thresh) nsig_S0++;
+  }
+
+  int nsig_S;
+  for(int i=0; i< n; i++) { 
+    for(int j=0; j< n; j++) { 
+      if(fabs(avg.vals(3*n+i*n+j)/err.vals(3*n+i*n+j)) > thresh) nsig_S++;
+    }
+  }
+
+  int nsig_H0=0;
+  for(int i=0; i< n; i++) {
+    if(fabs(avg.vals(i)/err.vals(i)) > thresh) nsig_H0++;
+    if(fabs(avg.vals(2*n+i)/err.vals(2*n+i)) > thresh) nsig_H0++;
+  }
+  int nsig_H=0;
+  for(int i=0; i< n; i++) { 
+    for(int j=0; j< n; j++) { 
+      if(fabs(avg.vals(3*n+2*n*n+i*n+j)/err.vals(3*n+2*n*n+i*n+j)) > thresh) 
+        nsig_H++;
+    }
+  }
+  single_write(cout, "proportions significant\n");
+  single_write(cout, "S0 ", double(nsig_S0)/double(n), "\n");
+  single_write(cout, "S ", double(nsig_S0)/double(n*n), "\n");
+  single_write(cout, "H0 ", double(nsig_H0)/double(2*n), "\n");
+  single_write(cout, "H ", double(nsig_H)/double(n*n), "\n");
+  if(double(nsig_H)/double(n*n) > sig_H_threshold) return true;
+  else return false;
+
+}
+
+//----------------------------------------------------------------------
 
 void Linear_optimization_method::wavefunction_derivative(
     Array2 <doublevar> & H,Array2<doublevar> & S, Array1 <doublevar> & en) { 
-  string vmc_section="VMC nstep ";
-  append_number(vmc_section,vmc_nstep);
-  vmc_section+="  nblock 20 average { WF_PARMDERIV } ";
-  vector <string> words;
-  string sep=" ";
-  split(vmc_section,sep,words);
-  unsigned int pos=0;
-  Vmc_method vmc;
-  vmc.read(words,pos,options);
-  Properties_manager prop;
-  string name=options.runid+".vmcout";
-  ofstream vmcout;
-  if(mpi_info.node==0) vmcout.open(name.c_str());
-  vmc.runWithVariables(prop,sys,wfdata,pseudo,vmcout);
+  int n=wfdata->nparms();
   Properties_final_average final;
-  prop.getFinal(final);
+  
+  bool significant=false;
+  while(!significant) { 
+
+    string vmc_section="VMC nstep ";
+    append_number(vmc_section,vmc_nstep);
+    vmc_section+="  nblock 20 average { WF_PARMDERIV } ";
+    vector <string> words;
+    string sep=" ";
+    split(vmc_section,sep,words);
+    unsigned int pos=0;
+    Vmc_method vmc;
+    vmc.read(words,pos,options);
+    Properties_manager prop;
+    string name=options.runid+".vmcout";
+    ofstream vmcout;
+    if(mpi_info.node==0) vmcout.open(name.c_str());
+    vmc.runWithVariables(prop,sys,wfdata,pseudo,vmcout);
+    prop.getFinal(final);
+
+    significant=deriv_is_significant(final.avgavg(0,0), final.avgerr(0,0),n);
+    if(!significant) {
+      single_write(cout, " didn't find significant derivatives: increasing vmc_nstep.\n");
+      vmc_nstep*=4;
+    }
+  }
+
   Average_return &  deriv_avg=final.avgavg(0,0);
   Average_return & deriv_err=final.avgerr(0,0);
 
-
-  int n=wfdata->nparms();
+  
   for(int i=0; i< n; i++) { 
-    single_write(cout, "energy derivative ",deriv_avg.vals(2*n+i),"\n");
+    single_write(cout, "energy derivative ",deriv_avg.vals(2*n+i)," +/- ");
+    single_write(cout, deriv_err.vals(2*n+i), "\n");
   }
   H.Resize(n+1,n+1);
   S.Resize(n+1,n+1);
@@ -410,6 +458,8 @@ void Linear_optimization_method::wavefunction_derivative(
   
   for(int i=0; i< n; i++) { 
     for(int j=0; j< n; j++) { 
+      //int indx=3*n+2*n*n+i*n+j;
+
       H(i+1,j+1)=deriv_avg.vals(3*n+2*n*n+i*n+j);
      // H(i+1,j+1)=deriv_avg.vals(3*n+n*n+i*n+j)
      //   -deriv_avg.vals(n+i)*deriv_avg.vals(j)
