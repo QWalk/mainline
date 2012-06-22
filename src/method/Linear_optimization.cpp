@@ -312,8 +312,9 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
   }
 
   for(int w=0; w< nwfs; w++) { 
-    doublevar diff=avg_energies(w)/avg_weight(w)-avg_energies(0);
-    cout << w << " diff " << diff << endl;
+    diff_var(w)=0.0;
+    doublevar diff=avg_energies(w)/avg_weight(w)-avg_energies(0)/avg_weight(0);
+//    cout << w << " diff " << diff << endl;
     for(int config=0; config < nconfig_eval; config++) { 
       diff_var(w)+=(diff_en(w,config)-diff)
                   *(diff_en(w,config)-diff);
@@ -362,9 +363,10 @@ bool  Linear_optimization_method::deriv_is_significant(Average_return & avg,
   }
 
   int nsig_H0=0;
+  int nsig_enderiv=0;
   for(int i=0; i< n; i++) {
     if(fabs(avg.vals(i)/err.vals(i)) > thresh) nsig_H0++;
-    if(fabs(avg.vals(2*n+i)/err.vals(2*n+i)) > thresh) nsig_H0++;
+    if(fabs(avg.vals(2*n+i)/err.vals(2*n+i)) > thresh) nsig_enderiv++;
   }
   int nsig_H=0;
   for(int i=0; i< n; i++) { 
@@ -376,9 +378,10 @@ bool  Linear_optimization_method::deriv_is_significant(Average_return & avg,
   single_write(cout, "proportions significant\n");
   single_write(cout, "S0 ", double(nsig_S0)/double(n), "\n");
   single_write(cout, "S ", double(nsig_S0)/double(n*n), "\n");
-  single_write(cout, "H0 ", double(nsig_H0)/double(2*n), "\n");
+  single_write(cout, "H0 ", double(nsig_H0)/double(n), "\n");
+  single_write(cout, "enderiv ", double(nsig_enderiv)/double(n), "\n");
   single_write(cout, "H ", double(nsig_H)/double(n*n), "\n");
-  if(double(nsig_H)/double(n*n) > sig_H_threshold) return true;
+  if(double(nsig_H0)/double(n) > sig_H_threshold) return true;
   else return false;
 
 }
