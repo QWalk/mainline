@@ -160,7 +160,10 @@ struct Parm_deriv_return {
   int nparms_start,nparms_end;
   Array1 <doublevar> gradient;
   Array2 <doublevar> hessian;  
-  Array1 <doublevar> lapderiv;  //Parameter derivative of the laplacian of the wave function
+  Array3 <doublevar> gradderiv; //Parameter derivative of the gradient of the wave function
+  //indices are (parameter,electron,[gradx,grady,gradz,lap])
+//  Array1 <doublevar> lapderiv;  //Parameter derivative of the laplacian of the wave function
+  Array2 <doublevar> val_gradient; //Electron derivative of the wave function (needed to combine lapderiv for multiplication of wave functions)
   Parm_deriv_return() { 
     need_hessian=0;
     need_lapderiv=0;
