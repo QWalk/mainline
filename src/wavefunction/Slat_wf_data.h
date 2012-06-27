@@ -107,18 +107,20 @@ public:
   {
     if(optimize_mo) 
       return orbitals_for_optimize_mo.GetSize()*(molecorb->nMoCoeff()/molecorb->getNmo());
-    else if(optimize_det){
+    else if(optimize_det){ return ncsf-1; } 
+    /*
       if(use_csf)
-	if(all_weights)
-	  return ncsf;
-	else
-	  return ncsf-1;
+        if(all_weights)
+          return ncsf;
+        else
+          return ncsf-1;
       else
-	if(all_weights)
-	  return ndet;
-	else
-	  return ndet-1;
+        if(all_weights)
+          return ndet;
+        else
+          return ndet-1;
     }
+    */
     else return 0;
   }
 
@@ -174,10 +176,10 @@ private:
   string mo_place; //!< where to place the new mo's
   int optimize_det; //!< whether to optimize determinant coefficients
   Array1 <Array1 <doublevar> > CSF;
-  int use_csf; //whether to use csfs instead of pure dets
+//  int use_csf; //whether to use csfs instead of pure dets
   int ncsf; 
   int sort; //whether to sort det. weights by size
-  int all_weights; 
+//  int all_weights; 
   
   
   General_MO_matrix * genmolecorb; 

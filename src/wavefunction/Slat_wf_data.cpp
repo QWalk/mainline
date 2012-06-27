@@ -71,10 +71,6 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
     use_iterative_updates=1;
   }
 
-  all_weights=0;
-  if(haskeyword(words, pos=startpos, "ALL_WEIGHTS")) {
-    all_weights=1;
-  }
 
   pos=startpos;
   vector <vector <string> > csfstr;
@@ -85,8 +81,6 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
   }
   ncsf=csfstr.size();
   if(ncsf){
-    //cout <<" Using CSF form for determinant weights "<<endl;
-    use_csf=1;
     CSF.Resize(ncsf);
     int counter=0;
     for(int csf=0;csf<ncsf;csf++){
@@ -100,21 +94,10 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
       }
     }
     ndet=counter;
-    //cout <<" total number of determinants "<<ndet<<endl;
 
     if(readsection(words, pos, strdetwt, "DETWT")){
       error("Already using suplied CSF's, remove DETWT");
     }
-    /*
-       for(int csf=0;csf<ncsf;csf++){
-       cout <<" CSF { ";
-       for(int j=0;j<CSF(csf).GetDim(0);j++){
-       cout <<CSF(csf)(j)<<"  ";
-       } 
-       cout <<"} "<<endl;
-       }
-       */
-
     counter=0;
     detwt.Resize(ndet);
     for(int csf=0;csf<ncsf;csf++)
@@ -124,13 +107,19 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
   }
   else{
     //cout <<" Using standard  DETWT form for determinant weights "<<endl;
-    use_csf=0;
     pos=startpos;
     readsection(words, pos, strdetwt, "DETWT");
     ndet=strdetwt.size();
     detwt.Resize(ndet);
     for(int det=0; det < ndet; det++){
       detwt(det)=atof(strdetwt[det].c_str());
+    }
+    CSF.Resize(ndet);
+    ncsf=ndet;
+    for(int det=0; det < ndet; det++) { 
+      CSF(det).Resize(2);
+      CSF(det)(0)=detwt(det);
+      CSF(det)(1)=1.0;
     }
   }
 
@@ -965,175 +954,104 @@ int Slat_wf_data::writeinput(string & indent, ostream & os)
   if(use_iterative_updates)
     os << indent << "ITERATIVE_UPDATES" << endl;
 
-  if(all_weights)
-    os << indent << "ALL_WEIGHTS" << endl;
 
-  if(use_csf){
-    Array1 <Array1 <doublevar> > CSF_print(ncsf);
-    Array1 <doublevar> detwt_print(ndet);
-    Array3 < Array1 <int> > occupation_orig_print(nfunc,ndet,2);
+  Array1 <Array1 <doublevar> > CSF_print(ncsf);
+  Array1 <doublevar> detwt_print(ndet);
+  Array3 < Array1 <int> > occupation_orig_print(nfunc,ndet,2);
 
-    if(sort){
-      Array1 <doublevar> csf_tmp(ncsf);
-      Array1 <int> list;
-      for(int csf=0;csf<ncsf;csf++)
-        csf_tmp(csf)=CSF(csf)(0);
-      sort_abs_values_descending(csf_tmp,csf_tmp,list);
-
-      /*
-         cout <<"CSF list"<<endl;
-         for(int csf=0;csf<ncsf;csf++){
-         cout <<csf<<"  "<<list(csf)<<endl;
-         }
-         */
-
-      Array1 < Array1 <int> > det_pos(ncsf);
-      int counterr=0;
-      for(int csf=0;csf<ncsf;csf++){
-        det_pos(csf).Resize(CSF(csf).GetDim(0)-1);
-        for(int j=1;j<CSF(csf).GetDim(0);j++){
-          det_pos(csf)(j-1)=counterr++;
-        }
-      }
+  if(sort){
+    Array1 <doublevar> csf_tmp(ncsf);
+    Array1 <int> list;
+    for(int csf=0;csf<ncsf;csf++)
+      csf_tmp(csf)=CSF(csf)(0);
+    sort_abs_values_descending(csf_tmp,csf_tmp,list);
 
 
-      //preparing CSF_print
-      int counter_new=0;
-      for(int csf=0;csf<ncsf;csf++){
-        CSF_print(csf).Resize(CSF(list(csf)).GetDim(0));
-        for(int j=0;j<CSF(list(csf)).GetDim(0);j++){   
-          CSF_print(csf)(j)=CSF(list(csf))(j);
-          if(j>0){
-            detwt_print(counter_new++)=CSF_print(csf)(0)*CSF_print(csf)(j);
-          }
-        }
-      }
-
-      Array1 <int> detlist(ndet);
-      //cout <<"CSF list"<<endl;
-      int counter_old=0;
-      for(int csf=0;csf<ncsf;csf++){
-        //cout << csf<<"  ";
-        for(int j=0;j<CSF(list(csf)).GetDim(0)-1;j++){
-          //cout <<det_pos(list(csf))(j) <<"  ";
-          detlist(counter_old++)=det_pos(list(csf))(j);
-        }
-        //cout <<endl;
-      }
-
-      /*
-         cout <<"Determinant list"<<endl;
-         for(int det=0; det < ndet; det++){
-         cout <<det<<"  "<<detlist(det)<<endl;
-         }
-         */
-
-      //preparing occupation_orig_print
-      for(int f=0; f< nfunc; f++)
-        for(int det=0; det < ndet; det++)
-          for(int s=0; s<2; s++){
-            occupation_orig_print(f,det,s).Resize(nelectrons(s));
-            occupation_orig_print(f,det,s)=occupation_orig(f,detlist(det),s);
-          }
-    }
-    else{ //no sorting 
-      int counter=0;
-      for(int csf=0;csf<ncsf;csf++){
-        CSF_print(csf).Resize(CSF(csf).GetDim(0));
-        for(int j=0;j<CSF(csf).GetDim(0);j++){   
-          CSF_print(csf)(j)=CSF(csf)(j);
-          if(j>0)
-            detwt_print(counter++)=CSF(csf)(0)*CSF(csf)(j);
-        }
-      }
-      for(int f=0; f< nfunc; f++)
-        for(int det=0; det < ndet; det++)
-          for(int s=0; s<2; s++){
-            occupation_orig_print(f,det,s).Resize(nelectrons(s));
-            occupation_orig_print(f,det,s)=occupation_orig(f,det,s);
-          }
-    }
-    // do printout
-
+    Array1 < Array1 <int> > det_pos(ncsf);
+    int counterr=0;
     for(int csf=0;csf<ncsf;csf++){
-      os << indent<<" CSF { ";
-      for(int j=0;j<CSF_print(csf).GetDim(0);j++){
-        os <<CSF_print(csf)(j)<<"  ";
-      } 
-      os <<"} "<<endl;
+      det_pos(csf).Resize(CSF(csf).GetDim(0)-1);
+      for(int j=1;j<CSF(csf).GetDim(0);j++){
+        det_pos(csf)(j-1)=counterr++;
+      }
     }
-    for(int f=0; f< nfunc; f++){
-      os << indent << "STATES { " << endl << indent <<"  ";
-      for(int det=0; det < ndet; det++){
-        if(ndet>1)
-          os <<"#  Determinant "<<det+1<<": weight: "<<detwt_print(det)<<endl<< indent <<"  ";
-        for(int s=0; s<2; s++){
-          for(int e=0; e< nelectrons(s); e++){
-            os << occupation_orig_print(f,det,s)(e)+1 << " ";
-            if((e+1)%20 ==0)
-              os << endl << indent << "  ";
-          }
-          os << endl << indent << "  ";
+
+
+    //preparing CSF_print
+    int counter_new=0;
+    for(int csf=0;csf<ncsf;csf++){
+      CSF_print(csf).Resize(CSF(list(csf)).GetDim(0));
+      for(int j=0;j<CSF(list(csf)).GetDim(0);j++){   
+        CSF_print(csf)(j)=CSF(list(csf))(j);
+        if(j>0){
+          detwt_print(counter_new++)=CSF_print(csf)(0)*CSF_print(csf)(j);
         }
       }
-      os << "}" << endl;
     }
 
+    Array1 <int> detlist(ndet);
+    //cout <<"CSF list"<<endl;
+    int counter_old=0;
+    for(int csf=0;csf<ncsf;csf++){
+      //cout << csf<<"  ";
+      for(int j=0;j<CSF(list(csf)).GetDim(0)-1;j++){
+        //cout <<det_pos(list(csf))(j) <<"  ";
+        detlist(counter_old++)=det_pos(list(csf))(j);
+      }
+      //cout <<endl;
+    }
+
+
+    //preparing occupation_orig_print
+    for(int f=0; f< nfunc; f++)
+      for(int det=0; det < ndet; det++)
+        for(int s=0; s<2; s++){
+          occupation_orig_print(f,det,s).Resize(nelectrons(s));
+          occupation_orig_print(f,det,s)=occupation_orig(f,detlist(det),s);
+        }
   }
-  else {
-    Array1 <doublevar> detwt_print(ndet);
-    Array3 < Array1 <int> > occupation_orig_print(nfunc,ndet,2);
-
-    if(sort){
-      Array1 <int> list;
-      sort_abs_values_descending(detwt,detwt_print,list);
-
-      for(int f=0; f< nfunc; f++)
-        for(int det=0; det < ndet; det++)
-          for(int s=0; s<2; s++){
-            occupation_orig_print(f,det,s).Resize(nelectrons(s));
-            occupation_orig_print(f,det,s)=occupation_orig(f,list(det),s);
-          }
+  else{ //no sorting 
+    int counter=0;
+    for(int csf=0;csf<ncsf;csf++){
+      CSF_print(csf).Resize(CSF(csf).GetDim(0));
+      for(int j=0;j<CSF(csf).GetDim(0);j++){   
+        CSF_print(csf)(j)=CSF(csf)(j);
+        if(j>0)
+          detwt_print(counter++)=CSF(csf)(0)*CSF(csf)(j);
+      }
     }
-    else{ //no sorting 
-      detwt_print=detwt;
-      for(int f=0; f< nfunc; f++)
-        for(int det=0; det < ndet; det++)
-          for(int s=0; s<2; s++){
-            occupation_orig_print(f,det,s).Resize(nelectrons(s));
-            occupation_orig_print(f,det,s)=occupation_orig(f,det,s);
-          }
-    }
+    for(int f=0; f< nfunc; f++)
+      for(int det=0; det < ndet; det++)
+        for(int s=0; s<2; s++){
+          occupation_orig_print(f,det,s).Resize(nelectrons(s));
+          occupation_orig_print(f,det,s)=occupation_orig(f,det,s);
+        }
+  }
+  // do printout
 
-    //do printout
-    os << indent << "DETWT { ";
-    for(int det=0; det < ndet; det++)
-    {
-      os << detwt_print(det) << "  ";
-      if ((det+1)%6==0)
-        os <<endl<<indent;
+  for(int csf=0;csf<ncsf;csf++){
+    os << indent<<" CSF { ";
+    for(int j=0;j<CSF_print(csf).GetDim(0);j++){
+      os <<CSF_print(csf)(j)<<"  ";
+    } 
+    os <<"} "<<endl;
+  }
+  for(int f=0; f< nfunc; f++){
+    os << indent << "STATES { " << endl << indent <<"  ";
+    for(int det=0; det < ndet; det++){
+      if(ndet>1)
+        os <<"#  Determinant "<<det+1<<": weight: "<<detwt_print(det)<<endl<< indent <<"  ";
+      for(int s=0; s<2; s++){
+        for(int e=0; e< nelectrons(s); e++){
+          os << occupation_orig_print(f,det,s)(e)+1 << " ";
+          if((e+1)%20 ==0)
+            os << endl << indent << "  ";
+        }
+        os << endl << indent << "  ";
+      }
     }
     os << "}" << endl;
-
-    for(int f=0; f< nfunc; f++){
-      os << indent << "STATES { " << endl << indent <<"  ";
-      for(int det=0; det < ndet; det++){
-        if(ndet>1)
-          os <<"#  Determinant "<<det+1<<": weight: "<<detwt_print(det)<<endl<< indent <<"  ";
-        for(int s=0; s<2; s++){
-          for(int e=0; e< nelectrons(s); e++){
-            os << occupation_orig_print(f,det,s)(e)+1 << " ";
-            if((e+1)%20 ==0)
-              os << endl << indent << "  ";
-          }
-          os << endl << indent << "  ";
-        }
-      }
-      os << "}" << endl;
-    }
-  }//if using determinants
-
-
+  }
   if(optimize_mo) {
     molecorb->setOrbfile(mo_place);
 
@@ -1180,42 +1098,14 @@ void Slat_wf_data::getVarParms(Array1 <doublevar> & parms)
     }
   }
   else if(optimize_det) {
-    if(use_csf){
-      if(all_weights){
-        parms.Resize(ncsf);
-        for(int i=0; i< ncsf; i++) {
-          parms(i)=CSF(i)(0);
-        }
-      }
-      else{
-        parms.Resize(ncsf-1);
-        for(int i=1; i< ncsf; i++) {
-          parms(i-1)=CSF(i)(0);
-        }
-      }
-    }
-    else{//just independent weights
-      if(all_weights){
-        parms.Resize(detwt.GetDim(0));
-        for(int i=0; i< detwt.GetDim(0); i++) {
-          parms(i)=detwt(i);
-        }
-      }
-      else{
-        parms.Resize(detwt.GetDim(0)-1);
-        for(int i=1; i< detwt.GetDim(0); i++) {
-          parms(i-1)=detwt(i);
-        }
-      }
+    parms.Resize(ncsf-1);
+    for(int i=1; i< ncsf; i++) {
+      parms(i-1)=CSF(i)(0);
     }
   }
   else {
     parms.Resize(0);
   }
-
-  //for(int i=0;i<parms.GetDim(0);i++)
-  // cout <<parms(i)<<endl;
-  //cout <<"done getVarParms"<<endl;
 }
 
 void Slat_wf_data::setVarParms(Array1 <doublevar> & parms)
@@ -1241,33 +1131,15 @@ void Slat_wf_data::setVarParms(Array1 <doublevar> & parms)
     molecorb->setMoCoeff(mocoeff);
   }
   else if(optimize_det) {
-    if(use_csf){
-      if(all_weights)
-        for(int csf=0; csf< ncsf; csf++) 
-          CSF(csf)(0)=parms(csf);
-      else
-        for(int csf=1; csf< ncsf; csf++) 
-          CSF(csf)(0)=parms(csf-1);
-      //cout << CSF(csf)(0)<<endl;
-      int counter=0;
-      for(int csf=0; csf< ncsf; csf++) {
-        for(int j=1;j<CSF(csf).GetDim(0);j++){
-          detwt(counter++)=CSF(csf)(0)*CSF(csf)(j);
-        }
+    for(int csf=1; csf< ncsf; csf++) 
+      CSF(csf)(0)=parms(csf-1);
+    int counter=0;
+    for(int csf=0; csf< ncsf; csf++) {
+      for(int j=1;j<CSF(csf).GetDim(0);j++){
+        detwt(counter++)=CSF(csf)(0)*CSF(csf)(j);
       }
-      assert(counter==ndet);
-      // for(int i=0;i<ndet;i++)
-      // cout <<detwt(i)<<" ";
-      //cout <<endl;
     }
-    else{
-      if(all_weights)
-        for(int i=0; i< detwt.GetDim(0); i++) 
-          detwt(0)=parms(i);
-      else
-        for(int i=1; i< detwt.GetDim(0); i++) 
-          detwt(i)=parms(i-1);
-    }
+    assert(counter==ndet);
   }
   else {
     parms.Resize(0);
@@ -1282,25 +1154,4 @@ void Slat_wf_data::setVarParms(Array1 <doublevar> & parms)
 }
 
 void Slat_wf_data::renormalize(){
-
-  if(optimize_det && all_weights) {
-    doublevar norm=0.0;
-    if(use_csf){
-      for(int csf=0; csf< ncsf; csf++) 
-        norm+=CSF(csf)(0)*CSF(csf)(0);
-    }
-    else{
-      for(int i=0; i< detwt.GetDim(0); i++) 
-        norm+=detwt(i)*detwt(i);
-    }
-    doublevar factor=1.0/sqrt(norm);
-    if(use_csf){
-      for(int csf=0; csf< ncsf; csf++) 
-        CSF(csf)(0)*=factor;
-    }
-    else{
-      for(int i=0; i< detwt.GetDim(0); i++) 
-        detwt(i)*=factor;
-    }
-  }
 }

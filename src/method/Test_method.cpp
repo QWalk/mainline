@@ -33,8 +33,8 @@ void Test_method::read(vector <string> words,
 
   
   
-  readvalue(words, pos=0, readconfig, "READCONFIG");
-  canonical_filename(readconfig);
+  if(readvalue(words, pos=0, readconfig, "READCONFIG")) 
+    canonical_filename(readconfig);
   
   sysprop=NULL;
   allocate(options.systemtext[0], sysprop);
@@ -162,7 +162,6 @@ void Test_method::run(Program_options & options, ostream & output)
   if(readconfig!="") { 
     read_configurations(readconfig, config_pos);
     config_pos(0).restorePos(sample);
-
   }
   else sample->randomGuess();
     

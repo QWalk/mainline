@@ -837,80 +837,27 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
     }
     detsum=sum(detvals);
     detsum.logval*=-1;
-    if(parent->use_csf){
-      if(parent->all_weights)
-        assert(nparms<parent->ncsf+1);
-      else
-        assert(nparms<parent->ncsf);
-      int counter=0;
-      derivatives.gradient=0.0;
-      for(int csf=0; csf< parent->ncsf; csf++) {
-        if(parent->all_weights){
-          if(csf >= nparms_start && csf <= nparms_end ){
-            for(int j=1;j<parent->CSF(csf).GetDim(0);j++){
-              derivatives.gradient(csf-nparms_start)+=parent->CSF(csf)(j)*(detVal(0,counter,0)*detVal(0,counter,1)).val();
-              counter++;
-            }
-          }
-          else{
-            counter+=parent->CSF(csf).GetDim(0)-1;
-          }
-        }
-        else{
-          if(csf > nparms_start && csf <= nparms_end ){
-            for(int j=1;j<parent->CSF(csf).GetDim(0);j++){
-              derivatives.gradient(csf-1-nparms_start)+=parent->CSF(csf)(j)*(detVal(0,counter,0)*detVal(0,counter,1)).val();
-              counter++;
-            }
-          }
-          else{
-            counter+=parent->CSF(csf).GetDim(0)-1;
-          }
+    derivatives.gradient=0.0;
+    int counter=0;
+    for(int csf=0; csf < parent->ncsf; csf++) { 
+      if(csf > nparms_start && csf <= nparms_end ){
+        for(int j=1;j<parent->CSF(csf).GetDim(0);j++){
+          derivatives.gradient(csf-1-nparms_start)+=
+            parent->CSF(csf)(j)*(detVal(0,counter,0)*detVal(0,counter,1)).val();
+          counter++;
         }
       }
-      for(int csf=0; csf< nparms; csf++) {
-        derivatives.gradient(csf)*=detsum.val(); 
+      else{
+        counter+=parent->CSF(csf).GetDim(0)-1;
       }
-      derivatives.hessian=0;
-      return 1;
     }
-    else{
-/*
-      Array1 <log_value <doublevar> > detgrads(ndet);
-      int lapnum=4;
-      for(int det=0; det < ndet; det++) {
-        doublevar temp=0;
-        for(int i=0; i< nelectrons(s); i++) { 
-          for(int j=0; j<nelectrons(s); j++) {
-            temp+=moVal(i , e, dataptr->occupation(f,det,s)(j) )
-              *inverse(f,det,s)(dataptr->rede(e), j);
-          }
-        }
-        detgrads(det)=temp*dataptr->detwt(det);//*detVal(f,det,s)*detVal(f,det,opp)*invtotval;
-        detgrads(det)*=detVal(f,det,s);
-        detgrads(det)*=detVal(f,det,opp);
-        detgrads(det)*=invtotval;
-      }
-      */
-      
-      for(int det=0; det < ndet; det++) {
-        if(parent->all_weights){
-          if(det >= nparms_start && det <= nparms_end ) { 
-            derivatives.gradient(det-nparms_start)=(detVal(0,det,0)*detVal(0,det,1)).val();
-          }
-        }
-        else{
-          if(det > nparms_start && det <= nparms_end )
-            derivatives.gradient(det-1-nparms_start)=(detVal(0,det,0)*detVal(0,det,1)).val();
-        }
-      }
-      
-      for(int det=0; det < nparms; det++) {
-        derivatives.gradient(det)*=detsum.val(); 
-      }
-      derivatives.hessian=0;
-      return 1;
+    for(int csf=0; csf< nparms; csf++) {
+      derivatives.gradient(csf)*=detsum.val(); 
     }
+    derivatives.hessian=0;
+    return 1;
+
+    return 1;
   }
   else { 
     derivatives.gradient=0;

@@ -604,8 +604,8 @@ void FSlat_wf::getParmDepVal(Wavefunction_data * wfdata,
 int FSlat_wf::getParmDeriv(Wavefunction_data *  wfdata, 
 			  Sample_point * sample ,
 			  Parm_deriv_return & derivatives){
-  
-  
+  error("Need to update Fslat_wf parmderiv"); 
+ /* 
   if(inverseStale) { 
     detVal=lastDetVal;
     updateInverse(parent, lastValUpdate);
@@ -823,6 +823,7 @@ int FSlat_wf::getParmDeriv(Wavefunction_data *  wfdata,
     return 1;
   }
   return 0;
+  */
 }
 
 
