@@ -219,18 +219,22 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   Array2 <doublevar> energies_corr2(nstabil,2);
   bool significant_stabil=false;
   while(!significant_stabil) { 
-    significant_stabil=true;
+//    significant_stabil=true;
     correlated_evaluation(alphas,0,energies_corr2);
     for(int n=1; n< nstabil; n++) {
       doublevar diff=energies_corr2(n,0)-energies_corr2(0,0);
-      if( fabs(diff)/energies_corr2(n,1) > 3.0) significant_stabil=true;
+      if( fabs(diff)/energies_corr2(n,1) > 3.0) {
+        significant_stabil=true;
+        single_write(cout, "Significant change in energy ",diff);
+         single_write(cout," +/- ", energies_corr2(n,1),"\n");
+      }
     }
 
     if(2*energies_corr2(1,1) < en_convergence and !significant_stabil){
+      single_write(cout, "Hit energy convergence\n");
       alpha=alphas(0);
       return 0;
     }
-
 
 
     if(!significant_stabil) {

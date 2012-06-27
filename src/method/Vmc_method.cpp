@@ -160,7 +160,7 @@ int Vmc_method::generateVariables(Program_options & options) {
 int Vmc_method::allocateIntermediateVariables(System * locsys, 
                                               Wavefunction_data * locwfdata) {
 
-  debug_write(cout, "temporary variables\n");
+//  debug_write(cout, "temporary variables\n");
   locsys->generateSample(sample);
   locwfdata->generateWavefunction(wf);
   sample->attachObserver(wf);
