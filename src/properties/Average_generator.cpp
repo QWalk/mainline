@@ -1700,13 +1700,18 @@ void Average_wf_parmderivs::evaluate(Wavefunction_data * wfdata, Wavefunction * 
   wfdata->getVarParms(alpha0);
   doublevar base_kinetic=pt.kinetic(0);
   doublevar delta=1e-10;
+  int nelectrons=sample->electronSize();
   for(int i=0; i< nparms; i++) { 
-    alpha=alpha0;
-    alpha(i)+=delta;
-    wfdata->setVarParms(alpha);
-    wf->updateLap(wfdata,sample);
-    sys->calcKinetic(wfdata,sample,wf,kin);
-    el(i)=(kin(0)-base_kinetic)/delta;
+//    alpha=alpha0;
+//    alpha(i)+=delta;
+//    wfdata->setVarParms(alpha);
+//    wf->updateLap(wfdata,sample);
+//    sys->calcKinetic(wfdata,sample,wf,kin);
+//    el(i)=(kin(0)-base_kinetic)/delta;
+     el(i)=0;
+     for(int e=0; e< nelectrons; e++) { 
+       el(i)+=-0.5*deriv.gradderiv(i,e,3);
+     }
   }
   wfdata->setVarParms(alpha0);
 
