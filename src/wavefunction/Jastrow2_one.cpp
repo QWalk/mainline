@@ -210,6 +210,41 @@ void Jastrow_onebody_piece::getParmDeriv(int e, const Array3 <doublevar> & eibas
     }
   }
 }
+//----------------------------------------------------------------------
+void Jastrow_onebody_piece::getParmDeriv(const Array4 <doublevar> & eibasis,
+                  Parm_deriv_return & parm_deriv) { 
+  assert(parm_deriv.gradient.GetDim(0)==nparms() || freeze);
+  assert(eibasis.GetDim(0) >= parm_centers.GetDim(0));
+  if(freeze) return;
+  int natoms=parm_centers.GetDim(0);
+  int np=nparms();
+  Array1 <doublevar> coeff(np);
+  for(int at=0; at < natoms; at++) { 
+    int p=parm_centers(at);
+    for(int i=0; i < _nparms(p); i++) {
+      int indx=linear_parms(p,i);
+      coeff(indx)=unique_parameters(p,i);
+    }
+  }
+  
+  //Sum over the atomic indices
+  int nelectrons=eibasis.GetDim(0);
+  Array3 <doublevar>  func(np,nelectrons,5,0.0);
+  for(int e=0; e< nelectrons; e++) { 
+    for(int at=0; at < natoms; at++) {
+      int p=parm_centers(at);
+      for(int i=0; i< _nparms(p); i++) {
+        int index=linear_parms(p,i);
+        for(int d=0; d< 5; d++) func(index,e,d)+=eibasis(e,at,i,d);
+        //cout << "func " << func(index,e,0) << endl;
+      }
+    }
+  }
+  if(freeze) create_parm_deriv_frozen(func,coeff,parm_deriv);
+  else create_parm_deriv(func,coeff,parm_deriv);
+  
+}
+
 //-----------------------------------------------------------
 
 int Jastrow_onebody_piece::nparms() {

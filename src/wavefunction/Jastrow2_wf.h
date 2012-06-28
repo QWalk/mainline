@@ -277,6 +277,7 @@ private:
   //!< save two-body parts(see Jastrow_twobody_piece for explanation)
   doublevar u_twobody;
   //!< save for the total value of the two-body terms
+  void update_eibasis_save(Wavefunction_data * wfdata, Sample_point * sample);
 
   Array1 <  Array4 <doublevar> > eibasis_save; 
   //!< first array is group, 4d array is (electron, ion, basis#, valgradlap)
@@ -296,6 +297,16 @@ private:
   int maxeebasis;
 
 };
+
+
+void create_parm_deriv(const Array3 <doublevar> & func,
+    const Array1 <doublevar> & coeff,
+    Parm_deriv_return & parm_deriv);
+void create_parm_deriv_frozen(const Array3 <doublevar> & func,
+    const Array1 <doublevar> & coeff,
+    Parm_deriv_return & parm_deriv);
+
+
 #endif //JASTROW2_WF_H_INCLUDED
 
 //--------------------------------------------------------------------------

@@ -28,11 +28,22 @@ void extend_parm_deriv(Parm_deriv_return & ret1, const Parm_deriv_return & ret2)
   int nparms=ret1.gradient.GetDim(0)+ret2.gradient.GetDim(0);
   int nparms1=ret1.gradient.GetDim(0);
   int nparms2=ret2.gradient.GetDim(0);
+  int nelectrons=ret1.val_gradient.GetDim(0);
+  Parm_deriv_return derivatives;
+  
+  
+  if(nparms2==0) { 
+    for(int e=0; e < nelectrons; e++) {
+      for(int d=0;d < 3; d++)  { 
+        ret1.val_gradient(e,d)+=ret2.val_gradient(e,d);
+      }
+    }
+    return;
+  }
   //ignoring nparms_start and nparms_end..those should really be input variables, no?
   //yes they are input variables, but in princile should be reflected when making the 
   //final gradients and hessians, I am not changing it for now. M.
   //cout << "nparms " << nparms << "  " << nparms1 << " " << nparms2 << endl;
-  Parm_deriv_return derivatives;
   derivatives.need_hessian=ret1.need_hessian;
   derivatives.nparms_start=ret1.nparms_start;
   derivatives.nparms_end=ret1.nparms_end;
@@ -63,8 +74,54 @@ void extend_parm_deriv(Parm_deriv_return & ret1, const Parm_deriv_return & ret2)
       derivatives.hessian(i,j)=derivatives.hessian(j,i)=ret2.hessian(i-nparms1,j-nparms1);
     }
   }
+
+
+  derivatives.val_gradient.Resize(nelectrons,3);
+  for(int e=0; e< nelectrons; e++) { 
+    for(int d=0;d < 3; d++) {
+      derivatives.val_gradient(e,d)=ret1.val_gradient(e,d)+ret2.val_gradient(e,d);
+    }
+  }
+  
+  //  Extending the derivative of the laplacian
+  derivatives.gradderiv.Resize(nparms,nelectrons,4);
+
+  for(int p=0; p < nparms1; p++) { 
+    for(int e=0; e< nelectrons; e++) { 
+      for(int d=0; d< 4; d++) { 
+        derivatives.gradderiv(p,e,d)=ret1.gradderiv(p,e,d);
+      }
+    }
+  }
+  for(int p=0; p < nparms2; p++) { 
+    for(int e=0; e< nelectrons; e++) { 
+      for(int d=0; d< 4; d++) { 
+        derivatives.gradderiv(p+nparms1,e,d)=ret2.gradderiv(p,e,d);
+      }
+    }
+  }
+  //Now do the cross-terms
+  for(int p=0; p < nparms1; p++) { 
+    for(int e=0; e< nelectrons; e++) { 
+      doublevar dot=0;
+      for(int d=0; d< 3; d++) { 
+        dot+=ret1.gradderiv(p,e,d)*ret2.val_gradient(e,d);
+      }
+      derivatives.gradderiv(p,e,3)+=2*dot;
+    }
+  }
+
+  for(int p=0; p < nparms2; p++) { 
+    for(int e=0; e< nelectrons; e++) { 
+      doublevar dot=0;
+      for(int d=0; d< 3; d++) { 
+        dot+=ret2.gradderiv(p,e,d)*ret1.val_gradient(e,d);
+      }
+      derivatives.gradderiv(p+nparms1,e,3)+=2*dot;
+    }
+  }
+
   ret1=derivatives;
-  //cout << "done " << endl;
 }
 //----------------------------------------------------------------------
 

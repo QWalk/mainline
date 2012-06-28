@@ -303,7 +303,7 @@ int Slat_Jastrow::getParmDeriv(Wavefunction_data *  wfdata,
   //   <<jastval.nparms_start<<" "<<jastval.nparms_end<<endl;
   
 
-  /*
+  
   //new way with usage of extend_parm_deriv; 
   //works as well, you can decrease nparms to be calculated in slater part
   //but not in jastrow part
@@ -315,22 +315,24 @@ int Slat_Jastrow::getParmDeriv(Wavefunction_data *  wfdata,
 
   if (slaterval.nparms_end-slaterval.nparms_start){
     slater_wf->getParmDeriv(dataptr->slater,sample, slaterval);
-    cout <<"adding slater"<<endl;
-    extend_parm_deriv(retparm,slaterval);
+    //cout <<"adding slater"<<endl;
+    //extend_parm_deriv(retparm,slaterval);
+    retparm=slaterval;
   }
   
   if (jastval.nparms_end-jastval.nparms_start){
     if(jastval.nparms_end-jastval.nparms_start!=njast)
       error("jastval.nparms_end-jastval.nparms_start!=njast is not supported");
     jastrow_wf->getParmDeriv(dataptr->jastrow,sample, jastval);
-    cout<<"adding jastrow"<<endl;
+    //cout<<"adding jastrow"<<endl;
     extend_parm_deriv(retparm,jastval);
   }
   
   derivatives=retparm;
-  */
+  
 
   //good old way, works even for the case jastval.nparms_end-jastval.nparms_start!=njast
+  /*
   if(nslater)
     slater_wf->getParmDeriv(dataptr->slater,sample, slaterval);
   if(njast)
@@ -358,6 +360,7 @@ int Slat_Jastrow::getParmDeriv(Wavefunction_data *  wfdata,
       }
     }
   }
+  */
   
   return 1;
 }

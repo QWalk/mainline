@@ -941,8 +941,8 @@ void Jastrow2_wf::init(Wavefunction_data * wfdata) {
   
   eibasis_save.Resize(ngroups);
   for(int g=0; g< ngroups; g++) {
-    if(parent->group(g).hasThreeBody()||parent->group(g).hasThreeBodySpin())
-      eibasis_save(g).Resize(nelectrons, parent->natoms, maxeibasis, 5);
+    //if(parent->group(g).hasThreeBody()||parent->group(g).hasThreeBodySpin())
+    eibasis_save(g).Resize(nelectrons, parent->natoms, maxeibasis, 5);
   }
 
 
@@ -961,25 +961,9 @@ void Jastrow2_wf::updateVal(Wavefunction_data * wfdata, Sample_point * sample){
     updateEverythingVal=0;
   }
 
-  Array3 <doublevar> eibasis(parent->natoms, maxeibasis ,5);
   int ngroups=parent->group.GetDim(0);
-  for(int g=0; g< ngroups; g++) { 
-    if(parent->group(g).hasThreeBody()||parent->group(g).hasThreeBodySpin()) { 
-      for(int e=0; e< nelectrons; e++) {
-        if(electronIsStaleLap(e)) { 
-          parent->group(g).updateEIBasis(e,sample,eibasis);
-          for(int i=0; i< parent->natoms; i++) {
-            for(int j=0; j< maxeibasis; j++) {
-              for(int d=0; d< 5; d++) {
-                eibasis_save(g)(e,i,j,d)=eibasis(i,j,d);
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
+  Array3 <doublevar> eibasis(parent->natoms, maxeibasis ,5);
+  update_eibasis_save(wfdata,sample);
 
   for(int e=0; e < nelectrons; e++) {
     if(electronIsStaleVal(e)) {
@@ -1061,18 +1045,13 @@ void Jastrow2_wf::updateVal(Wavefunction_data * wfdata, Sample_point * sample){
 
 }
 //----------------------------------------------------------
-void Jastrow2_wf::updateLap(Wavefunction_data * wfdata, Sample_point * sample){
-  //cout << "Jastrow2_wf::updateLap " << endl;
-  if(updateEverythingLap) {
-    electronIsStaleLap=1;
-    updateEverythingLap=0;
-  }
 
+void Jastrow2_wf::update_eibasis_save(Wavefunction_data * wfdata, Sample_point * sample) { 
   int ngroups=parent->group.GetDim(0);
   Array3 <doublevar> eibasis(parent->natoms, maxeibasis ,5);
 
   for(int g=0; g< ngroups; g++) { 
-    if(parent->group(g).hasThreeBody()|| parent->group(g).hasThreeBodySpin()) { 
+   // if(parent->group(g).hasThreeBody()|| parent->group(g).hasThreeBodySpin()) { 
       for(int e=0; e< nelectrons; e++) {
         if(electronIsStaleLap(e)) { 
           parent->group(g).updateEIBasis(e,sample,eibasis);
@@ -1084,9 +1063,22 @@ void Jastrow2_wf::updateLap(Wavefunction_data * wfdata, Sample_point * sample){
             }
           }
         }
-      }
+   //   }
     }
   }
+  
+}
+
+void Jastrow2_wf::updateLap(Wavefunction_data * wfdata, Sample_point * sample){
+  //cout << "Jastrow2_wf::updateLap " << endl;
+  if(updateEverythingLap) {
+    electronIsStaleLap=1;
+    updateEverythingLap=0;
+  }
+
+  int ngroups=parent->group.GetDim(0);
+  Array3 <doublevar> eibasis(parent->natoms, maxeibasis ,5);
+  update_eibasis_save(wfdata,sample);
 
   for(int e=0; e < nelectrons; e++) {
     if(electronIsStaleLap(e)) {
@@ -1103,10 +1095,10 @@ void Jastrow2_wf::updateLap(Wavefunction_data * wfdata, Sample_point * sample){
       newlap_eei=0;
 
       if(keep_ion_dependent) { 
-	for(int a=0; a< parent->natoms; a++) { 
-	  for(int d=0; d< 5; d++)
-	    one_body_ion(e,a,d)=0;
-	}
+        for(int a=0; a< parent->natoms; a++) { 
+          for(int d=0; d< 5; d++)
+            one_body_ion(e,a,d)=0;
+        }
       }
 
 
@@ -1117,19 +1109,20 @@ void Jastrow2_wf::updateLap(Wavefunction_data * wfdata, Sample_point * sample){
         old_eval+=two_body_save(e,j,0);
 
       for(int g=0; g< ngroups; g++) {
-      
-        if(parent->group(g).hasOneBody() || parent->group(g).hasThreeBody()|| parent->group(g).hasThreeBodySpin() )
-	  parent->group(g).updateEIBasis(e,sample,eibasis);
-        
+        if(parent->group(g).hasOneBody() || parent->group(g).hasThreeBody()
+            || parent->group(g).hasThreeBodySpin() )
+          parent->group(g).updateEIBasis(e,sample,eibasis);
+
         if(parent->group(g).hasOneBody()) {
           parent->group(g).one_body.updateLap(e, eibasis,newlap_ei);
-	  if(keep_ion_dependent) { 
-	    parent->group(g).one_body.updateLap_ion(e, eibasis,one_body_ion);
-	  }
-	}
-        
+          if(keep_ion_dependent) { 
+            parent->group(g).one_body.updateLap_ion(e, eibasis,one_body_ion);
+          }
+        }
 
-        if(parent->group(g).hasTwoBody() || parent->group(g).hasThreeBody() || parent->group(g).hasThreeBodySpin())
+
+        if(parent->group(g).hasTwoBody() || parent->group(g).hasThreeBody() 
+            || parent->group(g).hasThreeBodySpin())
           parent->group(g).updateEEBasis(e,sample, eebasis);
         
         if(parent->group(g).hasTwoBody())
@@ -1147,7 +1140,7 @@ void Jastrow2_wf::updateLap(Wavefunction_data * wfdata, Sample_point * sample){
           parent->group(g).three_body.updateLap(e,eibasis_save(g),eebasis,newlap_eei);
         }
 
-	if(parent->group(g).hasThreeBodySpin()) { 
+        if(parent->group(g).hasThreeBodySpin()) { 
           for(int i=0; i< parent->natoms; i++) {
             for(int j=0; j< maxeibasis; j++) {
               for(int d=0; d< 5; d++) {
@@ -1157,7 +1150,7 @@ void Jastrow2_wf::updateLap(Wavefunction_data * wfdata, Sample_point * sample){
           }
           parent->group(g).three_body_diffspin.updateLap(e,eibasis_save(g),eebasis,newlap_eei);
         }
-                    
+
       }
 
 
@@ -1625,10 +1618,48 @@ int Jastrow2_wf::getParmDeriv(Wavefunction_data *wfdata , Sample_point * sample,
   for(int g=0; g< ng; g++) { 
     if(parent->group(g).optimizeBasis()) return 0;
   }
-  Parm_deriv_return retparm;
+  update_eibasis_save(wfdata,sample);
+
+  parm_deriv.gradient.Resize(0);
+  parm_deriv.hessian.Resize(0,0);
+  parm_deriv.gradderiv.Resize(0,nelectrons,4);
+  parm_deriv.val_gradient.Resize(nelectrons,3);
+  parm_deriv.val_gradient=0.0;
   
   for(int g=0; g< ng; g++) {
-    Array3 <doublevar> eionbasis(nelectrons,parent->natoms, maxeibasis); //for 3-body terms
+    if(parent->group(g).hasOneBody()) { 
+      Parm_deriv_return tmp_parm;
+      parent->group(g).one_body.getParmDeriv(eibasis_save(g),tmp_parm);
+      extend_parm_deriv(parm_deriv,tmp_parm);
+    }
+
+    Array4 <doublevar> eetotal(nelectrons, nelectrons, maxeebasis,5);
+    eetotal=-1;
+    Array3 <doublevar> eebasis(nelectrons, maxeebasis, 5);
+    for(int e=0; e< nelectrons; e++) { 
+      parent->group(g).updateEEBasis(e,sample, eebasis);
+      for(int j=0; j< e; j++) { 
+        for(int b=0; b< maxeebasis; b++) {
+          for(int d=0; d< 5; d++) 
+            eetotal(j,e,b,d)=eebasis(j,b,d);
+        }
+      }
+    }
+    if(parent->group(g).hasTwoBody()) { 
+      Parm_deriv_return tmp_parm;
+      parent->group(g).two_body->getParmDeriv(eetotal,tmp_parm);
+      extend_parm_deriv(parm_deriv,tmp_parm);
+    }
+
+    if(parent->group(g).hasThreeBody()) { 
+      Parm_deriv_return tmp_parm;
+      parent->group(g).three_body.getParmDeriv(eibasis_save(g),eetotal,tmp_parm);
+      extend_parm_deriv(parm_deriv,tmp_parm);
+    }
+
+    //retparm=tmp_parm;
+    /*
+    Array3 <doublevar> eionbasis(nelectrons,parent->natoms, maxeibasis,5); //for 3-body terms
     Array3 <doublevar> eibasis(parent->natoms, maxeibasis ,5);
     if(parent->group(g).hasOneBody() || parent->group(g).hasThreeBody()) { 
       Parm_deriv_return tmp_parm;
@@ -1697,8 +1728,8 @@ int Jastrow2_wf::getParmDeriv(Wavefunction_data *wfdata , Sample_point * sample,
       parent->group(g).three_body_diffspin.getParmDeriv(eionbasis,eetotal, tmp_parm);
       extend_parm_deriv(retparm,tmp_parm);
     }
+    */
   }
-  parm_deriv=retparm;
   
   int np=parent->nparms();
   for(int i=0; i< np; i++) { 
@@ -2058,4 +2089,86 @@ void Jastrow2_wf::evalTestPos(Array1 <doublevar> & pos, Sample_point * sample,
   
 }
 //--------------------------------------------------------------------------
+void create_parm_deriv(const Array3 <doublevar> & func,
+    const Array1 <doublevar> & coeff,
+    Parm_deriv_return & parm_deriv) { 
+  int np=func.GetDim(0);
+  int nelectrons=func.GetDim(1);
+  assert(coeff.GetDim(0)==np);
+  parm_deriv.gradient.Resize(np);
+  parm_deriv.gradient=0;
+  parm_deriv.hessian.Resize(np,np);
+  parm_deriv.hessian=0;
+  
+  //Create the derivatives and hessian
+  for(int e=0; e < nelectrons; e++) {
+    for(int p=0; p < np; p++) { 
+      parm_deriv.gradient(p)+=func(p,e,0);
+
+    }
+  }
+
+  for(int i=0; i< np; i++) 
+    parm_deriv.hessian(i,i)=parm_deriv.gradient(i)*parm_deriv.gradient(i);
+  
+  //Form the derivatives of the electronic gradients
+  parm_deriv.gradderiv.Resize(np,nelectrons,5);
+  for(int p=0; p < np; p++) { 
+    for(int e=0; e< nelectrons; e++) { 
+      for(int d=0; d< 4; d++) { 
+        parm_deriv.gradderiv(p,e,d)=func(p,e,d+1);
+      }
+    }
+  }
+  //sum up the parameter derivative.  This is particularly
+  //simple for the linear parameters.
+
+  parm_deriv.val_gradient.Resize(nelectrons,3);
+  parm_deriv.val_gradient=0.0;
+  for(int p=0; p < np; p++) { 
+    for(int e=0; e< nelectrons; e++) { 
+      for(int d=0; d< 3; d++) { 
+        parm_deriv.val_gradient(e,d)+=coeff(p)*parm_deriv.gradderiv(p,e,d);
+      }
+    }
+  }
+  //Now calculate the cross terms and add them to the laplacian
+  //derivatives
+  for(int p=0; p < np; p++) { 
+    for(int e=0; e< nelectrons; e++) { 
+      doublevar dot=0;
+      for(int d=0;d < 3; d++) dot+=parm_deriv.val_gradient(e,d)*parm_deriv.gradderiv(p,e,d);
+      parm_deriv.gradderiv(p,e,3)+=2*dot;
+    }
+  }
+
+}
+
+//----------------------------------------------------------------------
+void create_parm_deriv_frozen(const Array3 <doublevar> & func,
+    const Array1 <doublevar> & coeff,
+    Parm_deriv_return & parm_deriv) { 
+  int np=func.GetDim(0);
+  int nelectrons=func.GetDim(1);
+  assert(coeff.GetDim(0)==np);
+  parm_deriv.gradient.Resize(0);
+  parm_deriv.gradient=0;
+  parm_deriv.hessian.Resize(0,0);
+  parm_deriv.hessian=0;
+  parm_deriv.gradderiv.Resize(0,nelectrons,5);
+  
+  
+  //sum up the parameter derivative.  This is particularly
+  //simple for the linear parameters.
+
+  parm_deriv.val_gradient.Resize(nelectrons,3);
+  parm_deriv.val_gradient=0.0;
+  for(int p=0; p < np; p++) { 
+    for(int e=0; e< nelectrons; e++) { 
+      for(int d=0; d< 3; d++) { 
+        parm_deriv.val_gradient(e,d)+=coeff(p)*func(p,e,d+1);
+      }
+    }
+  }
+}
 

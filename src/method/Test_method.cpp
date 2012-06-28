@@ -348,7 +348,8 @@ void Test_method::testParmDeriv(Wavefunction * mywf, Sample_point * sample){
     cout <<" derivative check for "<<i+1<<"-th parameter"<<endl;
     check_numbers(derivative,wfders.gradient(i),cout);
 
-    cout << "Laplacian derivative check " << endl;
+    cout << "Laplacian derivative check: size " << wfders.gradderiv.GetDim(0)
+      << " " << wfders.gradderiv.GetDim(1) << " " << wfders.gradderiv.GetDim(2) << endl;
     for(int e=0; e< nelectrons; e++) { 
       for(int d=1; d< 5; d++) { 
         doublevar der=(test_wfval(e).amp(0,d)-base_wfval(e).amp(0,d))/del;

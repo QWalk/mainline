@@ -434,6 +434,83 @@ void Jastrow_threebody_piece::getParmDeriv(const Array3 <doublevar> & eibasis,
     }
   } 
 }
+//----------------------------------------------------------------------
+
+void Jastrow_threebody_piece::getParmDeriv(const Array4 <doublevar> & eibasis,
+                                        const Array4 <doublevar> & eebasis,
+                                       Parm_deriv_return & deriv) {
+  int natoms=parm_centers.GetDim(0);
+  int nelectrons=eebasis.GetDim(0);
+  assert(lap.GetDim(1) >= nelectrons);
+  int np=nparms();
+  Array2 <int> index(unique_parameters.GetDim(0),unique_parameters.GetDim(1));  
+  Array1 <doublevar> coeff(np);
+
+  int counter=0;
+  for(int i=0; i< unique_parameters.GetDim(0); i++) {
+    for(int j=0; j< _nparms(i); j++) {
+      index(i,j)=counter;
+      coeff(counter++) = unique_parameters(i,j);//*natoms;
+    }
+  }
+
+
+
+  const doublevar tiny=1e-14;
+  int ei_nb=eibasis.GetDim(2);
+  int ee_s1=eebasis.GetDim(1)*eebasis.GetDim(2)*eebasis.GetDim(3);
+  int ee_s2=eebasis.GetDim(2)*eebasis.GetDim(3);
+  int ee_s3=eebasis.GetDim(3);
+  int nd=5;
+  //Scaling factors for the electron-ion basis
+  int ei_s1=eibasis.GetDim(1)*eibasis.GetDim(2)*eibasis.GetDim(3);
+  int ei_s2=eibasis.GetDim(2)*eibasis.GetDim(3);
+  int ei_s3=eibasis.GetDim(3);
+
+  doublevar lap1[5];
+  doublevar lap2[5];
+  Array3 <doublevar> func(np,nelectrons,5,0.0);
+  for(int at=0; at < natoms; at++) {
+    int p=parm_centers(at);
+
+    for(int ind=0; ind< _nparms(p); ind++) {
+      doublevar parm=1.0;//unique_parameters(p,i);
+      int thisindex=index(p,ind);
+      int k=klm(ind,0), el=klm(ind,1), m=klm(ind,2);
+
+      for(int i=0; i< nelectrons; i++) { 
+        for(int j=i+1; j< nelectrons; j++) {
+          //double sign=1;
+          //if( j> e) sign=-1;
+          doublevar sign=-1;
+          for(int d=0; d< 5; d++) { 
+            lap1[d]=0.0;
+            lap2[d]=0.0;
+          }
+          eval_threebody_derivative(parm,
+              eibasis.v+ i*ei_s1 + at*ei_s2 + k *ei_s3,
+              eibasis.v+ i*ei_s1 + at*ei_s2 + el*ei_s3,
+              eibasis.v+ j*ei_s1 + at*ei_s2 + k *ei_s3,
+              eibasis.v+ j*ei_s1 + at*ei_s2 + el*ei_s3,
+              eebasis.v+ i*ee_s1 + j *ee_s2 + m *ee_s3,
+              sign,
+              lap1,
+              lap2);
+          func(thisindex,i,0)+=lap1[0];
+          for(int d=1; d< 5; d++) { 
+            func(thisindex,i,d)+=lap1[d];
+            func(thisindex,j,d)+=lap2[d];
+          }
+        }
+      }
+    }
+  }
+
+  if(freeze) create_parm_deriv_frozen(func,coeff,deriv);
+  else create_parm_deriv(func,coeff,deriv);
+  
+}
+
 
 //-----------------------------------------------------------
 

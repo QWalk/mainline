@@ -68,6 +68,9 @@ public:
 
   void getParmDeriv(int e, const Array3 <doublevar> & eionbasis,
                     Parm_deriv_return & );
+  void getParmDeriv(const Array4 <doublevar> & eibasis,
+                  Parm_deriv_return & parm_deriv);
+
   /*!
     Number of parameters for an atom
   */

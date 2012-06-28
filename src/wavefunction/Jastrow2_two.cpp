@@ -95,7 +95,7 @@ void Jastrow_twobody_piece::updateLap(int e, const Array3 <doublevar> & eebasis,
     for(int p=0; p < np; p++) {
       for(int d=0; d< 5; d++)
         //lap(i,d)+=parameters(p)*eebasis(i,p+1,d);
-	lap(i,d)+=parameters(p)*eebasis(i,p,d);
+        lap(i,d)+=parameters(p)*eebasis(i,p,d);
     }
   }
 
@@ -147,6 +147,38 @@ void Jastrow_twobody_piece::getParmDeriv(const Array3 <doublevar> & eebasis,
     }
   }
 }
+
+
+
+void Jastrow_twobody_piece::getParmDeriv(const Array4 <doublevar> & eebasis,
+                                         Parm_deriv_return & parm_ret) { 
+  int np=nparms();
+
+  int nelectrons=eebasis.GetDim(0);
+  
+  Array3<doublevar> func(np,nelectrons,5,0.0);
+  for(int i=0; i< nelectrons; i++) { 
+    for(int j=i+1; j< nelectrons; j++) { 
+      for(int p=0; p < np; p++) { 
+        func(p,i,0)+=eebasis(i,j,p,0);
+        for(int d=1; d< 4; d++) {
+          doublevar dr=eebasis(i,j,p,d);
+          func(p,i,d)+=dr;
+          func(p,j,d)-=dr;
+        }
+        func(p,i,4)+=eebasis(i,j,p,4);
+        func(p,j,4)+=eebasis(i,j,p,4);
+      }
+    }
+  }
+        
+  if(freeze) create_parm_deriv_frozen(func,parameters,parm_ret);
+  else create_parm_deriv(func,parameters,parm_ret);
+  
+
+}
+
+
 //----------------------------------------------------------------------
 
 void Jastrow_twobody_piece::getParms(Array1 <doublevar> & parms) {
@@ -372,6 +404,44 @@ void Jastrow_twobody_piece_diffspin::getParmDeriv(const Array3 <doublevar> & eeb
 }
 //----------------------------------------------------------------------
 
+void Jastrow_twobody_piece_diffspin::getParmDeriv(const Array4 <doublevar> & eebasis,
+                                         Parm_deriv_return & parm_ret) { 
+  int np=spin_parms.GetDim(1);
+  int totp=np*2;
+
+  int nelectrons=eebasis.GetDim(0);
+  
+  Array1 <doublevar> coeff(totp);
+  for(int s=0; s< 2; s++) { 
+    for(int p=0; p < np; p++) { 
+      coeff(p+s*np)=spin_parms(s,p);
+    }
+  }
+  Array3<doublevar> func(totp,nelectrons,5,0.0);
+  for(int i=0; i< nelectrons; i++) { 
+    for(int j=i+1; j< nelectrons; j++) { 
+      int s=(j< nspin_up) != (i < nspin_up);
+      int shift=s*np;
+      for(int p=0; p < np; p++) { 
+        int indx=p+shift;
+        func(indx,i,0)+=eebasis(i,j,p,0);
+        for(int d=1; d< 4; d++) {
+          doublevar dr=eebasis(i,j,p,d);
+          func(indx,i,d)+=dr;
+          func(indx,j,d)-=dr;
+        }
+        func(indx,i,4)+=eebasis(i,j,p,4);
+        func(indx,j,4)+=eebasis(i,j,p,4);
+      }
+    }
+  }
+        
+  if(freeze) 
+    create_parm_deriv_frozen(func,coeff,parm_ret); 
+  else 
+    create_parm_deriv(func,coeff,parm_ret);
+
+}
 
 
 //----------------------------------------------------------------------

@@ -112,6 +112,8 @@ public:
 
   virtual void getParmDeriv(const Array3 <doublevar> & eebasis, //expects in form i,j,basis, with i<j
                             Parm_deriv_return &);
+  virtual void getParmDeriv(const Array4 <doublevar> & eebasis,Parm_deriv_return & parm_ret);
+  
 
   virtual void parameterSaveVal(int e,
                         const Array3 <doublevar> & eebasis,
@@ -162,6 +164,8 @@ public:
 
   virtual void getParmDeriv(const Array3 <doublevar> & eebasis, //expects in form i,j,basis, with i<j
                             Parm_deriv_return &);
+  virtual void getParmDeriv(const Array4 <doublevar> & eebasis,
+                                         Parm_deriv_return & parm_ret); 
 
   virtual void parameterSaveVal(int e,
                         const Array3 <doublevar> & eebasis,
