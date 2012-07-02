@@ -41,6 +41,7 @@ public:
   int valSize();
   void getVarParms(Array1 <doublevar> & );
   void setVarParms(Array1 <doublevar> & );
+  virtual void linearParms(Array1 <bool> & is_linear);
 
   void attachObserver(Wavefunction * wf);
 

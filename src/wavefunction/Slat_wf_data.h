@@ -88,6 +88,7 @@ public:
 
   virtual void getVarParms(Array1 <doublevar> & parms);
   virtual void setVarParms(Array1 <doublevar> & parms);
+  virtual void linearParms(Array1 <bool> & is_linear);
 
   virtual void renormalize();
 

@@ -56,6 +56,7 @@ private:
   int nconfig_eval;
   doublevar sig_H_threshold;
   doublevar en_convergence;
+  doublevar minimum_psi0;
   Wavefunction_data * wfdata;
   Pseudopotential * pseudo;
   System * sys;

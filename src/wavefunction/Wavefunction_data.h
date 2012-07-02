@@ -69,6 +69,15 @@ public:
    */
   virtual void setVarParms(Array1 <doublevar> &)=0;
 
+  /*! 
+   * Return true if the wave function in linear in the parameter,
+   * false if not.
+   * */
+  virtual void linearParms(Array1 <bool> & is_linear) { 
+    is_linear.Resize(nparms());
+    is_linear=false;
+  }
+
   /*!
     Number of variational parameters
    */

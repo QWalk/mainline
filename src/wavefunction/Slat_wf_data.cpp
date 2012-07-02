@@ -1153,5 +1153,15 @@ void Slat_wf_data::setVarParms(Array1 <doublevar> & parms)
   //cout <<"done setVarParms"<<endl;
 }
 
+void Slat_wf_data::linearParms(Array1 <bool> & is_linear) {
+  if(optimize_det) { 
+    is_linear.Resize(nparms());
+    is_linear=true;
+  }
+  else { 
+    is_linear.Resize(nparms());
+    is_linear=false;
+  }
+}
 void Slat_wf_data::renormalize(){
 }

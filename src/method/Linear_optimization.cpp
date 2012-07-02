@@ -28,6 +28,8 @@ void Linear_optimization_method::read(vector <string> words,
     en_convergence=0.01;
   if(!readvalue(words,pos=0,sig_H_threshold,"SIG_H_THRESHOLD"))
     sig_H_threshold=0.3;
+  if(!readvalue(words,pos=0,minimum_psi0,"MINIMUM_PSI0"))
+    minimum_psi0=0.3;
   allocate(options.systemtext[0],  sys);
   sys->generatePseudo(options.pseudotext, pseudo);
   wfdata=NULL;
@@ -112,8 +114,11 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
 
 //----------------------------------------------------------------------
 
-void find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv, 
-    Array2 <doublevar> & H, Array1 <doublevar> & delta_alpha,doublevar stabilization) { 
+//return the proportion of the move that was Psi_0
+doublevar find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv, 
+    Array2 <doublevar> & H, 
+    Array1 <doublevar> & delta_alpha,doublevar stabilization,
+    Array1 <bool> & linear) { 
   int n=S.GetDim(0);
   assert(S.GetDim(1)==n);
   assert(H.GetDim(0)==n);
@@ -150,6 +155,7 @@ void find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
   }
   single_write(cout,"\n");
 
+  doublevar dp0=dp(0);
   for(int i=1; i< n; i++) dp(i)/=dp(0);
   dp(0)=1.0;
 
@@ -162,15 +168,20 @@ void find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
       D+=S(j,k)*dp(j)*dp(k);
     }
   }
+  D=sqrt(D);
   for(int i=1; i< n;  i++) { 
     doublevar num_sum=0.0;
     doublevar denom_sum=0.0;
     for(int j=1; j < n; j++) { 
-      num_sum+=S(i,j)*dp(j);
-      denom_sum+=S(0,j)*dp(j);
+      if(!linear(j-1)) {
+        num_sum+=S(i,j)*dp(j);
+        denom_sum+=S(0,j)*dp(j);
+      }
     }
-    norm(i)=-(xi*D*S(0,i)+(1-xi)*(S(0,i)+num_sum))
-      /(xi*D+(1-xi)*(1+denom_sum));
+    if(!linear(i-1)) 
+      norm(i)=-(xi*D*S(0,i)+(1-xi)*(S(0,i)+num_sum))
+        /(xi*D+(1-xi)*(1+denom_sum));
+    else norm(i)=0.0;
   }
 
 
@@ -184,11 +195,14 @@ void find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
 
   delta_alpha.Resize(n-1);
   for(int i=0; i< n-1; i++) { 
-    delta_alpha(i)=dp(i+1)/(1-renorm_dp);
+    if(!linear(i-1))
+      delta_alpha(i)=dp(i+1)/(1-renorm_dp);
+    else delta_alpha(i)=dp(i+1);
   }
 
   
   for(int i=1; i< n; i++) H(i,i)-=stabilization;
+  return fabs(dp0);
   
 }
 
@@ -203,19 +217,44 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   stabilization.push_back(1.0);
   stabilization.push_back(10.0);
   int nstabil=stabilization.size();
-
+  Array1 <bool> linear;
+  wfdata->linearParms(linear);
   Array1 <Array1 <doublevar> > alphas(nstabil);
   alphas(0)=alpha;
-  
+ /* 
   for(int i=1; i< nstabil; i++) { 
-    find_directions(S,Sinv,H,alphas(i),stabilization[i]);
+    find_directions(S,Sinv,H,alphas(i),stabilization[i],linear);
     //cout << "assigning alpha" << alphas(i).GetDim(0) << " " << alpha.GetDim(0) << endl;
     for(int j=0; j< alpha.GetDim(0); j++) { 
       alphas(i)(j)+=alpha(j);
     }
   }
-  //alpha=alphas(1);
-  //return -1; 
+  */
+  Array1 <bool> fake_linear=linear;
+  fake_linear=true;
+  doublevar prop_psi0=find_directions(S,Sinv,H,alphas(1),0.0,fake_linear);
+  doublevar stabil=1.0;
+  while(prop_psi0 < minimum_psi0) { 
+    prop_psi0=find_directions(S,Sinv,H,alphas(1),stabil,fake_linear);
+    single_write(cout,"prop_psi0 ",prop_psi0);
+    single_write(cout," stabil ", stabil,"\n");
+    stabil*=10.;
+
+  }
+
+  for(int i=2; i < nstabil; i++) alphas(i)=alphas(1);
+  vector<doublevar> rescale;
+  rescale.push_back(0.0);
+  rescale.push_back(0.5);
+  rescale.push_back(1.0);
+  rescale.push_back(1.5);
+  for(int i=1; i< nstabil; i++) { 
+    for(int j=0; j< alpha.GetDim(0); j++) { 
+      if(!linear(j)) alphas(i)(j)*=rescale[i];
+      alphas(i)(j)+=alpha(j);
+    }
+  }
+
   Array2 <doublevar> energies_corr2(nstabil,2);
   bool significant_stabil=false;
   while(!significant_stabil) { 

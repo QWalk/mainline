@@ -1676,6 +1676,7 @@ void Average_wf_parmderivs::evaluate(Wavefunction_data * wfdata, Wavefunction * 
     error("WF needs to support parmderivs for now.");
   }
   avg.vals.Resize(3*nparms+3*nparms*nparms+1);
+  avg.vals=0.0;
   
   for(int i=0; i< nparms; i++) { 
     avg.vals(i)=deriv.gradient(i)*pt.energy(0);

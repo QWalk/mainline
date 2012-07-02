@@ -118,6 +118,21 @@ void Slat_Jastrow_data::setVarParms(Array1 <doublevar> & parms)
   jastrow->setVarParms(jasparms);
 }
 
+void Slat_Jastrow_data::linearParms(Array1 <bool> & is_linear) { 
+  Array1<bool> slatlin,jastlin;
+  slater->linearParms(slatlin);
+  jastrow->linearParms(jastlin);
+  int nslat=slater->nparms();
+  int njast=jastrow->nparms();
+  assert(nslat==slatlin.GetDim(0));
+  assert(njast==jastlin.GetDim(0));
+  is_linear.Resize(nslat+njast);
+  for(int i=0; i< nslat; i++) 
+    is_linear(i)=slatlin(i);
+  for(int i=0; i< njast; i++) 
+    is_linear(i+nslat)=jastlin(i);
+}
+
 int Slat_Jastrow_data::showinfo(ostream & os)
 {
   slater->showinfo(os);
