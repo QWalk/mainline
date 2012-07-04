@@ -1067,7 +1067,7 @@ void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis ) {
     for(int i=0; i< 6; i++) in.ignore(180,'\n');
     int lmax, nl;
     in >> lmax >> nl;
-    cout << "lmax " << lmax << " nl " << nl << endl;
+    cout << "atom name " << *nm << " lmax " << lmax << " nl " << nl << endl;
     for(int i=0; i< 3; i++) in.ignore(180,'\n');
     for(int spline=0; spline < nl; spline++) { 
       int el;
@@ -1095,6 +1095,11 @@ void read_basis(vector <Atom> & atoms, vector<Spline_basis_writer> & basis ) {
       double rad,val;
       for(int i=0; i< npts; i++) { 
         in >> rad ; in >> val;
+        //If the value is less than 1e-99, then siesta will print out, for example,
+        //1-100 instead of 1e-100.  Check for that and set the value to zero if that
+        //is the case.
+        if(in.peek() == '-') val=0;
+        in.ignore(180,'\n');
         rads.push_back(rad); vals.push_back(val);
         //cout << "r " << rad << " " << val << endl;
       }

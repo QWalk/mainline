@@ -1665,7 +1665,8 @@ void Average_wf_parmderivs::evaluate(Wavefunction_data * wfdata, Wavefunction * 
 
 
 void Average_wf_parmderivs::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
-                       System * sys, Sample_point * sample, Properties_point & pt,Average_return & avg) { 
+                       System * sys, Sample_point * sample, Properties_point & pt,
+                       Average_return & avg) { 
   
   Parm_deriv_return deriv;
   deriv.need_hessian=0;
