@@ -239,7 +239,6 @@ void Slat_Jastrow::getParmDepVal(Wavefunction_data * wfdata,
   }
 
   Wf_return tempval(nfunc_, 2);
-
   slater_wf->getParmDepVal(dataptr->slater,sample,  e,slatval, tempval);
   jastrow_wf->getParmDepVal(dataptr->jastrow,sample,  e,jastval, newval);
 
@@ -279,7 +278,6 @@ int Slat_Jastrow::getParmDeriv(Wavefunction_data *  wfdata,
   int nslater=dataptr->slater->nparms();
   int njast=dataptr->jastrow->nparms();
   int nparms=derivatives.nparms_end-derivatives.nparms_start;
-
   if (derivatives.nparms_start<nslater){
     slaterval.nparms_start=derivatives.nparms_start;
     jastval.nparms_start=0;
@@ -289,7 +287,6 @@ int Slat_Jastrow::getParmDeriv(Wavefunction_data *  wfdata,
     jastval.nparms_start=derivatives.nparms_start-nslater;
     slaterval.nparms_start=nslater;
   }
-  
   if (derivatives.nparms_end <= nslater){
     slaterval.nparms_end=derivatives.nparms_end;
     jastval.nparms_end=0;
@@ -312,7 +309,7 @@ int Slat_Jastrow::getParmDeriv(Wavefunction_data *  wfdata,
   retparm.need_hessian=derivatives.need_hessian;
   retparm.nparms_start=derivatives.nparms_start;
   retparm.nparms_end=derivatives.nparms_end;
-
+  retparm.val_gradient.Resize(sample->electronSize(),5);
   if (slaterval.nparms_end-slaterval.nparms_start){
     slater_wf->getParmDeriv(dataptr->slater,sample, slaterval);
     //cout <<"adding slater"<<endl;
@@ -361,7 +358,6 @@ int Slat_Jastrow::getParmDeriv(Wavefunction_data *  wfdata,
     }
   }
   */
-  
   return 1;
 }
 

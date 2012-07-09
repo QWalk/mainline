@@ -25,11 +25,11 @@ void Linear_optimization_method::read(vector <string> words,
   if(!readvalue(words,pos=0,nconfig_eval,"FIT_NCONFIG")) 
     nconfig_eval=200;
   if(!readvalue(words,pos=0,en_convergence,"EN_CONVERGENCE"))
-    en_convergence=0.01;
+    en_convergence=0.001;
   if(!readvalue(words,pos=0,sig_H_threshold,"SIG_H_THRESHOLD"))
-    sig_H_threshold=0.3;
+    sig_H_threshold=0.5;
   if(!readvalue(words,pos=0,minimum_psi0,"MINIMUM_PSI0"))
-    minimum_psi0=0.3;
+    minimum_psi0=0.9;
   allocate(options.systemtext[0],  sys);
   sys->generatePseudo(options.pseudotext, pseudo);
   wfdata=NULL;
@@ -233,7 +233,7 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   Array1 <bool> fake_linear=linear;
   fake_linear=true;
   doublevar prop_psi0=find_directions(S,Sinv,H,alphas(1),0.0,fake_linear);
-  doublevar stabil=1.0;
+  doublevar stabil=0.01;
   while(prop_psi0 < minimum_psi0) { 
     prop_psi0=find_directions(S,Sinv,H,alphas(1),stabil,fake_linear);
     single_write(cout,"prop_psi0 ",prop_psi0);
