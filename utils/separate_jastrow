@@ -1,0 +1,17 @@
+#!/usr/bin/env python
+
+import sys
+f=open(sys.argv[1],'r')
+tokens=f.readlines()
+in_jastrow=False
+nopen=0
+nclose=0
+for line in tokens:
+  if line.find("JASTROW2") != -1:
+    in_jastrow=True
+  if in_jastrow:
+    nopen+=line.count("{")
+    nclose+=line.count("}")
+  if in_jastrow and nopen >= nclose:
+    print line,
+
