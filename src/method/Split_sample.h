@@ -299,10 +299,10 @@ class SRK_dmc:public Dynamics_generator {
       retries=0; nbottom=0;
     }
   private:
-  int rk_step(int e, Sample_point * sample, 
-              Wavefunction * wf,Wavefunction_data * wfdata, 
-              Guiding_function * guidingwf, Dynamics_info & info,
-              doublevar & timestep, Array1 <Point> & trace);
+    int rk_step(int e, Sample_point * sample, 
+        Wavefunction * wf,Wavefunction_data * wfdata, 
+        Guiding_function * guidingwf, Dynamics_info & info,
+        doublevar & timestep, Array1 <Point> & trace);
     //Array1 <Point> trace;
     doublevar acceptances;
     long int tries;
@@ -311,7 +311,9 @@ class SRK_dmc:public Dynamics_generator {
     int resample; //!< whether to try to improve the approximation to the symmetric green's function
     doublevar resample_tol; //!< tolerance for the ratio of green_symm/green_forward
 
-  drift_type dtype;
+    drift_type dtype;
+    bool diagnostics;//!< Whether to print out a ton of diagonostic information on the moves
+    ofstream diagnostics_print;
 
  
 };

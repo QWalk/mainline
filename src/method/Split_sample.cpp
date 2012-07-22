@@ -805,6 +805,7 @@ void SRK_dmc::read(vector <string> & words) {
   readvalue(words, pos=0, resample_tol, "RESAMPLE_TOL");
 
   string drifttype;
+  setDriftType(drift_cyrus);
   if(readvalue(words, pos=0, drifttype, "DRIFT_TYPE")) {
     if(drifttype=="CYRUS")
       setDriftType(drift_cyrus);
@@ -812,7 +813,27 @@ void SRK_dmc::read(vector <string> & words) {
       setDriftType(drift_cutoff);
     else error("Didn't understand DRIFT_TYPE ", drifttype);
   }
+
+  diagnostics=false;
+  if(haskeyword(words,pos=0,"DIAGNOSTICS")) diagnostics=true;
   
+  if(diagnostics) { 
+    string basename="srk_diagnostics";
+    canonical_filename(basename,mpi_info.node);
+    diagnostics_print.open(basename.c_str(), ios::app);
+    for(int i=0; i< 3; i++) 
+      for(int j=0; j< 3; j++) 
+        diagnostics_print  << "r"<<i<<j << " ";
+    for(int i=0; i< 3; i++) diagnostics_print << "g"<<i <<" ";
+    for(int i=0; i< 3; i++)  { 
+      for(int j=0; j< 5; j++) 
+        diagnostics_print << "p"<<i<<j << " ";
+      diagnostics_print << "p_phase" << i <<" ";
+    }
+      
+    diagnostics_print << endl;
+    
+  }
 
 }
 
@@ -942,6 +963,20 @@ int SRK_dmc::rk_step(int e,
   info.acceptance=1.0;
   info.orig_pos=trace(0).pos;
   info.new_pos=trace(2).pos;
+
+  if(diagnostics) { 
+    for(int i=0; i< 3; i++) 
+      for(int j=0; j< 3; j++) 
+        diagnostics_print  << trace(i).pos(j) << " ";
+    for(int i=0; i< 3; i++) diagnostics_print << trace(0).gauss(i) << " ";
+    for(int i=0; i< 3; i++)  { 
+      for(int j=0; j< 5; j++) 
+        diagnostics_print << trace(i).lap.amp(0,j) << " ";
+      diagnostics_print << trace(i).lap.phase(0,0) << " ";
+    }
+      
+    diagnostics_print << endl;
+  }
    
   return 1;                       
                            
