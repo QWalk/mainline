@@ -34,6 +34,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Rmc_corr_method.h"
 #include "Wannier_method.h"
 #include "Linear_optimization.h"
+#include "Rotate_orbs.h"
 
 int allocate(vector <string> & words,
              Program_options & options,
@@ -87,6 +88,8 @@ int allocate(vector <string> & words,
     methptr=new Wannier_method;
   else if(caseless_eq(words[0],"LINEAR"))
     methptr=new Linear_optimization_method;
+  else if(caseless_eq(words[0],"ROTATE_ORBS"))
+    methptr=new Rotate_orbs_method;
   
   else
     error("Error parsing the method section; unknown keyword ",

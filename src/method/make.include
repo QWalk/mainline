@@ -17,6 +17,7 @@ MY_SOURCES:= \
         Postprocess_method.cpp \
 	Qmc_method.cpp \
 	Reptation_method.cpp \
+        Rotate_orbs.cpp \
 	Split_sample.cpp \
 	Test_method.cpp \
 	Vmc_method.cpp  \
