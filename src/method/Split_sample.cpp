@@ -921,7 +921,7 @@ int SRK_dmc::rk_step(int e,
   Array1 <doublevar> c_olddrift=trace(0).drift;
   limDrift(c_olddrift,timestep, dtype);
   int ndim=sample->ndim();
-
+  //Calculate first move
   for(int d=0; d< ndim; d++) {
     trace(1).translation(d)=trace(0).gauss(d)*sqrt(timestep)
         + c_olddrift(d);
@@ -935,9 +935,12 @@ int SRK_dmc::rk_step(int e,
   
   sample->translateElectron(e, trace(1).translation);
   trace(1).sign=sample->overallSign();
+
   wf->updateLap(wfdata, sample);
   wf->getLap(wfdata, e, trace(1).lap);
   guidingwf->getLap(trace(1).lap, trace(1).drift);
+
+  //Calculate second move
   Array1 <doublevar> c_newdrift=trace(1).drift;
   limDrift(c_newdrift,timestep, dtype);
 

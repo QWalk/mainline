@@ -29,7 +29,7 @@ void Linear_optimization_method::read(vector <string> words,
   if(!readvalue(words,pos=0,sig_H_threshold,"SIG_H_THRESHOLD"))
     sig_H_threshold=0.5;
   if(!readvalue(words,pos=0,minimum_psi0,"MINIMUM_PSI0"))
-    minimum_psi0=0.9;
+    minimum_psi0=0.99;
   allocate(options.systemtext[0],  sys);
   sys->generatePseudo(options.pseudotext, pseudo);
   wfdata=NULL;
