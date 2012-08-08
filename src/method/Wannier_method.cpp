@@ -42,6 +42,8 @@ void Wannier_method::read(vector <string> words,
 
   if(! readvalue(words,pos=0,resolution,"RESOLUTION"))
     resolution=.2;
+  if(!readvalue(words,pos=0, out_orbs, "OUT_ORB"))
+    out_orbs=options.runid+".orb";
 
   vector <vector < string> > orbgroup_txt;
   pos=0;
@@ -287,7 +289,7 @@ void Wannier_method::run(Program_options & options, ostream & output) {
   }
 
   
-  ofstream testorb("test.orb");
+  ofstream testorb(out_orbs.c_str());
   mymomat->writeorb(testorb, Rtot,allorbs);
   testorb.close();
   
@@ -481,25 +483,30 @@ void Wannier_method::optimize_rotation(Array3 <dcomplex> &  eikr,
   //R(norb,norb);
   R.Resize(norb,norb);
   //Array2 <dcomplex> tmp(norb,norb),tmp2(norb,norb);
+  //Shake up the angles, since often the original orbitals 
+  //are at a maximum and derivatives are zero.
   Array2 <doublevar> deriv(norb,norb);
   Rgen=0.0;
-  //for(int ii=0; ii< norb; ii++) { 
-  //  for(int jj=ii+1; jj< norb; jj++) { 
-  //    Rgen(ii,jj)=rng.gasdev()*pi;
-  //  }
-  //}
+  for(int ii=0; ii< norb; ii++) { 
+    for(int jj=ii+1; jj< norb; jj++) { 
+      Rgen(ii,jj)=rng.gasdev()*pi;
+    }
+  }
   doublevar max_tstep=2.0;
   for(int step=0; step < 800; step++) { 
     doublevar fbase=evaluate_local(eikr,Rgen,R);
     for(int ii=0; ii <norb; ii++) { 
+      cout << "deriv ";
       for(int jj=ii+1; jj < norb; jj++) { 
         doublevar save_rgeniijj=Rgen(ii,jj);
-        doublevar h=1e-9;
+        doublevar h=1e-6;
         Rgen(ii,jj)+=h;
         doublevar func=evaluate_local(eikr,Rgen,R);
         deriv(ii,jj)=(func-fbase)/h;
         Rgen(ii,jj)=save_rgeniijj;
+        cout << deriv(ii,jj) << " ";
       }
+      cout << endl;
     }
 
     doublevar rloc_thresh=0.0001;
