@@ -28,6 +28,18 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 //#include "Cslat_wf.h"
 template <class T> class Slat_wf;
 //class Cslat_wf;
+//
+//
+//----------------------------------------------------------------------
+
+struct Excitation { 
+  Array1< Array1 < int> > g; //remove these orbitals, indices (s,orb#)
+  Array1< Array1 <int> >e; //replace with these orbitals, indices (s,orb#)
+};
+
+void build_excitation_list(Array3 <Array1 <int> > & occupation,int f,//(function,det,spin) (orb #)
+    Array1 <Excitation> & ex);
+
 /*!
 \brief
 A Slater determinant or several determinants.  Also can use the same
@@ -177,16 +189,16 @@ private:
   string mo_place; //!< where to place the new mo's
   int optimize_det; //!< whether to optimize determinant coefficients
   Array1 <Array1 <doublevar> > CSF;
-//  int use_csf; //whether to use csfs instead of pure dets
   int ncsf; 
   int sort; //whether to sort det. weights by size
-//  int all_weights; 
   
   
   General_MO_matrix * genmolecorb; 
   MO_matrix * molecorb;
   int use_complexmo;
   int use_iterative_updates; //!<Whether to use "fast"/low-memory Nukala-Kent iterative updates for multideterminants
+  bool use_clark_updates; //!<Use Bryan Clark's updates.
+  Array1 <Excitation> excitation; //!< excitation representation of determinants
   Complex_MO_matrix * cmolecorb;
 
 };
