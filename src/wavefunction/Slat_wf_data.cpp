@@ -594,7 +594,7 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
     }
   }
 
-  if(use_clark_updates) build_excitation_list(occupation,0,excitation);
+  build_excitation_list(occupation,0,excitation);
 
   //molecorb->buildLists(totoccupation);
   if(genmolecorb) init_mo();
@@ -1207,11 +1207,37 @@ void build_excitation_list(Array3 <Array1 <int> > & occupation,int f,//(function
         if(!found) { 
           tot_additional[s].push_back(o2);
         }
+
       }
     }
+
+    ex[d].sign.Resize(ns);
+    ex[d].sign=1;
+    for(int s=0; s< ns; s++) { 
+      Array1<int> newocc=occupation(0,base,s);
+      int nex=tot_additional[s].size();
+      for(int e=0; e< nspin(s); e++) { 
+        for(int ex=0; ex< nex; ex++)  {
+          if(newocc[e]==tot_missing[s][ex])
+            newocc[e]=tot_additional[s][ex];
+        }
+      }
+      int count=0;
+      for(int e1=0; e1 < nspin(s); e1++) {
+        for(int e2=e1+1; e2 < nspin(s); e2++) { 
+          if(newocc[e2]<newocc(e1)) count++;
+          if(occupation(0,d,s)(e2) < occupation(0,d,s)(e1)) count--;
+        }
+      }
+      cout << "d " << d << " count " << count << endl;
+      if(count%2==1) ex[d].sign(s)*=-1;
+    }
+
+
     //tot_missing and tot_additional should be filled now.
     ex[d].g.Resize(ns);
     ex[d].e.Resize(ns);
+
     for(int s=0;s < ns; s++) { 
       int nex_s=tot_missing[s].size();
       if(nex_s != tot_additional[s].size()) { 
@@ -1222,7 +1248,7 @@ void build_excitation_list(Array3 <Array1 <int> > & occupation,int f,//(function
       for(int i=0; i< nex_s; i++) {
         ex[d].g[s][i]=tot_missing[s][i];
         ex[d].e[s][i]=tot_additional[s][i];
-        cout << "d " << d << " s " << s << " i " << i << " : " << ex[d].g[s][i] << " -> " << ex[d].e[s][i] << endl;
+        cout << "d " << d << " s " << s << " i " << i << " : " << ex[d].g[s][i] << " -> " << ex[d].e[s][i] << " sign " << ex[d].sign(s) <<  endl;
       }
     }
 

@@ -31,15 +31,16 @@ template <class T> class Slat_wf;
 //
 //
 //----------------------------------------------------------------------
-
+//Excitation management code
 struct Excitation { 
   Array1< Array1 < int> > g; //remove these orbitals, indices (s,orb#)
   Array1< Array1 <int> >e; //replace with these orbitals, indices (s,orb#)
+  Array1 <int> sign;  //Sign of the permutation compared to the input orbital ordering
 };
 
 void build_excitation_list(Array3 <Array1 <int> > & occupation,int f,//(function,det,spin) (orb #)
     Array1 <Excitation> & ex);
-
+//----------------------------------------------------------------------
 /*!
 \brief
 A Slater determinant or several determinants.  Also can use the same
