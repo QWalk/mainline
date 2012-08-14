@@ -441,7 +441,7 @@ void Jastrow_threebody_piece::getParmDeriv(const Array4 <doublevar> & eibasis,
                                        Parm_deriv_return & deriv) {
   int natoms=parm_centers.GetDim(0);
   int nelectrons=eebasis.GetDim(0);
-  assert(lap.GetDim(1) >= nelectrons);
+  //assert(lap.GetDim(1) >= nelectrons);
   int np=nparms();
   Array2 <int> index(unique_parameters.GetDim(0),unique_parameters.GetDim(1));  
   Array1 <doublevar> coeff(np);

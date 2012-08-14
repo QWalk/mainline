@@ -1181,10 +1181,6 @@ void build_excitation_list(Array3 <Array1 <int> > & occupation,int f,//(function
     vector <vector <int> > tot_missing(ns);
     vector <vector <int> > tot_additional(ns);
     //This search could likely be improved, but be careful with ordering,
-    //if two columns are accidentally switched then the sign on the determinant
-    //reverses as well.
-    //We are currently assuming an ordering in which the excited determinant has 
-    //all its orbitals in numerical order.
     for(int s=0; s< ns; s++) { 
       for(int e1=0; e1 < nspin(s); e1++) { 
         int o1=occupation(0,base,s)(e1);
@@ -1210,6 +1206,10 @@ void build_excitation_list(Array3 <Array1 <int> > & occupation,int f,//(function
 
       }
     }
+    //The update formulation works in terms of replacing an occupied orbital with a
+    //virtual one.  By default, QWalk converters order determinants by orbital number.
+    //These representations are equivalent up to a sign, which we determine here in 
+    //a fairly general way
 
     ex[d].sign.Resize(ns);
     ex[d].sign=1;

@@ -213,6 +213,8 @@ dcomplex
 InverseUpdateColumn(Array2 <dcomplex > & a1, 
                     const Array1 <dcomplex > & newCol,
                     const int lCol, const int n);
+dcomplex InverseUpdateRow(Array2 <dcomplex> & a1, const Array1 <dcomplex> & newRow,
+                           const int lRow, const int n);
 void Jacobi(const Array2 < dcomplex > & Ain, Array1 <doublevar> & evals, Array2 < dcomplex > & evecs);
 
 #endif // MATRIXALGEBRA_H_INCLUDED

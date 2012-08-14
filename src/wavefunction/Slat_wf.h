@@ -1401,15 +1401,45 @@ template <class T> void Slat_wf<T>::getLap(Wavefunction_data * wfdata,
             temp+=moVal(i , e, dataptr->occupation(f,det,s)(j) )
                  *inverse(f,det,s)(dataptr->rede(e), j);
           }
-          detgrads(det)=temp*dataptr->detwt(det);//*detVal(f,det,s)*detVal(f,det,opp)*invtotval;
+          detgrads(det)=temp*dataptr->detwt(det);
           detgrads(det)*=detVal(f,det,s);
           detgrads(det)*=detVal(f,det,opp);
           detgrads(det)*=invtotval;
+          cout << "det " << det << " temp " << temp << " grad " << temp*detVal(f,det,s).val() <<  endl;
         }
 
-        //log_real_value totgrad=sum(detgrads);
+        //-----------Testing clark updates
+        //Form the inverse..
+        Array2 <T> tmpinverse=inverse(f,0,s);
+        int n=moVal.GetDim(2);
+        Array2 <T> lapvec(nelectrons(s),n);
+        Array1 <T> tmplapvec(nelectrons(s));
+        cout << "jjkjlj " << nelectrons(s) <<  "  n " << n << " moval1 " << moVal.GetDim(1) <<endl;
+        for(int e1=0; e1< nelectrons(s); e1++) {
+          for(int j=0; j< n; j++) {  
+            lapvec(dataptr->rede(e1),j)=moVal(0,e1,j);
+          }
+        }
+        cout << "here " << endl;
+        for(int j=0; j< n; j++) 
+          lapvec(dataptr->rede(e),j)=moVal(i,e,j);
+        
+        for(int j=0; j< nelectrons(s); j++) 
+          tmplapvec(j)=lapvec(dataptr->rede(e),dataptr->occupation(f,0,s)(j));
+        
+        T baseratio=1.0/InverseUpdateColumn(tmpinverse,tmplapvec,dataptr->rede(e),nelectrons(s));
+        Array1 <T> ratios;
+        cout << "jjj " << endl;
+        clark_updates(tmpinverse,lapvec,parent->excitation,s,ratios);
+        cout << "llll " << endl;
+        cout << "baseratio " << baseratio << endl;
+        for(int d=0; d< ndet; d++) { 
+          cout << "det " << d << " clark_grad " << baseratio*ratios(d)*detVal(f,0,s).val()
+            << endl;
+        }
 
-        //vals(f,i)=totgrad.val();
+        //--------------------------------
+
         vals(f,i)=sum(detgrads);
       }
       
