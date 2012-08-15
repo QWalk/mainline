@@ -165,6 +165,9 @@ private:
   Array1 <int> nelectrons; //!< 2 elements, for spin up and down
   Array1 <int> spin;       //!< lookup table for the spin of a given electron
 
+
+  Array2 <T> work1, work2; //!< Work matrices
+
 };
 
 
@@ -383,9 +386,13 @@ template<class T>inline void Slat_wf<T>::saveUpdate(Sample_point * sample, int e
     }
     int s=spin(e);
 
+    int ndet_save=ndet;
+    if(parent->use_clark_updates) ndet_save=1;
     for(int f=0; f< nfunc_; f++) {
-      for(int det=0; det<ndet; det++) {
+      for(int det=0; det<ndet_save; det++) {
         store->inverse_temp(f,det,s)=inverse(f,det,s);
+      }
+      for(int det=0; det < ndet; det++) { 
         store->detVal_temp(f,det,s)=detVal(f,det,s);
       }
     }
@@ -419,9 +426,14 @@ template<class T>inline void Slat_wf<T>::restoreUpdate(Sample_point * sample, in
         moVal(j,e,i)=store->moVal_temp(j,i);
       }
     }
+    int ndet_save=ndet;
+    if(parent->use_clark_updates) ndet_save=1;
+    
     for(int f=0; f< nfunc_; f++) {
-      for(int det=0; det < ndet; det++) {
+      for(int det=0; det < ndet_save; det++) {
         inverse(f,det,s)=store->inverse_temp(f,det,s);
+      }
+      for(int det=0; det < ndet; det++) { 
         detVal(f,det,s)=store->detVal_temp(f,det,s);
       }
     }
@@ -1292,9 +1304,12 @@ template <class T> void Slat_wf<T>::getLap(Wavefunction_data * wfdata,
 
           //-----------Testing clark updates
           //Form the inverse..
-          Array2 <T> tmpinverse=inverse(f,0,s);
+          Array2 <T> &  tmpinverse=work1;
+          tmpinverse=inverse(f,0,s);
           int n=moVal.GetDim(2);
-          Array2 <T> lapvec(nelectrons(s),n);
+          Array2 <T> & lapvec=work2;
+          lapvec.Resize(nelectrons(s),n);
+          
           Array1 <T> tmplapvec(nelectrons(s));
           for(int e1=0; e1< nelectrons(s); e1++) {
             int shift=e1+s*nelectrons(0);
