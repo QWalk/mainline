@@ -127,6 +127,8 @@ private:
   void updateVal(Slat_wf_data *, Sample_point *, int);
   void calcLap(Slat_wf_data *, Sample_point *);
   void updateLap(Slat_wf_data *, Sample_point *, int);
+  void getDetLap(int e, Array3<log_value <T> > & vals );
+  
 
   Array1 <int> electronIsStaleVal;
   Array1 <int> electronIsStaleLap;
@@ -853,6 +855,7 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
     Array1 <log_value<doublevar> > detvals(ndet);
     Array3 <log_value <doublevar> > detgrads(ndet,tote,5);
     Array2 <log_value <doublevar> > totgrads(tote,5);
+    /*
     for(int det=0; det < ndet; det++) {
       log_value<doublevar> thisdet=detVal(0,det,0)*detVal(0,det,1);
       detvals(det)=parent->detwt(det)*thisdet;
@@ -865,6 +868,21 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
                *inverse(0,det,s)(parent->rede(e),j);
           }
           detgrads(det,e,d)=temp*thisdet;
+        }
+      }
+    }
+    */
+    for(int det=0; det < ndet; det++) {
+      log_value<doublevar> thisdet=detVal(0,det,0)*detVal(0,det,1);
+      detvals(det)=parent->detwt(det)*thisdet;
+    }
+
+    Array3 <log_value<doublevar> > tmp_detgrads;
+    for(int e=0; e< tote; e++) { 
+      getDetLap(e,tmp_detgrads);
+      for(int det=0; det < ndet; det++) { 
+        for(int d=1; d< 5; d++) {
+          detgrads(det,e,d)=tmp_detgrads(0,det,d);
         }
       }
     }
@@ -1245,6 +1263,84 @@ template <class T> inline void Slat_wf<T>::calcLap(Slat_wf_data * dataptr, Sampl
 //------------------------------------------------------------------------
 
 
+template <class T> void Slat_wf<T>::getDetLap(int e, Array3<log_value <T> > &  vals ) { 
+  vals.Resize(nfunc_,ndet,5);
+  int s=parent->spin(e);
+  int opp=parent->opspin(e);
+
+
+
+  //Prepare the matrices we need for the inverse.
+  //There is likely a way to do this via updates, but we'll
+  //leave it for now since it doesn't seem to cost too much.
+  Array2 <T> & lapvec=work2;
+  Array1 <T> tmplapvec(nelectrons(s));
+  int n=moVal.GetDim(2);
+  if(parent->use_clark_updates) { 
+    lapvec.Resize(nelectrons(s),n);
+    for(int e1=0; e1< nelectrons(s); e1++) {
+      int shift=e1+s*nelectrons(0);
+      for(int j=0; j< n; j++) {  
+        lapvec(e1,j)=moVal(0,shift,j);
+      }
+    }
+  }
+
+
+  for(int f=0; f< nfunc_; f++) {
+    Array1 <log_value <T> > detvals(ndet);
+    for(int det=0; det < ndet; det++) {
+      detvals(det) = detVal(f,det,s)*detVal(f,det,opp);
+
+      vals(f,det,0)=detvals(det);
+    }
+    log_value<T> totval=sum(detvals);
+    
+    Array1 <log_value <T> > detgrads(ndet);
+    for(int i=1; i< 5; i++) {
+      if(!parent->use_clark_updates) {   //Sherman-Morrison updates
+        for(int det=0; det < ndet; det++) {
+          T temp=0;
+          for(int j=0; j<nelectrons(s); j++) {
+            temp+=moVal(i , e, parent->occupation(f,det,s)(j) )
+              *inverse(f,det,s)(parent->rede(e), j);
+          }
+          detgrads(det)=temp; 
+          detgrads(det)*=detVal(f,det,s);
+        }
+      } //-------
+      else {  //clark updates
+
+        Array2 <T> &  tmpinverse=work1;
+        tmpinverse=inverse(f,0,s);
+
+        for(int j=0; j< n; j++) 
+          lapvec(parent->rede(e),j)=moVal(i,e,j);
+
+        for(int j=0; j< nelectrons(s); j++) 
+          tmplapvec(j)=lapvec(parent->rede(e),parent->occupation(f,0,s)(j));
+
+        T baseratio=1.0/InverseUpdateColumn(tmpinverse,tmplapvec,
+            parent->rede(e),nelectrons(s));
+        Array1 <T> ratios;
+        parent->excitations.clark_updates(tmpinverse,lapvec,s,ratios);
+        for(int d=0; d< ndet; d++) { 
+          detgrads(d)=baseratio*ratios(d)*detVal(f,0,s);
+        }
+      } //------Done clark updates
+      for(int d=0; d< ndet; d++) {
+        detgrads(d)*=detVal(f,d,opp);
+      }
+
+      //--------------------------------
+      for(int d=0; d< ndet; d++) {
+        vals(f,d,i)=detgrads(d);
+      }
+    }
+
+  }
+}
+
 /*!
 */
 
@@ -1268,83 +1364,21 @@ template <class T> void Slat_wf<T>::getLap(Wavefunction_data * wfdata,
   else {
     Slat_wf_data * dataptr;
     recast(wfdata, dataptr);
-
-    int s=dataptr->spin(e);
-    int opp=dataptr->opspin(e);
-
-    Array2 <T> & lapvec=work2;
-    Array1 <T> tmplapvec(nelectrons(s));
-    int n=moVal.GetDim(2);
-    if(parent->use_clark_updates) { 
-      lapvec.Resize(nelectrons(s),n);
-      for(int e1=0; e1< nelectrons(s); e1++) {
-        int shift=e1+s*nelectrons(0);
-        for(int j=0; j< n; j++) {  
-          lapvec(e1,j)=moVal(0,shift,j);
-        }
-      }
-    }
-
-
+    Array3 <log_value<T> > detvals;
+    getDetLap(e,detvals);
+    Array1 <log_value<T> > tempsum(ndet);
     for(int f=0; f< nfunc_; f++) {
-      Array1 <log_value <T> > detvals(ndet);
-      for(int det=0; det < ndet; det++) {
-        detvals(det) = T(dataptr->detwt(det))*detVal(f,det,s)*detVal(f,det,opp);
-      }
-      log_value<T> totval=sum(detvals);
-      //vals(f,0)=totval.logval;
-      //si(f)=totval.sign;
-      vals(f,0)=totval;
-
-      log_value<T> invtotval=totval;
-      invtotval.logval*=-1;
-      Array1 <log_value <T> > detgrads(ndet);
-      for(int i=1; i< 5; i++) {
-        //lap.amp(f,i)=0;
-        if(!parent->use_clark_updates) { 
-          for(int det=0; det < ndet; det++) {
-            T temp=0;
-            for(int j=0; j<nelectrons(s); j++) {
-              temp+=moVal(i , e, dataptr->occupation(f,det,s)(j) )
-                *inverse(f,det,s)(dataptr->rede(e), j);
-            }
-            detgrads(det)=temp*dataptr->detwt(det);
-            detgrads(det)*=detVal(f,det,s);
-            detgrads(det)*=detVal(f,det,opp);
-            detgrads(det)*=invtotval;
-          }
+      for(int i=0; i< 5; i++) { 
+        for(int d=0;d < ndet; d++) { 
+          tempsum(d)=T(parent->detwt(d))*detvals(f,d,i);
         }
-        else { 
-
-          Array2 <T> &  tmpinverse=work1;
-          tmpinverse=inverse(f,0,s);
-          
-          for(int j=0; j< n; j++) 
-            lapvec(dataptr->rede(e),j)=moVal(i,e,j);
-
-          for(int j=0; j< nelectrons(s); j++) 
-            tmplapvec(j)=lapvec(dataptr->rede(e),dataptr->occupation(f,0,s)(j));
-
-          T baseratio=1.0/InverseUpdateColumn(tmpinverse,tmplapvec,dataptr->rede(e),nelectrons(s));
-          Array1 <T> ratios;
-          parent->excitations.clark_updates(tmpinverse,lapvec,s,ratios);
-          for(int d=0; d< ndet; d++) { 
-            //  cout << "det " << d << " clark_grad " << baseratio*ratios(d)*detVal(f,0,s).val()
-            //    << endl;
-            detgrads(d)=dataptr->detwt(d)*baseratio*ratios(d)*detVal(f,0,s);
-            detgrads(d)*=detVal(f,d,opp);
-            detgrads(d)*=invtotval;
-          }
-          //cout << "clarkdet " << d << " grad " << detgrads(d).val() << endl;
-
-        }
-
-        //--------------------------------
-
-        vals(f,i)=sum(detgrads);
+        vals(f,i)=sum(tempsum);
       }
-      
+      log_value<T> inv=vals(f,0);
+      inv.logval*=-1;
+      for(int i=1; i< 5; i++) vals(f,i)*=inv;
     }
+      
   }
   
   lap.setVals(vals);
