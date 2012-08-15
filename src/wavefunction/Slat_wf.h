@@ -1445,6 +1445,7 @@ template <class T> inline void Slat_wf<T>::evalTestPos(Array1 <doublevar> & pos,
 
   int tote=sample->electronSize();
   wf.Resize(tote);
+
   for(int e=0; e< tote; e++) { 
     wf(e).Resize(nfunc_,1);
     Array2 <log_value<T> > vals(nfunc_,1,T(0.0));
@@ -1453,14 +1454,40 @@ template <class T> inline void Slat_wf<T>::evalTestPos(Array1 <doublevar> & pos,
     int opps= s==0?1:0;
     Array1 <log_value <T> > new_detVals(ndet);
     int f=0;
-    for(int det=0; det< ndet; det++)  {
-      for(int i = 0; i < nelectrons(s); i++) {
-        modet(i)=movals(s)(parent->occupation(f,det,s)(i),0);
+    if(!parent->use_clark_updates) {  //Sherman-morrison updates
+      for(int det=0; det< ndet; det++)  {
+        for(int i = 0; i < nelectrons(s); i++) {
+          modet(i)=movals(s)(parent->occupation(f,det,s)(i),0);
+        }
+        T ratio=1./InverseGetNewRatio(inverse(f,det,s),
+            modet, parent->rede(e),
+            nelectrons(s));
+        new_detVals(det)=T(parent->detwt(det))*ratio*detVal(f,det, s)*detVal(f,det,opps);
       }
-      T ratio=1./InverseGetNewRatio(inverse(f,det,s),
-          modet, parent->rede(e),
-          nelectrons(s));
-      new_detVals(det)=T(parent->detwt(det))*ratio*detVal(f,det, s)*detVal(f,det,opps);
+    }
+    else { //Clark updates 
+      Array2 <T> & motmp=work1;
+      Array2 <T> & invtmp=work2;
+      invtmp=inverse(f,0,s);
+      int n=moVal.GetDim(2);
+      motmp.Resize(nelectrons(s),n);
+      for(int e1=0; e1< nelectrons(s); e1++) {
+        int shift=e1+s*nelectrons(0);
+        for(int j=0; j< n; j++) {  
+          motmp(e1,j)=moVal(0,shift,j);
+        }
+      }
+      for(int j=0; j< n; j++) motmp(parent->rede(e),j)=movals(s)(j,0);
+      Array1 <T> tmpvec(nelectrons(s));
+      for(int j=0; j< nelectrons(s); j++) 
+        tmpvec(j)=movals(s)(parent->occupation(f,0,s)(j),0);
+      T baseratio=1.0/InverseUpdateColumn(invtmp,tmpvec,parent->rede(e),nelectrons(s));
+      Array1 <T> ratios;
+      parent->excitations.clark_updates(invtmp,motmp,s,ratios);
+      for(int d=0; d< ndet; d++) {
+        new_detVals(d)=T(parent->detwt(d))*baseratio*ratios(d)*detVal(f,0,s)*detVal(f,d,opps);
+      }
+      
     }
     log_value<T> totval=sum(new_detVals);
     vals(f,0)=totval;
