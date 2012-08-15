@@ -27,133 +27,11 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Wavefunction.h"
 #include "MatrixAlgebra.h"
 #include "MO_matrix.h"
+#include "clark_updates.h"
 class Wavefunction_data;
 class Slat_wf_data;
 class System;
 
-
-
-template <class T> void clark_updates(Array2 <T> & ginv, Array2 <T> & M,
-    Array1 <Excitation> & excitations, int s, Array1 <T> & ratios) { 
-  int norb=M.GetDim(1);
-  int ne=M.GetDim(0);
-  int nex=excitations.GetDim(0);
-  /*
-  cout << "ne " << ne << " norb " << norb << endl;
-
-  cout << "[ ";
-  for(int e=0; e< ne; e++) { 
-    cout << "[ ";
-    for(int o=0; o< norb; o++) { 
-      cout << M(e,o)  <<  ", ";
-    }
-    cout << "],";
-    cout << endl;
-  }
-  cout << "]";
-
-  cout << "inverse " << endl;
-  cout << "[ ";
-  for(int e=0; e< ne; e++) { 
-    cout << "[ ";
-    for(int o=0; o< ne; o++) { 
-      cout << ginv(e,o)  <<  ", ";
-    }
-    cout << "],";
-    cout << endl;
-  }
-  cout << "]";
-*/
-
-  Array2 <T>  tmat,detmat;
-  vector <int> allg, alle;
-  for(int e=0; e< nex; e++) { 
-    for(int i=0; i< excitations(e).g(s).GetDim(0); i++) { 
-      int g=excitations(e).g(s)(i);
-      bool found=false;
-      for(vector<int>::iterator gi=allg.begin(); gi!=allg.end(); gi++) {
-        if(g==*gi) {
-          found=true;
-          break;
-        }
-      }
-      if(!found) allg.push_back(g);
-      int ex=excitations(e).e(s)(i);
-      found=false;
-      for(vector<int>::iterator ei=alle.begin(); ei!=alle.end(); ei++) {
-        if(ex==*ei) {
-          found=true;
-          break;
-        }
-      }
-      if(!found) alle.push_back(ex);
-    }
-  }
-//  for(vector<int>::iterator gi=allg.begin(); gi!=allg.end(); gi++)
-//    cout << "g " << *gi << endl;
-//  for(vector <int>::iterator ei=alle.begin(); ei!=alle.end(); ei++) 
-//    cout << "e " << *ei << endl;
-
-
-  tmat.Resize(allg.size(),alle.size());
-  int counti=0;
-  for(vector<int>::iterator gi=allg.begin(); gi!=allg.end(); gi++) { 
-    int countj=0;
-    for(vector <int>::iterator ei=alle.begin(); ei!=alle.end(); ei++) { 
-      int i=*gi;
-      int j=*ei;
-      T dot=0.0;
-      for(int e=0; e< ne; e++) {
-        dot+=ginv(e,i)*M(e,j);
-      }
-//      cout << "tmat " << i << " " << j << " : " << dot << endl;
-      tmat(counti,countj)=dot;
-      countj++;
-    }
-    counti++;
-  }
-    
-  Array1 <Excitation> remap(nex);
-  for(int e=0; e< nex; e++) { 
-    int n=excitations(e).g(s).GetDim(0);
-    remap(e).g.Resize(2);
-    remap(e).e.Resize(2);
-    remap(e).g(s).Resize(n);
-    remap(e).e(s).Resize(n);
-
-    int ng=allg.size();
-    int ne=alle.size();
-    for(int i=0; i< n; i++) { 
-      for(int j=0; j< ng; j++) { 
-        if(allg[j]==excitations(e).g(s)(i)) {
-          remap(e).g(s)(i)=j;
-          break;
-        }
-      }
-      for(int j=0; j< ne; j++) { 
-        if(alle[j]==excitations(e).e(s)(i)) { 
-          remap(e).e(s)(i)=j;
-          break;
-        }
-      }
-    }
-  }
-
-  ratios.Resize(nex);
-  ratios=T(1.0);
-  for(int ex=1; ex < nex; ex++) { 
-    int n=excitations(ex).g(s).GetDim(0);
-    detmat.Resize(n,n);
-    for(int i=0; i < n; i++ ) { 
-      for(int j=0; j < n; j++) { 
-        detmat(i,j)=tmat(remap(ex).g(s)(i),
-                         remap(ex).e(s)(j));
-      }
-    }
-    ratios(ex)=Determinant(detmat,n)*T(excitations(ex).sign(s));
-  }
-
-}
 
 //----------------------------------------------------------------------
 
@@ -1075,8 +953,10 @@ template <class T>inline void Slat_wf<T>::updateInverse(Slat_wf_data * dataptr, 
   int maxmatsize=max(nelectrons(0),nelectrons(1));
   Array1 <T> modet(maxmatsize);
   int s=spin(e);
+  int ndet_update=ndet;
+  if(parent->use_clark_updates) ndet_update=1;
   for(int f=0; f< nfunc_; f++)  {
-    for(int det=0; det< ndet; det++)  {
+    for(int det=0; det< ndet_update; det++)  {
       //fill the molecular orbitals for this
       //determinant
       if(real(detVal(f,det,s).logval) < -1e200) { 
@@ -1104,6 +984,23 @@ template <class T>inline void Slat_wf<T>::updateInverse(Slat_wf_data * dataptr, 
         detVal(f,det, s)=ratio*detVal(f,det, s);
       }
     }
+    if(parent->use_clark_updates) { 
+
+      Array2 <T> M(nelectrons(s),updatedMoVal.GetDim(0));
+      for(int i=0; i< nelectrons(s); i++){ 
+        int elec=i+s*nelectrons(0);
+        for(int j=0; j< updatedMoVal.GetDim(0); j++) { 
+          M(i,j)=moVal(0,elec,j);
+        }
+      }
+      Array1 <T> ratios;
+      clark_updates(inverse(0,0,s),M,parent->excitation,s,ratios);
+      for(int d=0; d< ndet; d++) { 
+        detVal(0,d,s)=ratios(d)*detVal(0,0,s); 
+      }
+
+    }
+
   }
   
 }
@@ -1182,20 +1079,6 @@ template <class T> inline void Slat_wf<T>::updateVal( Slat_wf_data * dataptr, Sa
   else { 
     updateInverse(dataptr,e);
     inverseStale=0;
-
-    Array2 <T> M(nelectrons(s),updatedMoVal.GetDim(0));
-    for(int i=0; i< nelectrons(s); i++){ 
-      int elec=i+s*nelectrons(0);
-      for(int j=0; j< updatedMoVal.GetDim(0); j++) { 
-        M(i,j)=moVal(0,elec,j);
-      }
-    }
-    Array1 <T> ratios;
-    clark_updates(inverse(0,0,s),M,parent->excitation,s,ratios);
-    calcLap(dataptr,sample);
-    for(int d=0; d< ndet; d++) { 
-      detVal(0,d,s)=ratios(d)*detVal(0,0,s); 
-    }
   } 
 //  for(int d=0; d< ndet; d++) { 
 //    cout << "orig " << detVal(0,d,s).val()  

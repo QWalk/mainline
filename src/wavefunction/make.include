@@ -1,5 +1,6 @@
 
 MY_SOURCES:= \
+        clark_updates.cpp \
         Backflow_wf.cpp \
         Backflow_wf_data.cpp \
         Backflow_pf_wf.cpp \
