@@ -89,10 +89,10 @@ template <class T> void clark_updates(Array2 <T> & ginv, Array2 <T> & M,
       if(!found) alle.push_back(ex);
     }
   }
-  for(vector<int>::iterator gi=allg.begin(); gi!=allg.end(); gi++)
-    cout << "g " << *gi << endl;
-  for(vector <int>::iterator ei=alle.begin(); ei!=alle.end(); ei++) 
-    cout << "e " << *ei << endl;
+//  for(vector<int>::iterator gi=allg.begin(); gi!=allg.end(); gi++)
+//    cout << "g " << *gi << endl;
+//  for(vector <int>::iterator ei=alle.begin(); ei!=alle.end(); ei++) 
+//    cout << "e " << *ei << endl;
 
 
   tmat.Resize(allg.size(),alle.size());
@@ -106,7 +106,7 @@ template <class T> void clark_updates(Array2 <T> & ginv, Array2 <T> & M,
       for(int e=0; e< ne; e++) {
         dot+=ginv(e,i)*M(e,j);
       }
-      cout << "tmat " << i << " " << j << " : " << dot << endl;
+//      cout << "tmat " << i << " " << j << " : " << dot << endl;
       tmat(counti,countj)=dot;
       countj++;
     }
@@ -1173,39 +1173,36 @@ template <class T> inline void Slat_wf<T>::updateVal( Slat_wf_data * dataptr, Sa
   inverseStale=1;
   lastValUpdate=e;
   lastDetVal=detVal;
-  if(!updateValNoInverse(dataptr, e)) { 
-    inverseStale=0;
-    updateInverse(dataptr,e);
-  }
-
-  //----------------------------------
-  //Testing for clark updates
-  //--------------------------------
-  //
-  
-  if(inverseStale) { 
-    detVal=lastDetVal;
-    updateInverse(dataptr,e);
-    inverseStale=0;
-  }
-  
-  Array2 <T> M(nelectrons(s),updatedMoVal.GetDim(0));
-  for(int i=0; i< nelectrons(s); i++){ 
-    int elec=i+s*nelectrons(0);
-    for(int j=0; j< updatedMoVal.GetDim(0); j++) { 
-      M(i,j)=moVal(0,elec,j);
+  if(!parent->use_clark_updates) { 
+    if(!updateValNoInverse(dataptr, e)) { 
+      inverseStale=0;
+      updateInverse(dataptr,e);
     }
   }
-  Array1 <T> ratios;
-  clark_updates(inverse(0,0,s),M,parent->excitation,s,ratios);
-  calcLap(dataptr,sample);
-  
-  for(int d=0; d< ndet; d++) { 
-    cout << "orig " << detVal(0,d,s).val()  
-       << " update " << ratios(d)*detVal(0,0,s).val()
-       << " ratio " << detVal(0,d,s).val()/detVal(0,0,s).val() 
-       << " computed ratio " << ratios(d) << endl;
-  }
+  else { 
+    updateInverse(dataptr,e);
+    inverseStale=0;
+
+    Array2 <T> M(nelectrons(s),updatedMoVal.GetDim(0));
+    for(int i=0; i< nelectrons(s); i++){ 
+      int elec=i+s*nelectrons(0);
+      for(int j=0; j< updatedMoVal.GetDim(0); j++) { 
+        M(i,j)=moVal(0,elec,j);
+      }
+    }
+    Array1 <T> ratios;
+    clark_updates(inverse(0,0,s),M,parent->excitation,s,ratios);
+    calcLap(dataptr,sample);
+    for(int d=0; d< ndet; d++) { 
+      detVal(0,d,s)=ratios(d)*detVal(0,0,s); 
+    }
+  } 
+//  for(int d=0; d< ndet; d++) { 
+//    cout << "orig " << detVal(0,d,s).val()  
+//       << " update " << ratios(d)*detVal(0,0,s).val()
+//       << " ratio " << detVal(0,d,s).val()/detVal(0,0,s).val() 
+//       << " computed ratio " << ratios(d) << endl;
+//  }
   //----------------------------------
 }
 
@@ -1395,47 +1392,51 @@ template <class T> void Slat_wf<T>::getLap(Wavefunction_data * wfdata,
       Array1 <log_value <T> > detgrads(ndet);
       for(int i=1; i< 5; i++) {
         //lap.amp(f,i)=0;
-        for(int det=0; det < ndet; det++) {
-          T temp=0;
-          for(int j=0; j<nelectrons(s); j++) {
-            temp+=moVal(i , e, dataptr->occupation(f,det,s)(j) )
-                 *inverse(f,det,s)(dataptr->rede(e), j);
+        if(!parent->use_clark_updates) { 
+          for(int det=0; det < ndet; det++) {
+            T temp=0;
+            for(int j=0; j<nelectrons(s); j++) {
+              temp+=moVal(i , e, dataptr->occupation(f,det,s)(j) )
+                *inverse(f,det,s)(dataptr->rede(e), j);
+            }
+            detgrads(det)=temp*dataptr->detwt(det);
+            detgrads(det)*=detVal(f,det,s);
+            detgrads(det)*=detVal(f,det,opp);
+            detgrads(det)*=invtotval;
           }
-          detgrads(det)=temp*dataptr->detwt(det);
-          detgrads(det)*=detVal(f,det,s);
-          detgrads(det)*=detVal(f,det,opp);
-          detgrads(det)*=invtotval;
-          cout << "det " << det << " temp " << temp << " grad " << temp*detVal(f,det,s).val() <<  endl;
         }
+        else { 
 
-        //-----------Testing clark updates
-        //Form the inverse..
-        Array2 <T> tmpinverse=inverse(f,0,s);
-        int n=moVal.GetDim(2);
-        Array2 <T> lapvec(nelectrons(s),n);
-        Array1 <T> tmplapvec(nelectrons(s));
-        cout << "jjkjlj " << nelectrons(s) <<  "  n " << n << " moval1 " << moVal.GetDim(1) <<endl;
-        for(int e1=0; e1< nelectrons(s); e1++) {
-          for(int j=0; j< n; j++) {  
-            lapvec(dataptr->rede(e1),j)=moVal(0,e1,j);
+          //-----------Testing clark updates
+          //Form the inverse..
+          Array2 <T> tmpinverse=inverse(f,0,s);
+          int n=moVal.GetDim(2);
+          Array2 <T> lapvec(nelectrons(s),n);
+          Array1 <T> tmplapvec(nelectrons(s));
+          for(int e1=0; e1< nelectrons(s); e1++) {
+            int shift=e1+s*nelectrons(0);
+            for(int j=0; j< n; j++) {  
+              lapvec(e1,j)=moVal(0,shift,j);
+            }
           }
-        }
-        cout << "here " << endl;
-        for(int j=0; j< n; j++) 
-          lapvec(dataptr->rede(e),j)=moVal(i,e,j);
-        
-        for(int j=0; j< nelectrons(s); j++) 
-          tmplapvec(j)=lapvec(dataptr->rede(e),dataptr->occupation(f,0,s)(j));
-        
-        T baseratio=1.0/InverseUpdateColumn(tmpinverse,tmplapvec,dataptr->rede(e),nelectrons(s));
-        Array1 <T> ratios;
-        cout << "jjj " << endl;
-        clark_updates(tmpinverse,lapvec,parent->excitation,s,ratios);
-        cout << "llll " << endl;
-        cout << "baseratio " << baseratio << endl;
-        for(int d=0; d< ndet; d++) { 
-          cout << "det " << d << " clark_grad " << baseratio*ratios(d)*detVal(f,0,s).val()
-            << endl;
+          for(int j=0; j< n; j++) 
+            lapvec(dataptr->rede(e),j)=moVal(i,e,j);
+
+          for(int j=0; j< nelectrons(s); j++) 
+            tmplapvec(j)=lapvec(dataptr->rede(e),dataptr->occupation(f,0,s)(j));
+
+          T baseratio=1.0/InverseUpdateColumn(tmpinverse,tmplapvec,dataptr->rede(e),nelectrons(s));
+          Array1 <T> ratios;
+          clark_updates(tmpinverse,lapvec,parent->excitation,s,ratios);
+          for(int d=0; d< ndet; d++) { 
+            //  cout << "det " << d << " clark_grad " << baseratio*ratios(d)*detVal(f,0,s).val()
+            //    << endl;
+            detgrads(d)=dataptr->detwt(d)*baseratio*ratios(d)*detVal(f,0,s);
+            detgrads(d)*=detVal(f,d,opp);
+            detgrads(d)*=invtotval;
+          }
+          //cout << "clarkdet " << d << " grad " << detgrads(d).val() << endl;
+
         }
 
         //--------------------------------
