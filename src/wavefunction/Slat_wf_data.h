@@ -184,7 +184,7 @@ private:
   int use_complexmo;
   int use_iterative_updates; //!<Whether to use "fast"/low-memory Nukala-Kent iterative updates for multideterminants
   bool use_clark_updates; //!<Use Bryan Clark's updates.
-  Array1 <Excitation> excitation; //!< excitation representation of determinants
+  Excitation_list excitations;
   Complex_MO_matrix * cmolecorb;
 
 };

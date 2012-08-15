@@ -994,7 +994,7 @@ template <class T>inline void Slat_wf<T>::updateInverse(Slat_wf_data * dataptr, 
         }
       }
       Array1 <T> ratios;
-      clark_updates(inverse(0,0,s),M,parent->excitation,s,ratios);
+      parent->excitations.clark_updates(inverse(0,0,s),M,s,ratios);
       for(int d=0; d< ndet; d++) { 
         detVal(0,d,s)=ratios(d)*detVal(0,0,s); 
       }
@@ -1310,7 +1310,7 @@ template <class T> void Slat_wf<T>::getLap(Wavefunction_data * wfdata,
 
           T baseratio=1.0/InverseUpdateColumn(tmpinverse,tmplapvec,dataptr->rede(e),nelectrons(s));
           Array1 <T> ratios;
-          clark_updates(tmpinverse,lapvec,parent->excitation,s,ratios);
+          parent->excitations.clark_updates(tmpinverse,lapvec,s,ratios);
           for(int d=0; d< ndet; d++) { 
             //  cout << "det " << d << " clark_grad " << baseratio*ratios(d)*detVal(f,0,s).val()
             //    << endl;

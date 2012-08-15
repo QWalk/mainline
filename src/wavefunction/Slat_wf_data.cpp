@@ -594,7 +594,7 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
     }
   }
 
-  build_excitation_list(occupation,0,excitation);
+  excitations.build_excitation_list(occupation,0);
 
   //molecorb->buildLists(totoccupation);
   if(genmolecorb) init_mo();
