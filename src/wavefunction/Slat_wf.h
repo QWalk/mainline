@@ -1272,6 +1272,20 @@ template <class T> void Slat_wf<T>::getLap(Wavefunction_data * wfdata,
     int s=dataptr->spin(e);
     int opp=dataptr->opspin(e);
 
+    Array2 <T> & lapvec=work2;
+    Array1 <T> tmplapvec(nelectrons(s));
+    int n=moVal.GetDim(2);
+    if(parent->use_clark_updates) { 
+      lapvec.Resize(nelectrons(s),n);
+      for(int e1=0; e1< nelectrons(s); e1++) {
+        int shift=e1+s*nelectrons(0);
+        for(int j=0; j< n; j++) {  
+          lapvec(e1,j)=moVal(0,shift,j);
+        }
+      }
+    }
+
+
     for(int f=0; f< nfunc_; f++) {
       Array1 <log_value <T> > detvals(ndet);
       for(int det=0; det < ndet; det++) {
@@ -1302,21 +1316,9 @@ template <class T> void Slat_wf<T>::getLap(Wavefunction_data * wfdata,
         }
         else { 
 
-          //-----------Testing clark updates
-          //Form the inverse..
           Array2 <T> &  tmpinverse=work1;
           tmpinverse=inverse(f,0,s);
-          int n=moVal.GetDim(2);
-          Array2 <T> & lapvec=work2;
-          lapvec.Resize(nelectrons(s),n);
           
-          Array1 <T> tmplapvec(nelectrons(s));
-          for(int e1=0; e1< nelectrons(s); e1++) {
-            int shift=e1+s*nelectrons(0);
-            for(int j=0; j< n; j++) {  
-              lapvec(e1,j)=moVal(0,shift,j);
-            }
-          }
           for(int j=0; j< n; j++) 
             lapvec(dataptr->rede(e),j)=moVal(i,e,j);
 

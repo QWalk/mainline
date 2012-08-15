@@ -74,14 +74,19 @@ template <class T> void Excitation_list::clark_updates(Array2 <T> & ginv, Array2
   ratios=T(1.0);
   for(int ex=1; ex < nex; ex++) { 
     int n=excitations(ex).g(s).GetDim(0);
-    detmat.Resize(n,n);
-    for(int i=0; i < n; i++ ) { 
-      for(int j=0; j < n; j++) { 
-        detmat(i,j)=tmat(remap(ex).g(s)(i),
-                         remap(ex).e(s)(j));
-      }
+    if(n==1) { 
+      ratios(ex)=T(excitations(ex).sign(s))*tmat(remap(ex).g(s)(0),remap(ex).e(s)(0));
     }
-    ratios(ex)=Determinant(detmat,n)*T(excitations(ex).sign(s));
+    else  { 
+      detmat.Resize(n,n);
+      for(int i=0; i < n; i++ ) { 
+        for(int j=0; j < n; j++) { 
+          detmat(i,j)=tmat(remap(ex).g(s)(i),
+              remap(ex).e(s)(j));
+        }
+      }
+      ratios(ex)=Determinant(detmat,n)*T(excitations(ex).sign(s));
+    }
   }
 
 }
