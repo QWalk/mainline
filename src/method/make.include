@@ -1,5 +1,6 @@
 
 MY_SOURCES:= \
+        Determinant_select_method.cpp \
 	Dmc_method.cpp \
         Generate_sample.cpp \
         Rmc_corr_method.cpp \

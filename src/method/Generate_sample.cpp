@@ -83,3 +83,74 @@ void generate_sample(Sample_point * sample,
 
 }
 
+//######################################################################
+
+#include "ulec.h"
+
+doublevar objective(MO_matrix * mo,Sample_point * sample,int list, 
+    Array2 <doublevar> & vals) { 
+  
+  vals=0.0;
+  mo->updateVal(sample,0,list,vals);
+  doublevar f=0.0;
+  for(int m=0; m < vals.GetDim(0); m++) {
+    f+=vals(m,0)*vals(m,0);
+  }
+  return f;
+}
+
+
+doublevar generate_mo_sample(Sample_point * sample, System * sys,
+    MO_matrix * mo, int list, int nconfig, Array1 <Array1 <doublevar> > & r) {
+  int norb=mo->getNmo();
+  Array2 <doublevar> vals(norb,1);
+  r.Resize(nconfig);
+  for(int i=0; i< nconfig; i++) r[i].Resize(3);
+
+  //warmup
+  int nacc=0;
+  int n_must_acc=20;
+  doublevar tstep=1.0,tstep_delta=0.01;
+  sample->randomGuess();
+  Array1 <doublevar> delta(3),oldpos(3),newpos(3);
+  doublevar old_func=objective(mo,sample,list,vals);
+  doublevar new_func=0;
+  int e=0;
+  while(nacc < n_must_acc) { 
+    for(int d=0; d< 3; d++) delta[d]=rng.gasdev()*sqrt(tstep);
+    sample->getElectronPos(e,oldpos);
+    for(int d=0; d< 3; d++) newpos(d)=oldpos(d)+delta(d);
+    sample->setElectronPos(e,newpos);
+    new_func=objective(mo,sample,list,vals);
+    if(rng.ulec() < new_func/old_func) { 
+      old_func=new_func;
+      tstep+=tstep_delta;
+      nacc++;
+    }
+    else { 
+      sample->setElectronPos(e,oldpos);
+      tstep-=tstep_delta;
+    }
+  }
+
+  int config=0;
+  for(int config=0; config < nconfig; config++) { 
+    nacc=0;
+    while(nacc < n_must_acc) { 
+      for(int d=0; d< 3; d++) delta[d]=rng.gasdev()*sqrt(tstep);
+      sample->getElectronPos(e,oldpos);
+      for(int d=0; d< 3; d++) newpos(d)=oldpos(d)+delta(d);
+      sample->setElectronPos(e,newpos);
+      new_func=objective(mo,sample,list,vals);
+      if(rng.ulec() < new_func/old_func) { 
+        old_func=new_func;
+        nacc++;
+      }
+      else { 
+        sample->setElectronPos(e,oldpos);
+      }
+    }
+    sample->getElectronPos(e,r(config));
+  }
+}
+
