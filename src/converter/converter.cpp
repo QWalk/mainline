@@ -224,50 +224,16 @@ void print_centers(ostream & os, vector <Center> & centers) {
 
 //######################################################################
 void print_vmc_section( ostream & os, string & outputname, double eref) {
-  os << "METHOD {\n"
-     << "  VMC\n"
-     << "  NBLOCK   10\n"
-     << "  NSTEP    10\n"
-     << "  NDECORR   4\n"
-     << "  TIMESTEP 1.0\n"
-     << "  NCONFIG  100\n"
-     << "  STORECONFIG  " << outputname << ".config\n\n"
-     << "  #uncomment the following to read a configuration\n"
-     << "  #READCONFIG  " << outputname << ".config\n"
-    //    << "  EREF " << eref << endl
-     << "}\n\n";
-
+  os << "METHOD { VMC } \n";
 }
 
 
 void print_opt_section( ostream & os, string & outputname, double eref) {
-  os << "METHOD {\n"
-     << "  OPTIMIZE2\n\n"
-     << "  #Number of optimization steps to do.  Should be roughly \n"
-        "  #30 times the number of variational parameters\n"
-     << "  ITERATIONS 30\n"
-     << "  READCONFIG " << outputname << ".config\n"
-     << "  NCONFIG  1000\n"
-    //     << "  EREF " << eref << endl
-     << "  MINFUNCTION MIXED \n"
-    //<< "  PSEUDOTEMP " << outputname << ".pseudo\n"
-     << "}\n\n";
-
+  os << "METHOD { OPTIMIZE } \n";
 }
 
 void print_dmc_section( ostream & os, string & outputname, double eref) {
-  os << "METHOD {\n"
-     << "  DMC\n"
-     << "  NBLOCK   10\n"
-     << "  NSTEP    100\n"
-     << "  NDECORR   4\n"
-     << "  TIMESTEP 0.01\n"
-     << "  NCONFIG  100\n"
-     << "  STORECONFIG  " << outputname << ".config\n\n"
-     << "  READCONFIG  " << outputname << ".config\n"
-    //  << "  EREF " << eref << endl
-     << "}\n\n";
-
+  os << "METHOD { DMC timestep .01 } \n";
 }
 
 
