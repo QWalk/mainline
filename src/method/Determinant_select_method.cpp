@@ -103,21 +103,25 @@ int Determinant_select_method::showinfo(ostream & os) {
 
 //----------------------------------------------------------------------
 void Determinant_select_method::run(Program_options & options, ostream & output) {
-  int nsamples=2000;
+  int nsamples=1000;
   for(int g=0; g< orbital_groups.GetDim(0); g++) { 
     int norb=orbital_groups[g].GetDim(0);
     Array1 <Array1 <doublevar> > r_sample(nsamples);
     generate_mo_sample(mywalker,sys,mymomat,g,nsamples,r_sample);
     Array2 <doublevar> vals(nsamples,norb);
     Array2 <doublevar> tmp_val(norb,2);
+    Array1 <doublevar> orb_norm(norb,0.0);
     for(int s=0;s < nsamples;s++) {
       mywalker->setElectronPos(0,r_sample(s));
       mymomat->updateVal(mywalker,0,g,tmp_val);
       for(int i=0; i< norb; i++) {
         vals(s,i)=tmp_val(i,0);
         cout << s << i << " vals " << vals(s,i) << endl;
+        orb_norm(i)+=vals(s,i)*vals(s,i);
       }
     }
+    for(int i=0; i< norb; i++) 
+      orb_norm(i)/=nsamples;
     
     Array4 <doublevar> voverlap(norb,norb,norb,norb);
     voverlap=0.0;
@@ -166,10 +170,14 @@ void Determinant_select_method::run(Program_options & options, ostream & output)
       for(int j=0; j< nocc(s2); j++) { 
         for(int k=0; k< nvirt(s1); k++) { 
           for(int l=0; l< nvirt(s2); l++) { 
+            int oi=lookup_occ(s1,i);
+            int oj=lookup_occ(s2,j);
+            int ok=lookup_occ(s1,k);
+            int ol=lookup_occ(s2,l);
+            cout << "oi " << oi << " oj " << oj << " ok " << ok << " ol " << ol << endl;
             output << occ(s1,i)+1 << " " << occ(s2,j)+1 << " " << virt(s1,k)+1 << " "
               << virt(s2,l)+1 << " " 
-              << voverlap(lookup_occ(s1,i),lookup_occ(s2,j),
-                  lookup_virt(s1,k),lookup_virt(s2,l))*renorm << endl;
+              << voverlap(oi,oj,ok,ol)*renorm/sqrt(orb_norm(oi)*orb_norm(oj)*orb_norm(ok)*orb_norm(ol)) << endl;
           }
         }
       }
