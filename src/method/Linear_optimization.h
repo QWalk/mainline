@@ -54,6 +54,8 @@ private:
   int iterations;
   int vmc_nstep;   
   int nconfig_eval;
+  int max_nconfig_eval;
+  int max_vmc_nstep;
   doublevar sig_H_threshold;
   doublevar en_convergence;
   doublevar minimum_psi0;

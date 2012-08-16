@@ -27,7 +27,7 @@
 #include "Basis_function.h"
 #include "System.h"
 #include "Basis_function.h"
-class Properties_point;
+struct Properties_point;
 struct Average_return {
   string type;
   Array1 <doublevar> vals;

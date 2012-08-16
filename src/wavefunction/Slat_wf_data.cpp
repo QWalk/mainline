@@ -70,8 +70,6 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
   if(haskeyword(words, pos=startpos, "ITERATIVE_UPDATES")) {
     use_iterative_updates=1;
   }
-
-
   pos=startpos;
   vector <vector <string> > csfstr;
   vector <string> csfsubstr;
@@ -552,15 +550,11 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
 
   //Find what MO's are necessary for each spin
   totoccupation.Resize(2);
-  for(int s=0; s<2; s++)
-  {
+  for(int s=0; s<2; s++) {
     vector <int> totocctemp;
-    for(int f=0; f< nfunc; f++)
-    {
-      for(int det=0; det<ndet; det++)
-      {
-        for(int mo=0; mo < nelectrons(s); mo++)
-        {
+    for(int f=0; f< nfunc; f++)  {
+      for(int det=0; det<ndet; det++) {
+        for(int mo=0; mo < nelectrons(s); mo++) {
           int place=-1;
           int ntot=totocctemp.size();
           for(int i=0; i< ntot; i++) {
@@ -596,6 +590,23 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
       // << totoccupation(s)(i) << endl;
     }
   }
+
+  excitations.build_excitation_list(occupation,0);
+
+  //Decide on the updating scheme:
+  
+  if(ndet > 1 && tote > 10) {
+    use_clark_updates=true;
+  }
+  else { use_clark_updates=false; } 
+  if(haskeyword(words,pos=startpos,"CLARK_UPDATES")) { 
+    use_clark_updates=true;
+  }
+  else if(haskeyword(words,pos=startpos,"SHERMAN_MORRISON_UPDATES")) { 
+    use_clark_updates=false;
+  }
+
+
 
   //molecorb->buildLists(totoccupation);
   if(genmolecorb) init_mo();
@@ -728,6 +739,11 @@ int Slat_wf_data::showinfo(ostream & os)
           << "        ITERATIVE_UPDATES are likely faster and will use less memory" << endl;
       }
     }
+  }
+
+  if(use_clark_updates) { 
+    os << "Using fast updates for multideterminants.  Reference: \n";
+    os << "Clark, Morales, McMinis, Kim, and Scuseria. J. Chem. Phys. 135 244105 (2011)\n";
   }
 
   for(int f=0; f< nfunc; f++)
@@ -947,6 +963,10 @@ int Slat_wf_data::writeinput(string & indent, ostream & os)
   }
   if(optimize_det)
     os << indent << "OPTIMIZE_DET" << endl;
+  if(use_clark_updates)
+    os << indent << "CLARK_UPDATES" << endl;
+  else 
+    os << indent << "SHERMAN_MORRISON_UPDATES" << endl;
 
   if(!sort)
     os << indent << "NOSORT" << endl;
@@ -1165,3 +1185,6 @@ void Slat_wf_data::linearParms(Array1 <bool> & is_linear) {
 }
 void Slat_wf_data::renormalize(){
 }
+
+//----------------------------------------------------------------------
+

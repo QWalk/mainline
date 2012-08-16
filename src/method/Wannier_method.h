@@ -73,6 +73,8 @@ private:
   Array2 <doublevar> LatticeVec;
   Array1 <doublevar> origin;
 
+  string out_orbs;
+
 
 };
 

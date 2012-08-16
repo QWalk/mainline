@@ -29,7 +29,12 @@ void Linear_optimization_method::read(vector <string> words,
   if(!readvalue(words,pos=0,sig_H_threshold,"SIG_H_THRESHOLD"))
     sig_H_threshold=0.5;
   if(!readvalue(words,pos=0,minimum_psi0,"MINIMUM_PSI0"))
-    minimum_psi0=0.9;
+    minimum_psi0=0.99;
+  if(!readvalue(words, pos=0, max_vmc_nstep, "MAX_VMC_NSTEP"))
+    max_vmc_nstep=8*vmc_nstep;
+  if(!readvalue(words, pos=0, max_nconfig_eval, "MAX_FIT_NCONFIG"))
+    max_nconfig_eval=8*nconfig_eval;
+  
   allocate(options.systemtext[0],  sys);
   sys->generatePseudo(options.pseudotext, pseudo);
   wfdata=NULL;
@@ -79,7 +84,7 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
     doublevar endiff= line_minimization(S,Sinv,H,alpha);
 
     output << "Step: Estimated change in energy: " << endiff << endl;
-    if(endiff >= 0) { 
+    if(endiff >= 0 && vmc_nstep <= max_vmc_nstep) { 
       vmc_nstep*=4;
       output << "Did not find a downhill move; setting vmc_nstep to "
         << vmc_nstep << endl;
@@ -269,7 +274,7 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
       }
     }
 
-    if(2*energies_corr2(1,1) < en_convergence and !significant_stabil){
+    if(nconfig_eval >= max_nconfig_eval and !significant_stabil){
       single_write(cout, "Hit energy convergence\n");
       alpha=alphas(0);
       return 0;
@@ -456,9 +461,12 @@ void Linear_optimization_method::wavefunction_derivative(
     prop.getFinal(final);
 
     significant=deriv_is_significant(final.avgavg(0,0), final.avgerr(0,0),n);
-    if(!significant) {
+    if(!significant && vmc_nstep <=max_vmc_nstep) {
       single_write(cout, " didn't find significant derivatives: increasing vmc_nstep.\n");
       vmc_nstep*=4;
+    }
+    else if(!significant) { 
+      single_write(cout, "WARNING: did not find significant derivatives and vmc_nstep > max_vmc_nstep.  Continuing.\n");
     }
   }
 

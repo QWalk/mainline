@@ -599,39 +599,73 @@ doublevar InverseUpdateRow(Array2 <doublevar> & a1, const Array1 <doublevar> & n
   prod.Resize(n);
 
   doublevar f=0.0;
-  for(int i=0;i<n;++i)
-  {
+  for(int i=0;i<n;++i) {
     f += newRow[i]*a1(i,lRow);
   }
   f =-1.0/f;
 
-  for(int j=0;j<n;++j)
-  {
+  for(int j=0;j<n;++j){
     prod[j]   =0.0;
     tmpColL[j]=a1(j,lRow);
-    for(int i=0;i<n;++i)
-    {
+    for(int i=0;i<n;++i) {
       prod[j] += newRow[i]*a1(i,j);
     }
     prod[j] *= f;
   }
 
-  for(int i=0;i<n;++i)
-  {
+  for(int i=0;i<n;++i) {
     doublevar & t(tmpColL[i]);
-    for(int j=0;j<n;++j)
-    {
+    for(int j=0;j<n;++j) {
       a1(i,j) += t*prod[j];
     }
   }
 
   f = -f;
-  for(int i=0;i<n;++i)
-  {
+  for(int i=0;i<n;++i) {
     a1(i,lRow) = f*tmpColL[i];
   }
   return f;
 }
+
+//We write different versions in case we want to use BLAS routines, which don't template well..
+dcomplex InverseUpdateRow(Array2 <dcomplex> & a1, const Array1 <dcomplex> & newRow,
+                           const int lRow, const int n)
+{
+  Array1 <dcomplex>  tmpColL;
+  tmpColL.Resize(n);
+  Array1 <dcomplex>  prod;
+  prod.Resize(n);
+
+  dcomplex f=0.0;
+  for(int i=0;i<n;++i) {
+    f += newRow[i]*a1(i,lRow);
+  }
+  f =-1.0/f;
+
+  for(int j=0;j<n;++j){
+    prod[j]   =0.0;
+    tmpColL[j]=a1(j,lRow);
+    for(int i=0;i<n;++i) {
+      prod[j] += newRow[i]*a1(i,j);
+    }
+    prod[j] *= f;
+  }
+
+  for(int i=0;i<n;++i) {
+    dcomplex t(tmpColL[i]);
+    for(int j=0;j<n;++j) {
+      a1(i,j) += t*prod[j];
+    }
+  }
+
+  f = -f;
+  for(int i=0;i<n;++i) {
+    a1(i,lRow) = f*tmpColL[i];
+  }
+  return f;
+}
+
+
 
 
 // Update inverse a1 after column in matrix a has changed
