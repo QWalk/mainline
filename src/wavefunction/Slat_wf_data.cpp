@@ -70,9 +70,6 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
   if(haskeyword(words, pos=startpos, "ITERATIVE_UPDATES")) {
     use_iterative_updates=1;
   }
-
-  use_clark_updates=haskeyword(words,pos=startpos,"CLARK_UPDATES");
-
   pos=startpos;
   vector <vector <string> > csfstr;
   vector <string> csfsubstr;
@@ -596,6 +593,21 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
 
   excitations.build_excitation_list(occupation,0);
 
+  //Decide on the updating scheme:
+  
+  if(ndet > 1 && tote > 10) {
+    use_clark_updates=true;
+  }
+  else { use_clark_updates=false; } 
+  if(haskeyword(words,pos=startpos,"CLARK_UPDATES")) { 
+    use_clark_updates=true;
+  }
+  else if(haskeyword(words,pos=startpos,"SHERMAN_MORRISON_UPDATES")) { 
+    use_clark_updates=false;
+  }
+
+
+
   //molecorb->buildLists(totoccupation);
   if(genmolecorb) init_mo();
 
@@ -727,6 +739,11 @@ int Slat_wf_data::showinfo(ostream & os)
           << "        ITERATIVE_UPDATES are likely faster and will use less memory" << endl;
       }
     }
+  }
+
+  if(use_clark_updates) { 
+    os << "Using fast updates for multideterminants.  Reference: \n";
+    os << "Clark, Morales, McMinis, Kim, and Scuseria. J. Chem. Phys. 135 244105 (2011)\n";
   }
 
   for(int f=0; f< nfunc; f++)
@@ -946,6 +963,10 @@ int Slat_wf_data::writeinput(string & indent, ostream & os)
   }
   if(optimize_det)
     os << indent << "OPTIMIZE_DET" << endl;
+  if(use_clark_updates)
+    os << indent << "CLARK_UPDATES" << endl;
+  else 
+    os << indent << "SHERMAN_MORRISON_UPDATES" << endl;
 
   if(!sort)
     os << indent << "NOSORT" << endl;
