@@ -77,6 +77,13 @@ template <class T> inline log_value<T> operator*(log_value<T> t, log_value<T> u)
   return v;
 }
 
+inline log_value<dcomplex> operator*(log_value<doublevar> & t, log_value<dcomplex> & u) {
+  log_value<dcomplex> v;
+  v.logval=t.logval+u.logval;
+  v.sign=t.sign*u.sign;
+  return v;
+}
+
 //Try to safely sum a series of log_values
 template <class T> inline log_value<T> sum(const Array1 <log_value<T> > & vec) { 
   T s=0;

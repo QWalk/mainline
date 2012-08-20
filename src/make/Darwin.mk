@@ -2,7 +2,7 @@
 
 CXX:=clang++
 
-CXXFLAGS := -O3   \
+CXXFLAGS := -O2   \
    -funroll-loops -ffast-math  \
   $(INCLUDEPATH) # -fomit-frame-pointer
  #not omitting the frame pointer so we get instrumentation

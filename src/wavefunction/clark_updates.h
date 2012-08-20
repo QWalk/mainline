@@ -72,21 +72,44 @@ template <class T> void Excitation_list::clark_updates(Array2 <T> & ginv, Array2
     
   ratios.Resize(nex);
   ratios=T(1.0);
+  
   for(int ex=1; ex < nex; ex++) { 
+    Array1 <int> & g=remap(ex).g(s);
+    Array1 <int> & e=remap(ex).e(s);
     int n=excitations(ex).g(s).GetDim(0);
-    if(n==1) { 
-      ratios(ex)=T(excitations(ex).sign(s))*tmat(remap(ex).g(s)(0),remap(ex).e(s)(0));
-    }
-    else  { 
-      detmat.Resize(n,n);
-      for(int i=0; i < n; i++ ) { 
-        for(int j=0; j < n; j++) { 
-          detmat(i,j)=tmat(remap(ex).g(s)(i),
-              remap(ex).e(s)(j));
+    switch(n) { 
+      case 0:
+        break;
+      case 1:
+        ratios(ex)=T(excitations(ex).sign(s))*tmat(g(0),e(0));
+        break;
+      case 2:
+        ratios(ex)=T(excitations(ex).sign(s))* (tmat(g(0),e(0))*tmat(g(1),e(1))
+              - tmat(g(1),e(0))*tmat(g(0),e(1)));
+        break;
+      default:
+        detmat.Resize(n,n);
+        for(int i=0; i < n; i++ ) { 
+          for(int j=0; j < n; j++) { 
+            detmat(i,j)=tmat(g(i),e(j));
+          }
         }
-      }
-      ratios(ex)=Determinant(detmat,n)*T(excitations(ex).sign(s));
+        ratios(ex)=Determinant(detmat,n)*T(excitations(ex).sign(s));
+        break;
     }
+    //if(n==0) { }  //do nothing
+    //else if(n==1) { 
+    //  ratios(ex)=T(excitations(ex).sign(s))*tmat(g(0),e(0));
+    //}
+    //else  { 
+    //  detmat.Resize(n,n);
+    //  for(int i=0; i < n; i++ ) { 
+    //    for(int j=0; j < n; j++) { 
+    //      detmat(i,j)=tmat(g(i),e(j));
+    //    }
+    //  }
+    //  ratios(ex)=Determinant(detmat,n)*T(excitations(ex).sign(s));
+    //}
   }
 
 }

@@ -151,7 +151,7 @@ private:
   //!< The place in totoccupation for the molecular orbitals for (fn, det, spin) Used to look up the right MO from MO_matrix.
   Array3 < Array1 <int> > occupation_orig;
   //!< The molecular orbitals numbers for (function, determinant, spin)
-  Array1 <doublevar> detwt;
+  Array1 <log_value<doublevar> > detwt;
   Array1 < Array1 <int> > totoccupation; //!< all the molecular orbitals for a given spin
 
   Array3 <int> occupation_nchanges;           //!< number of changes to occupations for (fn,det,spin)
