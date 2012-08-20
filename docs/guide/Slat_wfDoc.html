@@ -41,6 +41,10 @@ algorithm will be applied).
 <tr> <td> NSPIN  <td> Section <td> same as in SYSTEM <td>  Override the global parameter.
 <tr> <td> OPTIMIZE_DET <td> Flag <td> off <td> Optimize the determinantal coefficients.  For a single 
 determinant, this does nothing.
+<tr> <td> CSF <td> Section <td> Do nothing <td> This replaces DETWT, and lists configuration state functions to reduce the number of variational parameters.  The format is CSF { overallweight  weight_det1 weight_det2 ... }.  Only the overall weight is optimized.  List a separate CSF section for each CSF.
+<tr> <td> CLARK_UPDATES <td> Flag <td> off <td> Force Bryan Clark's updates (J. Chem. Phys 135, 244105 (2011)) of the determinant inverses and values.  By default, this is enabled when there is more than one determinant and more than 10 electrons, in which case it is expected to save memory and computer time.
+<tr> <td> SHERMAN_MORRISON <td> Flag <td> off <td>  Force the Sherman-Morrison updates of the determinant inverses and values
+
 </table>
 
 
