@@ -61,6 +61,10 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
   Array2 <doublevar> H(nparms+1,nparms+1);
   Array1 <doublevar> alpha(nparms); 
  
+  if(!wfdata->supports(parameter_derivatives))
+    error("Wavefunction needs to supports analytic parameter derivatives");
+  
+  
   wfdata->getVarParms(alpha); 
   Array1 <doublevar> en,tmp_en;
   Array2 <doublevar> energy_step(iterations,2);
