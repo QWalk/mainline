@@ -367,7 +367,6 @@ void Average_tbdm_basis::evaluate_tbdm(Wavefunction_data * wfdata, Wavefunction 
     avg.vals.Resize(nmo+4*nmo*nmo+8*nmo*nmo*nmo*nmo);
 
 
-  if(!tbdm_diagonal) error("Need to code up offdiagonal tbdm");
   avg.vals=0;
 
   Wavefunction_storage * store;
@@ -457,6 +456,24 @@ void Average_tbdm_basis::evaluate_tbdm(Wavefunction_data * wfdata, Wavefunction 
               }
             }
           } //TBDM_DIAGONAL
+          else { 
+            int ind=tbdm_index(which_tbdm,0,0,0,0);
+            for(int oi=0; oi < nmo; oi++) { 
+              tmp1=orbind*conj(movals1(oi,0));
+              for(int oj=0; oj < nmo; oj++) { 
+                tmp2=tmp1*conj(movals2(oj,0));
+
+                for(int ok=0; ok < nmo; ok++) {
+                  tmp3=tmp2*movals1_base(e1)(ok,0);
+                  for(int ol=0; ol< nmo; ol++) { 
+                    tmp=tmp3*movals1_base(e2)(ol,0);
+                    avg.vals.v[ind++]+=tmp.real();
+                    avg.vals.v[ind++]+=tmp.imag();
+                  }
+                }
+              }
+            }
+          }//offdiagonal tbdm
         }
       }
     }
@@ -681,39 +698,39 @@ void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, 
       }
 
     }
-/*
-    for(int i=0; i< nmo ; i++) { 
-      for(int j=0; j<nmo; j++) { 
-        for(int k=0; k< nmo; k++) {
-          for(int l=0; l< nmo; l++) { 
-            doublevar norm=sqrt(avg.vals(i)*avg.vals(j)*avg.vals(k)*avg.vals(l));
-            int induu=tbdm_index(tbdm_uu,i,j,k,l);
-            int indud=tbdm_index(tbdm_ud,i,j,k,l);
-            int inddu=tbdm_index(tbdm_du,i,j,k,l);
-            int inddd=tbdm_index(tbdm_dd,i,j,k,l);
-            
-            uu=dcomplex(avg.vals(induu),avg.vals(induu+1))/norm;
-            uu_err=dcomplex(err.vals(induu),err.vals(induu+1))/norm;
-            ud=dcomplex(avg.vals(indud),avg.vals(indud+1))/norm;
-            ud_err=dcomplex(err.vals(indud),err.vals(indud+1))/norm;
-            du=dcomplex(avg.vals(inddu),avg.vals(inddu+1))/norm;
-            du_err=dcomplex(err.vals(inddu),err.vals(inddu+1))/norm;
-            dd=dcomplex(avg.vals(inddd),avg.vals(inddd+1))/norm;
-            dd_err=dcomplex(err.vals(inddd),err.vals(inddd+1))/norm;
+    else { 
+      for(int i=0; i< nmo ; i++) { 
+        for(int j=0; j<nmo; j++) { 
+          for(int k=0; k< nmo; k++) {
+            for(int l=0; l< nmo; l++) { 
+              doublevar norm=sqrt(avg.vals(i)*avg.vals(j)*avg.vals(k)*avg.vals(l));
+              int induu=tbdm_index(tbdm_uu,i,j,k,l);
+              int indud=tbdm_index(tbdm_ud,i,j,k,l);
+              int inddu=tbdm_index(tbdm_du,i,j,k,l);
+              int inddd=tbdm_index(tbdm_dd,i,j,k,l);
 
-            
-            os << setw(10) << i << setw(10) << j << setw(10) << k <<  setw(10) << l 
-              << setw(colwidth) << uu << setw(colwidth) << uu_err
-              << setw(colwidth) << ud << setw(colwidth) << ud_err
-              << setw(colwidth) << du << setw(colwidth) << du_err
-              << setw(colwidth) << dd << setw(colwidth) << dd_err
-              << endl;
+              uu=dcomplex(avg.vals(induu),avg.vals(induu+1))/norm;
+              uu_err=dcomplex(err.vals(induu),err.vals(induu+1))/norm;
+              ud=dcomplex(avg.vals(indud),avg.vals(indud+1))/norm;
+              ud_err=dcomplex(err.vals(indud),err.vals(indud+1))/norm;
+              du=dcomplex(avg.vals(inddu),avg.vals(inddu+1))/norm;
+              du_err=dcomplex(err.vals(inddu),err.vals(inddu+1))/norm;
+              dd=dcomplex(avg.vals(inddd),avg.vals(inddd+1))/norm;
+              dd_err=dcomplex(err.vals(inddd),err.vals(inddd+1))/norm;
+
+
+              os << setw(10) << i << setw(10) << j << setw(10) << k <<  setw(10) << l 
+                << setw(colwidth) << uu << setw(colwidth) << uu_err
+                << setw(colwidth) << ud << setw(colwidth) << ud_err
+                << setw(colwidth) << du << setw(colwidth) << du_err
+                << setw(colwidth) << dd << setw(colwidth) << dd_err
+                << endl;
+            }
           }
         }
-      }
 
+      }
     }
-    */
   }
 
 

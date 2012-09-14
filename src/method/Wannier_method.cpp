@@ -489,7 +489,7 @@ void Wannier_method::optimize_rotation(Array3 <dcomplex> &  eikr,
   Rgen=0.0;
   for(int ii=0; ii< norb; ii++) { 
     for(int jj=ii+1; jj< norb; jj++) { 
-      Rgen(ii,jj)=rng.gasdev()*pi;
+      Rgen(ii,jj)=rng.gasdev()*pi/100.0;
     }
   }
   doublevar max_tstep=2.0;
