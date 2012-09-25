@@ -86,11 +86,12 @@ void Determinant_select_method::read(vector <string> words,
 
   for(int i=0; i< nvirt(0); i++) virt(0,i)=atoi(virtu_up[i].c_str())-1;
   for(int i=0; i< nvirt(1); i++) virt(1,i)=atoi(virtu_down[i].c_str())-1;
-  
+  cout << "done read " << endl; 
   mywalker=NULL;
   sys->generateSample(mywalker);
 
   mymomat->buildLists(orbital_groups);
+  cout << " done build " << endl;
 }
 
 //----------------------------------------------------------------------
@@ -172,9 +173,10 @@ void Determinant_select_method::run(Program_options & options, ostream & output)
           for(int l=0; l< nvirt(s2); l++) { 
             int oi=lookup_occ(s1,i);
             int oj=lookup_occ(s2,j);
-            int ok=lookup_occ(s1,k);
-            int ol=lookup_occ(s2,l);
-            cout << "oi " << oi << " oj " << oj << " ok " << ok << " ol " << ol << endl;
+            int ok=lookup_virt(s1,k);
+            int ol=lookup_virt(s2,l);
+            //cout << "i " << i << " j " << j << " k " << k << " l " << l <<endl;
+            //cout << "oi " << oi << " oj " << oj << " ok " << ok << " ol " << ol << endl;
             output << occ(s1,i)+1 << " " << occ(s2,j)+1 << " " << virt(s1,k)+1 << " "
               << virt(s2,l)+1 << " " 
               << voverlap(oi,oj,ok,ol)*renorm/sqrt(orb_norm(oi)*orb_norm(oj)*orb_norm(ok)*orb_norm(ol)) << endl;
