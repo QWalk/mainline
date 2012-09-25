@@ -984,7 +984,6 @@ void Average_linear_derivative::evaluate(Wavefunction_data * wfdata, Wavefunctio
 
   vals.Resize(nfunctions,5);
   symvals.Resize(nfunctions,2);
-  
   avg.type="linear_der";
   if(!wfdata->supports(parameter_derivatives))
     error("Wavefunction needs to supports analytic parameter derivatives");

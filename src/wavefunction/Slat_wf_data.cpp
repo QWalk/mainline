@@ -116,7 +116,7 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
     ncsf=ndet;
     for(int det=0; det < ndet; det++) { 
       CSF(det).Resize(2);
-      CSF(det)(0)=detwt(det);
+      CSF(det)(0)=detwt(det).val();
       CSF(det)(1)=1.0;
     }
   }
@@ -417,7 +417,7 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
 #endif	    
           }
 
-          if (swap) detwt(det)=-detwt(det);
+          if (swap) detwt(det)=-detwt(det).val();
 
 #ifdef DEBUG_SORT
           cout << "Det "<<det << " Func " << f << " Spin " << s << " Swap " << swap << " Final swapped order " << endl;    
@@ -754,7 +754,7 @@ int Slat_wf_data::showinfo(ostream & os)
     {
       if(ndet > 1) {
         os << "Determinant " << det << ":\n";
-        os << "Weight: " << detwt(det) << endl;
+        os << "Weight: " << detwt(det).val() << endl;
       }
 
       os << "State: \n";

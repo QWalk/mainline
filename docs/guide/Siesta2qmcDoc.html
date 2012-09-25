@@ -3,25 +3,18 @@
 
 \section description Description
 
-Basic usage: siesta2qmc [-siesta2] -o [outputroot]  [siesta output file] <br>
+Basic usage: siesta2qmc [-siesta2] [-molecule]  [-analyze_mo] -o [outputroot]  [siesta output file] <br>
 
 If outputroot is not given, it will default to qwalk.
-
-\section tricks Tricks
-
-Getting a good trial wave function from Siesta can be a little
-tricky, so here are some techniques that have worked in the past.
-These are not guaranteed to obtain the most accurate numbers possible,
-so be careful!
 
 
 \subsection options Options
 
 The following options are required for the converter to work:
 <pre>
-%block WaveFuncKPoints
+\%block WaveFuncKPoints
 0.0 0.0 0.0
-%endblock WaveFuncKPoints
+\%endblock WaveFuncKPoints
 LongOutput .true.
 LatticeConstant 
 </pre>
@@ -31,11 +24,14 @@ a molecule, since Siesta apparently doesn't print out the orbital
 coefficients unless the lattice constant is given explicitly.  If you
 are doing an actual molecule, you may want to change PERIODIC in the
 QWalk .sys file to MOLECULE, which will increase the speed and accuracy.
+The converter will attempt to do this automatically, but you can force it
+with the option -molecule.  Be careful that the molecule does not depend on 
+periodic boundary conditions!
 
 The converter also supports non-gamma k-points, which can be printed out in the
 Siesta input file as following:
 <pre>
-%block WaveFuncKPoints
+\%block WaveFuncKPoints
 0.0 0.0 0.0
 2.0 0.0 0.0
 0.0 2.0 0.0
@@ -44,7 +40,7 @@ Siesta input file as following:
 0.0 2.0 2.0
 2.0 0.0 2.0
 2.0 2.0 2.0
-%endblock WaveFuncKPoints
+\%endblock WaveFuncKPoints
 </pre>
 for example, for a 2x2x2 Monkhorst Pack grid.
 
@@ -52,8 +48,12 @@ for example, for a 2x2x2 Monkhorst Pack grid.
 
 One can use the pseudopotentials written for QMC, although they can be
 quite a pain to convert for use in Siesta, since they are usually
-written in a Gaussian expansion.  Current thought is that PBE psp's are
-probably your best bet.  Siesta
+written in a Gaussian expansion.  We are developing a converter to 
+do this properly, however, please contact Lucas Wagner if you wish 
+to use Gaussian-based pseudopotentials with SIESTA.
+
+Current thought is that PBE psp's are
+probably your best bet.  SIESTA
 may have exact exchange in the future, in which case hybrid or
 Hartree-Fock psueudopotentials may be better.  To be clear, the
 pseudopotentials should be tested, by, for example, calculating
@@ -70,6 +70,12 @@ part of the wave function well enough.  For molecules, you may also
 need to extend the cutoff radius of the basis functions significantly to
 keep the variance down and the wave function accurate.
 
+Experience has shown that the main issue with the Siesta basis is the
+presence of kinks when a cutoff is applied.  To avoid this issue,
+we suggest that you use the splitgauss basis type with a large cutoff, 
+somewhere around 8.0 Bohr or more.  With this basis, it is possible to 
+get results on par with plane waves or quantum chemistry Gaussian 
+type basis functions.
 
 \subsection Siesta version 2
 

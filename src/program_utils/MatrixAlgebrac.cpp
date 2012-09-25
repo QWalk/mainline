@@ -443,21 +443,49 @@ doublevar Determinant(const Array2 <doublevar> & a, const int n)
   // allows to pass a column vector to lubksb() instead of a row
 
   // put the transposed matrix in temp
-  for(int i=0;i<n;++i)
-  {
-    for(int j=0;j<n;++j)
-    {
+//#ifdef USE_LAPACK
+/*  if(n==0) return 1;
+  for(int i=0; i < n;++i) {
+    for(int j=0; j< n; ++j) { 
+      temp(i,j)=a(i,j);
+    }
+  }
+  dgetrf(n, n, temp.v, n, indx.v);
+  double det=1;
+  for(int i=0; i< n; i++) { 
+    if(indx(i) != i+1)
+      det*= -temp(i,i);
+    else det*=temp(i,i);
+  }
+  return det;
+  */
+/*
+  for(int i=0; i< n; i++) { 
+    if(indx(i)!=i+1) logdet.sign*=-1;
+    logdet.logval+=log(fabs(temp(i,i)));
+    if(temp(i,i) <0) logdet.sign*=-1;
+  }
+
+  //cout << " det " << det << " logval " << logdet.val() << endl;
+  //return det;
+  return logdet;
+  */
+//#endif  
+//#else 
+ 
+  for(int i=0;i<n;++i) {
+    for(int j=0;j<n;++j) {
       temp(i,j)=a(i,j);
     }
   }
 
   ludcmp(temp,n,indx,d);
 
-  for(int j=0;j<n;++j)
-  {
+  for(int j=0;j<n;++j) {
     d *= temp(j,j);
   }
   return d;
+//#endif
 }
 
 

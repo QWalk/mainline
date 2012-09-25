@@ -655,7 +655,7 @@ template<class T> inline void Slat_wf<T>::getParmDepVal(Wavefunction_data * wfda
     doublevar tempval=0;
     int count=0;
     for(int det=0; det < ndet; det++) {
-      tempval+=parent->detwt(det)*oldval(count)*oldval(count+1);
+      tempval+=parent->detwt(det).val()*oldval(count)*oldval(count+1);
       count+=2;
     }
     newval.phase(0,0)=.5*pi*(1-sign(tempval));// pi if the function is negative
@@ -1151,7 +1151,7 @@ template <class T>inline void Slat_wf<T>::getVal(Wavefunction_data * wfdata, int
     for(int f=0; f< nfunc_; f++) {
       Array1 <log_value<T> > detvals(ndet);
       for(int det=0; det < ndet; det++) {
-        detvals(det) = T(dataptr->detwt(det))*detVal(f,det,s)*detVal(f,det,opp);
+        detvals(det) = dataptr->detwt(det)*detVal(f,det,s)*detVal(f,det,opp);
       }
       log_value<T> totval=sum(detvals);
       //vals(f,0)=totval.logval;
@@ -1324,8 +1324,10 @@ template <class T> void Slat_wf<T>::getDetLap(int e, Array3<log_value <T> > &  v
             parent->rede(e),nelectrons(s));
         Array1 <T> ratios;
         parent->excitations.clark_updates(tmpinverse,lapvec,s,ratios);
-        for(int d=0; d< ndet; d++) { 
-          detgrads(d)=baseratio*ratios(d)*detVal(f,0,s);
+        detgrads(0)=baseratio*detVal(f,0,s);
+        for(int d=1; d< ndet; d++) { 
+          //detgrads(d)=baseratio*ratios(d)*detVal(f,0,s);
+          detgrads(d)=ratios(d)*detgrads(0);
         }
       } //------Done clark updates
       for(int d=0; d< ndet; d++) {
@@ -1370,7 +1372,7 @@ template <class T> void Slat_wf<T>::getLap(Wavefunction_data * wfdata,
     for(int f=0; f< nfunc_; f++) {
       for(int i=0; i< 5; i++) { 
         for(int d=0;d < ndet; d++) { 
-          tempsum(d)=T(parent->detwt(d))*detvals(f,d,i);
+          tempsum(d)=parent->detwt(d)*detvals(f,d,i);
         }
         vals(f,i)=sum(tempsum);
       }
@@ -1462,7 +1464,9 @@ template <class T> inline void Slat_wf<T>::evalTestPos(Array1 <doublevar> & pos,
         T ratio=1./InverseGetNewRatio(inverse(f,det,s),
             modet, parent->rede(e),
             nelectrons(s));
-        new_detVals(det)=T(parent->detwt(det))*ratio*detVal(f,det, s)*detVal(f,det,opps);
+        new_detVals(det)=parent->detwt(det)*detVal(f,det,s);
+        new_detVals(det)*=ratio;
+        new_detVals(det)*=detVal(f,det,opps);
       }
     }
     else { //Clark updates 
@@ -1485,7 +1489,9 @@ template <class T> inline void Slat_wf<T>::evalTestPos(Array1 <doublevar> & pos,
       Array1 <T> ratios;
       parent->excitations.clark_updates(invtmp,motmp,s,ratios);
       for(int d=0; d< ndet; d++) {
-        new_detVals(d)=T(parent->detwt(d))*baseratio*ratios(d)*detVal(f,0,s)*detVal(f,d,opps);
+        new_detVals(d)=parent->detwt(d)*detVal(f,0,s);
+        new_detVals(d)*=baseratio*ratios(d);
+        new_detVals(d)*=detVal(f,d,opps);
       }
       
     }

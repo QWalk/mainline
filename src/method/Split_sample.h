@@ -313,6 +313,7 @@ class SRK_dmc:public Dynamics_generator {
 
     drift_type dtype;
     bool diagnostics;//!< Whether to print out a ton of diagonostic information on the moves
+    bool third_move; //!< Whether to do a third predictor-corrector move
     ofstream diagnostics_print;
 
  

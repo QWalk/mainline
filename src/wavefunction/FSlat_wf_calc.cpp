@@ -577,7 +577,7 @@ void FSlat_wf::getParmDepVal(Wavefunction_data * wfdata,
     doublevar tempval=0;
     int count=0;
     for(int det=0; det < ndet; det++) {
-      tempval+=parent->detwt(det)*oldval(count)*oldval(count+1);
+      tempval+=parent->detwt(det).val()*oldval(count)*oldval(count+1);
       count+=2;
     }
     newval.phase(0,0)=.5*pi*(1-sign(tempval));// pi if the function is negative
@@ -1171,7 +1171,7 @@ void FSlat_wf::getVal(Wavefunction_data * wfdata, int e,
       doublevar funcval=0;
 
       for(int det=0; det < ndet; det++) {
-        funcval += dataptr->detwt(det)*detVal(f,det,s)*detVal(f,det,opp);
+        funcval += dataptr->detwt(det).val()*detVal(f,det,s)*detVal(f,det,opp);
       }
       if(fabs(funcval) > 0) 
         vals(f,0)=log(fabs(funcval));
@@ -1431,7 +1431,7 @@ void FSlat_wf::getLap(Wavefunction_data * wfdata,
       doublevar funcval=0;
 
       for(int det=0; det < ndet; det++) {
-        funcval += dataptr->detwt(det)*detVal(f,det,s)*detVal(f,det,opp);
+        funcval += dataptr->detwt(det).val()*detVal(f,det,s)*detVal(f,det,opp);
       }
 
 
@@ -1513,7 +1513,7 @@ void FSlat_wf::getLap(Wavefunction_data * wfdata,
             temp=0;
           
           if(ndet >1) 
-            temp*=dataptr->detwt(recdet)*detVal(f,recdet, s)*detVal(f,recdet, opp);
+            temp*=dataptr->detwt(recdet).val()*detVal(f,recdet, s)*detVal(f,recdet, opp);
           vals(f,i)+=temp;
         }
 

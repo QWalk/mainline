@@ -816,6 +816,8 @@ void SRK_dmc::read(vector <string> & words) {
 
   diagnostics=false;
   if(haskeyword(words,pos=0,"DIAGNOSTICS")) diagnostics=true;
+  third_move=false;
+  if(haskeyword(words,pos=0, "THIRD_MOVE")) third_move=true;
   
   if(diagnostics) { 
     string basename="srk_diagnostics";
@@ -956,16 +958,38 @@ int SRK_dmc::rk_step(int e,
   wf->updateLap(wfdata, sample);
   wf->getLap(wfdata, e, trace(2).lap);
   guidingwf->getLap(trace(2).lap, trace(2).drift);
+
+  int last_point=2;
+  if(third_move) { 
+    last_point=3;
+    Array1 <doublevar> c_newnewdrift=trace(2).drift;
+    limDrift(c_newnewdrift,timestep,dtype);
+    for(int d=0; d< 3; d++) {
+      trace(3).gauss(d)=trace(0).gauss(d);
+      trace(3).translation(d)=.5*(c_newnewdrift(d)+c_olddrift(d))
+        +trace(0).gauss(d)*sqrt(timestep)
+        -trace(1).translation(d)-trace(2).translation(d);
+      trace(3).pos(d)=trace(1).pos(d)+trace(3).translation(d);
+    }
+
+    sample->translateElectron(e,trace(3).translation);
+    trace(3).sign=sample->overallSign();
+    wf->updateLap(wfdata, sample);
+    wf->getLap(wfdata, e, trace(3).lap);
+    guidingwf->getLap(trace(3).lap, trace(3).drift);
+
+
+  }
   
-  info.symm_gf=exp(runge_kutta_symm(trace(0), trace(2), timestep, dtype));
-  info.resample_gf=exp(runge_kutta_resamp(trace(0), trace(2), timestep, dtype));
+  info.symm_gf=exp(runge_kutta_symm(trace(0), trace(last_point), timestep, dtype));
+  info.resample_gf=exp(runge_kutta_resamp(trace(0), trace(last_point), timestep, dtype));
   info.green_forward=exp(-info.diffusion_rate/(2*timestep));
   //cout << "symm " << info.symm_gf << "  forward " << info.green_forward
   //      << " ratio " << info.symm_gf/info.green_forward << endl;
-  info.green_backward=transition_prob(trace(2),trace(0),timestep,dtype);
+  info.green_backward=transition_prob(trace(last_point),trace(0),timestep,dtype);
   info.acceptance=1.0;
   info.orig_pos=trace(0).pos;
-  info.new_pos=trace(2).pos;
+  info.new_pos=trace(last_point).pos;
 
   if(diagnostics) { 
     for(int i=0; i< 3; i++) 

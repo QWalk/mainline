@@ -12,34 +12,36 @@ stochastically.
 
 \subsection reqopt Required 
 
-<table>
-<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
-<tr> <td> NCONFIG  <td> Integer <td> Number of sample points to use at one time
-<tr> <td> NSTEP <td> Integer <td>  Number of average points to take in a block.
-<tr> <td> NBLOCK <td> Integer <td>  Number of blocks to take
-<tr> <td> TIMESTEP <td> Float <td>  A measure of how large each Metropolis move
-should be.  Adjust such that the acceptance ratio is somewhat greater than
-0.5
-</table>
+No options are required.
 
 \subsection optopt Optional
 
 <table>
 <tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b> Default </b> 
      <td> <b>Description</b>
+<tr> <td> NCONFIG  <td> Integer <td> 1 <td> Number of sample points to use at one time per processor
+<tr> <td> NSTEP <td> Integer <td> 100 <td>  Number of average points to take in a block.
+<tr> <td> NBLOCK <td> Integer <td> 100 <td>   Number of blocks to take
+<tr> <td> TIMESTEP <td> Float <td> 1.0 <td>  A measure of how large each Metropolis move
+should be.  Adjust such that the acceptance ratio is somewhat greater than
+0.5.  If this is not specified, then the timestep will automatically be adjusted.
 <tr> <td> NDECORR   <td> Integer <td> 2 
      <td>  Number of Metropolis steps to take before evaluating the energy.
            Since VMC steps don't require an energy evaluation, this serves
            to decorrelate the averaging points before doing an expensive
            evaluation of the energy(mostly pseudopotentials).
 
-<tr> <td> STORECONFIG <td> String <td> none <td> Write the configurations to 
-this file every block.  In parallel, each processor will write its configurations to this file with _n appended, where n is the processor number.
-<tr> <td> READCONFIG <td> String <td> none <td> Read from a configuration file
-previously written by STORECONFIG.  If there are more or less configurations 
-than NCONFIG, new configurations will be generated or old ones left out to
-make the number exactly NCONFIG.
+<tr> <td> STORECONFIG <td> String <td> runid.config <td> Write the configurations to 
+this file every block.  
+<tr> <td> READCONFIG <td> String <td> runid.config <td> Read from a configuration file
+previously written by STORECONFIG. If this file is absent, then new configurations will be generated.
+<tr> <td> AVERAGE,<br>DENSITY,<br>NONLOCAL_DENSITY <td> Section <td> empty 
+     <td> Sections for evaluation of \ref PropertiesDoc .
 <tr> <td> LABEL <td> String <td> dmc <td> Label in the .log file.
+</table>
+
+\subsection optadvanced Advanced
+<table>
 <tr> <td> GUIDETYPE <td> String <td> SUMSQUARES 
      <td> Possible options: SUMSQUARES(\f$ \Psi_T^2 = \Psi_1^2+\Psi_2^2 \f$), 
       SUM(\f$ (\Psi_1 + \Psi_2)^2 \f$), FIRST(\f$ \Psi_T = \Psi_1 \f$). Specify
@@ -53,8 +55,6 @@ guiding functions.
      when you don't have pseudopotentials. Further possibilities of
      fine tuning are described on the \ref DynamicsDoc page.
 
-<tr> <td> AVERAGE,<br>DENSITY,<br>NONLOCAL_DENSITY <td> Section <td> empty 
-     <td> Sections for evaluation of \ref PropertiesDoc .
 </table>
 
 
