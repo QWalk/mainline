@@ -27,7 +27,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Program_options.h"
 #include "average.h"
 #include "Generate_sample.h"
-
+#include <algorithm>
 
 void Dmc_method::read(vector <string> words,
                       unsigned int & pos,
