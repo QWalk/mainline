@@ -931,13 +931,49 @@ struct Queue_element {
   Queue_element(int from, int to) { from_node=from; to_node=to; } 
 };
 
-struct Walker_sort { 
-  int node;
-  int index; //on the node
-  int branch; //how many copies to make
-  doublevar weight; 
+struct weight_obj { 
+  double w;
+  int i;
 };
 
+bool operator<(const weight_obj & a,const weight_obj & b) {
+  return a.w < b.w;
+}
+void match_walkers(Array1<double> & weights, Array1 <int> & branch) { 
+  const double split_threshold=1.8;
+  branch=-1;
+  int totwalkers=weights.GetDim(0);
+  Array1<weight_obj> walkers(totwalkers);
+  for(int i=0; i< totwalkers; i++) { 
+    walkers(i).w=weights(i);
+    walkers(i).i=i;
+  }
+  sort(walkers.v,walkers.v+totwalkers);
+  int currsmallest=0;
+  for(int i=totwalkers-1; i > 1; i--) { 
+    if(walkers(i).w < split_threshold) break;
+    int w=walkers(i).i;
+    int smallest=walkers(currsmallest).i;
+    double weight1=weights(w)/(weights(w)+weights(smallest));
+    if(weight1+rng.ulec() >= 1.0) { 
+      branch(w)=2;
+      branch(smallest)=0;
+      weights(w)+=weights(smallest);
+      weights(w)/=2.0;
+    }
+    else { 
+      branch(w)=0;
+      branch(smallest)=2;
+      weights(smallest)+=weights(w);
+      weights(smallest)/=2.0;
+    }
+    currsmallest++;
+  }
+  //for(int i=0; i< totwalkers; i++) {
+  //  cout << walkers(i).w << endl;
+  //}
+
+}
 
 
 int Dmc_method::calcBranch() { 
@@ -965,6 +1001,7 @@ int Dmc_method::calcBranch() {
     //this is the core of the branching algorithm..
     //my homegrown algo, based on Umrigar, Nightingale, and Runge
     branch=-1;
+    /*
     const doublevar split_threshold=1.8;
     for(int w=0; w< totwalkers; w++) { 
       if(weights(w) > split_threshold && branch(w)==-1) { 
@@ -994,6 +1031,8 @@ int Dmc_method::calcBranch() {
         }
       }
     }
+    */
+    match_walkers(weights,branch);
     for(int w=0; w< totwalkers; w++) {
       if(branch(w)==-1) branch(w)=1;
     }
