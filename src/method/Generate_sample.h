@@ -36,5 +36,9 @@ void generate_sample(Sample_point * sample,
     Guiding_function * guidewf,
     int nconfig,
     Array1 <Config_save_point> & configs);
+#include "MO_matrix.h"
+
+doublevar generate_mo_sample(Sample_point * sample, System * sys,
+    MO_matrix * mo, int list, int nconfig, Array1 <Array1 <doublevar> > & r);
 
 #endif //GENERATE_SAMPLE_H_INCLUDED
