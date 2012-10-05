@@ -310,6 +310,7 @@ int Slat_Jastrow::getParmDeriv(Wavefunction_data *  wfdata,
   retparm.nparms_start=derivatives.nparms_start;
   retparm.nparms_end=derivatives.nparms_end;
   retparm.val_gradient.Resize(sample->electronSize(),5);
+  retparm.val_gradient=0.0;
   if (slaterval.nparms_end-slaterval.nparms_start){
     slater_wf->getParmDeriv(dataptr->slater,sample, slaterval);
     //cout <<"adding slater"<<endl;

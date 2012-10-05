@@ -1681,6 +1681,7 @@ void Average_wf_parmderivs::evaluate(Wavefunction_data * wfdata, Wavefunction * 
   for(int i=0; i< nparms; i++) { 
     avg.vals(i)=deriv.gradient(i)*pt.energy(0);
     avg.vals(nparms+i)=deriv.gradient(i);
+    //cout << "grad " << deriv.gradient(i) << " en " << pt.energy(0) << endl;
   }
   for(int i=0;i< nparms; i++) { 
     for(int j=0; j< nparms; j++) { 
@@ -1713,8 +1714,9 @@ void Average_wf_parmderivs::evaluate(Wavefunction_data * wfdata, Wavefunction * 
      for(int e=0; e< nelectrons; e++) { 
        el(i)+=-0.5*deriv.gradderiv(i,e,3);
      }
+     //cout << "el " << el(i) << endl;
   }
-  wfdata->setVarParms(alpha0);
+  //wfdata->setVarParms(alpha0);
 
   for(int i=0; i< nparms; i++) { 
     avg.vals(2*nparms+i)=el(i);
