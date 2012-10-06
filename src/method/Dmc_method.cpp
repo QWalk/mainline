@@ -28,7 +28,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "average.h"
 #include "Generate_sample.h"
 #include <algorithm>
-
+#include <ctime>
 void Dmc_method::read(vector <string> words,
                       unsigned int & pos,
                       Program_options & options)
@@ -1032,7 +1032,11 @@ int Dmc_method::calcBranch() {
       }
     }
     */
+
+    long int time_a=clock();
     match_walkers(weights,branch);
+    long int time_b=clock();
+    single_write(cout,"matching: ",double(time_b-time_a)/CLOCKS_PER_SEC,"\n");
     for(int w=0; w< totwalkers; w++) {
       if(branch(w)==-1) branch(w)=1;
     }
@@ -1052,6 +1056,7 @@ int Dmc_method::calcBranch() {
       my_branch(i)=branch(i);
       my_weights(i)=weights(i);
     }
+    time_a=clock();
 #ifdef USE_MPI
     MPI_Bcast(nwalkers.v, mpi_info.nprocs, MPI_INT, mpi_info.node, MPI_Comm_grp);
     for(int i=1; i< mpi_info.nprocs; i++) {
@@ -1059,6 +1064,9 @@ int Dmc_method::calcBranch() {
       MPI_Send(weights.v+i*nconfig, nconfig, MPI_DOUBLE, i,0,MPI_Comm_grp);
     }
 #endif
+    time_b=clock();
+    single_write(cout,"sending branch: ",double(time_b-time_a)/CLOCKS_PER_SEC,"\n");
+
                
   }
   else { 
@@ -1071,6 +1079,7 @@ int Dmc_method::calcBranch() {
   }
   //--end if/else clause
 
+  long int time_a=clock();
   for(int i=0; i< nconfig; i++) { 
     pts(i).weight=my_weights(i);
   }
@@ -1117,7 +1126,10 @@ int Dmc_method::calcBranch() {
     }
     else curr++;
   }
+  long int time_b=clock();
+  single_write(cout,"Finding out where to send: ",double(time_b-time_a)/CLOCKS_PER_SEC,"\n");
   
+  time_a=clock(); 
   //Finally, send or receive spillover walkers 
   if(nnwalkers > nconfig) { 
     vector<Queue_element>::iterator queue_pos=send_queue.begin();
@@ -1147,6 +1159,9 @@ int Dmc_method::calcBranch() {
       queue_pos++;
     }
   }
+  time_b=clock();
+  single_write(cout,"sending walkers:",double(time_b-time_a)/CLOCKS_PER_SEC,"\n");
+  
   return killsize;
   //exit(0);
 }
