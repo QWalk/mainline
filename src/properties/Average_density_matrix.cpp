@@ -624,9 +624,9 @@ void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, 
     os << avg.vals(i) << " +/- " << err.vals(i) << endl;
   }
 
-  for(int i=0; i < nmo; i++) { 
-    avg.vals(i)=1.0/nmo; //assume that the orbitals are normalized.
-  }
+ // for(int i=0; i < nmo; i++) { 
+ //   avg.vals(i)=1.0/nmo; //assume that the orbitals are normalized.
+ // }
 
   dcomplex i_c(0.,1.);
   int place=0;
