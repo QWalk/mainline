@@ -5,6 +5,7 @@ MY_SOURCES:= \
         Generate_sample.cpp \
         Rmc_corr_method.cpp \
 	Rndmc_method.cpp \
+        Energy_slice.cpp \
 	Force_fitter.cpp \
 	Levenberg_Marquardt.cpp \
         Linear_optimization.cpp \

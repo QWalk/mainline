@@ -407,7 +407,7 @@ void Average_tbdm_basis::evaluate_tbdm(Wavefunction_data * wfdata, Wavefunction 
         dist2+=norm(movals2(m,0));
       }
       for(int orbnum=0; orbnum < nmo; orbnum++) { 
-        avg.vals(orbnum)+=norm(movals1(orbnum,0))/(dist1*npoints_eval);
+        avg.vals(orbnum)+=norm(movals1(orbnum,0))/(dist1*npoints_eval*nelectrons);
       }
 
       dcomplex psiratio_1b=exp(dcomplex(wfval1.amp(0,0)-wfval_base.amp(0,0),
