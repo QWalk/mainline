@@ -141,6 +141,7 @@ void Energy_slice::run(Program_options & options, ostream & output) {
       }
       pt.parent=0;
       pt.nchildren=1; pt.children(0)=1;
+      pt.weight=1.0;
       prop.insertPoint(currstep, 0, pt);
       
 
