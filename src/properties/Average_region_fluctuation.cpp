@@ -96,7 +96,8 @@ void Average_region_fluctuation::write_summary(Average_return &avg,Average_retur
   int nspin=2;
   int maxn2=maxn*maxn;
   int nregion2=nregion*nregion;
-  cout << "avg.vals " << avg.vals(0) << endl;
+  os << "Region fluctuation" << endl;
+  os << "nspin " << nspin << " maxn " << maxn << " nregion " << nregion << endl;
   for(int s1=0; s1 < nspin; s1++) { 
     for(int s2=0; s2< nspin; s2++) { 
       for(int r1=0; r1 < nregion; r1++) { 

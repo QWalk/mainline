@@ -108,6 +108,7 @@ private:
   string storeconfig;
   string readconfig;
   string log_label;
+  string dump_file; //!< dump the energy and electron positions
 
   doublevar timestep;
   int nelectrons;

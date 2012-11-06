@@ -97,6 +97,8 @@ void Vmc_method::read(vector <string> words,
   if(readvalue(words, pos=0, config_trace, "CONFIG_TRACE"))
     canonical_filename(config_trace);
 
+  readvalue(words,pos=0,dump_file, "DATA_DUMP");
+
 
   pos=0;
   if(readvalue(words, pos, guidetype, "GUIDETYPE")) {
@@ -452,6 +454,17 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
           if(nconfig !=1) error("trace only works with nconfig=1");
           config_pos(walker).savePos(sample);
           storecheck(config_trace,1);
+        }
+        if(dump_file!="") { 
+          if(mpi_info.nprocs !=1) error("Only one processor dump for now");
+          ofstream dumpout(dump_file.c_str());
+          dumpout << pt.energy(0) << " ";
+          for(int e=0; e< nelectrons; e++)  { 
+            sample->getElectronPos(e,newpos);
+            for(int d=0; d< 3; d++) dumpout << newpos(d) << " ";
+          }
+          dumpout << endl;
+            
         }
         
       }   //step
