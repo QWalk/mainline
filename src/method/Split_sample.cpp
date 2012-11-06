@@ -67,9 +67,9 @@ void limDrift(Array1 <doublevar> & drift, doublevar tau, drift_type dtype)
       }
     
     drift2*=acyrus;
-    if(drift2 > 1e-16) 
+    if(drift2 > 1e-8) 
       drifta=(sqrt(1.+tau2*drift2)-1)/(drift2);
-    else drifta=0.0;
+    else drifta=1.0;
     
     //cout << "drifta " << drifta << endl;
     for(int d=0; d<3; d++)
