@@ -4,6 +4,7 @@
 #include "ulec.h"
 #include "Average_density_matrix.h"
 #include "Average_region_fluctuation.h"
+#include "Average_enmoment.h"
 #include "Properties_point.h"
 
 //-----------------------------------------------------------------------------
@@ -42,6 +43,8 @@ int decide_averager(string & label, Average_generator *& avg) {
     avg=new Average_region_density_matrix;
   else if(caseless_eq(label,"WF_PARMDERIV")) 
     avg=new Average_wf_parmderivs;
+  else if(caseless_eq(label,"ENMOMENT"))
+    avg=new Average_enmoment;
   else 
     error("Didn't understand ", label, " in Average_generator.");
   

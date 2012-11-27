@@ -1,6 +1,7 @@
 
 MY_SOURCES:= \
         Average_density_matrix.cpp \
+        Average_enmoment.cpp \
 	Average_generator.cpp \
         Average_region_fluctuation.cpp \
 	Properties.cpp \
