@@ -31,13 +31,15 @@ void Average_enmoment::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
   Average_return tmpavg;
   avg_gen->evaluate(wfdata,wf,sys,sample,pt,tmpavg);
   avg.type="enmoment_"+tmpavg.type;
-  avg.vals.Resize((nmoment)*tmpavg.vals.GetDim(0)+1);
-  Array1 <doublevar> enmom(nmoment);
-  for(int i=0; i< nmoment; i++) 
-    enmom(i)=pow(pt.energy(0),i);
-  avg.vals(0)=enmom(1);
-  int count=1;
   int navg=tmpavg.vals.GetDim(0);
+  
+  avg.vals.Resize(nmoment*(navg+1));
+  Array1 <doublevar> enmom(nmoment);
+  for(int i=0; i< nmoment; i++)  { 
+    enmom(i)=pow(pt.energy(0),i);
+    avg.vals(i)=enmom(i);
+  }
+  int count=nmoment;
   for(int i=0; i< nmoment; i++) {
     for(int j=0; j< navg; j++) {
       avg.vals(count)=enmom(i)*tmpavg.vals(j);
@@ -48,14 +50,16 @@ void Average_enmoment::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
 //-----------------------------------------------------------------------------
 void Average_enmoment::read(System * sys, Wavefunction_data * wfdata, vector
                    <string> & words) { 
-  nmoment=4;
   unsigned int pos=0;
   vector <string> avgsec;
   if(!readsection(words, pos=0,avgsec,"AVERAGE"))
     error("Need AVERAGE section in ENMOMENT");
   allocate(avgsec,sys,wfdata,avg_gen);
 
-
+  if(readvalue(words,pos=0,nmoment, "NMOMENT"))
+    nmoment++;
+  else 
+    nmoment=4;
 }
 //-----------------------------------------------------------------------------
 void Average_enmoment::write_init(string & indent, ostream & os) { 
@@ -81,15 +85,18 @@ void Average_enmoment::write_summary(Average_return &avg ,Average_return & err,
     ostream & os) { 
   os << "energy moments" << endl;
   os << "Avg energy " << avg.vals[0] << " +/- " << err.vals[0] << endl;
-  int navg=(avg.vals.GetDim(0)-1)/nmoment;
+  int navg=(avg.vals.GetDim(0)-nmoment)/nmoment;
   Average_return tmpavg, tmperr;
   tmpavg.vals.Resize(navg);
   tmperr.vals.Resize(navg);
-  int count=1;
+  int count=nmoment;
   for(int i=0; i < nmoment; i++) {
     for(int j=0; j< navg; j++) {
       tmpavg.vals(j)=avg.vals(count);
       tmperr.vals(j)=err.vals(count);
+      tmpavg.vals(j)/=avg.vals[i];
+      tmperr.vals(j)/=avg.vals[i];
+      
       count++;
     }
     os << "Average for moments of the local energy:  Moment " << i << endl;

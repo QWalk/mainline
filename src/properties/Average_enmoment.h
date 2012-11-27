@@ -39,12 +39,16 @@ class Average_enmoment:public Average_generator {
                     <string> & words);
   virtual void write_init(string & indent, ostream & os);
   virtual void randomize(Wavefunction_data * wfdata, Wavefunction * wf,
-                        System * sys, Sample_point * sample) { } 
+                        System * sys, Sample_point * sample) { 
+    avg_gen->randomize(wfdata,wf,sys,sample);
+  } 
   virtual void read(vector <string> & words);
   virtual void write_summary(Average_return &,Average_return &, ostream & os);
   virtual ~Average_enmoment() { 
+    delete avg_gen;
   }
   Average_enmoment() { 
+    avg_gen=NULL;
   }
  private:
   Average_generator * avg_gen;
