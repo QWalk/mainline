@@ -1370,7 +1370,7 @@ void fix_basis_norm(vector <Atom> & atoms,
         //these normalizations can be found in spher_harm.f  in the
         //SIESTA source code
         double mnorm=norm/i;
-        if(m!=0) mnorm*=sqrt(2.);
+        if(m!=0) mnorm*=2.;
         mnorm=sqrt(mnorm);
         if(L==1) { 
           switch(m) { 
