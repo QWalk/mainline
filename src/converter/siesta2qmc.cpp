@@ -1367,8 +1367,10 @@ void fix_basis_norm(vector <Atom> & atoms,
         for(int j=L-absm+1; j < L+absm+1; j++) {
           i*=j;
         }
+        //these normalizations can be found in spher_harm.f  in the
+        //SIESTA source code
         double mnorm=norm/i;
-        if(m!=0) mnorm*=2.;
+        if(m!=0) mnorm*=sqrt(2.);
         mnorm=sqrt(mnorm);
         if(L==1) { 
           switch(m) { 
@@ -1398,16 +1400,32 @@ void fix_basis_norm(vector <Atom> & atoms,
           }
         }
         else if(L==3) { 
+          error("L==3 is not currently supported in the converter.  Please contact the maintainer if you'd like to improve it.");
           switch(m) { 
+            case -3:
+              mnorm*=-15; break;
             case -2:
-              mnorm*=2;
-              break;
+              mnorm*=15; break;
+            case -1:
+              mnorm*=1.5; break;
+            case  0:
+              mnorm*=1.0/6.0; break;
+            case  1:
+              mnorm*=1.5; break;
+            case  2:
+              mnorm*=15; break;
+            case  3:
+              mnorm*=-15; break;
+
           }
+
         }
-        
+                     
               
                 
-        //cout << "i " << i << "  mnorm " << mnorm << endl;
+        cout << "function "  << funcnum 
+          << " L " << L << " m " << m << "  mnorm " << mnorm 
+            << " *4pi " << mnorm*4*pi << endl;
 
         for(int mo=0; mo < nmo; mo++) { 
           //cout << moCoeff[mo].size() << " " << funcnum << endl;
