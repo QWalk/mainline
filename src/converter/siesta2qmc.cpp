@@ -1400,7 +1400,8 @@ void fix_basis_norm(vector <Atom> & atoms,
           }
         }
         else if(L==3) { 
-          error("L==3 is not currently supported in the converter.  Please contact the maintainer if you'd like to improve it.");
+          cout << "L==3 is not currently supported in the converter.  Please contact the maintainer if you'd like to improve it." << endl;
+          exit(1);
           switch(m) { 
             case -3:
               mnorm*=-15; break;
@@ -1423,9 +1424,6 @@ void fix_basis_norm(vector <Atom> & atoms,
                      
               
                 
-        cout << "function "  << funcnum 
-          << " L " << L << " m " << m << "  mnorm " << mnorm 
-            << " *4pi " << mnorm*4*pi << endl;
 
         for(int mo=0; mo < nmo; mo++) { 
           //cout << moCoeff[mo].size() << " " << funcnum << endl;
