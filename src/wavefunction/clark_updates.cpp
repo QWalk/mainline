@@ -80,7 +80,7 @@ void Excitation_list::build_excitation_list(Array3 <Array1 <int> > & occupation,
           if(occupation(0,d,s)(e2) < occupation(0,d,s)(e1)) count--;
         }
       }
-      cout << "d " << d << " count " << count << endl;
+   //   cout << "d " << d << " count " << count << endl;
       if(count%2==1) excitations[d].sign(s)*=-1;
     }
 

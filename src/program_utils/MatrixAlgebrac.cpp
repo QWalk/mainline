@@ -346,19 +346,13 @@ log_real_value TransposeInverseMatrix(const Array2 <doublevar> & a, Array2 <doub
       }
       a1(i,i)=1.0;
     }
-    dgetrf(n, n, temp.v, n, indx.v);
+    if(dgetrf(n, n, temp.v, n, indx.v)> 0) { 
+      return 0.0;
+    }
     for(int j=0; j< n; ++j) { 
       dgetrs('N',n,1,temp.v,n,indx.v,a1.v+j*n,n);
     }
   }
- /* 
-  double det=1;
-  for(int i=0; i< n; i++) { 
-    if(indx(i) != i+1)
-      det*= -temp(i,i);
-    else det*=temp(i,i);
-  }
-  */
 
   for(int i=0; i< n; i++) { 
     if(indx(i)!=i+1) logdet.sign*=-1;
@@ -1358,8 +1352,12 @@ TransposeInverseMatrix(const Array2 < complex <doublevar> > & a,
 
   //cout << "ludcmp" << endl;
   //if the matrix is singular, the determinant is zero.
-  if(ludcmp(temp,n,indx,d)==0)
+  if(ludcmp(temp,n,indx,d)==0) { 
+#ifdef SUPERDEBUG
+    cout << "log_value<dcomplex>TransposeInverseMatrix:zero determinant " << endl;
+#endif
     return dcomplex(0.0,0.0);
+  }
 
   //cout << "lubksb" << endl;
 

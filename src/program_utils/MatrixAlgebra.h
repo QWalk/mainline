@@ -56,7 +56,11 @@ template<> inline log_value<doublevar>::log_value(doublevar t) {
 
 template<> inline log_value<dcomplex>::log_value(dcomplex t) { 
   sign=1;
-  logval=dcomplex(log(abs(t)),arg(t));
+  doublevar ft=abs(t);
+  if(ft > 0) { 
+    logval=dcomplex(log(abs(t)),arg(t));
+  }
+  else logval=dcomplex(-1e201,0.0);
 }
 typedef log_value<doublevar> log_real_value;
 typedef log_value<dcomplex> log_complex_value;

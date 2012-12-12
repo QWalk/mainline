@@ -285,7 +285,6 @@ int Periodic_system::read(vector <string> & words,
     }
   }
   else {
-    single_write(cout,"did not find PRIMLATTICEVEC\n");
     prim_recip_vec=recipLatVec;
     primlat=latVec;
   }
@@ -672,7 +671,7 @@ doublevar Periodic_system::ewaldIon() {
   eion*=2;
 
   debug_write(cout,"reciprocal space ion ", eion,"\n");
-  cout << "eion " << eion << " IonIon " << IonIon << endl;
+  //cout << "eion " << eion << " IonIon " << IonIon << endl;
   return eion+IonIon;
 }
 

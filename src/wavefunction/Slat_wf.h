@@ -998,9 +998,22 @@ template <class T>inline void Slat_wf<T>::updateInverse(Slat_wf_data * dataptr, 
           }
         }
 
+#ifdef SUPERDEBUG
+        cout << "Slat_wf::updateInverse: near-zero determinant " 
+          << " f " << f << " det " << det << " old det " << detVal(f,det,s).logval
+          << endl;
+#endif
+
 
         detVal(f,det,s)=
           TransposeInverseMatrix(allmos,inverse(f,det,s), nelectrons(s));
+#ifdef SUPERDEBUG
+        cout << "Slat_wf::updateInverse: near-zero determinant " 
+          << " f " << f << " det " << det << " new det " << detVal(f,det,s).logval
+          << endl;
+#endif
+
+        
 
       }
       else { 
@@ -1045,7 +1058,7 @@ template <class T> inline int Slat_wf<T>::updateValNoInverse(Slat_wf_data * data
     for(int det=0; det< ndet; det++)  {
       //fill the molecular orbitals for this
       //determinant
-      if(abs(detVal(f,det,s).logval) < -1e200) return 0;
+      if(real(detVal(f,det,s).logval) < -1e200) return 0;
     }
   }
   
@@ -1062,8 +1075,17 @@ template <class T> inline int Slat_wf<T>::updateValNoInverse(Slat_wf_data * data
       T ratio=1./InverseGetNewRatio(inverse(f,det,s),
                                             modet, dataptr->rede(e),
                                             nelectrons(s));
+#ifdef SUPERDEBUG
+      T tmpratio=InverseGetNewRatio(inverse(f,det,s),
+                                            modet, dataptr->rede(e),
+                                            nelectrons(s));
+
+      cout << "Slat_wf::updateValNoInverse: " << "ratio " << ratio 
+        << " inv ratio " << tmpratio << " old detVal " << detVal(f,det,s).logval << endl;
+#endif
 
       detVal(f,det, s)=ratio*detVal(f,det, s);
+      
     }
   }
   return 1;
@@ -1252,6 +1274,10 @@ template <class T> inline void Slat_wf<T>::calcLap(Slat_wf_data * dataptr, Sampl
           TransposeInverseMatrix(modet,inverse(f,det,s), nelectrons(s));
         }
         else detVal(f,det,s)=T(1.0);
+#ifdef SUPERDEBUG
+        cout << "Slat_wf::calcLap: f " << f<< " det " << det 
+          << " detVal " << detVal(f,det,s).logval << endl;
+#endif
         //if(f==0 && det==0 && s==0) matout << "determinant " << detVal(f,det,s) 
          //   << " should be " << modet(0,0)*modet(1,1)-modet(0,1)*modet(1,0) << endl;
       }
