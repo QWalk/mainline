@@ -35,6 +35,7 @@ class Pseudo_writer {
 class Gaussian_pseudo_writer {
 public:
   std::string label;
+  double effcharge;
   int atomnum;
   std::vector <std::vector <double > > exponents; //l-value, then exponents per l.
   std::vector <std::vector <double > > coefficients;

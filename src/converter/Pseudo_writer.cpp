@@ -24,7 +24,7 @@ using namespace std;
 
 void Gaussian_pseudo_writer::print_pseudo(ostream & os) {
     string indent="";
-  os.precision(32);
+    os.precision(16);
     int numL=exponents.size();
     int naip=6;
     if(numL > 2) naip=12;
@@ -38,7 +38,7 @@ void Gaussian_pseudo_writer::print_pseudo(ostream & os) {
     os << indent;
     for(int i=0; i< numL ; i++) {
       int nthisl=exponents[i].size();
-      os << nthisl << "  ";
+      os << nthisl << "  " ;
     }
     os << endl;
     for(int i=0; i< numL ; i++) {

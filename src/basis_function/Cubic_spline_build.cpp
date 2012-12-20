@@ -456,13 +456,13 @@ int Cubic_spline::readbasis(vector <string> & words,unsigned int & pos,
         case sym_10F:
           norm=sqrt(2.*feg2*feg2*fac/105.);
           break;
-	case sym_9G:
+        case sym_9G:
         case sym_15G:
           norm=sqrt(2.*feg2*feg2*feg*fac/945.); //Lubos-done
           break;
-	  /*  general formula here with n principal quantum numbers
-         norm=sqrt[(2 ((4exponent)**n) sqrt(2exponent/pi))/(2n-1)!!]
-	  */
+          /*  general formula here with n principal quantum numbers
+              norm=sqrt[(2 ((4exponent)**n) sqrt(2exponent/pi))/(2n-1)!!]
+              */
         default:
           norm=0;
           error("Unknown symmetry in Cubic_spline::readbasis! Shouldn't be here!");
@@ -501,6 +501,7 @@ int Cubic_spline::readbasis(vector <string> & words,unsigned int & pos,
         norm=0;
         error("Didn't understand NORMTYPE ", norm_type);
       }
+      cout << "norm " << norm << endl;
 
 
       for(int j=0; j<n; j++)
@@ -581,7 +582,7 @@ int Cubic_spline::readbasis(vector <string> & words,unsigned int & pos,
       yp1=(y(1)-y(0))/spacing;
     }
     ypn=(y(n-1) - y(n-2) ) /spacing;
-    
+
     if(enforce_cusp) { 
       double der=cusp/double(symmetry_lvalue(symmetry(funcNum))+1);      
       yp1=der;
@@ -589,24 +590,24 @@ int Cubic_spline::readbasis(vector <string> & words,unsigned int & pos,
       // KMR:  using an STO near the atom should be a separate decision from 
       // passing the first derivative to the spliner
       if(match_sto) { //inspired from J. Chem. Phys. 130, 114107 (2009)
-      //Here, we match the value, first derivative, and second derivative to the 
-      //given smooth function at some correction radius rc.  We can then safely
-      //replace the function from [0:rc] with the Slater function.
-      //cout << "enforcing cusp" << endl;
-	double rc=cusp_matching;
-	int closest=rc/spacing;
-	rc=x(closest);
-	//cout << "rc " << rc << endl;
-	double curve=(y(closest+1)+y(closest-1)-2*y(closest))/(spacing*spacing);
-	double deriv=(y(closest+1)-y(closest-1))/(2*spacing);
-	double f=y(closest);
-	double b=(deriv*der*der-curve*der)/(curve*der*rc*rc+curve*rc*2-deriv*der*der*rc*rc-deriv*4*der*rc-2*deriv);
-	double a=curve/(exp(der*rc)*(der*der*(1+b*rc*rc)+4*der*b*rc+2*b));
-	double c=f-a*exp(der*rc)*(1+b*rc*rc);
-	//cout << "a " << a << " b " << b << " c " << c << endl;
-	for(int j=0; j <= closest; j++) {
-	  y(j)=a*exp(der*x(j))*(1+b*x(j)*x(j))+c;
-	}
+        //Here, we match the value, first derivative, and second derivative to the 
+        //given smooth function at some correction radius rc.  We can then safely
+        //replace the function from [0:rc] with the Slater function.
+        //cout << "enforcing cusp" << endl;
+        double rc=cusp_matching;
+        int closest=rc/spacing;
+        rc=x(closest);
+        //cout << "rc " << rc << endl;
+        double curve=(y(closest+1)+y(closest-1)-2*y(closest))/(spacing*spacing);
+        double deriv=(y(closest+1)-y(closest-1))/(2*spacing);
+        double f=y(closest);
+        double b=(deriv*der*der-curve*der)/(curve*der*rc*rc+curve*rc*2-deriv*der*der*rc*rc-deriv*4*der*rc-2*deriv);
+        double a=curve/(exp(der*rc)*(der*der*(1+b*rc*rc)+4*der*b*rc+2*b));
+        double c=f-a*exp(der*rc)*(1+b*rc*rc);
+        //cout << "a " << a << " b " << b << " c " << c << endl;
+        for(int j=0; j <= closest; j++) {
+          y(j)=a*exp(der*x(j))*(1+b*x(j)*x(j))+c;
+        }
       } 
     }
     /*

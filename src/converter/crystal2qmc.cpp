@@ -174,17 +174,19 @@ int main(int argc, char ** argv) {
   get_crystal_atoms(infile, atoms);
   infile.close();
   infile.clear();
-
+  cout << "basis " << endl;
   infile.open(infilename.c_str());
   get_crystal_basis(infile, basis);
   infile.close();
   infile.clear();
 
+  cout << "pseudo" << endl;
   infile.open(infilename.c_str());
   get_crystal_pseudo(infile, pseudo);
   infile.close();
   infile.clear();
 
+  cout << "after " << endl;
   int nelectrons;
   infile.open(infilename.c_str());
   string calctype, testword;
@@ -811,7 +813,8 @@ void get_crystal_basis(istream & infile,
     if(basis[bas].label[1]==' ') {
       basis[bas].label.erase(basis[bas].label.end()-1, basis[bas].label.end());
     }
-    basis[bas].options=" NORMTYPE CRYSTAL \n NORENORMALIZE \n";
+    //This isn't necessary in Crystal2009 it seems
+    //basis[bas].options=" NORMTYPE CRYSTAL \n NORENORMALIZE \n";
     
     //Also strip whitespace from the basis types
     for(vector <string>::iterator i=basis[bas].types.begin(); 
@@ -849,8 +852,16 @@ void get_crystal_pseudo(istream & infile,
         int currpsp=-1;
         int currl=-1;
         //search loop
+        vector <string> words;
+        string space=" ";
+        cout << "searching " << line << endl;
         while(search_n(line.begin(), line.end(), 5, endmatch) == line.end()
-              && (line[1]!='B' && line[2]!='A')) {
+              && (line.size()> 2 && line[1]!='B' && line[2]!='A')) {
+          words.clear();
+          split(line,space,words);
+          
+          cout << "pre " << line << endl;
+          
           if(line.size() > 2 && line[1]=='A' && line[2]=='T') {
             //new atom
             pseudo.push_back(pseudo_blank);
@@ -858,40 +869,58 @@ void get_crystal_pseudo(istream & infile,
             temp.assign(line.begin()+15, line.begin()+18);
             pseudo[currpsp].atomnum=atoi(temp.c_str())%100;
             pseudo[currpsp].label=element_lookup_caps[pseudo[currpsp].atomnum];
+            cout << "found " << pseudo[currpsp].label << endl;
             currl=-1;
           }
-          else if(line.size() > 20 && line[5]!='T' ) {
-            if(line[3]=='W' || line[3] == 'P') {
+          else if(words.size() > 1 && words[0]!="TYPE") {
+            cout << line << " "<< line.size() << line[5] << endl;
+            if(words[0][0]=='W' || words[0][0] == 'P') {
               pseudo[currpsp].exponents.push_back(double_blank);
               pseudo[currpsp].coefficients.push_back(double_blank);
               pseudo[currpsp].nvalue.push_back(n_blank);
               currl++;
+              cout<< "currl " << currl << endl;
+              words.erase(words.begin());
+              words.erase(words.begin());
             }
+            cout << "hhhh" << endl;
+            pseudo[currpsp].exponents[currl].push_back(atof(words[0].c_str()));
+            pseudo[currpsp].coefficients[currl].push_back(atof(words[1].c_str()));
+            pseudo[currpsp].nvalue[currl].push_back(atoi(words[2].c_str()));
+            if(words.size() > 3) { 
+              pseudo[currpsp].exponents[currl].push_back(atof(words[3].c_str()));
+              pseudo[currpsp].coefficients[currl].push_back(atof(words[4].c_str()));
+              pseudo[currpsp].nvalue[currl].push_back(atoi(words[5].c_str()));
+            }
+
+           /* 
             temp.assign(line.begin()+12, line.begin()+23);
-            //cout << "1stexponent " << temp;
+            cout << "1stexponent " << temp << endl;
             pseudo[currpsp].exponents[currl].push_back(atof(temp.c_str()));
 
             temp.assign(line.begin()+23, line.begin()+36);
-            //cout << "  coefficient " << temp;
+            cout << "  coefficient " << temp << endl;
             pseudo[currpsp].coefficients[currl].push_back(atof(temp.c_str()));
 
             temp.assign(line.begin()+36, line.begin()+40);
-            //cout << " N " << temp << endl;
+            cout << " N " << temp << endl;
             pseudo[currpsp].nvalue[currl].push_back(atoi(temp.c_str()));
 
             if(line.size() > 50) { //if there are two on the line
               temp.assign(line.begin()+42, line.begin()+53);
-              //cout << "2ndexponent " << temp;
+              cout << "2ndexponent " << temp << endl;
               pseudo[currpsp].exponents[currl].push_back(atof(temp.c_str()));
 
               temp.assign(line.begin()+53, line.begin()+66);
-              //cout << "  coefficient " << temp;
+              cout << "  coefficient " << temp << endl;
               pseudo[currpsp].coefficients[currl].push_back(atof(temp.c_str()));
 
               temp.assign(line.begin()+66, line.begin()+69);
-              //cout << " N " << temp << endl;;
+              cout << " N " << temp << endl;;
               pseudo[currpsp].nvalue[currl].push_back(atoi(temp.c_str()));
             }
+            */
+            
           }
           getline(infile, line);
         }
@@ -901,14 +930,29 @@ void get_crystal_pseudo(istream & infile,
     }
   }
 
+  cout << "done " << endl;
   int npseud=pseudo.size();
   for(int ps=0; ps < npseud; ps++) {
-    pseudo[ps].exponents.push_back(pseudo[ps].exponents[0]);
-    pseudo[ps].nvalue.push_back(pseudo[ps].nvalue[0]);
-    pseudo[ps].coefficients.push_back(pseudo[ps].coefficients[0]);
+    vector <double> tmp=pseudo[ps].exponents[0];
     pseudo[ps].exponents.erase(pseudo[ps].exponents.begin());
+    pseudo[ps].exponents.push_back(tmp);
+
+
+    tmp=pseudo[ps].coefficients[0];
     pseudo[ps].coefficients.erase(pseudo[ps].coefficients.begin());
+    pseudo[ps].coefficients.push_back(tmp);
+    vector<int> tmp2=pseudo[ps].nvalue[0];
     pseudo[ps].nvalue.erase(pseudo[ps].nvalue.begin());
+    pseudo[ps].nvalue.push_back(tmp2);
+
+   // pseudo[ps].exponents.push_back(pseudo[ps].exponents[0]);
+   // pseudo[ps].nvalue.push_back(pseudo[ps].nvalue[0]);
+   // pseudo[ps].coefficients.push_back(pseudo[ps].coefficients[0]);
+   // pseudo[ps].exponents.erase(pseudo[ps].exponents.begin());
+   // pseudo[ps].coefficients.erase(pseudo[ps].coefficients.begin());
+   // pseudo[ps].nvalue.erase(pseudo[ps].nvalue.begin());
+    cout << "size " << pseudo[ps].exponents.size() << endl;
+    pseudo[ps].print_pseudo(cout);
   }
 
 }
