@@ -272,10 +272,21 @@ int main(int argc, char ** argv) {
         }
       }
       if(isUnique) {
-        cout << "Please enter the effective charge of " << atoms[at].name
-        << endl;
-        cin >> atoms[at].charge;
-        cout << "Thanks" << endl;
+        int npseudo=pseudo.size();
+        bool found_in_pseudo=false;
+        for(int j=0; j< npseudo; j++) { 
+          if(atoms[at].name==pseudo[j].label) { 
+            atoms[at].charge=pseudo[j].effcharge;
+            found_in_pseudo=true;
+            break;
+          }
+        }
+        if(!found_in_pseudo) { 
+          cout << "Please enter the effective charge of " << atoms[at].name
+            << endl;
+          cin >> atoms[at].charge;
+          cout << "Thanks" << endl;
+        }
       }
       testelectrons+=(int) atoms[at].charge;
     }
@@ -856,7 +867,6 @@ void get_crystal_pseudo(istream & infile,
         string space=" ";
         cout << "searching " << line << endl;
         while(search_n(line.begin(), line.end(), 5, endmatch) == line.end()) { 
-//              && (line.size()> 2 && line[1]!='B' && line[2]!='A')) {
           words.clear();
           split(line,space,words);
           
@@ -869,6 +879,7 @@ void get_crystal_pseudo(istream & infile,
             temp.assign(line.begin()+15, line.begin()+18);
             pseudo[currpsp].atomnum=atoi(temp.c_str())%100;
             pseudo[currpsp].label=element_lookup_caps[pseudo[currpsp].atomnum];
+            pseudo[currpsp].effcharge=int(atof(words[5].c_str()));
             cout << "found " << pseudo[currpsp].label << endl;
             currl=-1;
           }
