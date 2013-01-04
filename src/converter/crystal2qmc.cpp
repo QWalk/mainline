@@ -855,8 +855,8 @@ void get_crystal_pseudo(istream & infile,
         vector <string> words;
         string space=" ";
         cout << "searching " << line << endl;
-        while(search_n(line.begin(), line.end(), 5, endmatch) == line.end()
-              && (line.size()> 2 && line[1]!='B' && line[2]!='A')) {
+        while(search_n(line.begin(), line.end(), 5, endmatch) == line.end()) { 
+//              && (line.size()> 2 && line[1]!='B' && line[2]!='A')) {
           words.clear();
           split(line,space,words);
           
@@ -893,34 +893,6 @@ void get_crystal_pseudo(istream & infile,
               pseudo[currpsp].nvalue[currl].push_back(atoi(words[5].c_str()));
             }
 
-           /* 
-            temp.assign(line.begin()+12, line.begin()+23);
-            cout << "1stexponent " << temp << endl;
-            pseudo[currpsp].exponents[currl].push_back(atof(temp.c_str()));
-
-            temp.assign(line.begin()+23, line.begin()+36);
-            cout << "  coefficient " << temp << endl;
-            pseudo[currpsp].coefficients[currl].push_back(atof(temp.c_str()));
-
-            temp.assign(line.begin()+36, line.begin()+40);
-            cout << " N " << temp << endl;
-            pseudo[currpsp].nvalue[currl].push_back(atoi(temp.c_str()));
-
-            if(line.size() > 50) { //if there are two on the line
-              temp.assign(line.begin()+42, line.begin()+53);
-              cout << "2ndexponent " << temp << endl;
-              pseudo[currpsp].exponents[currl].push_back(atof(temp.c_str()));
-
-              temp.assign(line.begin()+53, line.begin()+66);
-              cout << "  coefficient " << temp << endl;
-              pseudo[currpsp].coefficients[currl].push_back(atof(temp.c_str()));
-
-              temp.assign(line.begin()+66, line.begin()+69);
-              cout << " N " << temp << endl;;
-              pseudo[currpsp].nvalue[currl].push_back(atoi(temp.c_str()));
-            }
-            */
-            
           }
           getline(infile, line);
         }
