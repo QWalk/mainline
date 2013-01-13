@@ -20,6 +20,19 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Array.h"
 
 
+/*
+ * usage: compare_mo <nfunc> <nmo> <file1> <file2>
+ * nfunc: total number of basis functions
+ * nmo: total number of orbitals to compare between the files
+ * file1 and file2 should be QWalk .orb files
+ * Will output the dot products between the orbitals and check 
+ * whether any of the orbitals have changed significantly.
+ *
+ * This initially was meant for Jeff Grossman's continuous DMC 
+ * algorithm, in which it's necessary to check for changes in orbital 
+ * occupation, but can be used for other analysis purposes as well.
+ * */
+
 void read_mo(string & orbin, int nmo, int nfunc, Array2 <double> & moCoeff)
 {
   ifstream in(orbin.c_str());

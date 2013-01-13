@@ -501,7 +501,6 @@ int Cubic_spline::readbasis(vector <string> & words,unsigned int & pos,
         norm=0;
         error("Didn't understand NORMTYPE ", norm_type);
       }
-      cout << "norm " << norm << endl;
 
 
       for(int j=0; j<n; j++)

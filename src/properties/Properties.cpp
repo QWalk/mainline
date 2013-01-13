@@ -59,6 +59,21 @@ void One_particle_density::init(vector<string> & words, System * sys,
   outputfile=runid+".cube";
   nup=sys->nelectrons(0);
   unsigned int pos=0;
+  start_electron=0;
+  end_electron=sys->nelectrons(0)+sys->nelectrons(1);
+  if(haskeyword(words, pos=0, "UP")) { 
+    end_electron=sys->nelectrons(0);
+    outputfile=runid+".up.cube";
+  }
+  
+  if(haskeyword(words,pos=0, "DOWN")) { 
+    start_electron=sys->nelectrons(0);
+    outputfile=runid+".down.cube";
+  }
+
+  if(end_electron==start_electron)
+    error("In one-particle density, UP and DOWN are incompatible");
+  
   
   readvalue(words, pos=0, outputfile,"OUTPUTFILE");
   
@@ -126,16 +141,6 @@ void One_particle_density::init(vector<string> & words, System * sys,
     resolution=.1;
   
 
-  start_electron=0;
-  end_electron=sys->nelectrons(0)+sys->nelectrons(1);
-  if(haskeyword(words, pos=0, "UP"))
-    end_electron=sys->nelectrons(0);
-  
-  if(haskeyword(words,pos=0, "DOWN"))
-    start_electron=sys->nelectrons(0);
-
-  if(end_electron==start_electron)
-    error("In one-particle density, UP and DOWN are incompatible");
   
    npoints.Resize(3);
    npoints=1;
