@@ -67,6 +67,7 @@ class Average_tbdm_basis:public Average_generator {
     return nmo+4*nmo*nmo+2*(typ*nmo*nmo*nmo*nmo+i*nmo*nmo*nmo+j*nmo*nmo+k*nmo+l);
   }
 
+  Array1 <Array1 <int> > occupations;
   Array1 < Array1 <doublevar> > saved_r;
   Array1 < int > rk; //the electron number that each position corresponds to
   bool complex_orbitals; 

@@ -503,9 +503,15 @@ void Average_tbdm_basis::read(System * sys, Wavefunction_data * wfdata, vector
     nmo=cmomat->getNmo();
   }
   else { error("Need ORBITALS or CORBITALS in TBDM_BASIS"); } 
+  occupations.Resize(1);
 
-  Array1 <Array1 <int> > occupations(1);
-  if(readsection(words,pos=0,orbs,"EVAL_ORBS")) { 
+  if(readsection(words,pos=0,orbs,"STATES")) { 
+    nmo=orbs.size();
+    occupations[0].Resize(nmo);
+    for(int i=0; i< nmo; i++) 
+      occupations[0][i]=atoi(orbs[i].c_str())-1;
+  }
+  else if(readsection(words,pos=0,orbs,"EVAL_ORBS")) { 
     nmo=orbs.size();
     occupations[0].Resize(nmo);
     for(int i=0; i< nmo; i++) 
@@ -518,6 +524,8 @@ void Average_tbdm_basis::read(System * sys, Wavefunction_data * wfdata, vector
     }
   }
 
+
+
   if(complex_orbitals) 
     cmomat->buildLists(occupations);
   else 
@@ -528,22 +536,27 @@ void Average_tbdm_basis::read(System * sys, Wavefunction_data * wfdata, vector
   if(!readvalue(words, pos=0,nstep_sample,"NSTEP_SAMPLE"))
     nstep_sample=10;
   if(!readvalue(words,pos=0,npoints_eval,"NPOINTS"))
-    npoints_eval=100;
+    npoints_eval=4;
 
-  eval_tbdm=true;
-  if(haskeyword(words,pos=0,"ONLY_OBDM"))
-    eval_tbdm=false;
 
   eval_old=false;
-  if(haskeyword(words,pos=0,"EVAL_OLD")) eval_old=true;
+  if(haskeyword(words,pos=0,"NUMERICAL_EVALUATION")) eval_old=true;
 
+  string mode;
+  eval_tbdm=true;
   tbdm_diagonal=false;
-  if(haskeyword(words,pos=0,"TBDM_DIAGONAL")) tbdm_diagonal=true;
-  //Since we rotate between the different pairs of spin channels, make sure
-  //that npoints_eval is divisible by 4
-  if(npoints_eval%4!=0) {
-    npoints_eval+=4-npoints_eval%4;
+  if(readvalue(words,pos=0,mode,"MODE")) {
+    if(caseless_eq(mode,"OBDM")) eval_tbdm=false;
+    if(caseless_eq(mode,"TBDM_DIAGONAL")) tbdm_diagonal=true;
   }
+
+  
+  if(haskeyword(words,pos=0,"ONLY_OBDM")) 
+    error("ONLY_OBDM is depreciated; use MODE instead.");
+    //eval_tbdm=false;
+  
+  if(haskeyword(words,pos=0,"TBDM_DIAGONAL")) 
+    error("TBDM_DIAGONAL is depreciated; use MODE instead.");
 
   int ndim=3;
   saved_r.Resize(npoints_eval*2); //r1 and r2;
@@ -582,23 +595,19 @@ void Average_tbdm_basis::write_init(string & indent, ostream & os) {
     os << indent << "ORBITALS { \n";
     momat->writeinput(indent,os);
   }
+
   os << indent << "}\n";
+  os << indent << "STATES { ";
+  int nstates=occupations(0).GetDim(1);
+  for(int i=0; i < nstates; i++) { 
+    os << occupations(0)(i)+1 << " ";
+    if( (i+1)%30==0) os << "\n" << indent << " ";
+  }
+  os << " } ";
 }
 //----------------------------------------------------------------------
 void Average_tbdm_basis::read(vector <string> & words) { 
   unsigned int pos=0;
-  /*
-  vector <string> mosec;
-  if(!readsection(words,pos=0, mosec,"ORBITALS")) { 
-    error("Need ORBITALS section in TBDM_BASIS");
-  }
-  allocate(mosec,sys,momat);
-  Array1 <Array1 <int> > occupations(1);
-  occupations[0].Resize(momat->getNmo());
-  for(int i=0; i< momat->getNmo(); i++) { 
-    occupations[0][i]=i;
-  }
-  */
 
   readvalue(words, pos=0,nmo,"NMO");
   readvalue(words,pos=0,npoints_eval,"NPOINTS");
@@ -606,6 +615,24 @@ void Average_tbdm_basis::read(vector <string> & words) {
   else eval_tbdm=true;
   if(haskeyword(words,pos=0,"TBDM_DIAGONAL")) tbdm_diagonal=true;
   else tbdm_diagonal=false;
+  if(haskeyword(words,pos=0,"CORBITALS")) complex_orbitals=true;
+  else complex_orbitals=false;
+
+  occupations.Resize(1);
+  occupations(0).Resize(nmo);
+  vector <string> orbs;
+  if(!readsection(words,pos=0,orbs,"STATES")) { 
+    cout << "WARNING: init section does not contain states. Numbering of the density matrix may be incorrect." << endl;
+    for(int i=0; i < nmo; i++) 
+      occupations[0][i]=i;
+  }
+  else { 
+    nmo=orbs.size();
+    occupations[0].Resize(nmo);
+    for(int i=0; i< nmo; i++) 
+      occupations[0][i]=atoi(orbs[i].c_str())-1;
+  }
+  
 }
 //----------------------------------------------------------------------
 void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, ostream & os) { 
@@ -619,6 +646,11 @@ void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, 
    //      tbdm_dd(nmo,nmo),tbdm_dd_err(nmo,nmo);
 
   os << "tbdm: nmo " << nmo << endl;
+  os << "tbdm: states { ";
+  for(int i=0; i< nmo; i++) { 
+    os << occupations[0][i]+1 << " " ;
+  }
+  os << " } \n";
   os << "Orbital normalization " << endl;
   for(int i=0; i< nmo; i++) { 
     os << avg.vals(i) << " +/- " << err.vals(i) << endl;
@@ -646,16 +678,28 @@ void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, 
 
   os << "One-body density matrix " << endl;
   int colwidth=40;
+  if(!complex_orbitals) colwidth=20;
   os << setw(10) << " " << setw(10) << " "
     << setw(colwidth) << "up" << setw(colwidth) << "up err"
     << setw(colwidth) << "down" << setw(colwidth) << "down err"
     << endl;
   for(int i=0; i< nmo ; i++) { 
     for(int j=0; j<nmo; j++) { 
-      os << setw(10) << i << setw(10) << j
-        << setw(colwidth) << obdm_up(i,j) << setw(colwidth) << obdm_up_err(i,j)
-        << setw(colwidth) << obdm_down(i,j) << setw(colwidth) << obdm_down_err(i,j)
-        << endl;
+      if(complex_orbitals) { 
+        os << setw(10) << i << setw(10) << j
+          << setw(colwidth) << obdm_up(i,j) << setw(colwidth) << obdm_up_err(i,j)
+          << setw(colwidth) << obdm_down(i,j) << setw(colwidth) << obdm_down_err(i,j)
+          << endl;
+      }
+      else { 
+        os << setw(10) << i << setw(10) << j
+          << setw(colwidth) << obdm_up(i,j).real() 
+          << setw(colwidth) << obdm_up_err(i,j).real()
+          << setw(colwidth) << obdm_down(i,j).real() 
+          << setw(colwidth) << obdm_down_err(i,j).real()
+          << endl;
+        
+      }
     }
 
   }
@@ -688,12 +732,23 @@ void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, 
           dd_err=dcomplex(err.vals(inddd),err.vals(inddd+1))/norm;
 
 
-          os << setw(10) << i << setw(10) << j << setw(10) << i <<  setw(10) << j 
-            << setw(colwidth) << uu << setw(colwidth) << uu_err
-            << setw(colwidth) << ud << setw(colwidth) << ud_err
-            << setw(colwidth) << du << setw(colwidth) << du_err
-            << setw(colwidth) << dd << setw(colwidth) << dd_err
-            << endl;
+          if(complex_orbitals) { 
+            os << setw(10) << i << setw(10) << j << setw(10) << i <<  setw(10) << j 
+              << setw(colwidth) << uu << setw(colwidth) << uu_err
+              << setw(colwidth) << ud << setw(colwidth) << ud_err
+              << setw(colwidth) << du << setw(colwidth) << du_err
+              << setw(colwidth) << dd << setw(colwidth) << dd_err
+              << endl;
+          }
+          else { 
+            os << setw(10) << i << setw(10) << j << setw(10) << i <<  setw(10) << j 
+              << setw(colwidth) << uu.real() << setw(colwidth) << uu_err.real()
+              << setw(colwidth) << ud.real() << setw(colwidth) << ud_err.real()
+              << setw(colwidth) << du.real() << setw(colwidth) << du_err.real()
+              << setw(colwidth) << dd.real() << setw(colwidth) << dd_err.real()
+              << endl;
+            
+          }
         }
       }
 
@@ -717,14 +772,26 @@ void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, 
               du_err=dcomplex(err.vals(inddu),err.vals(inddu+1))/norm;
               dd=dcomplex(avg.vals(inddd),avg.vals(inddd+1))/norm;
               dd_err=dcomplex(err.vals(inddd),err.vals(inddd+1))/norm;
+              if(complex_orbitals) { 
+                os << setw(10) << i << setw(10) << j << setw(10) << i <<  setw(10) << j 
+                  << setw(colwidth) << uu << setw(colwidth) << uu_err
+                  << setw(colwidth) << ud << setw(colwidth) << ud_err
+                  << setw(colwidth) << du << setw(colwidth) << du_err
+                  << setw(colwidth) << dd << setw(colwidth) << dd_err
+                  << endl;
+              }
+              else { 
+                os << setw(10) << i << setw(10) << j << setw(10) << i <<  setw(10) << j 
+                  << setw(colwidth) << uu.real() << setw(colwidth) << uu_err.real()
+                  << setw(colwidth) << ud.real() << setw(colwidth) << ud_err.real()
+                  << setw(colwidth) << du.real() << setw(colwidth) << du_err.real()
+                  << setw(colwidth) << dd.real() << setw(colwidth) << dd_err.real()
+                  << endl;
+
+              }
 
 
-              os << setw(10) << i << setw(10) << j << setw(10) << k <<  setw(10) << l 
-                << setw(colwidth) << uu << setw(colwidth) << uu_err
-                << setw(colwidth) << ud << setw(colwidth) << ud_err
-                << setw(colwidth) << du << setw(colwidth) << du_err
-                << setw(colwidth) << dd << setw(colwidth) << dd_err
-                << endl;
+
             }
           }
         }

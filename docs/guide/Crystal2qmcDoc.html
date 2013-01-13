@@ -16,12 +16,26 @@ Crystal's input file. This turns off a feature that boosts the speed
 quite a bit in certain circumstances, but mangles the wave function in
 fort.10.
 
+Note that the current version of crystal2qmc is not tested with versions previous to Crystal2009.  It may or may not work properly.
 
-
-\section crystal_options Important options of Crystal98/Crystal2003 code
+\section crystal_options Important options of Crystal code
 
 Several options have to be present in the Crystal's input file
 for proper function of the crystal2qmc converter. These are listed below.
+
+\subsection crys2009 Crystal2009
+
+For Crystal 2009, one only needs
+<pre>
+PRINTOUT
+EIGENVAL
+-1
+EIGENVEC
+-100
+END
+</pre>
+in the third section.
+
 
 \subsection crys98 Crystal98
 
@@ -64,6 +78,7 @@ and cat the output into the end of the output file.  A script to do
 this is at the bottom of this page.  The -100 under EIGENVEC prints
 out the first 100 k-points used.  If you end up with more k-points,
 increase the absolute value of this number.
+
 
 \section FSEnote Note on finite-size errors in simulations of solids
 
