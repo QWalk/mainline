@@ -865,12 +865,12 @@ void get_crystal_pseudo(istream & infile,
         //search loop
         vector <string> words;
         string space=" ";
-        cout << "searching " << line << endl;
+        //cout << "searching " << line << endl;
         while(search_n(line.begin(), line.end(), 5, endmatch) == line.end()) { 
           words.clear();
           split(line,space,words);
           
-          cout << "pre " << line << endl;
+          //cout << "pre " << line << endl;
           
           if(line.size() > 2 && line[1]=='A' && line[2]=='T') {
             //new atom
@@ -880,28 +880,31 @@ void get_crystal_pseudo(istream & infile,
             pseudo[currpsp].atomnum=atoi(temp.c_str())%100;
             pseudo[currpsp].label=element_lookup_caps[pseudo[currpsp].atomnum];
             pseudo[currpsp].effcharge=int(atof(words[5].c_str()));
-            cout << "found " << pseudo[currpsp].label << endl;
+            //cout << "found " << pseudo[currpsp].label << endl;
             currl=-1;
           }
           else if(words.size() > 1 && words[0]!="TYPE") {
-            cout << line << " "<< line.size() << line[5] << endl;
+            //cout << line << " "<< line.size() << line[5] << endl;
             if(words[0][0]=='W' || words[0][0] == 'P') {
               pseudo[currpsp].exponents.push_back(double_blank);
               pseudo[currpsp].coefficients.push_back(double_blank);
               pseudo[currpsp].nvalue.push_back(n_blank);
               currl++;
-              cout<< "currl " << currl << endl;
               words.erase(words.begin());
               words.erase(words.begin());
             }
-            cout << "hhhh" << endl;
-            pseudo[currpsp].exponents[currl].push_back(atof(words[0].c_str()));
-            pseudo[currpsp].coefficients[currl].push_back(atof(words[1].c_str()));
-            pseudo[currpsp].nvalue[currl].push_back(atoi(words[2].c_str()));
-            if(words.size() > 3) { 
-              pseudo[currpsp].exponents[currl].push_back(atof(words[3].c_str()));
-              pseudo[currpsp].coefficients[currl].push_back(atof(words[4].c_str()));
-              pseudo[currpsp].nvalue[currl].push_back(atoi(words[5].c_str()));
+            if(words.size() > 2) { 
+              pseudo[currpsp].exponents[currl].push_back(atof(words[0].c_str()));
+              pseudo[currpsp].coefficients[currl].push_back(atof(words[1].c_str()));
+              pseudo[currpsp].nvalue[currl].push_back(atoi(words[2].c_str()));
+              if(words.size() > 3) { 
+                pseudo[currpsp].exponents[currl].push_back(atof(words[3].c_str()));
+                pseudo[currpsp].coefficients[currl].push_back(atof(words[4].c_str()));
+                pseudo[currpsp].nvalue[currl].push_back(atoi(words[5].c_str()));
+              }
+            }
+            else { 
+              cout << "WARNING: Pseudopotential output seems corrupted!" << endl;
             }
 
           }
@@ -934,8 +937,8 @@ void get_crystal_pseudo(istream & infile,
    // pseudo[ps].exponents.erase(pseudo[ps].exponents.begin());
    // pseudo[ps].coefficients.erase(pseudo[ps].coefficients.begin());
    // pseudo[ps].nvalue.erase(pseudo[ps].nvalue.begin());
-    cout << "size " << pseudo[ps].exponents.size() << endl;
-    pseudo[ps].print_pseudo(cout);
+    //cout << "size " << pseudo[ps].exponents.size() << endl;
+    //pseudo[ps].print_pseudo(cout);
   }
 
 }
