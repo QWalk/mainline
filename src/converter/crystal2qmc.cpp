@@ -260,42 +260,40 @@ int main(int argc, char ** argv) {
   //Crystal isn't nice enough to output them in any consistent way.
   int testelectrons=0;
 
-  do {
-    testelectrons=0;
-    for(int at=0; at < natoms; at++) {
-      int isUnique=1;
-      for(unsigned int i=0; i< at; i++) {
-        if(atoms[at].name == atoms[i].name) {
-          isUnique=0;
-          atoms[at].charge=atoms[i].charge;
+  testelectrons=0;
+  for(int at=0; at < natoms; at++) {
+    int isUnique=1;
+    for(unsigned int i=0; i< at; i++) {
+      if(atoms[at].name == atoms[i].name) {
+        isUnique=0;
+        atoms[at].charge=atoms[i].charge;
+        break;
+      }
+    }
+    if(isUnique) {
+      int npseudo=pseudo.size();
+      bool found_in_pseudo=false;
+      for(int j=0; j< npseudo; j++) { 
+        if(atoms[at].name==pseudo[j].label) { 
+          atoms[at].charge=pseudo[j].effcharge;
+          found_in_pseudo=true;
           break;
         }
       }
-      if(isUnique) {
-        int npseudo=pseudo.size();
-        bool found_in_pseudo=false;
-        for(int j=0; j< npseudo; j++) { 
-          if(atoms[at].name==pseudo[j].label) { 
-            atoms[at].charge=pseudo[j].effcharge;
-            found_in_pseudo=true;
-            break;
-          }
-        }
-        if(!found_in_pseudo) { 
-          cout << "Please enter the effective charge of " << atoms[at].name
-            << endl;
-          cin >> atoms[at].charge;
-          cout << "Thanks" << endl;
-        }
+      if(!found_in_pseudo) { 
+        cout << "Please enter the effective charge of " << atoms[at].name
+          << endl;
+        cin >> atoms[at].charge;
+        cout << "Thanks" << endl;
       }
-      testelectrons+=(int) atoms[at].charge;
     }
-    if(testelectrons != nelectrons) {
-      cout << "The total number of electrons should be " << nelectrons
+    testelectrons+=(int) atoms[at].charge;
+  }
+  if(testelectrons != nelectrons) {
+    cout << "The total number of electrons should be " << nelectrons
       << ", \nbut the sum due to the effective charge on the ion is "
-      << testelectrons << ".  Please try again.\n";
-    }
-  }while (testelectrons!=nelectrons);
+      << testelectrons << ".  This may be what you intended, but be careful!\n";
+  }
 
 
 
