@@ -158,7 +158,9 @@ int main(int argc, char ** argv) {
     if(use_siesta2)
       read_mo_coefficients(is, currline, slwriter, moCoeff, kpoints);
 
-    if(currline.size()> 6 && currline[2]=="spin" && currline[3]=="polarization") { 
+    //if(currline.size()> 6 && currline[2]=="spin" && currline[3]=="polarization") { 
+    if(currline.size()> 6  && currline[1] =="Total" 
+        && currline[2]=="spin" && currline[3]=="polarization") {  
       spin_pol=atoi(currline[6].c_str());
       double tmp=atof(currline[6].c_str());
       if(fabs(spin_pol-tmp) > 0.5) spin_pol+=1;
