@@ -103,9 +103,8 @@ private:
   int allocateIntermediateVariables(System * , Wavefunction_data *);
   int deallocateIntermediateVariables();
   
-  //return 1 if we read an entire reptile, 0 if not
-  int readcheck(string & , int & direction, deque <Reptile_point> & reptile);
-  void storecheck(int direction, deque <Reptile_point> & reptile,string &);
+  int readcheck(string & filename, Array1 <Reptile> & reptiles);
+  void storecheck(Array1<Reptile> & reptiles, string & filename);
 
   doublevar getAcceptance(deque <Reptile_point> & reptile,
                           Reptile_point & pt, int direction);

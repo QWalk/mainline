@@ -669,6 +669,29 @@ void read_array(istream & is, int n, int m, Array2 <T> & a) {
       is >> a(i,j);
   
 }
+
+
+inline void MPI_Send(Array2 <doublevar> & arr, int node) {
+#ifdef USE_MPI
+  int s=arr.GetDim(0);
+  int v=arr.GetDim(1);
+  MPI_Send(s, node);
+  MPI_Send(v,node);
+  MPI_Send(arr.v,s*v, MPI_DOUBLE, node, 0,MPI_Comm_grp);
+#endif
+}
+inline void MPI_Recv(Array2 <doublevar> & arr, int node) { 
+#ifdef USE_MPI
+  int s,v;
+  MPI_Recv(s,node);
+  MPI_Recv(v,node);
+  arr.Resize(s,v);
+  MPI_Status status;
+  MPI_Recv(arr.v, s*v, MPI_DOUBLE,node,0, MPI_Comm_grp, &status);    
+#endif
+}
+
+
 //#####################################################################
 
 template <class T>

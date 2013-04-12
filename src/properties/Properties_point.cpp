@@ -121,13 +121,15 @@ void Properties_point::read(istream & is) {
     is >> dummy >> dummy;
   }
   setSize(nwf);
-  is >> dummy;
+  //is >> dummy;
+  if(dummy!="kinetic") error("expected kinetic, got ",dummy);
   read_array(is, nwf, kinetic);
   is >> dummy;
   read_array(is,nwf, potential);
   is >> dummy;
   read_array(is, nwf, nonlocal);
   is >> dummy;
+  if(dummy!="weight") error("expected weight, got ",dummy);
   read_array(is, nwf, weight);
   is >> dummy >> dummy;  //Wf_val { 
   wf_val.read(is);

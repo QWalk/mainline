@@ -45,9 +45,6 @@ struct Reptile_point {
   doublevar age;
   doublevar branching; //!< branching weight
 
-  Array2 <doublevar> drift;
-
-
   //--------------------------------------------------
   void savePos(Sample_point * sample) {
     int nelectrons=sample->electronSize();
@@ -80,13 +77,6 @@ struct Reptile_point {
         os << electronpos(e)(d) << "   ";
       os << endl;
     }
-    os << indent << "drift " << endl;
-    for(int e=0; e< nelectrons; e++) {
-      os << indent;
-      for(int d=0; d< 3; d++) 
-        os << drift(e,d) << "   ";
-      os << endl;
-    }
 
     string indent2=indent+"  ";
     os << indent << "Properties_point  {" << endl;
@@ -113,14 +103,6 @@ struct Reptile_point {
       read_array(is, 3, electronpos(e));
     }
 
-    is >> dummy;
-    if(dummy!="drift") error(errmsg);
-    drift.Resize(nelectrons,3);
-    for(int e=0; e< nelectrons; e++) { 
-      for(int d=0; d< 3; d++) { 
-	is >> drift(e,d);
-      }
-    }
 
     
     is >> dummy; 
@@ -131,7 +113,85 @@ struct Reptile_point {
   }
   //--------------------------------------------------
 
+  void mpiSend(int node) { 
+    prop.mpiSend(node);
+    MPI_Send(age,node);
+    MPI_Send(branching,node);
+    int nelectrons=electronpos.GetDim(0);
+    MPI_Send(nelectrons, node);
+    for(int e=0; e< nelectrons; e++) { 
+      MPI_Send(electronpos(e),node);
+    }
+  }
+  void mpiReceive(int node) { 
+    prop.mpiReceive(node);
+    MPI_Recv(age,node);
+    MPI_Recv(branching,node);
+    int nelectrons;
+    MPI_Recv(nelectrons,node);
+    electronpos.Resize(nelectrons);
+    for(int e=0; e< nelectrons; e++) { 
+      MPI_Recv(electronpos(e),node);
+    }
+  }
 };
+
+//######################################################################
+
+void Reptile::mpiSend(int node) { 
+  MPI_Send(direction,node);
+  int nrep=reptile.size();
+  MPI_Send(nrep,node);
+  for(deque<Reptile_point>::iterator r=reptile.begin();
+      r!=reptile.end(); r++) {
+    r->mpiSend(node);
+  }
+}
+void Reptile::mpiReceive(int node) { 
+  MPI_Recv(direction,node);
+  int nrep;
+  MPI_Recv(nrep,node);
+  reptile.resize(nrep);
+  for(deque<Reptile_point>::iterator r=reptile.begin();
+      r!=reptile.end(); r++) {
+    r->mpiReceive(node);
+  }
+}
+//----------------------------------------------------------------------
+void Reptile::read(istream & is) { 
+  string dummy;
+  is >> dummy >> direction;
+  if(dummy!="direction") error("expected direction");
+  int length;
+  is >> dummy >> length;
+  if(dummy!="length") error("expected length");
+  reptile.resize(length);
+  for(deque<Reptile_point>::iterator i=reptile.begin(); 
+      i!=reptile.end(); i++) { 
+    is >> dummy;
+    if(dummy!="BEAD") error("expected BEAD");
+    is >> dummy;
+    i->read(is);
+    is >> dummy;
+    if(dummy!="}") error("expected }");
+  }
+  
+}
+void Reptile::write(ostream & os) { 
+  os << "direction " << direction << endl;
+  os << "length " << reptile.size() <<endl;
+  string indent="   ";
+  for(deque<Reptile_point>::iterator i=reptile.begin(); 
+      i!=reptile.end(); i++) { 
+    os << "BEAD { \n";
+    i->write(indent,os);
+    os << "} \n"; 
+  }
+}
+
+
+
+//######################################################################
 
 //----------------------------------------------------------------------
 
@@ -166,7 +226,7 @@ void Reptation_method::read(vector <string> words,
   if(!readvalue(words, pos=0, log_label, "LABEL"))
     log_label="rmc";
 
-  if(readvalue(words, pos=0, storeconfig, "STORECONFIG"))
+  if(!readvalue(words, pos=0, storeconfig, "STORECONFIG"))
     storeconfig=options.runid+".config";
 
   if(readvalue(words, pos=0, center_trace, "CENTER_TRACE"))
@@ -306,102 +366,24 @@ int Reptation_method::showinfo(ostream & os) {
 
 
 int Reptation_method::readcheck(string & filename, 
-                                 int & direction, 
-                                 deque <Reptile_point> & reptile) {
+                                Array1 <Reptile> & reptiles) {  
+                                 
   int configsread=0;
 
   if(filename == "") return 0;
-
-  ifstream checkfile(filename.c_str());
-  if(!checkfile) 
-    return 0;
-
-  long int is1, is2;
-  string dummy;
-  checkfile >> dummy;
-  if(dummy != "RANDNUM") error("Expected RANDNUM in checkfile");
-  checkfile >> is1 >> is2;
-  rng.seed(is1, is2);  
-
-
-  while(checkfile >>dummy) {
-    
-    //------------------------------------------------------
-    //Start from a (single) VMC configuration
-    if(dummy=="SAMPLE_POINT") { 
-     
-      while(checkfile >> dummy)
-        if(read_config(dummy, checkfile, sample))
-          configsread++;
-      if(configsread < 1) 
-        error("Need at least one configuration to start reptation");
-      checkfile.close();
-      return 0;
-    }
-    
-    //------------------------------------------------------
-    //Read in the reptile if we're restarting from a previous RMC run
-    else if(dummy=="REPTILE") {
-      //cout << "reading reptile" << endl;
-      checkfile >> dummy; 
-      if(dummy != "{") error("expected {, got ", dummy);
-      
-      checkfile >> dummy;
-      if(dummy != "direction") error("expected direction, got ",dummy);
-      checkfile >> direction;
-      
-      checkfile >> dummy;
-      if(dummy != "length") error("expected length, got ", dummy);
-      int length;
-      checkfile >> length;
-      if(length != reptile_length)
-        error("can't use a reptile of different length..");
-      //cout << "reptile direction " << direction 
-      //    << " length " << length << endl;
-      Reptile_point pt;
-      for(int i=0; i< length; i++) {
-        
-        checkfile >> dummy;
-        if(dummy != "Reptile_point") error("expected Reptile_point, got ",dummy);
-        checkfile >> dummy; //open brace;
-        pt.read(checkfile);
-        checkfile >> dummy; //close brace
-        if(dummy != "}") error("expected }, got ", dummy);
-        reptile.push_back(pt);
-      }
-      return 1;
-    }
-  }
-  return 0;
+  ifstream is(filename.c_str());
+  if(!is) return 0;
+  is.close();
+  read_configurations(filename, reptiles);
+  return 1;
 }
 
 //----------------------------------------------------------------------
  
-void Reptation_method::storecheck(int direction, 
-                                  deque <Reptile_point> & reptile,
+void Reptation_method::storecheck(Array1<Reptile> & reptiles,
                                   string & filename) {
   if(filename=="") return;
-  ofstream checkfile(filename.c_str());
-  if(!checkfile) error("Couldn't open ", filename);
-  checkfile.precision(15);
-  
-  long int is1, is2;
-  rng.getseed(is1, is2);
-  checkfile << "RANDNUM " << is1 << "  " << is2 << endl;
-  checkfile << "REPTILE { " << endl;
-  checkfile << "direction " << direction << endl;
-  checkfile << "length "  << reptile.size() << endl;
-  string indent="  ";
-  for(deque<Reptile_point>::iterator i=reptile.begin();
-      i!=reptile.end(); i++) {
-    checkfile << "Reptile_point { \n";
-    i->write(indent,checkfile);
-    checkfile << "} " << endl;
-  }
-
-  checkfile << "}\n";
-  
-  checkfile.close();  
+  write_configurations(filename,reptiles); 
 }
 
 
@@ -583,43 +565,27 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
   Sample_point * center_samp(NULL);
   sys->generateSample(center_samp);
   
-  vector <Reptile> reptiles;
+    Reptile_point pt;
+  
+  Array1 <Reptile> reptiles;
   int nreptile=1;
-  Array1 <Config_save_point> configs;
-  generate_sample(sample,wf,wfdata,guidewf,nreptile,configs);
-  reptiles.resize(nreptile);
-  Reptile_point pt;
-  for(int r=0; r< nreptile; r++) { 
-    reptiles[r].direction=1;
-    configs(r).restorePos(sample);
-    wf->notify(all_electrons_move,0);
-    wf->updateLap(wfdata,sample);
-    for(int i=0; i< reptile_length; i++) {
-      doublevar main_diffusion;
-      slither(1,reptiles[r].reptile, mygather,pt,main_diffusion);
-      reptiles[r].reptile.push_back(pt);
+  if(!readcheck(readconfig,reptiles)) { 
+    Array1 <Config_save_point> configs;
+    generate_sample(sample,wf,wfdata,guidewf,nreptile,configs);
+    reptiles.Resize(nreptile);
+    for(int r=0; r< nreptile; r++) { 
+      reptiles[r].direction=1;
+      configs(r).restorePos(sample);
+      wf->notify(all_electrons_move,0);
+      wf->updateLap(wfdata,sample);
+      for(int i=0; i< reptile_length; i++) {
+        doublevar main_diffusion;
+        slither(1,reptiles[r].reptile, mygather,pt,main_diffusion);
+        reptiles[r].reptile.push_back(pt);
+      }
     }
   }
-  /*
-  deque <Reptile_point> reptile;
-  int direction=1;
-  Reptile_point pt;
-  Dynamics_info dinfo;
-  //Generate a new reptile if we're starting from 
-  // a single VMC point.
-  if(!readcheck(readconfig, direction, reptile)) {
-    
-    wf->notify(all_electrons_move, 0);
-    wf->updateLap(wfdata, sample);
-    
-    for(int i=0; i< reptile_length; i++) {
-      doublevar main_diffusion;
-      slither(direction,reptile, mygather,pt,main_diffusion);
-      reptile.push_back(pt);
-    }
-  }*/
-   
-
+  nreptile=reptiles.GetDim(0);
 
   assert(reptile.size()==reptile_length);
   //Branch limiting variables
@@ -740,12 +706,12 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
     for(int i=0; i< densplt.GetDim(0); i++) 
       densplt(i)->write();
 
-    //storecheck(direction, reptile, storeconfig);
+    storecheck(reptiles, storeconfig);
     main_diff=parallel_sum(main_diff);
     if(output) {
       output << "****Block " << block 
              << " acceptance " << naccept/ntry 
-             << "  average distance before bounce " << ntot/nbounce
+             << "  average steps before bounce " << ntot/nbounce
              << endl;
       output << "average age " << avg_age/ntot 
              << "   max age " << max_age <<  endl;
