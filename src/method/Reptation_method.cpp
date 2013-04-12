@@ -27,7 +27,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "System.h"
 #include "Split_sample.h"
 #include "Properties.h"
-
+#include "Generate_sample.h"
 
 
 //----------------------------------------------------------------------
@@ -155,14 +155,9 @@ void Reptation_method::read(vector <string> words,
   if(!readvalue(words, pos=0, reptile_length, "LENGTH"))
     error("Need LENGTH in REPTATION");
 
-
-  if(!readvalue(words, pos=0, readconfig, "READCONFIG"))
-    error("Need READCONFIG in REPTATION"); 
-  canonical_filename(readconfig);
-
-
-
   //------------------optional stuff
+  if(!readvalue(words, pos=0, readconfig, "READCONFIG"))
+    readconfig=options.runid+".config";
 
   vector <string> proptxt;
   if(readsection(words, pos=0, proptxt, "PROPERTIES")) 
@@ -172,7 +167,7 @@ void Reptation_method::read(vector <string> words,
     log_label="rmc";
 
   if(readvalue(words, pos=0, storeconfig, "STORECONFIG"))
-    canonical_filename(storeconfig);
+    storeconfig=options.runid+".config";
 
   if(readvalue(words, pos=0, center_trace, "CENTER_TRACE"))
     canonical_filename(center_trace);
@@ -319,7 +314,7 @@ int Reptation_method::readcheck(string & filename,
 
   ifstream checkfile(filename.c_str());
   if(!checkfile) 
-    error("Couldn't open config file ", filename);
+    return 0;
 
   long int is1, is2;
   string dummy;
@@ -334,6 +329,7 @@ int Reptation_method::readcheck(string & filename,
     //------------------------------------------------------
     //Start from a (single) VMC configuration
     if(dummy=="SAMPLE_POINT") { 
+     
       while(checkfile >> dummy)
         if(read_config(dummy, checkfile, sample))
           configsread++;
@@ -587,6 +583,24 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
   Sample_point * center_samp(NULL);
   sys->generateSample(center_samp);
   
+  vector <Reptile> reptiles;
+  int nreptile=1;
+  Array1 <Config_save_point> configs;
+  generate_sample(sample,wf,wfdata,guidewf,nreptile,configs);
+  reptiles.resize(nreptile);
+  Reptile_point pt;
+  for(int r=0; r< nreptile; r++) { 
+    reptiles[r].direction=1;
+    configs(r).restorePos(sample);
+    wf->notify(all_electrons_move,0);
+    wf->updateLap(wfdata,sample);
+    for(int i=0; i< reptile_length; i++) {
+      doublevar main_diffusion;
+      slither(1,reptiles[r].reptile, mygather,pt,main_diffusion);
+      reptiles[r].reptile.push_back(pt);
+    }
+  }
+  /*
   deque <Reptile_point> reptile;
   int direction=1;
   Reptile_point pt;
@@ -603,7 +617,7 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
       slither(direction,reptile, mygather,pt,main_diffusion);
       reptile.push_back(pt);
     }
-  }
+  }*/
    
 
 
@@ -618,7 +632,6 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
   //--------begin averaging..
   
   Array3 <doublevar> derivatives_block(nblock, sys->nIons(), 3);
-  
   for(int block=0; block< nblock; block++) {
 
     //clock_t block_start_time=clock();
@@ -629,74 +642,68 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
     double ntry=0, naccept=0;
     double nbounce=0;
 
-    //Control variable that will be set to one when 
-    //we change direction, which signals to recalculate
-    //the wave function
-    int recalc=1;
 
+    for(int r=0; r< nreptile; r++) { 
+      Reptile & curr_reptile=reptiles[r];
+      //Control variable that will be set to one when 
+      //we change direction, which signals to recalculate
+      //the wave function
+      int recalc=1;
+      
     for(int step=0; step< nstep; step++) {
       psp->randomize();
-      
-
       if(recalc) { 
-        if(direction==1) 
-          reptile[reptile_length-1].restorePos(sample);
+        if(curr_reptile.direction==1) 
+          curr_reptile.reptile[reptile_length-1].restorePos(sample);
         else
-          reptile[0].restorePos(sample);          
+          curr_reptile.reptile[0].restorePos(sample);          
       }
-
-      
       doublevar main_diffusion;
-      doublevar accept=slither(direction, reptile,mygather, pt,
+      doublevar accept=slither(curr_reptile.direction, curr_reptile.reptile,mygather, pt,
                                main_diffusion);
-
       ntry++;
       if(accept+rng.ulec() > 1.0) {
         recalc=0;
         naccept++;
-        
-        
-        
         main_diff+=main_diffusion;
-        if(direction==1) {
-          reptile.pop_front();
-          reptile.push_back(pt);
+        if(curr_reptile.direction==1) {
+          curr_reptile.reptile.pop_front();
+          curr_reptile.reptile.push_back(pt);
         }
         else {
-          reptile.pop_back();
-          reptile[0].branching=pt.branching;
-          reptile.push_front(pt);
+          curr_reptile.reptile.pop_back();
+          curr_reptile.reptile[0].branching=pt.branching;
+          curr_reptile.reptile.push_front(pt);
         }
       }
       else {
         recalc=1;
-        direction*=-1;
+        curr_reptile.direction*=-1;
         nbounce++;
       }
 
-      for(deque<Reptile_point>::iterator i=reptile.begin();
-          i!=reptile.end(); i++) {
+      for(deque<Reptile_point>::iterator i=curr_reptile.reptile.begin();
+          i!=curr_reptile.reptile.end(); i++) {
         i->age++;
         avg_age+=i->age/reptile_length;
         if(i->age > max_age) max_age=i->age;
       }
-
       
       Properties_point avgpt;
-      get_avg(reptile, avgpt);
+      get_avg(curr_reptile.reptile, avgpt);
       avgpt.parent=0; avgpt.nchildren=1; //just one walker
       avgpt.children(0)=0;
       prop.insertPoint(step, 0, avgpt);
       
       int cpt=reptile_length/2+1;      
       Properties_point centpt;
-      get_center_avg(reptile, centpt);
+      get_center_avg(curr_reptile.reptile, centpt);
       centpt.parent=0; centpt.nchildren=1;
       centpt.children(0)=0;
       
       prop_center.insertPoint(step, 0, centpt);
       
-      reptile[cpt].restorePos(center_samp);
+      curr_reptile.reptile[cpt].restorePos(center_samp);
 
       for(int i=0; i< densplt.GetDim(0); i++) 
         densplt(i)->accumulate(center_samp,1.0);
@@ -713,6 +720,7 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
       
       
     }   //step
+    } //reptile
 
     prop.endBlock();
     prop_center.endBlock();
@@ -732,7 +740,7 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
     for(int i=0; i< densplt.GetDim(0); i++) 
       densplt(i)->write();
 
-    storecheck(direction, reptile, storeconfig);
+    //storecheck(direction, reptile, storeconfig);
     main_diff=parallel_sum(main_diff);
     if(output) {
       output << "****Block " << block 

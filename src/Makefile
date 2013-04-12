@@ -64,7 +64,7 @@ clean:
 	$(MAKE) -f Makefile.gosling clean
 	cd converter; $(MAKE) clean 
 
-install: 
+install:$(PROJECT) gosling converter
 	@echo ________________________________________________________________
 	@echo Installing to $(INSTALLPATH)
 	perl install.pl $(INSTALLPATH) $(PLATFORM)

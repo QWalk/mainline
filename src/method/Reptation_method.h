@@ -38,6 +38,16 @@ class Program_options;
 
 struct Reptile_point;
 
+class Reptile { 
+  public:
+  void mpiSend(int node);
+  void mpiReceive(int node);
+  void read(istream & is);
+  void write(ostream & os);
+  deque <Reptile_point> reptile; 
+  int direction;
+};
+
 /*!
 \brief
 Evaluates the expectation value \f$ <\Psi|H|\Psi>/<\Psi|\Psi> \f$
