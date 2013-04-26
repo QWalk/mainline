@@ -592,9 +592,12 @@ void Properties_manager::endBlock() {
       int nvals=weighted_sum.avgrets(w,i).vals.GetDim(0);
 
       block_avg(current_block).avgrets(w,i)=weighted_sum.avgrets(w,i);
+      parallel_sum(weighted_sum.avgrets(w,i).vals,
+                   block_avg(current_block).avgrets(w,i).vals);
       for(int j=0; j< nvals; j++) { 
-        block_avg(current_block).avgrets(w,i).vals(j)=
-                 parallel_sum(weighted_sum.avgrets(w,i).vals(j))/totweight;
+      //  block_avg(current_block).avgrets(w,i).vals(j)=
+      //           parallel_sum(weighted_sum.avgrets(w,i).vals(j))/totweight;
+          block_avg(current_block).avgrets(w,i).vals(j)/=totweight;
       }
     }
 

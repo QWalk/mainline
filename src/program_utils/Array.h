@@ -903,8 +903,34 @@ inline void array_cp(Array2 <T> & x, const Array2 <T> & y) {
 /*!
 These replace the arrays with the sum over all processors.
  */
-void parallel_sum(Array1 <doublevar> & arr);
-void parallel_sum(Array2 <doublevar> & arr);
+
+inline void parallel_sum(Array1 <doublevar> & arr) { 
+#ifdef USE_MPI
+  int n=arr.GetDim(0);
+  Array1 <doublevar> a(n);
+  MPI_Allreduce(arr.v,a.v,n,MPI_DOUBLE, MPI_SUM, MPI_Comm_grp);
+  arr=a;
+#endif
+}
+
+inline void parallel_sum(Array1 <doublevar> & in,Array1 <doublevar> & out) { 
+#ifdef USE_MPI
+  int n=in.GetDim(0);
+  out.Resize(n);
+  MPI_Allreduce(in.v,out.v,n,MPI_DOUBLE, MPI_SUM, MPI_Comm_grp);
+#endif
+}
+
+
+inline void parallel_sum(Array2 <doublevar> & arr) { 
+#ifdef USE_MPI
+  int n=arr.GetDim(0);
+  int m=arr.GetDim(1);
+  Array2 <doublevar> a(n,m);
+  MPI_Allreduce(arr.v,a.v,n*m,MPI_DOUBLE, MPI_SUM, MPI_Comm_grp);
+  arr=a;
+#endif
+}
 
 
 
