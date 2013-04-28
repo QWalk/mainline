@@ -79,9 +79,10 @@ public:
 
   virtual void getAtomicLabels(vector <string> & labels) {
     labels.clear();
+    labels.push_back("ORIGIN");
   }
 
-  virtual int nIons() { return 0; }
+  virtual int nIons() { return 1; }
   virtual void getIonPos(int i, Array1 <doublevar> & pos) {
     error("getIonPos not implemented");
   }
@@ -92,6 +93,7 @@ public:
     error("getIonCharge not implemented");
     return 0.0;
   }
+
   
   virtual void getEquivalentCenters(Array2 <int> & equiv_centers_,
                                     Array1 <int> & ncenters_atom_, 
@@ -201,6 +203,16 @@ private:
     evaluates local energy for Gaussian short-range interaction
   */
   doublevar calcLocGauss(Sample_point *);
+
+
+  //These variables are for putting a perturbing potential on the system
+  doublevar calcLocPerturb(Sample_point *);
+  int nperturb;
+  Array2 <doublevar> perturb_pos;
+  Array1 <doublevar> perturb_strength;
+  Array1 <doublevar> perturb_alpha;
+  Array1 <doublevar> perturb_spin;
+
   
 };
 

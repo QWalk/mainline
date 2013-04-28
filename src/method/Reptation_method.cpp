@@ -587,7 +587,7 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
   }
   nreptile=reptiles.GetDim(0);
 
-  assert(reptile.size()==reptile_length);
+  //assert(reptile.size()==reptile_length);
   //Branch limiting variables
   //we start off with no limiting, and establish the parameters after the
   //first block.  This seems to be reasonably stable, since it's mostly

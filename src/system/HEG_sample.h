@@ -50,7 +50,7 @@ public:
   }
   int ionSize()
   {
-    return 0;
+    return 1;
   }
 
   int centerSize()
@@ -120,7 +120,18 @@ public:
 
   void getEIDist(const int e,const int ion, Array1 <doublevar> & distance)
   {
-    error("getEIDist() not implemented");
+    //error("getEIDist() not implemented");
+    doublevar dist=0.0;
+    for(int d=0; d< 3; d++) { 
+      doublevar del=elecpos(e,d);
+      doublevar lat=parent->latVec(d,d);
+      while(del > 0.5*lat) del-=lat;
+      while(del < -0.5*lat) del+=lat;
+      dist+=del*del;
+      distance(2+d)=del;
+    }
+    distance(1)=dist;
+    distance(0)=sqrt(dist);
   }
   /*!
   Returns the vector pointing from e1 to e2.

@@ -165,6 +165,25 @@ int HEG_system::read(vector <string> & words,
   if(latvectxt.size() != ndim)
     error("BOXSIZE must have exactly ",ndim, " values");
 
+  vector< vector<string> > perturb_sec;
+  vector <string> dumstring;
+  pos=startpos;
+  while(readsection(words, pos,dumstring, "PERTURB")) perturb_sec.push_back(dumstring);
+  nperturb=perturb_sec.size();
+  perturb_pos.Resize(nperturb, ndim);
+  perturb_strength.Resize(nperturb);
+  perturb_alpha.Resize(nperturb);
+  perturb_spin.Resize(nperturb);
+  for(int i=0; i< nperturb; i++) { 
+    if(!readsection(perturb_sec[i], pos=0,dumstring,"POS")) error("Need POS in PERTURB");
+    if(dumstring.size()!=ndim) error("wrong dimension in POS in PERTURB");
+    for(int d=0; d< ndim; d++) perturb_pos(i,d)=atof(dumstring[d].c_str());
+    if(!readvalue(perturb_sec[i], pos=0,perturb_strength(i),"STRENGTH")) error("Need STRENGTH in PERTURB");
+    if(!readvalue(perturb_sec[i], pos=0,perturb_alpha(i),"SCALE")) error("Need SCALE in PERTURB");
+    if(!readvalue(perturb_sec[i], pos=0,perturb_spin(i),"SPIN")) error("Need SPIN in PERTURB");
+    
+  }
+
   latVec.Resize(ndim, ndim);
   latVec=0.0;
   for(int i=0; i< ndim; i++)
@@ -338,11 +357,11 @@ int HEG_system::setupEwald(Array2 <doublevar> & crossProduct) {
       int kgmin=-gmax;
       if(ig==0 && jg==0) kgmin=0;
       for(int kg=kgmin; kg <= gmax; kg++) {
-	totgpt++;
+        totgpt++;
         for(int i=0; i< ndim; i++) {
           gpointtemp(currgpt, i)=2*pi*(ig*recipLatVec(0,i)
-                                       +jg*recipLatVec(1,i)
-                                       +kg*recipLatVec(2,i));
+              +jg*recipLatVec(1,i)
+              +kg*recipLatVec(2,i));
         }
         doublevar gsqrd=0;  // |g|^2
         for(int i=0; i< ndim; i++) {
@@ -351,15 +370,15 @@ int HEG_system::setupEwald(Array2 <doublevar> & crossProduct) {
 
         if(gsqrd > 1e-8) {  // throw away (0,0,0)
           gweighttemp(currgpt)=4.0 * pi*exp(-gsqrd/(4*alpha*alpha))
-                               /(cellVolume*gsqrd);
+            /(cellVolume*gsqrd);
 
 
           if(gweighttemp(currgpt) > qweight_cut) {
             currgpt++;
           }
         } else {
-	  smallgpt++;
-	}
+          smallgpt++;
+        }
       }
     }
   }
@@ -467,15 +486,40 @@ int HEG_system::enforcePbc(Array1 <doublevar> & pos, Array1 <int> & nshifted) {
 }
 
 
-
 //----------------------------------------------------------------------
 
 doublevar HEG_system::calcLoc(Sample_point * sample)
 {
   //cout << "Local energy" << endl;
-  return (*this.*calcLocChoice)(sample);
+  
+  return (*this.*calcLocChoice)(sample)+calcLocPerturb(sample);
 }
+//---------
+doublevar HEG_system::calcLocPerturb(Sample_point * sample) { 
 
+  doublevar pot=0;
+  int nd=ndim();
+  for(int p=0; p < nperturb; p++) { 
+    Array1 <doublevar> dist(nd), epos(nd);
+    int s=perturb_spin(p);
+    int estart, eend;
+    doublevar r=0;
+    if(s==0) { estart=0; eend=nspin(0); } 
+    else { estart=nspin(0); eend=totnelectrons; } 
+    for(int e=estart; e< eend; e++) { 
+      sample->getElectronPos(e,epos);
+      r=0;
+      for(int d=0; d< nd; d++) { 
+        doublevar del=epos(d)-perturb_pos(p,d);
+        while(del > latVec(d,d)*0.5) del-=latVec(d,d);
+        while(del < -latVec(d,d)*0.5) del+=latVec(d,d);
+        r+=del*del;
+      }
+      pot+=perturb_strength(p)*exp(-perturb_alpha(p)*r);
+    }
+  }
+  return pot;
+}
 //---------
 
 doublevar HEG_system::calcLocEwald(Sample_point * sample)

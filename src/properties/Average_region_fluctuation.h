@@ -65,6 +65,7 @@ class Average_region_density_matrix:public Average_generator {
   }
  private:
   int nregion;
+  int nmax;
   Array1 <Array1<doublevar> >  saved_r;
   Array2 <doublevar> latvec;
   Array1 <doublevar> origin;

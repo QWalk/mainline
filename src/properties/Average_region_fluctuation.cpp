@@ -184,7 +184,7 @@ void Average_region_density_matrix::randomize(System * sys) {
 void Average_region_density_matrix::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
                         System * sys, Sample_point * sample, Average_return & avg) { 
   avg.type="region_density_matrix";
-  avg.vals.Resize(nregion*nregion*2*2);//the two is for the spins, two more for complex
+  avg.vals.Resize(nmax*nmax*nregion*nregion*2*2);//the two is for the spins, two more for complex
   avg.vals=0.0;
   wf->updateVal(wfdata,sample);
   Wf_return wfval_base(wf->nfunc(),2);
@@ -200,22 +200,29 @@ void Average_region_density_matrix::evaluate(Wavefunction_data * wfdata, Wavefun
   for(int e=0; e< nelectrons; e++) { 
     base_region(e)=which_region(sys,sample,e);
   }
-  
+  Array1<int> tot_n(nregion,0);
+  for(int e=0; e< nelectrons; e++) {
+    tot_n(base_region(e))++;
+  }
   int nsample=saved_r.GetDim(0);
   for(int i=0; i < nsample; i++) { 
     Array1 <Wf_return> wf_eval;
     wf->evalTestPos(saved_r(i),sample,wf_eval);
 
 
-    sample_tmp->setElectronPos(0,saved_r(i));
+    sample_tmp->setElectronPosNoNotify(0,saved_r(i));
     int region=which_region(sys,sample_tmp,0);
+
 
     for(int e=0; e< nelectrons; e++) { 
       dcomplex psiratio=exp(dcomplex(wf_eval(e).amp(0,0)-wfval_base.amp(0,0),
             wf_eval(e).phase(0,0)-wfval_base.phase(0,0)));
       int s=0;
-      if(e >=nup) s=1;
-      int indx=2*(s*nregion*nregion+region*nregion+base_region(e));
+      //if(e >=nup) s=1;
+      
+      int indx=2*(s*nregion*nregion*nmax*nmax
+          +region*nregion*nmax*nmax+base_region(e)*nmax*nmax
+          +tot_n(region)*nmax+tot_n(base_region(e)));
       avg.vals(indx)+=psiratio.real()/nsample;
       avg.vals(indx+1)+=psiratio.imag()/nsample;
 
@@ -232,6 +239,8 @@ int Average_region_density_matrix::which_region(System * sys,
   Array1 <doublevar> r(5);
   int atmin=0;
   doublevar rmin=1e99;
+  sample->updateEIDist();
+  
   for(int at=0; at < natoms; at++) { 
 
     sample->getEIDist(e,at,r);
@@ -253,6 +262,7 @@ void Average_region_density_matrix::read(System * sys, Wavefunction_data * wfdat
   saved_r.Resize(nsample);
   for(int i=0; i< nsample; i++) saved_r(i).Resize(3);
 
+  nmax=4;
   int natoms=sys->nIons();
   nregion=natoms;
   latvec.Resize(3,3);
@@ -271,15 +281,17 @@ void Average_region_density_matrix::read(System * sys, Wavefunction_data * wfdat
         if(pos(d)> ma(d)) ma(d)=pos(d);
       }
     }
-    cout << "jjj " << endl;
-    doublevar extra_space=4.0;
+
+    doublevar extra_space=2.0;
     latvec=0.0;
     for(int d=0; d< 3; d++) {
       origin(d)=mi(d)-extra_space;
       latvec(d,d)=ma(d)+extra_space;
     }
   }
+  cout << "randomize " << endl;
   randomize(sys);
+  cout << "done " << endl;
 }
 //----------------------------------------------------------------------
 
@@ -287,15 +299,34 @@ void Average_region_density_matrix::read(System * sys, Wavefunction_data * wfdat
 void Average_region_density_matrix::write_init(string & indent, ostream & os) { 
   os << indent << "REGION_DENSITY_MATRIX" << endl;
   os << indent << "nregion " << nregion << endl;
+  os << indent << "nmax " << nmax << endl;
 }
 //----------------------------------------------------------------------
 void Average_region_density_matrix::read(vector <string> & words) { 
   unsigned int pos=0;
   readvalue(words,pos=0,nregion,"NREGION");
+  readvalue(words,pos=0,nmax,"NREGION");
+  
 }
 
 
 
 void Average_region_density_matrix::write_summary(Average_return &avg,Average_return &err, ostream & os) { 
 
+
+  for(int s=0; s< 2; s++) { 
+    for(int rp=0; rp < nregion; rp++) { 
+      for(int r=0; r< nregion; r++) { 
+        for(int np=0; np < nmax; np++) { 
+          for(int n=0; n< nmax; n++) { 
+            int indx=2*(s*nregion*nregion*nmax*nmax
+                +rp*nregion*nmax*nmax+r*nmax*nmax
+                +np*nmax+n);
+            os << "s " << s << " regions " << r << " -> " << rp << " numbers " << n << " " << np << " val " << avg.vals(indx) << " +/-  " << err.vals(indx) << endl;
+          }
+        }
+      }
+    }
+  }
+  
 }
