@@ -216,6 +216,9 @@ void Reptation_method::read(vector <string> words,
     error("Need LENGTH in REPTATION");
 
   //------------------optional stuff
+
+  print_pdb=haskeyword(words, pos=0,"PRINT_PDB");
+
   if(!readvalue(words, pos=0, readconfig, "READCONFIG"))
     readconfig=options.runid+".config";
 
@@ -739,6 +742,56 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
     prop.printSummary(output,average_var);
     output << "Center averages " << endl;
     prop_center.printSummary(output,average_var);
+
+
+    //Print out a PDB file with one of the reptiles, for visualization purposes
+    if(print_pdb) { 
+      ofstream pdbout("rmc.pdb");
+      pdbout.precision(3);
+      pdbout << "REMARK    4 Mode COMPLIES WITH FORMAT V. 2.0\n";
+      int nelectrons=sample->electronSize();
+
+      int counter=1;
+      string name="H";
+      for(int e=0; e<nelectrons; e++) {
+        for(deque<Reptile_point>::iterator i=reptiles[0].reptile.begin();
+            i!=reptiles[0].reptile.end(); i++) {
+          pdbout<<"ATOM"<<setw(7)<< counter <<" " <<name<<"   UNK     1"
+            <<setw(12)<< i->electronpos[e][0]
+            <<setw(8)<< i->electronpos[e][1]
+            <<setw(8)<< i->electronpos[e][2]
+            << "  1.00  0.00\n";
+          counter++;
+        }
+      }
+      int nions=sys->nIons();
+      Array1 <doublevar> ionpos(3);
+      vector <string> atomnames;
+      sys->getAtomicLabels(atomnames);
+      for(int i=0; i< nions; i++) {
+        sys->getIonPos(i,ionpos);
+        pdbout<<"ATOM"<<setw(7)<< counter <<" " <<atomnames[i]<<"   UNK     1"
+          <<setw(12)<< ionpos[0]
+          <<setw(8)<< ionpos[1]
+          <<setw(8)<< ionpos[2]
+          << "  1.00  0.00\n";
+      }
+
+
+
+      counter=1;
+      for(int e=0; e<nelectrons; e++) {
+        for(deque<Reptile_point>::iterator i=reptiles[0].reptile.begin();
+            i!=reptiles[0].reptile.end(); i++) {
+          if(i != reptiles[0].reptile.begin()) { 
+            pdbout << "CONECT" << setw(5) << counter << setw(5) << counter-1 << endl;
+          }
+          counter++;
+        }
+      }
+    
+    }
+    //------------Done PDB file
 
   }
 

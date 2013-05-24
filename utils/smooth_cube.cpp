@@ -48,6 +48,8 @@ public:
   }
 
   void write_projection(vector <double> & proj, ostream & os);
+  void write_plane_proj(int d, ostream & os);
+  
 
 };
 
@@ -80,6 +82,7 @@ int main(int argc, char ** argv) {
       exit(0);
     }
   }
+  bool no_write=false;
   Cube_info cube;
   cube.read_cube(cin);
   //cube.normalize();
@@ -145,14 +148,20 @@ int main(int argc, char ** argv) {
       ofstream projout(argv[++i]);
       cube.write_projection(proj,projout);
     }
+    if(!strcmp(argv[i], "-xy")) { 
+      cube.write_plane_proj(2, cout);
+      no_write=true;
+    }
+    
 
   }
-
+  if(no_write) return 0;
   if(enhance) { 
     cerr << "enhancing " << endl;
     cube.enhance();
   }
   cube.write_cube(cout);
+  return 0;
 
 }
 
@@ -421,7 +430,7 @@ double dot(vector <double> & x, vector <double> & y) {
   for(int i=0; i< 3; i++) t+=x[i]*y[i];
   return t;
 }
-
+//----------------------------------------------------------------------
 void Cube_info::write_projection(vector <double> & proj, ostream & os) { 
   
   ::normalize(proj);
@@ -445,17 +454,17 @@ void Cube_info::write_projection(vector <double> & proj, ostream & os) {
   for(int x=0; x< n[0]; x++) { 
     for(int y=0; y< n[1]; y++) { 
       for(int z=0; z< n[2]; z++) { 
-	pt[0]=x*resolution[0]+origin[0];
-	pt[1]=y*resolution[1]+origin[1];
-	pt[2]=z*resolution[2]+origin[2];
-	double pos=dot(pt,proj);
-	//assert(pos < max);
-	int p=int((pos-min)/res);
-	p=z; //hardcode for 001, since the other stuff is noisy..	
-	assert(p<npts && p >=0);
-	
-	projdens[p]+=dens(x,y,z);
-	
+        pt[0]=x*resolution[0]+origin[0];
+        pt[1]=y*resolution[1]+origin[1];
+        pt[2]=z*resolution[2]+origin[2];
+        double pos=dot(pt,proj);
+        //assert(pos < max);
+        int p=int((pos-min)/res);
+        p=z; //hardcode for 001, since the other stuff is noisy..	
+        assert(p<npts && p >=0);
+
+        projdens[p]+=dens(x,y,z);
+
       }
     }
   }
@@ -484,3 +493,45 @@ void Cube_info::write_projection(vector <double> & proj, ostream & os) {
   }
   */
 }
+
+//----------------------------------------------------------------------
+
+void Cube_info::write_plane_proj(int d, ostream & os) { 
+  vector <double> projdens(n[0]*n[1]);
+
+  for(vector<double>::iterator p=projdens.begin();
+      p != projdens.end(); p++) *p=0.0;
+  vector <double> pt(3);
+  for(int x=0; x< n[0]; x++) { 
+    for(int y=0; y< n[1]; y++) { 
+      for(int z=0; z< n[2]; z++) { 
+//pt[0]=x*resolution[0]+origin[0];
+//        pt[1]=y*resolution[1]+origin[1];
+//        pt[2]=z*resolution[2]+origin[2];
+//        double pos=dot(pt,proj);
+        //assert(pos < max);
+        
+        //assert(p<npts && p >=0);
+
+        projdens[x*n[0]+y]+=dens(x,y,z);
+
+      }
+    }
+  }
+
+  double norm=0;
+  for(int i=0; i< n[0]; i++) { 
+    for(int j=0; j< n[1]; j++) { 
+      norm+=projdens[i*n[0]+j]*resolution[0]*resolution[1];
+    }
+  }
+
+
+  for(int i=0; i< n[0]; i++) { 
+    for(int j=0; j< n[1]; j++) { 
+      os << i*resolution[0]+origin[0] << " "
+        << j*resolution[1]+origin[1] << "   " << projdens[i*n[0]+j]/norm << endl;
+    }
+  }
+}
+

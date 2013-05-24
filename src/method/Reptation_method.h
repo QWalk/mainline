@@ -128,6 +128,7 @@ private:
   
   doublevar energy_cutoff; //!< when to cut off the branching term
   doublevar eref; //!< reference energy
+  bool print_pdb;
 
 
 
