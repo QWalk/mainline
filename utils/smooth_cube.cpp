@@ -37,6 +37,7 @@ public:
   }
 
   double & dens(int x,int y, int z) { 
+    //cout << "dens " << x << " " << y << " " << z <<" " << n[0] << " " << n[1] << " " << n[2] << endl;
     assert(x<n[0]); 
     assert(y<n[1]);
     assert(z<n[2]);
@@ -283,7 +284,7 @@ void Cube_info::smooth() {
         else tot+=wt*pt;
         if(z > 0) tot+=wt*dens(x,y,z-1);
         else tot+=wt*pt;
-        if(z < n[1]-1) tot+=wt*dens(x,y,z+1);
+        if(z < n[2]-1) tot+=wt*dens(x,y,z+1);
         else tot+=wt*pt;
         newdens[count++]=tot;
       }
