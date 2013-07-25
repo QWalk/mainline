@@ -128,7 +128,6 @@ private:
   friend class Slat_wf<doublevar>;
   friend class Slat_wf<dcomplex>;
   friend class Cslat_wf;
-  friend class FSlat_wf;
 
   void calc_determinant_evaluation_order(const int & f, const int & s, 
 					 const Array3<Array1<int> > & changes,
@@ -182,7 +181,6 @@ private:
   General_MO_matrix * genmolecorb; 
   MO_matrix * molecorb;
   int use_complexmo;
-  int use_iterative_updates; //!<Whether to use "fast"/low-memory Nukala-Kent iterative updates for multideterminants
   bool use_clark_updates; //!<Use Bryan Clark's updates.
   Excitation_list excitations;
   Complex_MO_matrix * cmolecorb;

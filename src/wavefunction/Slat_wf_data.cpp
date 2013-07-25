@@ -23,7 +23,6 @@
 #include "Slat_wf_data.h"
 #include "Wavefunction_data.h"
 #include "Slat_wf.h"
-#include "FSlat_wf.h"
 #include <algorithm>
 #include "MatrixAlgebra.h"
 #include <map>
@@ -66,10 +65,6 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
     sort=0;
   }
 
-  use_iterative_updates=0;
-  if(haskeyword(words, pos=startpos, "ITERATIVE_UPDATES")) {
-    use_iterative_updates=1;
-  }
   pos=startpos;
   vector <vector <string> > csfstr;
   vector <string> csfsubstr;
@@ -143,7 +138,6 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
     if(optimize_mo) error("Can't optimize MO's with complex MO's");
     if(optimize_det) 
       error("Don't support optimizing determinants with complex MO's yet");
-    if(use_iterative_updates) error("Iterative updates not supported with complex MO's yet (easy code for you to write!)");
   }
   else {
     error("Need ORBITALS or CORBITALS section in SLATER wave function");
@@ -273,162 +267,6 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
 
 
 
-  //PK Reorder occupations and build work indexes for iterative updates
-
-  // Switch excitation ordering to "natural" ordering"
-  // Iterative update code must not accidentally construct a zero value determinant with two equal columns
-  if (use_iterative_updates) {
-    for (int s=0; s<2; s++)
-    {
-      for (int f=0; f<nfunc; f++)
-      {
-        for(int det=1; det<ndet; det++)
-        {
-
-          int swap=0;
-
-          // Characterize initial order
-
-          // Count the number of 'new' (novel) orbitals referenced by determinant det
-          int novel=0,badgs=0,goodgs=0;
-          Array1 <int> isnovel(nelectrons(s)),shouldbe(nelectrons(s)),isgoodgs(nelectrons(s));
-
-          for (int mo=0; mo<nelectrons(s); mo++) 
-          {
-            shouldbe(mo)=0;
-            isgoodgs(mo)=0;
-          }
-
-          for (int mo=0; mo<nelectrons(s); mo++) 
-          {
-            int mo2=0;
-            int found=0;
-            isnovel(mo)=1;
-            while (mo2<nelectrons(s)&&!found)
-            {
-              if (occupation_orig(f,0,s)(mo)==occupation_orig(f,det,s)(mo2)) { found=1; isnovel(mo2)=0; }
-              mo2++;
-            }
-            if (!found) novel++;
-          }
-
-
-          for (int mo=0; mo<nelectrons(s); mo++) 
-          {
-            if (!isnovel(mo)) 
-            {
-              if (occupation_orig(f,0,s)(mo)!=occupation_orig(f,det,s)(mo)) 
-              {
-                badgs++;
-
-                for (int mo2=0; mo2<nelectrons(s); mo2++) 
-                {
-                  if (occupation_orig(f,0,s)(mo2)==occupation_orig(f,det,s)(mo))
-                  {
-                    shouldbe(mo)=mo2;
-                    break;
-                  }
-                }
-              }
-              else
-              {
-                isgoodgs(mo)=1;
-                goodgs++;
-              }
-            }
-          }
-
-#ifdef DEBUG_SORT
-          cout << endl << "Det "<<det << " Func " << f << " Spin " << s << " Novel " << novel << " GoodGS " << goodgs << " BadGS " << badgs << endl; 	    
-          cout << "Intial: "; 
-          for (int mot=0; mot<nelectrons(s); mot++) cout << occupation_orig(f,det,s)(mot)  << " ";
-          cout << endl;
-          cout << "GoodGS: " ; 
-          for (int mot=0; mot<nelectrons(s); mot++) cout << isgoodgs(mot)  << " ";
-          cout << endl;
-          cout << "IsNovl: " ; 
-          for (int mot=0; mot<nelectrons(s); mot++) cout << isnovel(mot)  << " ";
-          cout << endl;
-#endif
-
-          // Solve a single "bad position of orbital that occurs in ground state" each iteration
-          // Careful bookeeping to ensure we update records of "good" ground orbitals
-
-          while (badgs>0) 
-          {
-
-            // Find 
-            int mo;
-            for (mo=0; mo< nelectrons(s); mo++)
-            {
-              if (!isgoodgs(mo)&&!isnovel(mo)) break;
-            }
-
-            int target=shouldbe(mo);
-
-#ifdef DEBUG_SORT
-            cout << "Swapping indexes " << mo << " " << target << " are " << occupation_orig(f,det,s)(mo) << " " << occupation_orig(f,det,s)(target) << endl;
-            cout << "Currnt: ";
-            for (int mot=0; mot<nelectrons(s); mot++) cout << occupation_orig(f,det,s)(mot)  << " ";
-            cout << endl;
-            cout << "GoodGS: " ; 
-            for (int mot=0; mot<nelectrons(s); mot++) cout << isgoodgs(mot)  << " ";
-            cout << endl;
-            cout << "IsNovl: " ; 
-            for (int mot=0; mot<nelectrons(s); mot++) cout << isnovel(mot)  << " ";
-            cout << endl;
-#endif
-            int tmporb=occupation_orig(f,det,s)(target);
-            occupation_orig(f,det,s)(target)=occupation_orig(f,det,s)(mo);
-            occupation_orig(f,det,s)(mo)=tmporb;
-
-            int tmpshould=shouldbe(mo);
-            shouldbe(mo)=shouldbe(target);
-            shouldbe(target)=tmpshould;
-
-            int tmpnovel=isnovel(mo);
-            isnovel(mo)=isnovel(target);
-            isnovel(target)=tmpnovel;
-
-            if (occupation_orig(f,0,s)(mo)==occupation_orig(f,det,s)(mo)) 
-            {
-              isgoodgs(mo)=1;
-              badgs--;
-            }
-            else
-            {
-              isgoodgs(mo)=0;
-            }
-            isgoodgs(target)=1;
-            badgs--;
-
-            if (swap) { swap=0; } else { swap=1; }
-
-#ifdef DEBUG_SORT
-            cout << "Now   : ";
-            for (int mot=0; mot<nelectrons(s); mot++) cout << occupation_orig(f,det,s)(mot)  << " ";
-            cout << endl;
-            cout << "GoodGS: " ; 
-            for (int mot=0; mot<nelectrons(s); mot++) cout << isgoodgs(mot)  << " ";
-            cout << endl;
-            cout << "IsNovl: " ; 
-            for (int mot=0; mot<nelectrons(s); mot++) cout << isnovel(mot)  << " ";
-            cout << endl;
-#endif	    
-          }
-
-          if (swap) detwt(det)=-detwt(det).val();
-
-#ifdef DEBUG_SORT
-          cout << "Det "<<det << " Func " << f << " Spin " << s << " Swap " << swap << " Final swapped order " << endl;    
-          for (int mo=0; mo<nelectrons(s); mo++) cout << occupation_orig(f,det,s)(mo)  << " ";
-          cout << endl << endl;
-#endif
-        }
-      }
-    }
-  }
-
   occupation_nchanges.Resize(nfunc,ndet,2);
   evaluation_order.Resize(nfunc,ndet,2);
   occupation_first_diff_change_from_last_det.Resize(nfunc,ndet,2);
@@ -511,40 +349,6 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
     }
   }
 
-
-  // Check excitation ordering are permissable
-  // Iterative update code must not accidentally construct a zero value determinant with two equal columns
-  if (use_iterative_updates) {
-    for (int s=0; s<2; s++)
-    {
-      for (int f=0; f<nfunc; f++)
-      {
-        for(int det=1; det<ndet; det++)
-        {
-          if (occupation_nchanges(f,det,s)>1) // Single excitations out of order are safe
-          {
-            for (int mo=0; mo<nelectrons(s); mo++)
-            {
-              if (occupation_orig(f,det,s)(mo)!=occupation_orig(f,0,s)(mo))
-              {
-                // This is an excitation from the zeroth determinant. Must not exist elsewhere is ground state
-
-                for (int mp=0; mp<nelectrons(s); mp++)
-                {
-                  if (occupation_orig(f,det,s)(mo)==occupation_orig(f,0,s)(mp))
-                  {	    
-                    cout << "Orbital " << mo << " in determinant " << det << " function " <<  f << " spin " << s << " is also orbital " << mp << " in first determinant" << endl;
-                    cout << "Fast update procedure requires 'natural ordering' with no 'moved' ground state orbitals in excited determinants" << endl;
-                    error("Orbital ordering incorrect in determinant ",det);
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
 
 
 
@@ -689,19 +493,11 @@ void Slat_wf_data::generateWavefunction(Wavefunction *& wf)
     attachObserver(slatwf);
   }
   else { 
-    if (use_iterative_updates) {
-      wf=new FSlat_wf;
-      FSlat_wf * slatwf;
-      recast(wf, slatwf);
-      slatwf->init(this);
-      attachObserver(slatwf);
-    } else {
-      wf=new Slat_wf<doublevar>;
-      Slat_wf<doublevar> * slatwf;
-      recast(wf, slatwf);
-      slatwf->init(this,molecorb);
-      attachObserver(slatwf);
-    }
+    wf=new Slat_wf<doublevar>;
+    Slat_wf<doublevar> * slatwf;
+    recast(wf, slatwf);
+    slatwf->init(this,molecorb);
+    attachObserver(slatwf);
   }
 }
 
@@ -719,27 +515,8 @@ int Slat_wf_data::showinfo(ostream & os)
   {
     os << ndet << " determinants\n";
   }
-
   else
     os << "1 determinant" << endl;
-
-  if(use_iterative_updates)
-  {
-    os << "Using fast/low memory iterative updates for multideterminants" << endl
-      << "Ref: Phani K. V. V. Nukala and P. R. C. Kent. J. Chem. Phys. 130 204105 (2009)" << endl;
-  }
-  else
-  {
-    // Advice check for iterative updates
-    if (ndet>1)
-    {
-      if (nelectrons(0)>10||nelectrons(1)>10)
-      {
-        os << "Advice: You have more than 1 determinant and more than 10 electrons in any one spin" << endl
-          << "        ITERATIVE_UPDATES are likely faster and will use less memory" << endl;
-      }
-    }
-  }
 
   if(use_clark_updates) { 
     os << "Using fast updates for multideterminants.  Reference: \n";
@@ -971,8 +748,6 @@ int Slat_wf_data::writeinput(string & indent, ostream & os)
   if(!sort)
     os << indent << "NOSORT" << endl;
 
-  if(use_iterative_updates)
-    os << indent << "ITERATIVE_UPDATES" << endl;
 
 
   Array1 <Array1 <doublevar> > CSF_print(ncsf);

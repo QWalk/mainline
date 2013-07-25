@@ -12,8 +12,7 @@ GAMESSCI2QMCOBJS:=$(OBJPATH)/gamessci2qmc.o $(ALLOBJS)
 CRYSTAL2QMCOBJS:=$(OBJPATH)/crystal2qmc.o $(ALLOBJS)
 SIESTA2QMCOBJS:= $(OBJPATH)/siesta2qmc.o $(ALLOBJS)
 JEEP2QMCOBJS :=  $(OBJPATH)/jeep2qmc.o $(OBJPATH)/JeepBasis.o $(ALLOBJS)
-ABINIT2QMCOBJS := $(OBJPATH)/abinit2qmc.o $(OBJPATH)/Blochwave_function.o $(ALLOBJS)
-ABINIT2QMC2OBJS := $(OBJPATH)/abinit2qmc2.o $(ALLOBJS)
+ABINIT2QMCOBJS := $(OBJPATH)/abinit2qmc.o $(ALLOBJS)
 G032QMCOBJS := $(OBJPATH)/g032qmcmain.o $(OBJPATH)/g03tools.o $(ALLOBJS)
 HEG2QMCOBJS := $(OBJPATH)/heg2qmc.o $(OBJPATH)/indexx.o
 HEG2QMCCOBJS := $(OBJPATH)/heg2qmcc.o $(OBJPATH)/indexx.o $(OBJPATH)/setk01.o
@@ -22,7 +21,7 @@ SQD2QMCOBJS:=$(OBJPATH)/sqd2qmc.o $(ALLOBJS)
 
 SUFFIX := -$(PLATFORM) 
 
-all: nwchem2qmc$(SUFFIX) gamess2qmc$(SUFFIX) gamessci2qmc$(SUFFIX) crystal2qmc$(SUFFIX) siesta2qmc$(SUFFIX) g032qmc$(SUFFIX) heg2qmc$(SUFFIX) abinit2qmc$(SUFFIX) abinit2qmc2$(SUFFIX)
+all: nwchem2qmc$(SUFFIX) gamess2qmc$(SUFFIX) gamessci2qmc$(SUFFIX) crystal2qmc$(SUFFIX) siesta2qmc$(SUFFIX) g032qmc$(SUFFIX) heg2qmc$(SUFFIX) abinit2qmc$(SUFFIX) 
 .PHONY: clean 
 
 gamess2qmc$(SUFFIX): $(GAMESS2QMCOBJS)
