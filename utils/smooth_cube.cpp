@@ -88,8 +88,11 @@ int main(int argc, char ** argv) {
   cube.read_cube(cin);
   //cube.normalize();
   int enhance=1;
+  int renormalize=1;
   for(int i=1; i < argc; i++) {
     if(!strcmp(argv[i],"-noenhance")) enhance=0;
+    if(!strcmp(argv[i],"-nonormalize")) renormalize=0;
+    
     if(!strcmp(argv[i],"-add") && i<argc+1) {
       cerr << "adding " << argv[i+1] << endl;
       ifstream is(argv[++i]);
@@ -99,9 +102,11 @@ int main(int argc, char ** argv) {
       }
       Cube_info ncube;
       ncube.read_cube(is);
-      cerr << "normalizing " << endl;
-      cube.normalize();
-      ncube.normalize();
+      if(renormalize) { 
+        cerr << "normalizing " << endl;
+        cube.normalize();
+        ncube.normalize();
+      }
       cerr << "adding " << endl;
       cube.add(ncube, 1.0);
     }
@@ -114,9 +119,11 @@ int main(int argc, char ** argv) {
       }
       Cube_info ncube;
       ncube.read_cube(is);
-      cerr << "normalizing " << endl;
-      cube.normalize();
-      ncube.normalize();
+      if(renormalize) {
+        cerr << "normalizing " << endl;
+        cube.normalize();
+        ncube.normalize();
+      }
       cerr << "adding " << endl;
       cube.add(ncube, -1.0);
     }    

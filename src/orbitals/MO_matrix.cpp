@@ -27,8 +27,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "MO_1d.h"
 #include "MO_matrix_blas.h"
 #include "MO_matrix_basfunc.h"
-#include "MO_matrix_bspline.h"
-#include "MO_matrix_Cbspline.h"
 #include "MO_matrix_Cbasfunc.h"
 #include "MO_matrix_einspline.h"
 
@@ -43,8 +41,6 @@ int allocate(vector <string> & words, System * sys, MO_matrix *& moptr) {
     moptr=new MO_matrix_blas;
   else if(caseless_eq(words[0],"BASFUNC_MO"))
     moptr=new MO_matrix_basfunc;
-  else if(caseless_eq(words[0],"BSPLINE_MO"))
-    moptr=new MO_matrix_bspline;
   else if(caseless_eq(words[0],"EINSPLINE_MO"))
     moptr=new MO_matrix_einspline<doublevar>;
   
@@ -65,8 +61,6 @@ int allocate(vector <string> & words, System * sys,
     moptr=new MO_matrix_Cbasfunc;
   else if(caseless_eq(words[0],"CUTOFF_MO"))
     moptr=new MO_matrix_cutoff<dcomplex>;
-  else if(caseless_eq(words[0],"CBSPLINE_MO"))
-    moptr=new MO_matrix_Cbspline;
   else if(caseless_eq(words[0],"EINSPLINE_MO"))
     moptr=new MO_matrix_einspline<dcomplex>;
   else 
