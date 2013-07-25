@@ -10,7 +10,23 @@
 #include "basis_writer.h"
 #include "Pseudo_writer.h"
 #include "wf_writer.h"
+/*
+Unlike gamess, nwchem prints out orbitals in a binary file called
+[input].movecs. So there is an additional step to first convert
+the .movecs to ASCII file. Go to nwchem_directory/contrib/mov2asc/,
+then make it. We need executable file called "mov2asc".
 
+Then, run
+mov2asc [large number]  [input].movecs [input].nw.vecs.
+Be sure to name the nwchem output file [input].nw.out. So
+[input].nw.vecs and [input].nw.out are the two files we need. Now run
+/qwalk_directory/src/converter/nwchem2qmc [input],
+this generates all the files needed by qwalk.
+
+I tested lots of cases, eg. atoms molecules with different kinds of
+ecps and different methods(RHF,ROHF,DFT), and the results matches
+well. Currently it only supports 6D,10F....basis. 
+*/
 using namespace std;
 
 
@@ -68,8 +84,6 @@ int main(int argc, char ** argv)
    
 // read basis 
    read_nwchem_basis( outputfilename, atoms, basis, basis_function_type);
-
-   
 // read vecs
    vector < vector< double > > tmpCoeff;
    vector < vector< double > > moCoeff;
@@ -220,7 +234,6 @@ void read_nwchem_out(string & outputfilename,
          while(getline(inFile,line))
          {  words.clear();
             split(line, space, words);
-      //      cout<<"hello "<< words[0]<<"hello "<<words[1] <<endl;
             if(words.size()==0) { read_atoms=1;  break;}
             tempatom.name=words[1];
      //     cout<<"hello "<< tempatom.name <<endl;
@@ -246,6 +259,7 @@ void read_nwchem_out(string & outputfilename,
       {  slwriter.nup=atoi(words[3].c_str());
          slwriter.ndown=atoi(words[3].c_str());
       }
+
       if(words.size()==4 && words[0]=="open" && words[1]=="shells" )
       {  slwriter.nup=slwriter.nup+atoi(words[3].c_str()); }
       if(words.size()==4 && words[0]=="Alpha" && words[1]=="electrons")
@@ -269,6 +283,7 @@ void read_nwchem_out(string & outputfilename,
         { slwriter.calctype="UHF";  }
         else { cout<< "Couldn't understand DFT wavefunction type"; }
       }
+
       
        
       words.clear();
@@ -309,6 +324,7 @@ void read_nwchem_basis( string & outputfilename,
       exit(1);
    }
    cout<<"Reading basis set...";
+   cout.flush();
    string line;
    string space=" ";
 
@@ -401,16 +417,26 @@ void read_nwchem_basis( string & outputfilename,
 
 
 //correspond each index of basis of atoms to the index of basis
-   for (int at=0; at< atoms.size(); at++)
+   for (int at=0; at< atoms.size(); at++) { 
+     atoms[at].basis=-1000;
      for (int bas=0; bas<basis.size(); bas++)
        if (basis[bas].label==atoms[at].name)
        {  atoms[at].basis=bas;
        } 
+   }
 
 
    // setting basis spherical harmonic function labels in nwchem fashion  ie. s px py pz  dxx dxy...
    for(int at=0; at < atoms.size(); at++)
-   {  for (int j=0; j< basis[atoms[at].basis].types.size(); j++)
+   {  
+     //cout << "basis for " << at << " : " << atoms[at].basis <<endl;
+     if(atoms[at].basis < 0) {
+       cerr << "Didn't find basis for " << atoms[at].name << endl;
+       exit(1);
+     }
+
+     for (int j=0; j< basis[atoms[at].basis].types.size(); j++)
+     {
       if(basis[atoms[at].basis].types[j]=="S") basis_function_type.push_back("s");
       else if (basis[atoms[at].basis].types[j]=="P") 
       { basis_function_type.push_back("px");
@@ -441,21 +467,26 @@ void read_nwchem_basis( string & outputfilename,
       else if(basis[atoms[at].basis].types[j]=="15G")
       { basis_function_type.push_back("gxxxx");
         basis_function_type.push_back("gxxxy");
-	basis_function_type.push_back("gxxxz");
-	basis_function_type.push_back("gxxyy");
-	basis_function_type.push_back("gxxyz");
-	basis_function_type.push_back("gxxzz");
-	basis_function_type.push_back("gxyyy");
-	basis_function_type.push_back("gxyyz");
-	basis_function_type.push_back("gxyzz");
-	basis_function_type.push_back("gxzzz");
-	basis_function_type.push_back("gyyyy");
-	basis_function_type.push_back("gyyyz");
-	basis_function_type.push_back("gyyzz");
-	basis_function_type.push_back("gyzzz");
-	basis_function_type.push_back("gzzzz");
+        basis_function_type.push_back("gxxxz");
+        basis_function_type.push_back("gxxyy");
+        basis_function_type.push_back("gxxyz");
+        basis_function_type.push_back("gxxzz");
+        basis_function_type.push_back("gxyyy");
+        basis_function_type.push_back("gxyyz");
+        basis_function_type.push_back("gxyzz");
+        basis_function_type.push_back("gxzzz");
+        basis_function_type.push_back("gyyyy");
+        basis_function_type.push_back("gyyyz");
+        basis_function_type.push_back("gyyzz");
+        basis_function_type.push_back("gyzzz");
+        basis_function_type.push_back("gzzzz");
 
       }
+      else {
+        cerr << "unknown basis type "<< basis[atoms[at].basis].types[j] << endl;
+        exit(1);
+      }
+     }
    }
 
  //  for (int i=0; i<basis_function_type.size(); i++)
