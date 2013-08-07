@@ -88,7 +88,7 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
     doublevar endiff= line_minimization(S,Sinv,H,alpha);
 
     output << "Step: Estimated change in energy: " << endiff << endl;
-    if(endiff >= 0 && vmc_nstep <= max_vmc_nstep) { 
+    if(endiff >= 0 && vmc_nstep < max_vmc_nstep) { 
       vmc_nstep*=4;
       output << "Did not find a downhill move; setting vmc_nstep to "
         << vmc_nstep << endl;
