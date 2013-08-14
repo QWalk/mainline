@@ -129,23 +129,6 @@ private:
   friend class Slat_wf<dcomplex>;
   friend class Cslat_wf;
 
-  void calc_determinant_evaluation_order(const int & f, const int & s, 
-					 const Array3<Array1<int> > & changes,
-					 const Array3 <int> & nchanges,
-					 const Array3< Array1 <int> > & occ,
-					 Array1 <int> & order,
-					 int dstart, int dend, int dlevel );
-  //!< Compute best order for determinant evaluation for determinants numbered inclusively between dstart,dend and for excitation level dlevel
-
-
-  int cost_iterative_determinant_order(const int & func, const int & spin, 
-				       const Array3<Array1<int> > & changes,
-				       const Array3 <int> & nchanges,
-				       const Array3< Array1 <int> > & occ,
-				       const Array1 <int> & order);
-  //!< Helper function: sum cost of updating determinants using iterative algorithm in O(N) units
-
-
   Array3 < Array1 <int> > occupation;
   //!< The place in totoccupation for the molecular orbitals for (fn, det, spin) Used to look up the right MO from MO_matrix.
   Array3 < Array1 <int> > occupation_orig;
@@ -153,10 +136,6 @@ private:
   Array1 <log_value<doublevar> > detwt;
   Array1 < Array1 <int> > totoccupation; //!< all the molecular orbitals for a given spin
 
-  Array3 <int> occupation_nchanges;           //!< number of changes to occupations for (fn,det,spin)
-  Array3 <int> evaluation_order;              //!< Order to evaluate determinants (fn,idx,spin)
-  Array3 <int> occupation_first_diff_change_from_last_det;           //!< change index of first change different from previous determinant (fn,det,spin)
-  Array3 < Array1 <int> > occupation_changes; //!< list of changes to occupations for (fn,det,spin)
   int max_occupation_changes;
 
   Array1 <int> spin;  //!< spin as a function of electron

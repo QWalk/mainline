@@ -89,7 +89,7 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
     ndet=counter;
 
     if(readsection(words, pos, strdetwt, "DETWT")){
-      error("Already using suplied CSF's, remove DETWT");
+      error("Slater determinant: CSF is incompatible with DETWT.");
     }
     counter=0;
     detwt.Resize(ndet);
@@ -99,7 +99,6 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
       }
   }
   else{
-    //cout <<" Using standard  DETWT form for determinant weights "<<endl;
     pos=startpos;
     readsection(words, pos, strdetwt, "DETWT");
     ndet=strdetwt.size();
@@ -211,12 +210,9 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
 
 
 
-  for(int i=0; i< nfunc; i++)
-  {
-    for(int det=0; det < ndet; det++)
-    {
-      for(int s=0; s<2; s++)
-      {
+  for(int i=0; i< nfunc; i++) {
+    for(int det=0; det < ndet; det++)  {
+      for(int s=0; s<2; s++) {
         //cout << det << " "  << s << endl;
         occupation(i,det,s).Resize(nelectrons(s));
         occupation_orig(i,det,s).Resize(nelectrons(s));
@@ -224,19 +220,15 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
     }
   }
   //Calculation helpers
-  for(int i=0; i< nfunc; i++)
-  {
+  for(int i=0; i< nfunc; i++) {
     //cout << "i=" << i << endl;
     int counter=0;
-    for(int det=0; det<ndet; det++)
-    {
+    for(int det=0; det<ndet; det++)  {
       //cout << "det=" << det << endl;
-      for(int s=0; s<2; s++)
-      {
+      for(int s=0; s<2; s++) {
         //cout << "s=" << s << endl;
         //cout << "nelectrons " << nelectrons(s) << endl;
-        for(int e=0; e<nelectrons(s); e++)
-        {
+        for(int e=0; e<nelectrons(s); e++) {
           //cout << "e=" << e << endl;
           occupation_orig(i,det,s)(e)=atoi(statevec[i][counter].c_str())-1;
 
@@ -252,103 +244,16 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
   rede.Resize(tote);
 
   int eup=nelectrons(0);
-  for(int e=0; e<eup; e++)
-  {
+  for(int e=0; e<eup; e++) {
     spin(e)=0;
     opspin(e)=1;
     rede(e)=e;
   }
-  for(int e=eup; e<tote; e++)
-  {
+  for(int e=eup; e<tote; e++) {
     spin(e)=1;
     opspin(e)=0;
     rede(e)=e-eup;
   }
-
-
-
-  occupation_nchanges.Resize(nfunc,ndet,2);
-  evaluation_order.Resize(nfunc,ndet,2);
-  occupation_first_diff_change_from_last_det.Resize(nfunc,ndet,2);
-  occupation_changes.Resize(nfunc,ndet,2);
-
-  max_occupation_changes=0;
-  for (int s=0; s<2; s++)
-  {
-    for (int f=0; f<nfunc; f++)
-    {
-      for(int det=0; det<ndet; det++)
-      {
-        int nchanges=0;
-        for (int mo=0; mo<nelectrons(s); mo++)
-        {
-          if (occupation_orig(f,det,s)(mo)!=occupation_orig(f,0,s)(mo)) nchanges++;
-        }
-        occupation_nchanges(f,det,s)=nchanges;
-        occupation_changes(f,det,s).Resize(nchanges);
-        if (nchanges>max_occupation_changes) max_occupation_changes=nchanges;
-
-        int ichange=0;
-        for (int mo=0; mo<nelectrons(s); mo++)
-        {
-          if (occupation_orig(f,det,s)(mo)!=occupation_orig(f,0,s)(mo))
-          {
-            occupation_changes(f,det,s)(ichange)=mo;
-            ichange++;
-          }
-        }
-      }
-    }
-  }
-
-
-  // Compute (heuristic) good order for determinant updates
-  for (int s=0; s<2; s++)
-  {
-    for (int f=0; f<nfunc; f++)
-    {
-      Array1 <int> order(ndet);
-      for(int det=0; det<ndet; det++) order(det)=det;
-      int dstart=1;
-      int dend=ndet-1;
-      int dlevel=0;
-      calc_determinant_evaluation_order(f,s,occupation_changes,occupation_nchanges,occupation_orig,order,dstart,dend,dlevel);
-      for (int idx=0; idx<ndet; idx++) evaluation_order(f,idx,s)=order(idx);
-    }
-  }
-
-  // Avoid recomputing common updates: note index of last common excitation from previous determinant
-  for (int s=0; s<2; s++)
-  {
-    for (int f=0; f<nfunc; f++)
-    {
-      int detlast=0;
-      for(int idx=0; idx<ndet; idx++)
-      {
-        int det=evaluation_order(f,idx,s);
-        occupation_first_diff_change_from_last_det(f,det,s)=0;
-        if (det>0)
-        {
-          for (int n=0;n<min(occupation_nchanges(f,detlast,s),occupation_nchanges(f,det,s));n++)
-          {
-            if (occupation_changes(f,det,s)(n)==occupation_changes(f,detlast,s)(n)) 
-            {
-              if (occupation_orig(f,det,s)(occupation_changes(f,det,s)(n))==occupation_orig(f,detlast,s)(occupation_changes(f,detlast,s)(n)))
-              {
-                occupation_first_diff_change_from_last_det(f,det,s)=n+1;
-              }
-              else
-              {
-                break;
-              }
-            }
-          }
-        }
-        detlast=det;
-      }
-    }
-  }
-
 
 
 
@@ -501,20 +406,18 @@ void Slat_wf_data::generateWavefunction(Wavefunction *& wf)
   }
 }
 
+
+//----------------------------------------------------------------------
 int Slat_wf_data::showinfo(ostream & os)
 {
   if(!genmolecorb)
     error("Slat_wf_data::showinfo() : Molecular orbital not allocated");
-
   os << "Slater Determinant" << endl;
-
 
   if(optimize_mo) 
     os << "Optimizing molecular orbital coefficients" << endl;
   if(ndet > 1) 
-  {
     os << ndet << " determinants\n";
-  }
   else
     os << "1 determinant" << endl;
 
@@ -523,73 +426,28 @@ int Slat_wf_data::showinfo(ostream & os)
     os << "Clark, Morales, McMinis, Kim, and Scuseria. J. Chem. Phys. 135 244105 (2011)\n";
   }
 
-  for(int f=0; f< nfunc; f++)
-  {
+  for(int f=0; f< nfunc; f++) {
     if(nfunc > 1)
       os << "For function " << f << endl;
-    for(int det=0; det<ndet; det++)
-    {
+    for(int det=0; det<ndet; det++) {
       if(ndet > 1) {
         os << "Determinant " << det << ":\n";
         os << "Weight: " << detwt(det).val() << endl;
       }
-
       os << "State: \n";
-      for(int s=0; s<2; s++)
-      {
-        if(s==0)
-          os << "spin up:\n";
-        if(s==1)
-          os << "spin down: \n";
-
+      for(int s=0; s<2; s++) {
+        if(s==0) os << "spin up:\n";
+        if(s==1) os << "spin down: \n";
         os << "  ";
-
-        for(int e=0; e<nelectrons(s); e++)
-        {
+        for(int e=0; e<nelectrons(s); e++) {
           os << occupation_orig(f,det,s)(e)+1 << " ";
           if((e+1)%10 == 0)
             os << endl << "  ";
         }
         os << endl;
-        // PK Print changes for iterative updates
-        os << "Changes: "<< occupation_nchanges(f,det,s) <<" First diff: "<<occupation_first_diff_change_from_last_det(f,det,s) <<endl;
-        for (int ichange=0; ichange<occupation_nchanges(f,det,s); ichange++)
-        {
-          os << occupation_changes(f,det,s)(ichange)+1 << " ";
-        }
-        os << endl ;
-        // 
       }
     }
-
-
-    // Output ordering heuristic update costs
-    Array1 <int> order(ndet);
-
-    for(int det=0; det<ndet; det++) order(det)=det;
-
-    for(int s=0; s<2; s++)
-    {
-      if(s==0)
-        os << "Update cost, spin up (natural order): ";
-      if(s==1)
-        os << "Update cost, spin down (natural order): ";
-      os << cost_iterative_determinant_order(f,s,occupation_changes,occupation_nchanges,occupation_orig,order) << endl ;
-    }
-
-    for(int s=0; s<2; s++)
-    {
-      for(int det=0; det<ndet; det++) order(det)=evaluation_order(f,det,s);
-
-      if(s==0)
-        os << "Update cost, spin up (heuristic sort): ";
-      if(s==1)
-        os << "Update cost, spin down (heuristic sort): ";
-      os << cost_iterative_determinant_order(f,s,occupation_changes,occupation_nchanges,occupation_orig,order) << endl ;
-    }
   }
-
-  os << "Maximum occupation changes : " << max_occupation_changes << endl;
 
   os << "Molecular Orbital object : ";
   genmolecorb->showinfo(os);
@@ -597,134 +455,10 @@ int Slat_wf_data::showinfo(ostream & os)
   return 1;
 }
 
-//----------------------------------------------------------------------
-// Compute the heuristic "best" order for evaluating multiderminant expansion
-// Added by Paul Kent / CNMS / ORNL 2009
-//
-// Called recursively to find best order for determinants numbered
-// inclusively between dstart and dend. Each level of recursion processes
-// one "level" dlevel of excitations (singles, doubles etc.)
-//
-// Algorithm: at each level, sort by the most common excitation
-// for each group of common excitations, sort at the next level
-//
-// To hash excitation type use orbital index*no. orbitals+replacement orbital
-//
-// nchanges(f,det,s)
-// changes(f,det,s)(ichange)=mo
-// occ(f,det,s)(mo) from occ(f,0,s)(mo)
-
-void Slat_wf_data::calc_determinant_evaluation_order(const int & f, const int & s, 
-    const Array3<Array1<int> > & changes,
-    const Array3 <int> & nchanges,
-    const Array3< Array1 <int> > & occ,
-    Array1 <int> & order,
-    int dstart, int dend, int dlevel ) {
-
-  // Ensure no-ops for single entry dstart=dend
-  if (dend>dstart) {
-
-    typedef std::multimap<int, int> MultiMap;
-    MultiMap excitation_counts;
-    for (int i=dstart;i<=dend;i++)
-    {
-      int det=order(i);
-      int nch=nchanges(f,det,s);
-      int hash=-1;
-      if (nch>dlevel) {
-        int ch=changes(f,det,s)(dlevel);
-        hash=occ(f,0,s)(ch)*nmo+occ(f,det,s)(ch);
-      }
-      excitation_counts.insert(make_pair(hash,det));
-    }
-    /*
-       cout << "Excitation_counts" << endl;
-       for (multimap<int,int>::iterator ii=excitation_counts.begin(); ii!=excitation_counts.end(); ++ii)
-       {	cout << "ExcH " << (*ii).first << " det " << (*ii).second << endl; }
-       */
-    MultiMap excitation_weights;
-    MultiMap::iterator iiter=excitation_counts.begin();
-    MultiMap::iterator jjter=excitation_counts.end();
-    while (iiter!=jjter) {
-      int hash=iiter->first;
-      int count=excitation_counts.count(hash);
-      excitation_weights.insert(make_pair(count,hash));
-      std::pair<MultiMap::iterator, MultiMap::iterator> iterpair = excitation_counts.equal_range(hash);
-      iiter=iterpair.second;
-    }
-    /*
-       cout << "Excitation_weights" << endl;
-       for (multimap<int,int>::reverse_iterator ii=excitation_weights.rbegin(); ii!=excitation_weights.rend(); ++ii)
-       {	cout << "Count " << (*ii).first << " ExcH " << (*ii).second << endl; }
-       */
-    int oout=dstart;
-
-    for (MultiMap::reverse_iterator iio=excitation_weights.rbegin(); iio!=excitation_weights.rend(); ++iio)
-    {
-      int hash=iio->second;
-      std::pair<MultiMap::iterator, MultiMap::iterator> iterpair = excitation_counts.equal_range(hash);
-      int next_level_start=oout;
-      for (multimap<int,int>::iterator jjo=iterpair.first; jjo!=iterpair.second; ++jjo)
-      {
-        order(oout++)=jjo->second;
-      }
-      int next_level_end=oout-1;
-      int next_level=dlevel+1;
-      if (hash!=-1) { // No need to subsort "no change" group
-        if (next_level_end>next_level_start+1) 
-          calc_determinant_evaluation_order(f,s,changes,nchanges,occ,order,next_level_start,next_level_end,next_level);	
-      }
-    }
-  }
-}
-
-//----------------------------------------------------------------------
-// Simple costing of determinant evaluation order
-// Counts total O(kN) of iterative changes to determinants evaluated in order()
-// Neglects important prefactors: better to assess actual operations counts based on implementation
-int Slat_wf_data::cost_iterative_determinant_order(const int & f, const int & s, 
-    const Array3<Array1<int> > & changes,
-    const Array3 <int> & nchanges,
-    const Array3< Array1 <int> > & occ,
-    const Array1 <int> & order) {
-  int cost=0;
-
-  int prev_det=order(0);
-  for (int det=1;det<ndet; det++)
-  {
-    int actual_det=order(det);
-    // Count different excitations from previous det      
-    int first=0;
-    for (int n=0;n<min(nchanges(f,prev_det,s),nchanges(f,actual_det,s));n++)
-    {
-      if (changes(f,actual_det,s)(n)==changes(f,prev_det,s)(n)) 
-      {
-        if (occ(f,actual_det,s)(changes(f,actual_det,s)(n))==occ(f,prev_det,s)(changes(f,prev_det,s)(n)))
-        {
-          first=n+1;
-        }
-        else
-        {
-          break;
-        }
-      }
-    }
-    prev_det=actual_det;
-    // diffs differences total from the ground state
-    // first common differences from last det
-    for (int iter=first;iter<nchanges(f,actual_det,s);iter++)
-    {
-      cost+=iter+1;
-    }
-  }
-  return cost;
-}
-
 
 //----------------------------------------------------------------------
 
-int Slat_wf_data::writeinput(string & indent, ostream & os)
-{
+int Slat_wf_data::writeinput(string & indent, ostream & os) {
 
   if(!genmolecorb)
     error("Slat_wf_data::writeinput() : Molecular orbital not allocated");
@@ -744,7 +478,6 @@ int Slat_wf_data::writeinput(string & indent, ostream & os)
     os << indent << "CLARK_UPDATES" << endl;
   else 
     os << indent << "SHERMAN_MORRISON_UPDATES" << endl;
-
   if(!sort)
     os << indent << "NOSORT" << endl;
 
@@ -903,6 +636,7 @@ void Slat_wf_data::getVarParms(Array1 <doublevar> & parms)
   }
 }
 
+//----------------------------------------------------------------------
 void Slat_wf_data::setVarParms(Array1 <doublevar> & parms)
 {
   //cout <<"start setVarParms"<<endl;
@@ -947,6 +681,7 @@ void Slat_wf_data::setVarParms(Array1 <doublevar> & parms)
   }
   //cout <<"done setVarParms"<<endl;
 }
+//----------------------------------------------------------------------
 
 void Slat_wf_data::linearParms(Array1 <bool> & is_linear) {
   if(optimize_det) { 
@@ -958,6 +693,9 @@ void Slat_wf_data::linearParms(Array1 <bool> & is_linear) {
     is_linear=false;
   }
 }
+
+//----------------------------------------------------------------------
+
 void Slat_wf_data::renormalize(){
 }
 
