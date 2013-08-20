@@ -299,13 +299,6 @@ void Average_twobody_correlation::evaluate(Wavefunction_data * wfdata, Wavefunct
     }
   }
   
-  if(direction==0) { 
-    for(int i=0; i< npoints; i++) { 
-      double r=resolution*i;
-      avg.vals(i)/=4*pi*resolution*r*r;
-      avg.vals(npoints+i)/=4*pi*resolution*r*r;
-    }
-  }
   
   
 }
@@ -333,6 +326,18 @@ void Average_twobody_correlation::write_summary(Average_return & avg, Average_re
   os << "    r  g(r) sigma(g(r))   g(r)  sigma(g(r))" << endl;
   assert(avg.vals.GetDim(0) >=2*npoints);
   assert(err.vals.GetDim(0) >=2*npoints);
+
+  if(direction==0) { 
+    for(int i=0; i< npoints; i++) { 
+      double r=resolution*i;
+      double renorm=1.0/(4*pi*r*r*resolution);
+      avg.vals(i)*=renorm;
+      avg.vals(npoints+i)*=renorm;
+      err.vals(i)*=renorm;
+      err.vals(npoints+i)*=renorm;
+    }
+  }
+  
   
   for(int i=0; i< npoints; i++) {
     os << "gr_out " << i*resolution << " " << avg.vals(i) << " " << err.vals(i) 
