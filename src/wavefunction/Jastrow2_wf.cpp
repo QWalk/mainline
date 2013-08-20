@@ -710,16 +710,13 @@ void Jastrow2_wf_data::read(vector <string> & words,
                     unsigned int & pos,
                     System * sys
                   ){
-
-  //cout << "Jastrow2 initialization " << endl;
-
   vector < vector <string> > grouptext;
   vector <string> grouptmp;
   pos=0;
   while(readsection(words, pos, grouptmp, "GROUP"))
     grouptext.push_back(grouptmp);
   group.Resize(grouptext.size());
-  //cout << grouptext.size() << " groups found " << endl;
+//  cout << grouptext.size() << " groups found " << endl;
   for(int i=0; i< group.GetDim(0); i++)
     group(i).set_up(grouptext[i], sys);
 
@@ -729,7 +726,6 @@ void Jastrow2_wf_data::read(vector <string> & words,
   sys->getAtomicLabels(atomlabels);
   natoms=atomlabels.size();
   nup=sys->nelectrons(0);
-  //cout << "jastrow2 done" << endl;
   
   
 }

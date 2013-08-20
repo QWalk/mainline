@@ -32,7 +32,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 int allocate(vector <string> & wftext, System * sys, Wavefunction_data * & wfptr)
 {
   assert(wfptr == NULL);
-
   if(wftext.size() < 1) error("Empty wavefunction section");
   if(caseless_eq(wftext[0],"SLATER"))
     wfptr=new Slat_wf_data;
@@ -55,7 +54,6 @@ int allocate(vector <string> & wftext, System * sys, Wavefunction_data * & wfptr
 
 
   unsigned int pos=1;
-  
   wfptr->read(wftext,pos,sys);
   return 1;
 }

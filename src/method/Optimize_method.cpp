@@ -65,8 +65,7 @@ void Optimize_method::read(vector <string> words,
 
   string functiontype_str;
   pos=0;
-  if(readvalue(words, pos, functiontype_str, "MINFUNCTION"))
-  {
+  if(readvalue(words, pos, functiontype_str, "MINFUNCTION")) {
     if(caseless_eq(functiontype_str, "VARIANCE"))
       min_function=min_variance;
     else if(caseless_eq(functiontype_str,"ABSOLUTE"))
@@ -80,8 +79,7 @@ void Optimize_method::read(vector <string> words,
     else
       error("I don't know ", functiontype_str, " for MINFUNCTION.");
   }
-  else
-  {
+  else {
     min_function=min_variance;
   }
 
@@ -96,6 +94,7 @@ void Optimize_method::read(vector <string> words,
 
   debug_write(cout, "wfdata allocate\n");
   wfdata=NULL;
+  if(options.twftext.size() < 1) error("Need TRIALFUNC section for OPTIMIZE");
   allocate(options.twftext[0], sys, wfdata);
 
   if(wfdata->nparms() <= 0 ) 
