@@ -1,7 +1,6 @@
 ######################################################################
 # Compiler definitions for jaguar.ccs.ornl.gov (compute nodes) 
 #  all compiler specific information should be declared here
-
 #for gnu with blas and lapack issue this command: 
 # module swap PrgEnv-pgi PrgEnv-gnu; module add atlas ; module remove xt-libsci ; module add xt-libsci
 
