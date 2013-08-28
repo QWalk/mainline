@@ -35,7 +35,6 @@ void Rotate_orbs_method::read(vector <string> words,
                        unsigned int & pos,
                        Program_options & options)
 {
-  cout << "rrreeead " << endl;
   
   sys=NULL;
   allocate(options.systemtext[0],  sys);
@@ -46,7 +45,7 @@ void Rotate_orbs_method::read(vector <string> words,
   while( readsection(words,pos,dummy,"ORB_GROUP")) { 
     orbgroup_txt.push_back(dummy);
   }
-  cout << "aaaahree " << endl;
+  if(orbgroup_txt.size() != 1) { error("Need one ORB_GROUP in rotate"); } 
   orbital_groups.Resize(orbgroup_txt.size());
   for(int i=0; i< orbital_groups.GetDim(0); i++) { 
     int norb_this=orbgroup_txt[i].size();
@@ -55,15 +54,16 @@ void Rotate_orbs_method::read(vector <string> words,
       orbital_groups[i][j]=atoi(orbgroup_txt[i][j].c_str())-1;
     }
   }
-
-  cout << "here " << endl;
-
-
   vector <string> orbtext;
   if(!readsection(words, pos=0, orbtext, "ORBITALS")){
       error("Need ORBITALS");
   }
   allocate(orbtext, sys, mymomat);
+
+  rotation_file="rotation";
+  output_orb=options.runid+".orb";
+  readvalue(words, pos=0, rotation_file,"ROTATION");
+  readvalue(words, pos=0, output_orb,"OUTPUT");
 
   mywalker=NULL;
   sys->generateSample(mywalker);
@@ -82,14 +82,14 @@ void Rotate_orbs_method::run(Program_options & options, ostream & output) {
 
   int norb=orbital_groups[0].GetDim(0);
   cout << "norb " << norb << endl;
-  ifstream rot_inp("rotation");
+  ifstream rot_inp(rotation_file.c_str());
   Array2 <doublevar> Rtot(norb,norb,0.0);
   for(int i=0; i< norb; i++) { 
     for(int j=0; j< norb; j++) { 
       rot_inp >> Rtot(i,j);
     }
   }
-  ofstream testorb("test.orb");
+  ofstream testorb(output_orb.c_str());
   mymomat->writeorb(testorb, Rtot,orbital_groups[0]);
   testorb.close();
   

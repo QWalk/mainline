@@ -54,6 +54,8 @@ public:
     if(sys != NULL) delete sys;
   }
 private:
+  string rotation_file;
+  string output_orb;
   MO_matrix * mymomat; //will hold MO information
   Sample_point * mywalker; //a single configuration/walker
   System * sys;
