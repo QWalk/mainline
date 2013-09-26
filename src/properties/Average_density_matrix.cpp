@@ -773,7 +773,7 @@ void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, 
               dd=dcomplex(avg.vals(inddd),avg.vals(inddd+1))/norm;
               dd_err=dcomplex(err.vals(inddd),err.vals(inddd+1))/norm;
               if(complex_orbitals) { 
-                os << setw(10) << i << setw(10) << j << setw(10) << i <<  setw(10) << j 
+                os << setw(10) << i << setw(10) << j << setw(10) << k <<  setw(10) << l 
                   << setw(colwidth) << uu << setw(colwidth) << uu_err
                   << setw(colwidth) << ud << setw(colwidth) << ud_err
                   << setw(colwidth) << du << setw(colwidth) << du_err
@@ -781,7 +781,7 @@ void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, 
                   << endl;
               }
               else { 
-                os << setw(10) << i << setw(10) << j << setw(10) << i <<  setw(10) << j 
+                os << setw(10) << i << setw(10) << j << setw(10) << k <<  setw(10) << l 
                   << setw(colwidth) << uu.real() << setw(colwidth) << uu_err.real()
                   << setw(colwidth) << ud.real() << setw(colwidth) << ud_err.real()
                   << setw(colwidth) << du.real() << setw(colwidth) << du_err.real()
