@@ -672,15 +672,15 @@ void Cubic_spline::assign_indiv_symmetries() {
         indiv_symmetry(totfunc++)=isym_Dyz;
         break;
       case sym_7F:
-	nfuncspline(funcNum)=7;
-	indiv_symmetry(totfunc++)=isym_F0;
+        nfuncspline(funcNum)=7;
+        indiv_symmetry(totfunc++)=isym_F0;
         indiv_symmetry(totfunc++)=isym_Fm3;
-	indiv_symmetry(totfunc++)=isym_Fp3mod;
-	indiv_symmetry(totfunc++)=isym_Fp2;
+        indiv_symmetry(totfunc++)=isym_Fp3mod;
+        indiv_symmetry(totfunc++)=isym_Fp2;
         indiv_symmetry(totfunc++)=isym_Fxyz;
         indiv_symmetry(totfunc++)=isym_Fm1;
         indiv_symmetry(totfunc++)=isym_Fp1;
-	 break;
+        break;
       case sym_10F:
         nfuncspline(funcNum)=10;
         indiv_symmetry(totfunc++)=isym_Fxxx;

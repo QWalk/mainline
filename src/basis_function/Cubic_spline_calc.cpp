@@ -193,7 +193,7 @@ void Cubic_spline::calcVal(const Array1 <doublevar> & r,
           symvals(totf)=v3*temp;
           break;
 
-	case isym_Fp3mod:
+        case isym_Fp3mod:
           v3=r(2)*(r(2)*r(2)-3.0*r(3)*r(3));
           symvals(totf)=v3*temp;
           break;  
