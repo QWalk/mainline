@@ -4,6 +4,11 @@ import matplotlib as mpl
 import matplotlib.cm as cm
 import pylab as P
 import matplotlib
+"""The main functions you'll use here are read_dm and read_dm_offdiag.  
+These take as arguments a filename, which should be the stdout of gosling as applied 
+to your log file.
+"""
+################################################################
 
 def plot_color(A,filename,ticklabels=None, annotate=True):
   nregion1=A.shape[0]
@@ -41,16 +46,10 @@ def plot_color(A,filename,ticklabels=None, annotate=True):
   a.get_xaxis().tick_top()
   for i in ['top','right','left','bottom']:
     a.spines[i].set_visible(False)
-  #a.set_xlim([0,nregion1])
-  #a.set_ylim([0,nregion2])
   a.tick_params(labelsize=10,width=0)
-  #a.grid(color='k', linestyle='-', linewidth=1,which='both')
-  #if ticklabels==None:
-  #  ticklabels=range(1,nregion1+1)
-  #P.xticks(ticklabels)
-  #P.yticks(ticklabels)
   P.savefig(filename)
 
+################################################################
 
 def convert(s):
   return float(s)
@@ -60,9 +59,12 @@ def convert(s):
     m=max(m,i)
   return m
 
+################################################################
 
 
 def read_dm(filename):
+  """Read in the 1-RDM and/or 1-RDM and diagonals of the 2-RDM, if only 
+  the diagonals were calculated"""
   f=open(filename,'r')
   nmo=0
   while True:
@@ -111,7 +113,13 @@ def read_dm(filename):
       break
   return data
 
+################################################################
+
+
 def read_dm_offdiag(filename):
+    """Read in the 1-RDM and 2-RDM, if the off-diagonal elements were calculated
+    for the 2-RDM"""
+
   f=open(filename,'r')
   nmo=0
   while True:
@@ -120,7 +128,6 @@ def read_dm_offdiag(filename):
       spl=line.split()
       nmo=int(spl[2])
       break
-  print "nmo ",nmo
   data={}
   #one-body up, one-body up err,   two-body-uu, two-body-uu err
   for nm in ['ou','oue','od','ode']:
@@ -142,7 +149,6 @@ def read_dm_offdiag(filename):
           data['ode'][i,j]=convert(a[5])
     if line.find("two-body density") != -1:
       line=f.readline()
-      #print "two-body",line
       for i in range(0,nmo):
         for j in range(0,nmo):
           for k in range(0,nmo):
@@ -152,20 +158,16 @@ def read_dm_offdiag(filename):
               for n,index in zip(['tuu','tuue','tud','tude','tdu','tdue','tdd','tdde'],
                   range(4,12)):
                 data[n][i*nmo+j,k*nmo+l]=convert(a[index])
-              #data['tuu'] [i*nmo+j,k*nmo+j]=convert(a[4])
-              #data['tuue'][i*nmo+j,k*nmo+j]=convert(a[5])
-              #data['tud'][i*nmo+j,k*nmo+j]=convert(a[6])
-              #data['tude'][i,j]=convert(a[7])
-              #data['tdu'][i,j]=convert(a[8])
-              #data['tdue'][i,j]=convert(a[9])
-              #data['tdd'][i,j]=convert(a[10])
-              #data['tdde'][i,j]=convert(a[11])
       break
   return data
 
 
+################################################################
+
 def clean_zeros(A,Ae,nsigma=4):
   A[np.abs(A-Ae) < nsigma*Ae]=0.0
+
+################################################################
 
 def calc_entropy(a):
   e=0.0
@@ -175,6 +177,8 @@ def calc_entropy(a):
     if abs(x) > tiny:
       e-=x*np.log(x)
   return e/float(n)
+
+################################################################
 
 
 def gen_excitation(exc,occ):
@@ -190,6 +194,7 @@ def gen_excitation(exc,occ):
       ex.append(o)
   return ex
 
+################################################################
 
 def analyze_excitations(d):
   occ_up=[]
