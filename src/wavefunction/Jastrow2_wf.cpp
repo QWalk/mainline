@@ -959,7 +959,12 @@ void Jastrow2_wf::updateVal(Wavefunction_data * wfdata, Sample_point * sample){
 
   int ngroups=parent->group.GetDim(0);
   Array3 <doublevar> eibasis(parent->natoms, maxeibasis ,5);
-  update_eibasis_save(wfdata,sample);
+  
+  bool has3b=false;
+  for(int g=0; g< ngroups; g++) 
+    has3b=parent->group(g).hasThreeBody() or has3b;
+  if(has3b) 
+    update_eibasis_save(wfdata,sample);
 
   for(int e=0; e < nelectrons; e++) {
     if(electronIsStaleVal(e)) {

@@ -31,7 +31,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Pseudopotential.h"
 #include "Guiding_function.h"
 class Dynamics_generator;
-class Dynamics_info;
+struct Dynamics_info;
 
 class Properties_gather {
  public:

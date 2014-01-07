@@ -977,7 +977,8 @@ template <class T> inline void Slat_wf<T>::calcVal(Slat_wf_data * dataptr, Sampl
 }
 
 //------------------------------------------------------------------------
-inline doublevar real(doublevar & a) { return a; } 
+inline doublevar real_qw(doublevar & a) { return a; } 
+inline doublevar real_qw(dcomplex & a) { return real(a); } 
 
 template <class T>inline void Slat_wf<T>::updateInverse(Slat_wf_data * dataptr, int e) { 
   int maxmatsize=max(nelectrons(0),nelectrons(1));
@@ -989,7 +990,7 @@ template <class T>inline void Slat_wf<T>::updateInverse(Slat_wf_data * dataptr, 
     for(int det=0; det< ndet_update; det++)  {
       //fill the molecular orbitals for this
       //determinant
-      if(real(detVal(f,det,s).logval) < -1e200) { 
+      if(real_qw(detVal(f,det,s).logval) < -1e200) { 
         Array2 <T> allmos(nelectrons(s), nelectrons(s));
         for(int e=0; e< nelectrons(s); e++) {
           int curre=s*nelectrons(0)+e;
@@ -1058,7 +1059,7 @@ template <class T> inline int Slat_wf<T>::updateValNoInverse(Slat_wf_data * data
     for(int det=0; det< ndet; det++)  {
       //fill the molecular orbitals for this
       //determinant
-      if(real(detVal(f,det,s).logval) < -1e200) return 0;
+      if(real_qw(detVal(f,det,s).logval) < -1e200) return 0;
     }
   }
   
