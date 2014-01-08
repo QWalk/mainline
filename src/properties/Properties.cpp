@@ -22,6 +22,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "qmc_io.h"
 #include "Wavefunction_data.h"
 #include "ulec.h"
+#include <iomanip>
 
 //######################################################################
 
@@ -275,7 +276,8 @@ void One_particle_density::write() {
 #endif
   
   if(mpi_info.node==0) {
-    ofstream os(outputfile.c_str());
+    string temp_file=outputfile+".backup";
+    ofstream os(temp_file.c_str());
     os << "QWalk: nsamples " << nsample_tmp << "\n";
     os << "Electron density" << endl;
     
@@ -302,6 +304,7 @@ void One_particle_density::write() {
     }
     os << endl;
     os.close();
+    rename(temp_file.c_str(), outputfile.c_str());
   }
         
   
