@@ -555,8 +555,8 @@ void Average_tbdm_basis::read(System * sys, Wavefunction_data * wfdata, vector
     error("ONLY_OBDM is depreciated; use MODE instead.");
     //eval_tbdm=false;
   
-  if(haskeyword(words,pos=0,"TBDM_DIAGONAL")) 
-    error("TBDM_DIAGONAL is depreciated; use MODE instead.");
+  //if(haskeyword(words,pos=0,"TBDM_DIAGONAL")) 
+  //  error("TBDM_DIAGONAL is depreciated; use MODE instead.");
 
   int ndim=3;
   saved_r.Resize(npoints_eval*2); //r1 and r2;

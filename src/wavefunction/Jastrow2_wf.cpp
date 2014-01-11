@@ -255,7 +255,7 @@ int Jastrow_group::check_consistency() {
         }
       }
       if(unique) {
-	
+
         uniquenames.push_back(atomnames[at]);
         int nbas=0;
         for(int n=0; n< nbasis_at(at); n++)
@@ -263,19 +263,19 @@ int Jastrow_group::check_consistency() {
 
         if(one_body.nparms(at) > nbas)
           error("Jastrow_group::the number of electron-ion functions is"
-		" less than the number of parameters given for atom ", 
-		atomnames[at]);
-	
-	if(has_three_body) { 
-	  if(three_body.eibasis_needed(at) > nbas) 
-	    error("Threebody needs at least ", three_body.eibasis_needed(at),
-		  " basis functions for atom ", atomnames[at]);
-	}
-	if(has_three_body_diffspin) { 
-	  if(three_body_diffspin.eibasis_needed(at) > nbas) 
-	    error("Threebody needs at least ", three_body_diffspin.eibasis_needed(at),
-		  " basis functions for atom ", atomnames[at]);
-	}
+              " less than the number of parameters given for atom ", 
+              atomnames[at]);
+
+        if(has_three_body) { 
+          if(three_body.eibasis_needed(at) > nbas) 
+            error("Threebody needs at least ", three_body.eibasis_needed(at),
+                " basis functions for atom ", atomnames[at]);
+        }
+        if(has_three_body_diffspin) { 
+          if(three_body_diffspin.eibasis_needed(at) > nbas) 
+            error("Threebody needs at least ", three_body_diffspin.eibasis_needed(at),
+                " basis functions for atom ", atomnames[at]);
+        }
       }
     }
   }
@@ -289,13 +289,13 @@ int Jastrow_group::check_consistency() {
 
     if(has_three_body) { 
       if(three_body.eebasis_needed() > n_eebasis) 
-	error("Threebody needs at least ", three_body.eebasis_needed(),
-	      " basis functions for the electron-electron interaction");
+        error("Threebody needs at least ", three_body.eebasis_needed(),
+            " basis functions for the electron-electron interaction");
     }
     if(has_three_body_diffspin) { 
       if(three_body_diffspin.eebasis_needed() > n_eebasis) 
-	error("Threebody needs at least ", three_body_diffspin.eebasis_needed(),
-	      " basis functions for the electron-electron interaction");
+        error("Threebody needs at least ", three_body_diffspin.eebasis_needed(),
+            " basis functions for the electron-electron interaction");
     }
   }
 

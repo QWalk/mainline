@@ -117,7 +117,7 @@ def read_dm(filename):
 
 
 def read_dm_offdiag(filename):
-    """Read in the 1-RDM and 2-RDM, if the off-diagonal elements were calculated
+  """Read in the 1-RDM and 2-RDM, if the off-diagonal elements were calculated
     for the 2-RDM"""
 
   f=open(filename,'r')

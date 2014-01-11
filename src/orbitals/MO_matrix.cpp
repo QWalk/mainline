@@ -100,7 +100,7 @@ void rotate_orb(istream & orbin, ostream & orbout,
   }
   nmo_read++;
 
-  //cout << "nmo_write " << nmo_write << "  nmo_read " << nmo_read << endl;
+  cout << "nmo_write " << nmo_write << "  nmo_read " << nmo_read << endl;
 
   Array2 <doublevar> moCoeff(nmo_read, nfunctions);
 

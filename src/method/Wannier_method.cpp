@@ -273,6 +273,11 @@ void Wannier_method::run(Program_options & options, ostream & output) {
     optimize_rotation(eikr,R(i));
   }
 
+  //int nmo_tot=mymomat->getNmo();
+  //Array2 <doublevar> Rtot(nmo_tot,nmo_tot);
+  //Rtot=0.0;
+  //for(int i=0; i< nmo_tot; i++) Rtot(i,i)=1.0;
+  
   Array2 <doublevar> Rtot(ntotorbs,ntotorbs);
   Rtot=0.0;
 
@@ -287,6 +292,7 @@ void Wannier_method::run(Program_options & options, ostream & output) {
 
     count+=norb;
   }
+  
 
   
   ofstream testorb(out_orbs.c_str());
@@ -489,7 +495,7 @@ void Wannier_method::optimize_rotation(Array3 <dcomplex> &  eikr,
   Rgen=0.0;
   for(int ii=0; ii< norb; ii++) { 
     for(int jj=ii+1; jj< norb; jj++) { 
-      Rgen(ii,jj)=rng.gasdev()*pi/100.0;
+      Rgen(ii,jj)=rng.gasdev()*pi/10.0;
     }
   }
   doublevar max_tstep=2.0;
