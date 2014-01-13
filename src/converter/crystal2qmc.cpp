@@ -174,19 +174,16 @@ int main(int argc, char ** argv) {
   get_crystal_atoms(infile, atoms);
   infile.close();
   infile.clear();
-  cout << "basis " << endl;
   infile.open(infilename.c_str());
   get_crystal_basis(infile, basis);
   infile.close();
   infile.clear();
 
-  cout << "pseudo" << endl;
   infile.open(infilename.c_str());
   get_crystal_pseudo(infile, pseudo);
   infile.close();
   infile.clear();
 
-  cout << "after " << endl;
   int nelectrons;
   infile.open(infilename.c_str());
   string calctype, testword;
@@ -577,7 +574,7 @@ void get_crystal_atoms(istream & infile,
 
        
 
-      cout << "found atom section " << line << endl;
+      //cout << "found atom section " << line << endl;
       infile.ignore(150, '\n'); //ignore line of *'s
       getline(infile, line);
       const char endmatch='*';
@@ -585,7 +582,7 @@ void get_crystal_atoms(istream & infile,
         vector < string> atomwords;
         split(line, space, atomwords);
         if(atomwords.size() > 4) {
-          cout << "line " << line << endl;
+          //cout << "line " << line << endl;
           temp_atom.name=atomwords[2];
           temp_atom.pos[0]=atof(atomwords[3].c_str())/bohr;
           temp_atom.pos[1]=atof(atomwords[4].c_str())/bohr;
@@ -600,7 +597,7 @@ void get_crystal_atoms(istream & infile,
     //crystal2003 molecules
     else if(words.size() >=4 && words[0]=="ATOM"  
 	    && words[1]=="X(ANGSTROM)") { 
-      cout << "found atom section " << line << endl;
+      //cout << "found atom section " << line << endl;
       infile.ignore(150, '\n'); //ignore line of *'s
       getline(infile, line);
       const char endmatch='*';
@@ -608,7 +605,7 @@ void get_crystal_atoms(istream & infile,
         vector < string> atomwords;
         split(line, space, atomwords);
         if(atomwords.size() > 4) {
-          cout << "line " << line << endl;
+          //cout << "line " << line << endl;
           temp_atom.name=atomwords[3];
           temp_atom.pos[0]=atof(atomwords[4].c_str())/bohr;
           temp_atom.pos[1]=atof(atomwords[5].c_str())/bohr;
@@ -624,7 +621,7 @@ void get_crystal_atoms(istream & infile,
     else if(words.size() >= 5 && 
        words[0]=="ATOM" && words[1]=="X" ) { //1998
 
-      cout << "found atom section " << line << endl;
+      //cout << "found atom section " << line << endl;
       infile.ignore(150, '\n'); //ignore line of *'s
       getline(infile, line);
       const char endmatch='*';
@@ -632,7 +629,7 @@ void get_crystal_atoms(istream & infile,
         vector < string> atomwords;
         split(line, space, atomwords);
         if(atomwords[0]!="INFORMATION") {
-          cout << "line " << line << endl;
+          //cout << "line " << line << endl;
           temp_atom.name=atomwords[1];
           temp_atom.pos[0]=atof(atomwords[2].c_str())/bohr;
           temp_atom.pos[1]=atof(atomwords[3].c_str())/bohr;
@@ -914,7 +911,7 @@ void get_crystal_pseudo(istream & infile,
     }
   }
 
-  cout << "done " << endl;
+ // cout << "done " << endl;
   int npseud=pseudo.size();
   for(int ps=0; ps < npseud; ps++) {
     vector <double> tmp=pseudo[ps].exponents[0];
@@ -1356,7 +1353,7 @@ void read_crystal_orbital(istream & is,
         is.ignore(125, '\n'); //clear the line with FINAL EIG..
         string line;
         getline(is, line);
-        cout << "line " << line << endl;
+       // cout << "line " << line << endl;
         while(getline( is,line)) {
           if(line.size() > 15 && line[5]=='(' && line[15]==')') {
             //cout << line[5] << "  " << line[15] << endl;
@@ -1415,7 +1412,7 @@ void read_crystal_orbital(istream & is,
     slwriter.spin_dwn_start=moCoeff.size();
     totmo=readMO(is, eigen_start[kpt+nkpts], moCoeff);
   }
-  cout << "nmo's " << moCoeff.size() << endl;
+ // cout << "nmo's " << moCoeff.size() << endl;
 
   slwriter.kpoint.resize(3);
   vector<string> kwords;
@@ -1551,7 +1548,7 @@ void read_crystal_orbital(istream & is,
         is.ignore(125, '\n'); //clear the line with FINAL EIG..
         string line;
         getline(is, line);
-        cout << "line " << line << endl;
+       // cout << "line " << line << endl;
         while(getline( is,line)) {
           if(line.size() > 15 && line[5]=='(' && line[15]==')') {
             //cout << line[5] << "  " << line[15] << endl;
