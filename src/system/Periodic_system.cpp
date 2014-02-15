@@ -183,6 +183,9 @@ int Periodic_system::read(vector <string> & words,
   if(!readvalue(words, pos=0, cutoff_divider, "CUTOFF_DIVIDER"))
     cutoff_divider=2.000001;
 
+  int ewald_gmax=200;
+  readvalue(words, pos=0, ewald_gmax,"EWALD_GMAX");
+
   Array2 <doublevar> atompos(natoms, 3);
   for(int i=0; i< natoms; i++) {
     for(int d=0; d< 3; d++) {
@@ -351,21 +354,23 @@ int Periodic_system::read(vector <string> & words,
 
   debug_write(cout, "alpha ", alpha, "\n");
 
-  const int gmax=24;  //Could make this an option.
+//  const int gmax=24;  //Could make this an option.
+//  const int gmax=60;
+  //int gmax=ewald_gmax;
 
   //Setting this to the worst possible scenario..will adjust/copy later
-  ngpoints=27*gmax*gmax*gmax ;
+  ngpoints=27*ewald_gmax*ewald_gmax*ewald_gmax ;
   Array2 <doublevar> gpointtemp(ngpoints,3);
   Array1 <doublevar> gweighttemp(ngpoints);
   int currgpt=0;
 
-  for(int ig=0; ig <= gmax; ig++) {
-    int jgmin=-gmax;
+  for(int ig=0; ig <= ewald_gmax; ig++) {
+    int jgmin=-ewald_gmax;
     if(ig==0) jgmin=0;
-    for(int jg=jgmin; jg <= gmax; jg++) {
-      int kgmin=-gmax;
+    for(int jg=jgmin; jg <= ewald_gmax; jg++) {
+      int kgmin=-ewald_gmax;
       if(ig==0 && jg==0) kgmin=0;
-      for(int kg=kgmin; kg <= gmax; kg++) {
+      for(int kg=kgmin; kg <= ewald_gmax; kg++) {
         for(int i=0; i< ndim; i++) {
           gpointtemp(currgpt, i)=2*pi*(ig*recipLatVec(0,i)
                                        +jg*recipLatVec(1,i)
@@ -383,7 +388,7 @@ int Periodic_system::read(vector <string> & words,
 
 
           if(gweighttemp(currgpt) > 1e-10) { //
-           // cout << "g vector " << ig << "  " << jg << "  " << kg << " weight " << gweighttemp(currgpt) <<  endl;
+    //        cout << "g vector " << ig << "  " << jg << "  " << kg << " weight " << gweighttemp(currgpt) <<  " g^2 "<< gsqrd << " alpha " << alpha << endl;
             
             currgpt++;
           }
@@ -639,7 +644,7 @@ doublevar Periodic_system::ewaldIon() {
   }
 
 
-  //debug_write(cout, "real space ion-ion ", IonIon,"\n");
+  debug_write(cout, "real space ion-ion ", IonIon,"\n");
 
 
   ion_sin=0;

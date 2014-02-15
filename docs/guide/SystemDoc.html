@@ -63,7 +63,8 @@ simulation cell (rectangular box). The section contains 3 floats.
      constructed. For instance, 0 selects periodic and 1
      selects anti-periodic boundary condition along the
      corresponding lattice vector.
-
+     <tr> <td> EWALD_GMAX <td> Integer <td> 200 
+             <td> (only for PERIODIC) How far to search to generate the k-mesh for the EWald summation. Only the vectors with significant weights are kept. If you have a cell with a lattice vector larger than around 300 Bohr, this may need to be increased.
 <tr> <td> INTERACTION <td> Section <td> { TRUNCCOUL }
      <td> (only for HEG) Specify model for particle-particle
      interactions. Implemented options are

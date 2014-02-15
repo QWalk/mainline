@@ -3,6 +3,7 @@ import sys
 import os
 import scipy.optimize
 import re
+import math
 from optparse import OptionParser
 
 HELP="""This program will optimize the energy with respect to any numerical parameter
@@ -77,12 +78,14 @@ def get_en_crys(parms,lines):
     f.write(line)
   f.close()
   os.system(CRYSTAL_EXE+" < staropt.inp > staropt.inp.o")
-  f=open("staropt.log",'r')
+  f=open("staropt.inp.o",'r')
   en=0.0
   for l in f.readlines():
     if l.count("SCF ENDED")>0:
       spl=l.split()
       en=float(spl[8])
+  if math.isnan(en):
+    en=1e8
   print "en ",en, parms
   sys.stdout.flush()
   return en
@@ -103,12 +106,12 @@ if __name__ == "__main__":
   lines=f.readlines()
   f.close()
   parms=gen_parm_list(lines)
-  if options['gamess']:
+  if options.gamess:
     parmopt=scipy.optimize.fmin_powell(get_en_gamess,parms,args=[lines])
     get_en_gamess(parmopt,lines)
-  elif options['crystal']:
-    parmopt=scipy.optimize.fmin_powell(get_en_crystal,parms,args=[lines])
-    get_en_crystal(parmopt,lines)
+  elif options.crystal:
+    parmopt=scipy.optimize.fmin_powell(get_en_crys,parms,args=[lines])
+    get_en_crys(parmopt,lines)
   else:
     parser.print_usage()
     quit()
