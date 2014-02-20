@@ -165,6 +165,7 @@ int main(int argc, char ** argv) {
     cout << "couldn't open " << infilename << endl;
     exit(1);
   }
+
   get_crystal_latvec(infile, latvec);
   infile.close();
   infile.clear();
@@ -184,40 +185,42 @@ int main(int argc, char ** argv) {
   infile.close();
   infile.clear();
 
-  int nelectrons;
+  int nelectrons=-1;
+  double totspin=-1e8;
   infile.open(infilename.c_str());
   string calctype, testword;
-  while(infile >> testword) {
-    if(testword == "N.") {
-      infile >> testword; //OF
-      infile >> testword; //ELECTRONS
-      if(testword == "ELECTRONS") {
-        infile >> testword; //PER
-        infile >> testword; //CELL
-        infile >> nelectrons;
+  int nelectrons_up=-1, nelectrons_down=-1;
+  string line, space=" ";
+  vector <string> spl;
+  while(true) {
+    spl.clear();
+    getline(infile,line);
+    split(line,space,spl);
+    if(spl.size() > 2 and spl[1]=="SCF" and spl[2]=="ENDED")  break;
+    if(spl.size() > 2 and spl[0]=="TOTAL" and spl[1]=="ATOMIC" and spl[2]=="SPINS") { 
+      spl.clear();
+      while(true) { 
+        getline(infile,line);
+        if(line[3]=='T') break;
+        split(line,space,spl);
+      }
+      totspin=0.0; 
+      for(vector<string>::iterator i=spl.begin(); i!=spl.end(); i++) { 
+        totspin+=atof(i->c_str());
       }
     }
-
-    if(testword == "TYPE") {
-      infile >> testword; //OF
-      infile >> testword;
-      if(testword =="CALCULATION") {
-        infile >> testword; //:
-        infile >> calctype;
-        //----For Crystal 2003
-        if(calctype=="RESTRICTED") {
-          infile >> testword;
-          if(testword=="CLOSED") {
-            calctype="RHF";
-          }
-          if(testword=="OPEN") {
-            calctype="ROHF";
-          }
-        }
-        else if(calctype=="UNRESTRICTED") {
-          calctype="UHF";
-        }
-        //---
+    if(spl.size() > 4 and spl[0]=="N." and spl[2]=="ELECTRONS" and spl[4]=="CELL") { 
+      nelectrons=atof(spl[5].c_str());
+    }
+    if(spl.size() > 4 and spl[0]=="TYPE" and spl[2]=="CALCULATION") {
+      if(spl[4]=="RESTRICTED") {
+        if(spl[5]=="CLOSED") calctype="RHF";
+        else if(spl[5]=="OPEN") calctype="ROHF";
+      }
+      else if(spl[4]=="UNRESTRICTED") calctype="UHF";
+      else { 
+        cout << "Didn't understand calctype " << spl[4] << endl;
+        exit(1);
       }
     }
   }
@@ -305,21 +308,20 @@ int main(int argc, char ** argv) {
     slwriter.ndown=nelectrons/2;
   }
   else if(calctype=="ROHF" || calctype=="UHF") {
-    cout << "Detected a ROHF or UHF calculation."
-    "  What is the spin state?(1=singlet, 2=doublet...)" << endl;
-    int spin;
-    cin >> spin;
-    spin-=1;
+    cout << "Detected a ROHF or UHF calculation." << endl;
+//    "  What is the spin state?(1=singlet, 2=doublet...)" << endl; 
+    cout << "N_up-N_down is found to be " << totspin << endl;
+    int spin=totspin+0.1;
+    if( abs(totspin-spin) > 1e-4) { 
+      cout << "WARNING: spin is not close to an integer!" << endl;
+    }
     slwriter.nup=(nelectrons-spin)/2 + spin;
     slwriter.ndown=(nelectrons-spin)/2;
     if(slwriter.nup+slwriter.ndown != nelectrons) {
       cout << "problem..  nup and ndown are calculated to be "
            << slwriter.nup << "   " << slwriter.ndown
            << " but they don't add up to be " << nelectrons << endl;
-      cout << "Do you want to continue?(y/n)" << endl;
-      string yorn;
-      cin >> yorn;
-      if(yorn=="n" || yorn=="N") exit(1);
+      exit(1);
     }
   }
   else {
@@ -462,41 +464,6 @@ int main(int argc, char ** argv) {
     pseudo[psp].print_pseudo(sysout);
   }
   sysout.close();
-
-  double eref=0;
-
-  if ( cmplx ) {
-    cout << endl;
-    cout << "NOTE:" << endl;
-    cout << "It is likely that the value of MAGNIFY in " << outputname
-	 << ".slater needs to be" << endl;
-    cout << "enlarged. The TEST method can be used to check what"
-	 << " magnification factor" << endl;
-    cout << "is required in order to make Slater determinant well "
-	 << "defined." << endl;
-  } 
-
-  /*
-  string hfoutname=outputname+".hf";
-  ofstream hfout(hfoutname.c_str());
-  print_vmc_section(hfout, outputname, eref);
-  hfout << "\n\n";
-  hfout << "INCLUDE " << sysoutname << "  \n";
-  hfout << "TRIALFUNC { INCLUDE " << slateroutname << "}\n\n";
-  hfout.close();
-
-  string optoutname=outputname+".opt";
-  ofstream optout(optoutname.c_str());
-  print_opt_section(optout, outputname, eref);
-  optout << "\n\n";
-  optout << "INCLUDE " << sysoutname << " \n";
-  optout << "TRIALFUNC { \n  SLATER-JASTROW \n"
-         << "  WF1 { INCLUDE " << slateroutname << " } \n"
-         << "  WF2 { INCLUDE " << jast2outname   << " } \n"
-         << "}\n\n";
-  optout.close();
-  */
-
 }
 
 //######################################################################
@@ -1014,8 +981,8 @@ int readMO(istream & is, long int start,
       assert(words.size() == 2*nmo_this+1);
       for(int i=0; i< nmo_this; i++) {
         moCoeff[totmo+i].push_back(
-	 dcomplex( atof(words[2*i+1].c_str()), atof(words[2*i+2].c_str()) )
-	);
+            dcomplex( atof(words[2*i+1].c_str()), atof(words[2*i+2].c_str()) )
+            );
 	//cout << "imag. part " << atof(words[2*i+2].c_str()) << endl;
       }
       getline(is, line);
@@ -1473,10 +1440,10 @@ void read_crystal_orbital(istream & is,
     for(int i=0; i< 3; i++) atomshift.push_back(0);
     for(int i=0; i< 3; i++) {
       for(int j=0; j< 3; j++) {
-	atomshift[j]+=shift[i]*latvec[i][j];
+        atomshift[j]+=shift[i]*latvec[i][j];
       }
     }
-    
+
     for(int i=0; i < natoms; i++) {
       atoms[i].pos=atoms[i].pos+atomshift;
     }
@@ -1487,19 +1454,19 @@ void read_crystal_orbital(istream & is,
       int bas=atoms[at].basis;
       int nfunc=basis[bas].nfunc();
       if(shiftobj.enforcepbc(atoms[at].pos, latvec, nshift)) {
-	//cout << "at " << at << "  shifted " << nshift[0] << "  " << nshift[1] 
-	//    << "   " << nshift[2] << endl;
-	double kdots=0;
-	for(int d=0; d< 3; d++) 
-	  kdots+=slwriter.kpoint[d]*nshift[d];
-	kdots=cos(pi*kdots);
-	//cout << "kdots " << kdots << endl;
-	for(int i=0; i< nfunc; i++) {
-	  for(int mo=0; mo < totmo; mo++) {
-	    moCoeff[mo][f]*=kdots;
-	  }
-	  f++;
-	}
+        //cout << "at " << at << "  shifted " << nshift[0] << "  " << nshift[1] 
+        //    << "   " << nshift[2] << endl;
+        double kdots=0;
+        for(int d=0; d< 3; d++) 
+          kdots+=slwriter.kpoint[d]*nshift[d];
+        kdots=cos(pi*kdots);
+        //cout << "kdots " << kdots << endl;
+        for(int i=0; i< nfunc; i++) {
+          for(int mo=0; mo < totmo; mo++) {
+            moCoeff[mo][f]*=kdots;
+          }
+          f++;
+        }
       }
       else f+=nfunc;
     }
@@ -1665,7 +1632,7 @@ void read_crystal_orbital(istream & is,
   //------------------------------------
   //Shift the atoms away from the edges.  Should
   //reduce the number of centers outside the cell most of the time.
-  
+
   //vector <double> shift;
   //double shift_amount=0;
   //shift.push_back(shift_amount); shift.push_back(shift_amount); 
@@ -1675,106 +1642,41 @@ void read_crystal_orbital(istream & is,
     for(int i=0; i< 3; i++) atomshift.push_back(0);
     for(int i=0; i< 3; i++) {
       for(int j=0; j< 3; j++) {
-	atomshift[j]+=shift[i]*latvec[i][j];
+        atomshift[j]+=shift[i]*latvec[i][j];
       }
     }
-    
+
     for(int i=0; i < natoms; i++) {
       atoms[i].pos=atoms[i].pos+atomshift;
     }
     //Now enforce the pbc's.. 
-    
+
     for(unsigned int at=0; at< atoms.size(); at++) {
       vector <int> nshift;
       int bas=atoms[at].basis;
       int nfunc=basis[bas].nfunc();
       if(shiftobj.enforcepbc(atoms[at].pos, latvec, nshift)) {
-	//cout << "at " << at << "  shifted " << nshift[0] << "  " << nshift[1] 
-	//    << "   " << nshift[2] << endl;
-	dcomplex kdots=0;
-	for(int d=0; d< 3; d++) 
-	  kdots+=slwriter.kpoint[d]*nshift[d];
-	//kdots=cos(pi*kdots);
-	kdots=exp(pi*kdots*dcomplex(0.0,1.0));
-	//cout << "kdots " << kdots << endl;
-	for(int i=0; i< nfunc; i++) {
-	  for(int mo=0; mo < totmo; mo++) {
-	    moCoeff[mo][f]*=kdots;
-	  }
-	  f++;
-	}
+        //cout << "at " << at << "  shifted " << nshift[0] << "  " << nshift[1] 
+        //    << "   " << nshift[2] << endl;
+        dcomplex kdots=0;
+        for(int d=0; d< 3; d++) 
+          kdots+=slwriter.kpoint[d]*nshift[d];
+        //kdots=cos(pi*kdots);
+        kdots=exp(pi*kdots*dcomplex(0.0,1.0));
+        //cout << "kdots " << kdots << endl;
+        for(int i=0; i< nfunc; i++) {
+          for(int mo=0; mo < totmo; mo++) {
+            moCoeff[mo][f]*=kdots;
+          }
+          f++;
+        }
       }
       else f+=nfunc;
     }
   }
-  
+
  
 }
 
 
 // ===========================================================================
-
-  //----------------temporary--doubling in the x direction
-
-  /*
-    
-  int function=totfunctions;
-  moCoeff.clear();
-  vector < vector < double> > gammacoeff;
-  vector < vector < double> > xcoeff;
-  readMO(is, eigen_start[0], moCoeff);
-  readMO(is, eigen_start[1], xcoeff);
-  moCoeff.insert(moCoeff.begin()+slwriter.nup, xcoeff.begin(), xcoeff.end());
-  for(int at=0; at < natoms; at++ ) {
-    int bas=atoms[at].basis;
-    int nfunc=basis[bas].nfunc();
-    double x=latvec[0][0];
-    Atom temp_atom=atoms[at];
-    temp_atom.pos[0]+=x;
-    atoms.push_back(temp_atom);
-  } 
-  natoms*=2;
-  for(int mo=0; mo < slwriter.nup; mo++) {
-    for(int f=0; f < totfunctions; f++) {
-      moCoeff[mo].push_back(moCoeff[mo][f]);
-    }
-  }
-  //x kpoint mo's
-  for(int mo=slwriter.nup; mo< slwriter.nup+totmo; mo++) {
-    for(int f=0; f< totfunctions; f++) {
-      moCoeff[mo].push_back(moCoeff[mo][f]);
-    }
-  }
-  for(int mo=slwriter.nup+totmo; mo < 2*totmo; mo++) {
-    for(int f=0; f < totfunctions; f++) {
-      moCoeff[mo].push_back(moCoeff[mo][f]);
-    }
-  }
-  int xstart=slwriter.nup;
-  totmo=2*totmo;
-  totfunctions*=2;
-  latvec[0][0]*=2;
-  slwriter.nup*=2;
-  slwriter.ndown*=2;
- 
- // attempt at correction
-  
-  int f=0; 
-  double x=latvec[0][0];   
-  for(int at=0; at< natoms; at++) {
-   int bas=atoms[at].basis;
-   int nfunc=basis[bas].nfunc();
-   if( atoms[at].pos[0] > 5.5 && atoms[at].pos[0] < 17.0 ) {
-     cout << "adjusting atom " << at << "  pos " << atoms[at].pos[0] << endl;
-     for(int i=0; i< nfunc; i++) {
-       for(int mo=xstart; mo < slwriter.nup; mo++) {
-         moCoeff[mo][f]*=-1;
-       }
-      f++; 
-     }
-   }
-   else f+=nfunc;
-  }       
-   assert(f==totfunctions);         
-  */
-  //-------------------------------------------
