@@ -433,8 +433,9 @@ bool  Linear_optimization_method::deriv_is_significant(Average_return & avg,
   single_write(cout, "H0 ", double(nsig_H0)/double(n), "\n");
   single_write(cout, "enderiv ", double(nsig_enderiv)/double(n), "\n");
   single_write(cout, "H ", double(nsig_H)/double(n*n), "\n");
-  if(double(nsig_H0)/double(n) > sig_H_threshold) return true;
-  else return false;
+  //if(double(nsig_H0)/double(n) > sig_H_threshold) return true;
+  //else return false;
+  return true;
 
 }
 
