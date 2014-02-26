@@ -1586,7 +1586,7 @@ HAVE_DOT               = YES
 # explicitly to a value larger than 0 to get control over the balance
 # between CPU load and processing speed.
 
-DOT_NUM_THREADS        = 0
+DOT_NUM_THREADS        = 1
 
 # By default doxygen will use the Helvetica font for all dot files that
 # doxygen generates. When you want a differently looking font you can specify
