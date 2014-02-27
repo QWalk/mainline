@@ -1,7 +1,8 @@
 ######################################################################
 # Compiler definitions for Linux systems
 #  all compiler specific information should be declared here
-CXX:=openmpicxx
+CXX:=mpicxx -I/usr/include/x86_64-linux-gnu/c++/4.8/
+
 CXXFLAGS:= -O3 -fomit-frame-pointer -funroll-loops -ffast-math 
 CXXFLAGS += -DUSE_MPI $(INCLUDEPATH)
 

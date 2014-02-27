@@ -151,7 +151,7 @@ int main(int argc, char ** argv) {
   slwriter.use_global_centers=true;
   slwriter.write_centers=false;
   if ( cmplx ) {
-    slwriter.mo_matrix_type="CCUTOFF_MO";
+    slwriter.mo_matrix_type="CUTOFF_MO";
     slwriter.orbtype="CORBITALS";
   } else {
     slwriter.mo_matrix_type="CUTOFF_MO";
@@ -737,6 +737,8 @@ void get_crystal_basis(istream & infile,
       }
       else if(indiv_types[f]=="D ")
         basis[bas].types.push_back("5D");
+      else if(indiv_types[f]=="F ")
+	basis[bas].types.push_back("7F_crystal"); 
       else basis[bas].types.push_back(indiv_types[f]);
       //vector <double> tmpexp;
       //vector < double> tmpcoeff;
@@ -748,7 +750,7 @@ void get_crystal_basis(istream & infile,
         exptxt.assign(lineb+40, lineb+50);
         double exp=atof(exptxt.c_str());
         basis[bas].exponents[currf].push_back(exp);
-                
+	//cout << indiv_types[f] << ": "<< exp; 
         string coefftxt, coefftxt2;
         if(indiv_types[f]=="S ") {
           coefftxt.assign(lineb+50, lineb+60);
@@ -763,11 +765,16 @@ void get_crystal_basis(istream & infile,
           coefftxt.assign(lineb+50, lineb+60);
           coefftxt2.assign(lineb+60, lineb+70);
         }
+	else if(indiv_types[f]=="F ") {//the position of D/F/G
+	  coefftxt.assign(lineb+70, lineb+80); 
+	}
         else {
           cout << "WARNING!!  Don't know type " << indiv_types[f] << endl;
         }
         basis[bas].coefficients[currf].push_back(atof(coefftxt.c_str()));
-        
+	//	cout << coefftxt.c_str() << endl; 
+	//cout << "index: " << currf << endl; 
+        //cout << "ORB:" << indiv_types[f] << " "<< atof(coefftxt.c_str())<< endl; 
         if(indiv_types[f]=="SP") {
           basis[bas].exponents[currf+1].push_back(exp);
           basis[bas].coefficients[currf+1].push_back(atof(coefftxt2.c_str()));        
@@ -1120,14 +1127,23 @@ void MO_analysis(istream & is,
   //const double pi=3.1415926535897932385;
   const double pi=3.1415926535;
   double snorm=1./sqrt(4.*pi);
-  double pnorm=sqrt(3.)*snorm;
+  double pnorm=sqrt(3.)*snorm; // sqrt(3/4/pi)
   vector <double> dnorm;
   dnorm.push_back(.5*sqrt(5./(4*pi)));
   dnorm.push_back(sqrt(15./(4*pi)));
   dnorm.push_back(sqrt(15./(4*pi)));
   dnorm.push_back(.5*sqrt(15./(4.*pi)));
   dnorm.push_back(sqrt(15./(4*pi)));
-
+  vector <double> fnorm; 
+  //f orbital normalizations are from <http://winter.group.shef.ac.uk/orbitron/AOs/4f/equations.html>
+  fnorm.push_back( sqrt( 7./(16.*pi)) ); 
+  fnorm.push_back( sqrt(21./(32.*pi)) ); 
+  fnorm.push_back( sqrt(21./(32.*pi)) ); 
+  fnorm.push_back( sqrt(105./(16.*pi)) ); 
+  fnorm.push_back( sqrt(105./(4.*pi))  ); //xyz 
+  fnorm.push_back( sqrt(35./(32.*pi))  ); 
+  fnorm.push_back( sqrt(35./(32.*pi))  ); 
+  
   vector <string> dnames(5);
   dnames[0]="z2r2";
   dnames[1]="xz  ";
@@ -1138,7 +1154,15 @@ void MO_analysis(istream & is,
   pnames[0]="x   ";
   pnames[1]="y   ";
   pnames[2]="z   ";
-
+  //Added for forbitals
+  vector <string> fnames(7);
+  fnames[0]="F0   ";
+  fnames[1]="Fp1  ";
+  fnames[2]="Fm1  ";
+  fnames[3]="Fp2   ";
+  fnames[4]="Fxyz  ";
+  fnames[5]="Fp3   ";
+  fnames[6]="Fm3   ";
   for(int mo=0; mo < totmo; mo++) {
     int func=0;
     an_out << "\n----------------\n";
@@ -1177,6 +1201,17 @@ void MO_analysis(istream & is,
             func++;
           }
         }
+	else if(basis[bas].types[i] == "7F_crystal") {
+	  for(int j=0; j<7; j++) {
+	    moCoeff[mo][func]*=fnorm[j];
+            if(fabs(moCoeff[mo][func]) > print_thresh) {
+              an_out << atoms[at].name << at << "  "   << "F" 
+		     << fnames[j] << " " <<  moCoeff[mo][func]
+		     << endl;
+            }
+            func++;
+	  }
+	}
         else {
           cout << "Error: unknown basis type in read_crystal_orbital"
                << endl;
@@ -1214,6 +1249,23 @@ void MO_analysis(istream & is,
   dnorm.push_back(sqrt(15./(4*pi)));
   dnorm.push_back(.5*sqrt(15./(4.*pi)));
   dnorm.push_back(sqrt(15./(4*pi)));
+    vector <double> fnorm; 
+  //f orbital normalizations are from <http://winter.group.shef.ac.uk/orbitron/AOs/4f/equations.html>
+  fnorm.push_back( sqrt( 7./(16.*pi)) ); 
+  fnorm.push_back( sqrt(21./(32.*pi)) ); 
+  fnorm.push_back( sqrt(21./(32.*pi)) ); 
+  fnorm.push_back( sqrt(105./(16.*pi)) ); 
+  fnorm.push_back( sqrt(105./(4.*pi))  ); //xyz 
+  fnorm.push_back( sqrt(35./(32.*pi))  ); 
+  fnorm.push_back( sqrt(35./(32.*pi))  ); 
+  vector <string> fnames(7);
+  fnames[0]="F0   ";
+  fnames[1]="Fp1  ";
+  fnames[2]="Fm1  ";
+  fnames[3]="Fp2   ";
+  fnames[4]="Fxyz  ";
+  fnames[5]="Fp3   ";
+  fnames[6]="Fm3   ";
 
   vector <string> dnames(5);
   dnames[0]="z2r2";
@@ -1225,7 +1277,6 @@ void MO_analysis(istream & is,
   pnames[0]="x   ";
   pnames[1]="y   ";
   pnames[2]="z   ";
-
   for(int mo=0; mo < totmo; mo++) {
     int func=0;
     an_out << "\n----------------\n";
@@ -1259,6 +1310,17 @@ void MO_analysis(istream & is,
             if(abs(moCoeff[mo][func]) > print_thresh) {
               an_out << atoms[at].name << at << "  "   << "D" 
 		     << dnames[j] << " " <<  moCoeff[mo][func]
+		     << endl;
+            }
+            func++;
+          }
+        }
+	else if(basis[bas].types[i] == "7F_crystal") {
+          for(int j=0; j< 7; j++) {
+            moCoeff[mo][func]*=fnorm[j];
+            if(abs(moCoeff[mo][func]) > print_thresh) {
+              an_out << atoms[at].name << at << "  "   << "F" 
+		     << fnames[j] << " " <<  moCoeff[mo][func]
 		     << endl;
             }
             func++;
