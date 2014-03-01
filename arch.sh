@@ -35,7 +35,7 @@ function rungosling()
 }
 
 function runcrystal2qmc() {
-    $WORKDIR/src/converter/crystal2qmc-Linux $@
+    $WORKDIR/src/converter/crystal2qmc-Linux-mpi $@
 }
 
 function runcrystal_post() {

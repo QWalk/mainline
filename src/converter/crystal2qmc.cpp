@@ -524,6 +524,17 @@ void get_crystal_latvec(istream & infile,
 
 //######################################################################
 
+string erasetail(string s) {
+  char ms[] = "1"; 
+  string ns=""; 
+  int i=0; 
+  while (s[i]!='1' and i < s.length()) {
+    i++; 
+  } 
+  return s.substr(0, i); 
+}
+
+
 void get_crystal_atoms(istream & infile,
                        vector < Atom > & atoms) {
   string line;
@@ -550,7 +561,7 @@ void get_crystal_atoms(istream & infile,
         split(line, space, atomwords);
         if(atomwords.size() > 4) {
           //cout << "line " << line << endl;
-          temp_atom.name=atomwords[2];
+          temp_atom.name=erasetail(atomwords[2]);
           temp_atom.pos[0]=atof(atomwords[3].c_str())/bohr;
           temp_atom.pos[1]=atof(atomwords[4].c_str())/bohr;
           temp_atom.pos[2]=atof(atomwords[5].c_str())/bohr;
