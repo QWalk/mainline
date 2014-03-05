@@ -846,7 +846,7 @@ void get_crystal_pseudo(istream & infile,
         vector <string> words;
         string space=" ";
         //cout << "searching " << line << endl;
-        while(search_n(line.begin(), line.end(), 5, endmatch) == line.end()) { 
+        while(search_n(line.begin(), line.end(), 20, endmatch) == line.end()) { 
           words.clear();
           split(line,space,words);
           
@@ -859,8 +859,11 @@ void get_crystal_pseudo(istream & infile,
             temp.assign(line.begin()+15, line.begin()+18);
             pseudo[currpsp].atomnum=atoi(temp.c_str())%100;
             pseudo[currpsp].label=element_lookup_caps[pseudo[currpsp].atomnum];
-            pseudo[currpsp].effcharge=int(atof(words[5].c_str()));
+	    temp.assign(line.begin()+34, line.begin()+41);
+	    //pseudo[currpsp].effcharge=int(atof(words[5].c_str()));
             //cout << "found " << pseudo[currpsp].label << endl;
+	    cout << "Find " << pseudo[currpsp].label << " of charge " << atoi(temp.c_str()) << endl; 
+	    pseudo[currpsp].effcharge=int(atoi(temp.c_str())); 
             currl=-1;
           }
           else if(words.size() > 1 && words[0]!="TYPE") {
@@ -873,14 +876,34 @@ void get_crystal_pseudo(istream & infile,
               words.erase(words.begin());
               words.erase(words.begin());
             }
-            if(words.size() > 2) { 
-              pseudo[currpsp].exponents[currl].push_back(atof(words[0].c_str()));
-              pseudo[currpsp].coefficients[currl].push_back(atof(words[1].c_str()));
-              pseudo[currpsp].nvalue[currl].push_back(atoi(words[2].c_str()));
+            if(words.size() > 2) {
+	      string exps, coeffs, ns; 
+	      exps.assign(line.begin()+8, line.end()+22);
+	      coeffs.assign(line.begin()+22, line.end()+35); 
+	      ns.assign(line.begin()+35, line.end()+39); 
+	      if (coeffs.find("*", 0) == 0) {
+		cout << "****WARNING: Fail to read coefficient (****** occurs) for gaussian function with exponent: "<< exps << endl; 
+	      }
+
+	      //              pseudo[currpsp].exponents[currl].push_back(atof(words[0].c_str()));
+	      pseudo[currpsp].exponents[currl].push_back(atof(exps.c_str())); 
+	      //              pseudo[currpsp].coefficients[currl].push_back(atof(words[1].c_str()));
+	      pseudo[currpsp].coefficients[currl].push_back(atof(coeffs.c_str()));
+	      //              pseudo[currpsp].nvalue[currl].push_back(atoi(words[2].c_str()));
+	      pseudo[currpsp].nvalue[currl].push_back(atoi(ns.c_str()));
               if(words.size() > 3) { 
-                pseudo[currpsp].exponents[currl].push_back(atof(words[3].c_str()));
-                pseudo[currpsp].coefficients[currl].push_back(atof(words[4].c_str()));
-                pseudo[currpsp].nvalue[currl].push_back(atoi(words[5].c_str()));
+		exps.assign(line.begin()+39, line.end()+53);
+		coeffs.assign(line.begin()+53, line.end()+66); 
+		ns.assign(line.begin()+66, line.end()+70); 
+		if (coeffs.find("*", 0) == 0) {
+		  cout << "****WARNING: Fail to read coefficient (****** occurs) for gaussian function with exponent: "<< exps << endl; 
+		}
+		//                pseudo[currpsp].exponents[currl].push_back(atof(words[3].c_str()));
+		//                pseudo[currpsp].coefficients[currl].push_back(atof(words[4].c_str()));
+		//                pseudo[currpsp].nvalue[currl].push_back(atoi(words[5].c_str()));
+		pseudo[currpsp].exponents[currl].push_back(atof(exps.c_str())); 
+		pseudo[currpsp].coefficients[currl].push_back(atof(coeffs.c_str())); 
+		pseudo[currpsp].nvalue[currl].push_back(atof(ns.c_str())); 
               }
             }
             else { 
@@ -892,7 +915,7 @@ void get_crystal_pseudo(istream & infile,
         }
         //----end search loop
       }
-      break;
+       break;
     }
   }
 
