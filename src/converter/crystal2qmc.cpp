@@ -863,7 +863,7 @@ void get_crystal_pseudo(istream & infile,
               words.erase(words.begin());
             }
             if(words.size() > 2) { 
-              cout << words[0] << endl;
+              //cout << words[0] << endl;
               pseudo[currpsp].exponents[currl].push_back(atof(words[0].c_str()));
               pseudo[currpsp].coefficients[currl].push_back(atof(words[1].c_str()));
               pseudo[currpsp].nvalue[currl].push_back(atoi(words[2].c_str()));
