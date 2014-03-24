@@ -60,7 +60,6 @@ void Wannier_method::read(vector <string> words,
     }
   }
 
-  cout << "here " << endl;
 
 
   vector <string> orbtext;
