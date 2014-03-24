@@ -29,7 +29,7 @@ void Linear_optimization_method::read(vector <string> words,
   if(!readvalue(words,pos=0,sig_H_threshold,"SIG_H_THRESHOLD"))
     sig_H_threshold=0.5;
   if(!readvalue(words,pos=0,minimum_psi0,"MINIMUM_PSI0"))
-    minimum_psi0=0.99;
+    minimum_psi0=0.95;
   if(!readvalue(words, pos=0, max_vmc_nstep, "MAX_VMC_NSTEP"))
     max_vmc_nstep=8*vmc_nstep;
   if(!readvalue(words, pos=0, max_nconfig_eval, "MAX_FIT_NCONFIG"))
@@ -49,6 +49,21 @@ void Linear_optimization_method::read(vector <string> words,
 //----------------------------------------------------------------------
 
 int Linear_optimization_method::showinfo(ostream & os) { 
+  os << "     System " << endl;
+  sys->showinfo(os);
+  os << endl << endl;
+  os << "     Wavefunction " << endl;
+  wfdata->showinfo(os);
+  os << endl << endl;
+  pseudo->showinfo(os);
+  os << endl << endl;
+  os << "-----------------------------" << endl;
+  os << "Linear wave function optimization:  " << endl;
+  os << "Number of processors: " << mpi_info.nprocs << endl;
+  os << "Number of MC steps : " << vmc_nstep*mpi_info.nprocs << endl;
+  os << "Wave function output to file  : " << wfoutputfile << endl;
+  os << "nparms " << wfdata->nparms() << endl;
+  os << "----------------------------" << endl;
   return 1;
 }
 
@@ -71,23 +86,21 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
   Array2 <doublevar> alpha_step(iterations,nparms);
   
   wfdata->getVarParms(alpha);
-  //cout << "alpha0 ";
-  //for(int i=0; i<nparms; i++) 
-  //  cout << alpha(i) << " ";
-  //cout << endl;
+
   for(int it=0; it< iterations; it++) {
     //cout << "wf derivative " << endl;
     Array1 <doublevar> olden=en;
     wavefunction_derivative(H,S,en);
 
-    output << "energy " << en(0) << " +/- " << en(1) << endl;
-    if(it > 0) 
-      output << "  energy change " << en(0)-olden(0) 
-        << " +/- " << sqrt(en(1)*en(1)+olden(1)*olden(1)) << endl;
+    output << "step " << it << ": current energy " << en(0) << " +/- " << en(1);
+    output.flush();
+    //if(it > 0) 
+    //  output << "  energy change " << en(0)-olden(0) 
+    //    << " +/- " << sqrt(en(1)*en(1)+olden(1)*olden(1)) << endl;
     
     doublevar endiff= line_minimization(S,Sinv,H,alpha);
 
-    output << "Step: Estimated change in energy: " << endiff << endl;
+    output << " energy change  " << endiff << endl;
     if(endiff >= 0 && vmc_nstep < max_vmc_nstep) { 
       vmc_nstep*=4;
       output << "Did not find a downhill move; setting vmc_nstep to "
