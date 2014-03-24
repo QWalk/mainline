@@ -286,7 +286,7 @@ void Minimization_function::dfunc(Array1 <doublevar> &a, Array1 <doublevar> &xi)
 
 
 
-void check_the_eignevalue_solver(Array2 <doublevar> & A, 
+void check_the_eigenvalue_solver(Array2 <doublevar> & A, 
                             Array2 <doublevar> & B, 
                             Array1 <doublevar> & eigenvals, 
                             Array2 <doublevar> & eigenvecs, 
@@ -299,10 +299,8 @@ void check_the_eignevalue_solver(Array2 <doublevar> & A,
       left+=A(m,n)*eigenvecs(n,index);
       right+=B(m,n)*eigenvecs(n,index);
     }
-  if(right!=0.0)
-    ratio=left/right;
-  else
-    error("Right hand side is not well defined");
+  if(right==0.0) error("Right hand side is not well defined");
+  ratio=left/right;
   
   //cout <<" exact value "<<ratio<<" calculated eigenvalue "<<eigenvals(index)<<endl;
   if(fabs(ratio-eigenvals(index))>1e-5){
@@ -504,7 +502,7 @@ void Localize_method::run(Program_options & options, ostream & output)
     // cout <<endl;
     //}
 
-    check_the_eignevalue_solver(overlap_ma_R_all(i),overlap_total, gevals, gevecs,0);
+    check_the_eigenvalue_solver(overlap_ma_R_all(i),overlap_total, gevals, gevecs,0);
 
     fret_min=1-gevals(0);
     for (int j=0; j<norbs ; j++){

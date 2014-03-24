@@ -526,8 +526,10 @@ void Abinit_converter::read_wfk(string filename,
   //cout << "nup " << slater.nup << " ndown " << slater.ndown << endl;
   
 
-  delete [] istwfk,nband,npwarr,so_psp,symafm,symrel,typat;
-  delete [] kpt,occ,tnons,znucltypat,wtk;
+  delete [] istwfk; delete [] nband; delete [] npwarr; delete [] so_psp; 
+  delete [] symafm; delete [] symrel; delete [] typat;
+  delete [] kpt; delete [] occ; delete [] tnons; delete [] znucltypat; 
+  delete [] wtk;
 }
 //----------------------------------------------------------------------
 //
@@ -1068,7 +1070,7 @@ void WF_kpoint::read_wf_from_wfk(FILE * wffile,vector <vector <double> > & latve
     occupation.push_back(occ[i]);
   }
   //cout << endl;
-  delete[] eigen,occ;
+  delete[] eigen; delete [] occ;
 
   double * tmpcoeff=new double[2*npw*nspinor];
   vector <complex <double> > tmpvec(npw);

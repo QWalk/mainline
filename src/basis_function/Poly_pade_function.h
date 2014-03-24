@@ -76,7 +76,6 @@ public:
   }
 
 private:
-  doublevar alpha0;
   doublevar rcut;
   Array1 <doublevar> beta; //curvature parameter
   int nmax;

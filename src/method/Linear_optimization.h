@@ -30,7 +30,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "System.h"
 #include "Pseudopotential.h"
 #include "Program_options.h"
-class Average_return;
+struct Average_return;
 class Linear_optimization_method : public Qmc_method
 {
 public:

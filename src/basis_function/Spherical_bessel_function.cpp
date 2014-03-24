@@ -31,14 +31,12 @@ int Spherical_bessel_function::read(
 {
   unsigned int startpos=pos;
   centername=words[0];
-  doublevar beta0;
-  pos=startpos;
-  if(!readvalue(words, pos, rcut, "RCUT"))
+  if(!readvalue(words, pos=startpos, rcut, "RCUT"))
   {
     error("Need RCUT in SBESSEL");
   }
   pos=startpos;
-  if(!readvalue(words, pos=0, nmax, "NFUNC")) {
+  if(!readvalue(words, pos=startpos, nmax, "NFUNC")) {
     error("Need NFUNC in SBESSEL");
   }
   if(nmax > 100)

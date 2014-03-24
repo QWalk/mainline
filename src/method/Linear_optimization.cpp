@@ -232,7 +232,6 @@ doublevar find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
 
 doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S, 
     Array2 <doublevar> & Sinv, Array2 <doublevar> & H, Array1 <doublevar> & alpha) { 
-  int nparms=wfdata->nparms();
   vector<doublevar> stabilization;
   stabilization.push_back(0.0);
   stabilization.push_back(0.0);
@@ -420,7 +419,7 @@ bool  Linear_optimization_method::deriv_is_significant(Average_return & avg,
     if(fabs(avg.vals(n+i)/err.vals(n+i)) > thresh) nsig_S0++;
   }
 
-  int nsig_S;
+  int nsig_S=0;
   for(int i=0; i< n; i++) { 
     for(int j=0; j< n; j++) { 
       if(fabs(avg.vals(3*n+i*n+j)/err.vals(3*n+i*n+j)) > thresh) nsig_S++;
@@ -504,7 +503,6 @@ void Linear_optimization_method::wavefunction_derivative(
   en(1)=sqrt(final.err(Properties_types::total_energy,0));
   S(0,0)=1;
   //S(0,0)=deriv_avg.vals(3*n+3*n*n);
-  doublevar s_renorm=sqrt(deriv_avg.vals(3*n+3*n*n));
   for(int i=0; i < n; i++) { 
     //S(0,i+1)=0.0;
     //S(i+1,0)=0.0;

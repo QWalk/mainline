@@ -100,7 +100,7 @@ doublevar objective(MO_matrix * mo,Sample_point * sample,int list,
 }
 
 
-doublevar generate_mo_sample(Sample_point * sample, System * sys,
+void generate_mo_sample(Sample_point * sample, System * sys,
     MO_matrix * mo, int list, int nconfig, Array1 <Array1 <doublevar> > & r) {
   int norb=mo->getNmo();
   Array2 <doublevar> vals(norb,1);
@@ -133,7 +133,6 @@ doublevar generate_mo_sample(Sample_point * sample, System * sys,
     }
   }
 
-  int config=0;
   for(int config=0; config < nconfig; config++) { 
     nacc=0;
     while(nacc < n_must_acc) { 

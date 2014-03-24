@@ -267,7 +267,6 @@ int Reptation_method::showinfo(ostream & os) {
 int Reptation_method::readcheck(string & filename, 
                                 Array1 <Reptile> & reptiles) {  
                                  
-  int configsread=0;
 
   if(filename == "") return 0;
   ifstream is(filename.c_str());
@@ -326,7 +325,7 @@ void Reptation_method::get_avg(deque <Reptile_point> & reptile,
   //now because of correlated sampling..if we really want energies,
   //usually DMC is a better choice.
   pt=last.prop;
-  Reptile_point & first(reptile[0]);  
+  //Reptile_point & first(reptile[0]);  
   //pt.kinetic(0)=.5*(first.prop.kinetic(0)+last.prop.kinetic(0));
   //pt.nonlocal(0)=.5*(first.prop.nonlocal(0)+last.prop.nonlocal(0));
   //pt.potential(0)=.5*(first.prop.potential(0) + last.prop.potential(0));
@@ -438,7 +437,6 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
 
 
   
-  int nelectrons=sys->nelectrons(0)+sys->nelectrons(1);
   allocateIntermediateVariables(sys, wfdata);
   
 

@@ -64,7 +64,6 @@ private:
   bool doublemove; //switch for doublemove part
   doublevar resolution;	//grid coarsness: 10=coarser 0.1=finer
   string readconfig;
-  int nconfigsread;
   System * sysprop;
   Array1 <Sample_point *>  tmp_configs;
   Wavefunction * wf;
