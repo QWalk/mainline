@@ -289,7 +289,6 @@ void Rmc_corr_method::run(Program_options & options, ostream & output) {
       //cout << "block " << block << " step " << step << endl;
       Dynamics_info dinfo;
       
-      doublevar avg_acceptance=0;  
       //int n_partial=min(npsteps,nstep-step);
       int ncross=0;
       for(int walker=0; walker < nconfig; walker++) {

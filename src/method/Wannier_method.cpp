@@ -60,7 +60,6 @@ void Wannier_method::read(vector <string> words,
     }
   }
 
-  cout << "here " << endl;
 
 
   vector <string> orbtext;
@@ -498,7 +497,6 @@ void Wannier_method::optimize_rotation(Array3 <dcomplex> &  eikr,
       Rgen(ii,jj)=rng.gasdev()*pi/10.0;
     }
   }
-  doublevar max_tstep=2.0;
   for(int step=0; step < 800; step++) { 
     doublevar fbase=evaluate_local(eikr,Rgen,R);
     for(int ii=0; ii <norb; ii++) { 

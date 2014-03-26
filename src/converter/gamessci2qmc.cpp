@@ -519,7 +519,7 @@ int main(int argc, char ** argv) {
     }
     is.close();
 
-    if(counter_csf=!csf.size()){
+    if(counter_csf!=csf.size()){
       cout <<"counter_csf "<<"and "<<csf.size()<<"dont match "<<endl;
       exit(1);
     }

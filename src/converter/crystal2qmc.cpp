@@ -851,7 +851,7 @@ void get_crystal_pseudo(istream & infile,
           split(line,space,words);
           
           //cout << "pre " << line << endl;
-          
+          if(words[0]=="INFORMATION") break;
           if(line.size() > 2 && line[1]=='A' && line[2]=='T') {
             //new atom
             pseudo.push_back(pseudo_blank);

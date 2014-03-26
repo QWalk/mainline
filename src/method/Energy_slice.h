@@ -32,6 +32,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "MO_matrix.h"
 #include "Sample_point.h"
 #include "Average_generator.h"
+#include "Pseudopotential.h"
 class System;
 class Wavefunction;
 class Program_options;

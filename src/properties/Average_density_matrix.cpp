@@ -37,8 +37,25 @@ void Average_tbdm_basis::randomize(Wavefunction_data * wfdata, Wavefunction * wf
       if(nup==1 and ndown==1) { 
         k=0; l=1;
       }
-      else if(nup==1 or ndown==1) { 
-        error("Need to fix density_matrix");
+      else if(nup==1) { 
+        if(i%2==0) { 
+          k=0;
+          l=nup+int(rng.ulec()*ndown);
+        }
+        else { 
+          k=nup+int(rng.ulec()*ndown);
+          l=nup+int(rng.ulec()*ndown);
+        }
+      }
+      else if(ndown==1) { 
+        if(i%2==0) { 
+          k=int(rng.ulec()*nup);
+          l=nup;
+        }
+        else { 
+          k=int(rng.ulec()*nup);
+          l=int(rng.ulec()*nup);
+        }
       }
       else if(ndown==0) { 
         k=int(rng.ulec()*nup);

@@ -125,7 +125,6 @@ void Cosine_function::calcLap(
 
   int index=startfill;
   doublevar gdotr, t_cos, t_sin;
-  doublevar gsquared;
   for(int fn=0; fn< nmax; fn++) {
     gdotr=g_vector(fn,0)*r(2)+g_vector(fn,1)*r(3)+g_vector(fn,2)*r(4);
 

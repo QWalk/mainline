@@ -485,7 +485,6 @@ void Test_method::testBackflow() {
   sysprop->generateSample(tmp_sample);
 
   int nelectrons=sample->electronSize();
-  int natoms=sample->ionSize();
 
   Array3 <doublevar> jast_corr_base;
   Array3 <doublevar> onebody;

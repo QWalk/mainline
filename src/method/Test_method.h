@@ -58,8 +58,6 @@ public:
   void plotCusp(Wavefunction * mywf, Sample_point * sample);
   void testParmDeriv(Wavefunction * mywf, Sample_point * sample);
   int nelectrons; //!< Number of electrons
-  int nconfig;   //!< Number of configurations(walkers)
-  int nfunctions; //!< Number of wavefunctions we have.
   string wfoutputfile;
   System * sysprop;
   string readconfig;

@@ -83,7 +83,6 @@ private:
   int nmo;
   doublevar resolution;	//!<grid coarsness: 10=coarser 0.1=finer
   doublevar radius; //!<radius of integration
-  doublevar delta_norm; //!<norm of orbital left outside of radius of localization. 
   MO_matrix * mymomat; //!<will hold MO information
   Sample_point * mywalker; //!<a single configuration/walker
   Array2 <doublevar> mymovals; //!<(i,j) where i=MO#, j=0 default (for now)

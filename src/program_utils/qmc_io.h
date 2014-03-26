@@ -373,7 +373,6 @@ template <class ConfigType> void write_configurations(string & filename,
   int nconfigs=configs.GetDim(0);
   time_t starttime;
   time(&starttime);
-  single_write(cout,"Writing configurations..\n");  
   string tmpfilename=filename; //+".qw_tomove";
   string backfilename=filename+".backup";
   if(mpi_info.node==0) { rename(tmpfilename.c_str(),backfilename.c_str()); }
@@ -440,7 +439,8 @@ template <class ConfigType> void write_configurations(string & filename,
   
   time_t endtime;
   time(&endtime);
-  single_write(cout, "Write took ", difftime(endtime, starttime), " seconds\n");
+  if(mpi_info.node==1)
+    debug_write(cout, "Write took ", difftime(endtime, starttime), " seconds\n");
 }
 
 //Reads configurations from the file and gives an array with the configurations 

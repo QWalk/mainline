@@ -38,7 +38,7 @@ int Rgaussian_function::read(
   vector <string> oldqmctxt;
 
   int maxL=0, maxExpansion=0;
-  if(readsection(words, pos=0, oldqmctxt, "OLDQMC")) {
+  if(readsection(words, pos=startpos, oldqmctxt, "OLDQMC")) {
     double zeff;
     int nlval; //number of l values that we'll read in
     if(oldqmctxt.size() < 2)

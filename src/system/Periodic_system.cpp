@@ -354,14 +354,36 @@ int Periodic_system::read(vector <string> & words,
 
   debug_write(cout, "alpha ", alpha, "\n");
 
-//  const int gmax=24;  //Could make this an option.
-//  const int gmax=60;
-  //int gmax=ewald_gmax;
-
-  //Setting this to the worst possible scenario..will adjust/copy later
-  ngpoints=27*ewald_gmax*ewald_gmax*ewald_gmax ;
-  Array2 <doublevar> gpointtemp(ngpoints,3);
-  Array1 <doublevar> gweighttemp(ngpoints);
+  ///--------------------------------------------
+  // Finding the g-points for the Ewald sum
+  //
+ //  ngpoints=27*ewald_gmax*ewald_gmax*ewald_gmax ;
+  ngpoints=0;
+  for(int ig=0; ig <= ewald_gmax; ig++) {
+    int jgmin=-ewald_gmax;
+    if(ig==0) jgmin=0;
+    for(int jg=jgmin; jg <= ewald_gmax; jg++) {
+      int kgmin=-ewald_gmax;
+      if(ig==0 && jg==0) kgmin=0;
+      for(int kg=kgmin; kg <= ewald_gmax; kg++) {
+        doublevar gsqrd=0;
+        for(int i=0; i< ndim; i++) {
+          doublevar tmp=2*pi*(ig*recipLatVec(0,i)
+                                       +jg*recipLatVec(1,i)
+                                       +kg*recipLatVec(2,i));
+          gsqrd+=tmp*tmp;
+        }
+        if(4.0 * pi*exp(-gsqrd/(4*alpha*alpha))
+                               /(cellVolume*gsqrd) > 1e-10) ngpoints++;
+      }
+    }
+  }
+         
+  //Array2 <doublevar> gpointtemp(ngpoints,3);
+  //Array1 <doublevar> gweighttemp(ngpoints);
+  gpoint.Resize(ngpoints, 3);
+  gweight.Resize(ngpoints);
+  
   int currgpt=0;
 
   for(int ig=0; ig <= ewald_gmax; ig++) {
@@ -372,32 +394,32 @@ int Periodic_system::read(vector <string> & words,
       if(ig==0 && jg==0) kgmin=0;
       for(int kg=kgmin; kg <= ewald_gmax; kg++) {
         for(int i=0; i< ndim; i++) {
-          gpointtemp(currgpt, i)=2*pi*(ig*recipLatVec(0,i)
+          gpoint(currgpt, i)=2*pi*(ig*recipLatVec(0,i)
                                        +jg*recipLatVec(1,i)
                                        +kg*recipLatVec(2,i));
         }
         //cout << "there" << endl;
         doublevar gsqrd=0; //|g|^2
         for(int i=0; i< ndim; i++) {
-          gsqrd+=gpointtemp(currgpt,i)*gpointtemp(currgpt,i);
+          gsqrd+=gpoint(currgpt,i)*gpoint(currgpt,i);
         }
 
         if(gsqrd > 1e-8) {
-          gweighttemp(currgpt)=4.0 * pi*exp(-gsqrd/(4*alpha*alpha))
+          gweight(currgpt)=4.0 * pi*exp(-gsqrd/(4*alpha*alpha))
                                /(cellVolume*gsqrd);
-
-
-          if(gweighttemp(currgpt) > 1e-10) { //
-    //        cout << "g vector " << ig << "  " << jg << "  " << kg << " weight " << gweighttemp(currgpt) <<  " g^2 "<< gsqrd << " alpha " << alpha << endl;
-            
+          if(gweight(currgpt) > 1e-10) { //
             currgpt++;
           }
         }
       }
     }
   }
+  single_write(cout,"Ewald sum using ",ngpoints," reciprocal points\n");
+  //Done finding the g-points.
+  //---------------------------------------
 
   //Adjust to the correct number of kpoints..
+  /*
   ngpoints=currgpt;
   gpoint.Resize(ngpoints, 3);
   gweight.Resize(ngpoints);
@@ -410,7 +432,7 @@ int Periodic_system::read(vector <string> & words,
     }
     gweight(i)=gweighttemp(i);
   }
-
+*/
   //Resize the stored ion variables
   ion_sin.Resize(ngpoints);
   ion_cos.Resize(ngpoints);
