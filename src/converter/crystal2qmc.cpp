@@ -849,7 +849,7 @@ void get_crystal_pseudo(istream & infile,
             pseudo[currpsp].atomnum=atoi(temp.c_str())%100;
             pseudo[currpsp].label=element_lookup_caps[pseudo[currpsp].atomnum];
             pseudo[currpsp].effcharge=int(atof(words[5].c_str()));
-            //cout << "found " << pseudo[currpsp].label << endl;
+            cout << "found " << pseudo[currpsp].label << endl;
             currl=-1;
           }
           else if(words.size() > 1 && words[0]!="TYPE") {
