@@ -639,7 +639,8 @@ void get_crystal_basis(istream & infile,
     //cout << line << endl;
     words.clear();
     split(line, space, words);
-    if(words.size() > 4 && words[0]=="ATOM" && words[1] == "X(AU)" && words[4]=="NO.") {
+    if(words.size() > 4 && words[0]=="ATOM" && words[1] == "X(AU)" &&
+        (words[4]=="NO." or words[4]=="N.")) {
       infile.ignore(150,'\n');
       
       //cout << "found basis " << line << endl;
