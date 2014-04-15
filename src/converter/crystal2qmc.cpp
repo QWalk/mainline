@@ -345,6 +345,11 @@ int main(int argc, char ** argv) {
 			 origin, latvec, moCoeff, shift);
   }
 
+  if(calctype=="UHF" and slwriter.nup > slwriter.spin_dwn_start) { 
+    cout << "Not enough orbitals in the up channel printed out. Try EIGENVEC -999 in CRYSTAL." << endl;
+    exit(1);
+  }
+
   infile.close();
   natoms=atoms.size();
   
