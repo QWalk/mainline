@@ -110,9 +110,6 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
 
 
 
-
-//----------------------------------------------------------------------
-
 void Average_tbdm_basis::evaluate_obdm(Wavefunction_data * wfdata, Wavefunction * wf,
                         System * sys, Sample_point * sample, Average_return & avg) { 
   avg.type="tbdm_basis";
@@ -128,6 +125,12 @@ void Average_tbdm_basis::evaluate_obdm(Wavefunction_data * wfdata, Wavefunction 
   for(int e=0; e< nelectrons; e++) { 
     movals1_base(e).Resize(nmo,1);
     calc_mos(sample,e,movals1_base(e));
+    /*! 
+      Here, permutation symmetry has been applied, the real evaluation quantity is 
+      sum_(e=1)^N phi_i* (r_e) phi_j(r') psi(r_1,... r',...r_N)/psi(r_1, ..., r_n, ..., r_N)
+      Therefore, movals1_base[e, i] = phi_i(r_e), where e is the index of the electron. 
+      !!!One need to be careful about the off-gamma point 1 RDM 
+     */
   }
   avg.vals.Resize(nmo+4*nmo*nmo);
   avg.vals=0;
@@ -142,6 +145,10 @@ void Average_tbdm_basis::evaluate_obdm(Wavefunction_data * wfdata, Wavefunction 
     sample->getElectronPos(0,oldpos);
     sample->setElectronPosNoNotify(0,saved_r(i));
     calc_mos(sample,0,movals1);
+    /*!
+      This is simply to calculate phi_j(r'): Noted that r' has been given, therefore, movals1 is a one dimentional array, with matrix element to be 
+      phi_j(r') -- j is the index 
+    */
     sample->setElectronPosNoNotify(0,oldpos);
 
     Array1 <Wf_return> wf_eval;
@@ -165,23 +172,34 @@ void Average_tbdm_basis::evaluate_obdm(Wavefunction_data * wfdata, Wavefunction 
       dist1+=norm(movals1(m,0));
 
     for(int orbnum=0; orbnum < nmo; orbnum++) { 
-      avg.vals(orbnum)+=norm(movals1(orbnum,0))/(dist1*npoints_eval);
+      avg.vals(orbnum)+=norm(movals1(orbnum,0))/(dist1*npoints_eval); 
+      // This is because we are doing the one body reduced density matrix
     }
 
     for(int e=0; e< nelectrons; e++) { 
       dcomplex psiratio_1b=exp(dcomplex(wfs(e).amp(0,0)-wfval_base.amp(0,0),
             wfs(e).phase(0,0)-wfval_base.phase(0,0)));
-
+      /*!
+	psi(r_1,...,r',...,r_N)/psi(r_1,...,r_e,...,r_N), the ratio of the new with respect to the old if one change the position of the e-th electron from 
+	r_e to r'
+       */
       int which_obdm=0;
       if(e >= nup) { which_obdm=1;  } 
       dcomplex tmp;
       int place=0;
       dcomplex prefactor=psiratio_1b/(dist1*npoints_eval);
+      /*
+	shouldn't the normalization factor just /norm(movals1(orb, 0))
+       */
       for(int orbnum=0; orbnum < nmo; orbnum++) { 
         for(int orbnum2=0; orbnum2 < nmo; orbnum2++) { 
-	  //          tmp=movals1(orbnum,0)*conj(movals1_base(e)(orbnum2,0))*prefactor; 
-          tmp=conj(movals1(orbnum,0))*movals1_base(e)(orbnum2,0)*prefactor;
-
+          //tmp=movals1(orbnum,0)*conj(movals1_base(e)(orbnum2,0))*prefactor;
+	  /*!
+	    This is to based on my new definition: 
+	       \rho(r, r') = N\int dR psi*(r, R) psi(r', R) = \sum rho_{ij} phi_i*(r) phi_j(r')
+	       in this way, one will find that, the phase factor is cancelled
+	   */
+	  tmp=conj(movals1(orbnum,0))*movals1_base(e)(orbnum2,0)*prefactor;
           avg.vals(nmo+2*which_obdm*nmo*nmo+place)+=tmp.real();
           avg.vals(nmo+2*which_obdm*nmo*nmo+place+1)+=tmp.imag();
 
@@ -193,6 +211,7 @@ void Average_tbdm_basis::evaluate_obdm(Wavefunction_data * wfdata, Wavefunction 
   }
   delete store;
 }
+
 
 //----------------------------------------------------------------------
 
@@ -437,9 +456,9 @@ void Average_tbdm_basis::evaluate_tbdm(Wavefunction_data * wfdata, Wavefunction 
       int place=0;
       for(int orbnum=0; orbnum < nmo; orbnum++) { 
         for(int orbnum2=0; orbnum2 < nmo; orbnum2++) { 
-          tmp=movals1(orbnum,0)*conj(movals1_base(e1)(orbnum2,0))
+          tmp=conj(movals1(orbnum,0))*movals1_base(e1)(orbnum2,0)
             *psiratio_1b/dist1;
-
+	  /*Corrected*/
           avg.vals(nmo+2*which_obdm*nmo*nmo+place)+=tmp.real()/doublevar(npoints_eval);
           avg.vals(nmo+2*which_obdm*nmo*nmo+place+1)+=tmp.imag()/doublevar(npoints_eval);
 
@@ -567,7 +586,7 @@ void Average_tbdm_basis::read(System * sys, Wavefunction_data * wfdata, vector
     if(caseless_eq(mode,"OBDM")) eval_tbdm=false;
     if(caseless_eq(mode,"TBDM_DIAGONAL")) tbdm_diagonal=true;
   }
-
+  
   
   if(haskeyword(words,pos=0,"ONLY_OBDM")) 
     error("ONLY_OBDM is depreciated; use MODE instead.");

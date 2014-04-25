@@ -1163,7 +1163,7 @@ void MO_analysis(istream & is,
   double snorm=1./sqrt(4.*pi);
   double pnorm=sqrt(3.)*snorm; // sqrt(3/4/pi)
   vector <double> dnorm;
-  dnorm.push_back(.5*sqrt(5./(4*pi)));
+  dnorm.push_back(.5*sqrt(5./(4*pi)));//sqrt(5, 16)
   dnorm.push_back(sqrt(15./(4*pi)));
   dnorm.push_back(sqrt(15./(4*pi)));
   dnorm.push_back(.5*sqrt(15./(4.*pi)));
@@ -1188,7 +1188,7 @@ void MO_analysis(istream & is,
   pnames[0]="x   ";
   pnames[1]="y   ";
   pnames[2]="z   ";
-  //Added for forbitals
+
   vector <string> fnames(7);
   fnames[0]="F0   ";
   fnames[1]="Fp1  ";

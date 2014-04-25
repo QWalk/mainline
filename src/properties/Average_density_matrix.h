@@ -55,6 +55,7 @@ class Average_tbdm_basis:public Average_generator {
   void evaluate_obdm(Wavefunction_data * wfdata, Wavefunction * wf,
                         System * sys, Sample_point * sample, Average_return & avg);
 
+  //  void evaluate_ekt();
   void evaluate_tbdm(Wavefunction_data * wfdata, Wavefunction * wf,
                         System * sys, Sample_point * sample, Average_return & avg);
   void evaluate_old(Wavefunction_data * wfdata, Wavefunction * wf,

@@ -1,12 +1,12 @@
 #!/bin/sh
-WORKDIR=$HOME/project-cse/qwalk_devel
+WORKDIR=$HOME/qwalk_ekt
 function compileconverter() {
     cd $WORKDIR/src/converter
     make 
     cd -
 }
 
-function runqwalk()
+function runqwalk_ekt()
 {
     if [[ $# < 2 ]] 
     then
@@ -29,7 +29,7 @@ function runqwalk_old()
 }
 
 
-function rungosling()
+function rungosling_ekt()
 {
     $WORKDIR/src/gosling-Linux-mpi $@
 }

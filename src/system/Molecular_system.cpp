@@ -163,6 +163,106 @@ void Molecular_system::setIonPos(int ion, Array1 <doublevar> & r)
 //------------------------------------------------------------------------
 
 
+  /*! Huihuo
+doublevar Molecular_system::calcPotNoNotify(const int e, Sample_point * sample)
+{
+
+    \brief
+    This is compute the potential for a single electron, including the potential from the electrons. This is constructed based on calcLoc
+
+  int nions=sample->ionSize();
+  int nelectrons=sample->electronSize();
+
+  //cout << "Calculating local energy\n";
+
+  Array1 <doublevar> R(5);
+  doublevar pot=0;
+
+  doublevar elecIon=0;
+  sample->updateEIDist();
+  sample->updateEEDist();
+
+  for(int i=0; i < nions; i++)  {
+    sample->getEIDist(e,i, R);
+    elecIon+=sample->getIonCharge(i)/R(0);
+  }
+  elecIon*=-1;
+  pot+=elecIon;
+
+
+  doublevar elecElec=0;
+  Array1 <doublevar> R2(5);
+  for(int i=0; i< nelectrons; i++)
+    if (i != e )
+    {
+      sample->getEEDist(e,i,R2);
+      elecElec+= 1/R2(0);
+    }
+  pot+=elecElec;
+  //cout << "elec-elec: " << elecElec << endl;
+  //cout << "pot " << pot << endl;
+
+  doublevar fieldPot=0;
+  Array1 <doublevar> pos(3);
+  sample->getElectronPos(e,pos);
+  for(int d=0; d< 3; d++) 
+    fieldPot-=electric_field(d)*pos(d);
+  
+  for(int i=0; i< nions; i++) {
+    sample->getIonPos(i,pos);
+    for(int d=0; d< 3; d++) 
+      fieldPot+=sample->getIonCharge(i)*electric_field(d)*pos(d);
+  }
+
+  pot+=fieldPot; 
+  return pot;
+}
+
+  */
+
+
+void Molecular_system::calcLocWithTestPos(Sample_point * sample, Array1 <doublevar> & tpos, Array1 <doublevar> & Vtest)
+{
+
+  int nions=sample->ionSize();
+  int nelectrons=sample->electronSize();
+  Vtest.Resize(nelectrons + 1);
+  Vtest = 0; 
+  Array1 <doublevar> oldpos(3);
+  //cout << "Calculating local energy\n";
+  sample->getElectronPos(0, oldpos);
+  sample->setElectronPosNoNotify(0, tpos);
+  
+  Array1 <doublevar> R(5);
+
+  sample->updateEIDist();
+  sample->updateEEDist();
+
+  for(int i=0; i < nions; i++) {
+    sample->getEIDist(0, i, R);
+    Vtest(nelectrons)+=-sample->getIonCharge(i)/R(0);
+  }
+  doublevar dist = 0.0; 
+  for(int d=0; d<3; d++)  {
+    dist += (oldpos(d) - tpos(d))*(oldpos(d) - tpos(d)); 
+  }
+  dist = sqrt(dist); 
+  Vtest(0) = 1/dist; 
+  Array1 <doublevar> R2(5);
+  for(int i=1; i< nelectrons; i++) {
+    sample->getEEDist(0,i,R2);
+    Vtest(i)= 1/R2(0);
+  }
+  sample->setElectronPosNoNotify(0, oldpos);
+  sample->updateEIDist();
+  sample->updateEEDist();
+  //cout << "elec-elec: " << elecElec << endl;
+  //cout << "pot " << pot << endl;
+
+  for(int d=0; d< 3; d++) 
+    Vtest(nelectrons) -=electric_field(d)*tpos(d);
+}
+
 doublevar Molecular_system::calcLoc(Sample_point * sample)
 {
   int nions=sample->ionSize();
@@ -240,6 +340,49 @@ doublevar Molecular_system::calcLoc(Sample_point * sample)
 
   return pot;
 }
+
+
+
+
+void Molecular_system::calcLocSeparated(Sample_point * sample, Array1<doublevar> & PotLoc)
+{
+  int nions=sample->ionSize();
+  int nelectrons=sample->electronSize();
+
+  //cout << "Calculating local energy\n";
+
+  Array1 <doublevar> R(5);
+  doublevar pot=0;
+
+  doublevar elecIon=0;
+  sample->updateEIDist();
+  sample->updateEEDist();
+  for(int e=0; e< nelectrons; e++)
+  {
+    PotLoc(e) = 0.0; 
+    // Electron-ion interaction
+    for(int i=0; i < nions; i++)
+    {
+      sample->getEIDist(e,i, R);
+      PotLoc(e) += -sample->getIonCharge(i)/R(0);
+    }
+    // Electron-electron interaction
+    for(int i=0; i<e; i++) {
+      sample->getEEDist(i,e, R); // noted that the first index should be smaller than the second index
+      PotLoc(e) += 1/R(0);
+    }
+    for(int i=e+1; i< nelectrons; i++) {
+      sample->getEEDist(e,i,R);
+      PotLoc(e) += 1/R(0);
+    }
+    // Local external field
+    Array1 <doublevar> pos(3);
+    sample->getElectronPos(e,pos);
+    for(int d=0; d< 3; d++) 
+      PotLoc(e) += -electric_field(d)*pos(d);
+  }
+}
+
 //----------------------------------------------------------------------
 //Keeping this separate from calcLoc for efficiency reasons..
 //It's most likely faster to add to a double than fill matrices..

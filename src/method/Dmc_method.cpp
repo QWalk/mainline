@@ -472,7 +472,7 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
           pts(walker).prop.avgrets.Resize(1,average_var.GetDim(0));
           for(int i=0; i< average_var.GetDim(0); i++) { 
             average_var(i)->randomize(wfdata,wf,sys,sample);
-            average_var(i)->evaluate(wfdata, wf, sys, sample, pts(walker).prop.avgrets(0,i));
+            average_var(i)->evaluate(wfdata, wf, sys, pseudo, sample, pts(walker).prop.avgrets(0,i));
           }
           prop.insertPoint(step+p, walker, pts(walker).prop);
           for(int i=0; i< densplt.GetDim(0); i++)

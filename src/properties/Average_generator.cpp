@@ -3,9 +3,11 @@
 #include "gesqua.h"
 #include "ulec.h"
 #include "Average_density_matrix.h"
+#include "Average_ekt.h"
 #include "Average_region_fluctuation.h"
 #include "Average_enmoment.h"
 #include "Properties_point.h"
+
 
 //-----------------------------------------------------------------------------
 int decide_averager(string & label, Average_generator *& avg) { 
@@ -19,6 +21,8 @@ int decide_averager(string & label, Average_generator *& avg) {
     avg=new Average_manybody_polarization;
   else if(caseless_eq(label, "OBDM"))
     avg=new Average_obdm;
+  else if(caseless_eq(label, "EKT"))
+    avg=new Average_ekt; 
   else if(caseless_eq(label, "TBDM"))
     avg=new Average_tbdm;
   else if(caseless_eq(label, "LM"))
@@ -35,7 +39,7 @@ int decide_averager(string & label, Average_generator *& avg) {
     avg=new Average_spherical_density_grid;
   else if(caseless_eq(label, "LINE_DENSITY"))
     avg=new Average_line_density;
-  else if(caseless_eq(label,"TBDM_BASIS")) 
+  else if(caseless_eq(label, "TBDM_BASIS")) 
     avg=new Average_tbdm_basis;
   else if(caseless_eq(label,"REGION_FLUCTUATION"))
     avg=new Average_region_fluctuation;
@@ -50,6 +54,7 @@ int decide_averager(string & label, Average_generator *& avg) {
   
   return 1;
 }
+
 
 //-----------------------------------------------------------------------------
 
@@ -67,9 +72,100 @@ int allocate(vector<string> & words, Average_generator * & avg) {
   avg->read(words);
   return 1;
 }
+/*
+void Average_dipole::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
+{
+  cout << "Not needed! " << endl; 
+}
 
+void Average_structure_factor::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
+{
+  cout << "Not needed! " << endl; 
+}
+
+void Average_twobody_correlation::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
+{
+  cout << "Not needed! " << endl; 
+}
+void Average_manybody_polarization::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
+{
+  cout << "Not needed! " << endl; 
+}
+
+
+void Average_obdm::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
+{
+  cout << "Not needed! " << endl; 
+}
+
+void Average_tbdm::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
+{
+  cout << "Not needed! " << endl; 
+}
+
+void Average_local_moments::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
+{
+  cout << "Not needed! " << endl; 
+}
+
+void Average_density_moments::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
+{
+  cout << "Not needed! " << endl; 
+}
+
+void Average_linear_derivative::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
+{
+  cout << "Not needed! " << endl; 
+}
+
+void Average_linear_delta_derivative::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
+{
+  cout << "Not needed! " << endl; 
+}
+
+
+void Average_spherical_density::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
+{
+  cout << "Not needed! " << endl; 
+}
+
+void Average_spherical_density_grid::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
+{
+  cout << "Not needed! " << endl; 
+}
+
+void Average_line_density::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
+{
+  cout << "Not needed! " << endl; 
+}
+
+
+void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
+{
+  cout << "Not needed! " << endl; 
+}
+void Average_region_fluctuation::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
+{
+  cout << "Not needed! " << endl; 
+}
+void Average_region_density_matrix::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
+{
+  cout << "Not needed! " << endl; 
+}
+
+void Average_wf_parmderivs::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
+{
+  cout << "Not needed! " << endl; 
+}
+
+void Average_enmoment::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Psueopotential *psp, Sample_point * sample, Average_return & )
+{
+  cout << "Not needed! " << endl; 
+}
+*/
 //############################################################################
 //Average_dipole
+
 
 void Average_dipole::read(System * sys, Wavefunction_data * wfdata, vector <string> & words) { 
 }

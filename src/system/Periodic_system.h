@@ -64,7 +64,9 @@ public:
   int read(vector <string> & words, unsigned int & pos);
 
   doublevar calcLoc(Sample_point *);
-
+  void calcLocSeparated(Sample_point *, Array1<doublevar> &) {
+    cout << "Not implemented!" << endl; 
+  }
 
   /*!
     Enforce the periodic boundary conditions on the position.
@@ -72,7 +74,7 @@ public:
    */
   int enforcePbc(Array1 <doublevar> & pos, Array1 <int> & nshifted);
 
-
+  
   virtual int nelectrons(int s) {
     assert(s==0 || s==1);
     return nspin(s);

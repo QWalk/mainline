@@ -64,6 +64,9 @@ public:
   int read(vector <string> & words, unsigned int & pos);
 
   doublevar calcLoc(Sample_point *);
+  void calcLocSeparated(Sample_point *, Array1<doublevar> &) {
+    cout << "Not implemented!" << endl; 
+  }
 
   /*!
     Enforce the periodic boundary conditions on the position.
