@@ -1,5 +1,6 @@
 #!/bin/sh
-WORKDIR=$HOME/qwalk_ekt
+WORKDIR=/home/zhenghh/Documents/Research/vo2/Programs/qwalk_ekt
+#WORKDIR=$HOME/project-cse/qwalk_devel
 function compileconverter() {
     cd $WORKDIR/src/converter
     make 

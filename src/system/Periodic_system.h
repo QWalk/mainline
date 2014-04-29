@@ -64,10 +64,8 @@ public:
   int read(vector <string> & words, unsigned int & pos);
 
   doublevar calcLoc(Sample_point *);
-  void calcLocSeparated(Sample_point *, Array1<doublevar> &) {
-    cout << "Not implemented!" << endl; 
-  }
-
+  void calcLocSeparated(Sample_point *, Array1<doublevar> &); 
+  void calcLocWithTestPos(Sample_point *, Array1<doublevar>, Array1 <doublevar> &); 
   /*!
     Enforce the periodic boundary conditions on the position.
     Returns one if the vector was changed.
@@ -188,8 +186,9 @@ private:
   doublevar self_ei; //!< self electron-ion energy
   doublevar self_ee; //!< self electron-electron energy
   doublevar xc_correction; //!<exchange-correlation correction
-
-
+  //  Array1 <doublevar> self_ee_separated; 
+  Array1 <doublevar> ewalde_separated; 
+  doublevar self_e_single; 
   /*!
     Set the constant ewald terms
    */

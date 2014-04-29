@@ -357,9 +357,10 @@ void Molecular_system::calcLocSeparated(Sample_point * sample, Array1<doublevar>
   doublevar elecIon=0;
   sample->updateEIDist();
   sample->updateEEDist();
+  PotLoc = 0.0; 
   for(int e=0; e< nelectrons; e++)
   {
-    PotLoc(e) = 0.0; 
+
     // Electron-ion interaction
     for(int i=0; i < nions; i++)
     {
@@ -370,11 +371,12 @@ void Molecular_system::calcLocSeparated(Sample_point * sample, Array1<doublevar>
     for(int i=0; i<e; i++) {
       sample->getEEDist(i,e, R); // noted that the first index should be smaller than the second index
       PotLoc(e) += 1/R(0);
+      PotLoc(i) += 1/R(0);
     }
-    for(int i=e+1; i< nelectrons; i++) {
-      sample->getEEDist(e,i,R);
-      PotLoc(e) += 1/R(0);
-    }
+    //    for(int i=e+1; i< nelectrons; i++) {
+    //  sample->getEEDist(e,i,R);
+    //  PotLoc(e) += 1/R(0);
+    //}
     // Local external field
     Array1 <doublevar> pos(3);
     sample->getElectronPos(e,pos);
