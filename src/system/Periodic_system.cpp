@@ -489,6 +489,39 @@ void Periodic_system::setIonPos(int ion, Array1 <doublevar> & r) {
 
 //------------------------------------------------------------------------
 
+doublevar Periodic_system::minDistance(Array1 <doublevar> pos1, Array1 <doublevar> pos2, Array1 <doublevar> &rmin ) {
+  doublevar height2=smallestheight*smallestheight*.25;
+  int nlat=primlat.GetDim(0);
+  //static Array1 <doublevar> tmpvec(3),rmin(3);
+  doublevar tmpvec[3]; 
+  doublevar tmpdis=0,dismin=1e99;
+  Array1<doublevar> r(3); 
+  for (int d=0; d<3; d++) {
+    r[d] = pos2[d] - pos1[d];
+    rmin(d) = r[d]; 
+    tmpdis+=r[d]*r[d];
+  }
+  if(tmpdis < height2) return tmpdis;
+  
+  for(int a=0; a < nlat; a++) { 
+    tmpdis=0;
+    for(int d=0; d < 3; d++) { 
+      tmpvec[d]=r(d)+primlat(a,d);
+      tmpdis+=tmpvec[d]*tmpvec[d];
+    }
+    if(tmpdis < dismin) { 
+      for(int d=0; d< 3; d++) rmin[d]=tmpvec[d];
+      dismin=tmpdis;
+      //cout << "dismin " << dismin << endl;
+      if(tmpdis< height2)
+        break;
+    }
+    if(tmpdis < height2) break;
+  }
+  
+  return dismin;
+}
+
 int Periodic_system::enforcePbc(Array1 <doublevar> & pos, Array1 <int> & nshifted) {
   assert(pos.GetDim(0) >=3);
   int shifted=0;
@@ -565,15 +598,11 @@ doublevar Periodic_system::calcLoc(Sample_point * sample)
   return ion_ewald+self_ii+self_ee+self_ei+ewalde; //+xc_correction;
 }
 
-void Periodic_system::calcLocWithTestPos(Sample_point * sample, Array1 <doublevar> tpos, Array1 <doublevar> &Vtest) {
-  cout << "Sorry, we haven't implemented this" << endl; 
-  Vtest = 0.0; 
-}
 
 void Periodic_system::calcLocSeparated(Sample_point * sample, Array1 <doublevar> & totalv)
 {
   //  cout << "Not implemented" << endl; 
-  doublevar ewalde=ewaldElectron(sample);
+  //  doublevar ewalde=ewaldElectron(sample);
   
   //cout << "ion_ewald " << ion_ewald << " self_ii " << self_ii
   //     << " self_ee " << self_ee << " self_ei " << self_ei << endl;
@@ -620,13 +649,14 @@ void Periodic_system::constEwald() {
   }
 
   doublevar squareconst=-.5*(2*alpha/sqrt(pi)+pi/(cellVolume*alpha*alpha));
-  //  doublevar ijconst=-pi/(cellVolume*alpha*alpha);
-   doublevar ijconst=pi/(cellVolume*alpha*alpha);
+  doublevar ijconst=-pi/(cellVolume*alpha*alpha);
   self_ii=ionIonSum*ijconst+ionSum2*squareconst;
-  self_ei=ionElecSum*ijconst; // charge+ and charge- background interactions
+  self_ei=ionElecSum*ijconst; // I guess this term is the charge+ and charge- background interactions
   self_ee=.5*elecElecSum*ijconst+elecSum2*squareconst;
-  self_e_single = (totnelectrons - 1)*ijconst + ionElecSum/totnelectrons*ijconst;  
-
+  //                  e-e_i_bg                       e-Ion_bg                       e_e_self
+  self_e_single = (totnelectrons - 1)*ijconst + ionElecSum/totnelectrons*ijconst + squareconst; 
+  self_e_single_test= ionElecSum/totnelectrons*ijconst + squareconst; 
+  ijbg = ijconst; 
   //Correct for the exchange-correlation false interaction with
   //the uniform electron gas number.  cexc was fitted to several
   //systems..
@@ -724,6 +754,101 @@ doublevar Periodic_system::ewaldIon() {
 
 //----------------------------------------------------------------------
 
+
+void Periodic_system::calcLocWithTestPos(Sample_point * sample, Array1 <doublevar> &tpos, Array1<doublevar> & Vtest) {
+  sample->updateEEDist();
+  sample->updateEIDist();
+  Array1 <int> nshift; 
+  if(enforcePbc(tpos, nshift))  { 
+    cout <<"Warning, tpos is not in the cell" << endl; 
+  }
+  int nions=ions.size();
+  int nlatvec=1;
+  Array1 <doublevar> r1(3), r2(3), eidist(5), eedist(5);
+  Vtest.Resize(totnelectrons+1);
+  for (int e=0; e<totnelectrons; e++) {
+    Vtest(e) = ijbg; 
+  }
+  Vtest(totnelectrons) = self_e_single_test; 
+  
+  Array1 <doublevar> rion(3); 
+  Array1 <doublevar> oldpos(3); 
+  //  sample->getElectronPos(0, oldpos);
+  //sample->setElectronPosNoNotify(0, tpos);
+  //sample->updateEIDist(); 
+  for(int ion=0; ion < nions; ion++) {
+    sample->getIonPos(ion, rion); 
+    //sample->getEIDist(0, ion, eidist); 
+    sample->minDist(tpos, rion, r1); //the minimum distance between ion and the test electron
+    //----over  lattice vectors
+    //for (int d=0; d<3; d++) {
+    //  r1(d) = eidist(d+2); 
+    //}
+    for(int kk=-nlatvec; kk <=nlatvec; kk++) {
+      for(int jj=-nlatvec; jj <=nlatvec; jj++) {
+	for(int ii=-nlatvec; ii <=nlatvec; ii++) {
+	  for(int d=0; d< 3; d++) {
+	    r2(d)=r1(d)+kk*latVec(0,d)+jj*latVec(1,d)+ii*latVec(2,d);
+	  }
+	  doublevar r=sqrt(r2(0)*r2(0)+r2(1)*r2(1)+r2(2)*r2(2));
+	  Vtest(totnelectrons) -= ions.charge(ion)*erfcm(alpha*r)/r;
+	  //            elecIon_real-=ions.charge(ion)*erfcm(alpha*r)/r;
+	}
+      }
+    }
+      //----done lattice vectors
+  }
+
+  //cout << "electron-electron " << endl;
+  //-------------Electron-electron real part
+  //sample->updateEEDist(); 
+  
+  Array2 <doublevar> elecpos(totnelectrons, 3);
+  sample->getAllElectronPos(elecpos);
+  for(int e =0; e < totnelectrons; e++) {
+    //sample->getEEDist(0, e, eedist); 
+    //for (int d=0; d<3; d++) r1(d)=eedist(d+2); 
+    for (int d=0; d<3; d++) rion(d) = elecpos(e, d); 
+    sample->minDist(tpos, rion, r1); 
+    //----over  lattice vectors
+    for(int kk=-nlatvec; kk <=nlatvec; kk++) {
+      for(int jj=-nlatvec; jj <=nlatvec; jj++) {
+	for(int ii=-nlatvec; ii <=nlatvec; ii++) {
+	  for(int d=0; d< 3; d++) {
+	    r2(d)=r1(d)+kk*latVec(0,d)+jj*latVec(1,d)+ii*latVec(2,d);
+	  }
+	  doublevar r=sqrt(r2(0)*r2(0)+r2(1)*r2(1)+r2(2)*r2(2));
+	  Vtest(e) += erfcm(alpha*r)/r;
+	}
+      }
+    }
+    //----done lattice vectors
+  }
+
+  //cout << "electron recip " << endl;
+  
+  //---------electron reciprocal part
+  
+  
+  doublevar rdotg;
+
+  for(int gpt=0; gpt < ngpoints; gpt++) {
+    rdotg = gpoint(gpt, 0)*tpos(0)
+            +gpoint(gpt, 1)*tpos(1)
+            +gpoint(gpt, 2)*tpos(2);
+    doublevar test_sin = sin(rdotg);
+    doublevar test_cos = cos(rdotg);
+    Vtest(totnelectrons) += 2.0*(-ion_cos(gpt)*test_cos - ion_sin(gpt)*test_sin + 0.5)*gweight(gpt);
+    for(int e=0; e< totnelectrons; e++) {
+      rdotg=gpoint(gpt, 0)*elecpos(e,0)
+            +gpoint(gpt, 1)*elecpos(e,1)
+            +gpoint(gpt, 2)*elecpos(e,2);
+      Vtest(e) += 2.0*(test_cos*cos(rdotg) + test_sin*sin(rdotg))*gweight(gpt);
+    }
+  }
+}
+
+
 doublevar Periodic_system::ewaldElectron(Sample_point * sample) {
   //cout << sample << endl;
   sample->updateEEDist();
@@ -740,7 +865,7 @@ doublevar Periodic_system::ewaldElectron(Sample_point * sample) {
   //-------------Electron-ion real part
   doublevar elecIon_real=0;
   Array1<doublevar> elecIon_real_separated(totnelectrons); 
-  
+  elecIon_real_separated = 0.0; 
   for(int e=0; e< totnelectrons; e++) {
     for(int ion=0; ion < nions; ion++) {
 
@@ -755,7 +880,7 @@ doublevar Periodic_system::ewaldElectron(Sample_point * sample) {
               r2(d)=r1(d)+kk*latVec(0,d)+jj*latVec(1,d)+ii*latVec(2,d);
             }
             doublevar r=sqrt(r2(0)*r2(0)+r2(1)*r2(1)+r2(2)*r2(2));
-	    elecIon_real_separated(e)= -ions.charge(ion)*erfcm(alpha*r)/r;
+	    elecIon_real_separated(e) -= ions.charge(ion)*erfcm(alpha*r)/r;
             elecIon_real-=ions.charge(ion)*erfcm(alpha*r)/r;
           }
         }
@@ -764,7 +889,6 @@ doublevar Periodic_system::ewaldElectron(Sample_point * sample) {
     }
   }
   //cout << "electron-electron " << endl;
-
   //-------------Electron-electron real part
 
   doublevar elecElec_real=0;
@@ -793,7 +917,6 @@ doublevar Periodic_system::ewaldElectron(Sample_point * sample) {
       //----done lattice vectors
     }
   }
-
 
   //cout << "electron recip " << endl;
 
@@ -827,9 +950,8 @@ doublevar Periodic_system::ewaldElectron(Sample_point * sample) {
     for (int e=0; e<totnelectrons; e++) {
       elecIon_recip_separated(e) -= (ion_cos(gpt)*cs(e) 
 				     + ion_sin(gpt)*sn(e))*gweight(gpt);
-      elecElec_recip_separated(e) += (sum_cos*cs(e) + sum_sin*sn(e) -
-				      cs(e)*cs(e) - sn(e)*sn(e))*gweight(gpt);
-      
+      elecElec_recip_separated(e) += (sum_cos*cs(e) + sum_sin*sn(e)-0.5)*gweight(gpt);
+      // this term is essentially the contribution from 
     }
   }
 
@@ -842,12 +964,15 @@ doublevar Periodic_system::ewaldElectron(Sample_point * sample) {
   //cout << "elecElec_recip " << elecElec_recip << endl;
   //cout << "elecIon_recip " << elecIon_recip << endl;
   ewalde_separated.Resize(totnelectrons); 
+  doublevar cc; 
   for (int e=0; e<totnelectrons; e++) {
-    ewalde_separated(e) = elecElec_real_separated(e) + elecIon_real_separated(e) 
-      + 2.0*(elecIon_recip_separated(e) + elecElec_recip_separated(e)); 
-    //noted that the elecElec_recip_separated term already removed the self interaction term; 
+    ewalde_separated(e) = elecElec_real_separated(e) + elecIon_real_separated(e)
+         + 2.0*(elecIon_recip_separated(e) + elecElec_recip_separated(e)); 
+    //
+    //ewalde_separated(e) = elecElec_real_separated(e) 
+    //  + 2.0*(elecElec_recip_separated(e)); 
+        //noted that the elecElec_recip_separated term already removed the self interaction term; 
   }
-
   return elecElec_real + elecIon_real + elecElec_recip+elecIon_recip;
 }
 

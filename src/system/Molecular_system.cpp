@@ -272,7 +272,7 @@ doublevar Molecular_system::calcLoc(Sample_point * sample)
 
   Array1 <doublevar> R(5);
   doublevar pot=0;
-
+  
   doublevar elecIon=0;
   sample->updateEIDist();
   sample->updateEEDist();
@@ -346,9 +346,22 @@ doublevar Molecular_system::calcLoc(Sample_point * sample)
 
 void Molecular_system::calcLocSeparated(Sample_point * sample, Array1<doublevar> & PotLoc)
 {
+  Array1 <doublevar> onebody; 
+  Array2 <doublevar> twobody; 
+  separatedLocal(sample, onebody, twobody); 
+  int nelectrons = sample->electronSize();
+  PotLoc = 0.0; 
+  for (int e = 0; e < nelectrons; e++) {
+    PotLoc(e) += onebody(e); 
+    for (int ep =e+1; ep < nelectrons; ep ++) {
+      PotLoc(e) += twobody(e, ep); 
+      PotLoc(ep) += twobody(e, ep); 
+    }
+  }
+  /*
   int nions=sample->ionSize();
   int nelectrons=sample->electronSize();
-
+  
   //cout << "Calculating local energy\n";
 
   Array1 <doublevar> R(5);
@@ -373,16 +386,14 @@ void Molecular_system::calcLocSeparated(Sample_point * sample, Array1<doublevar>
       PotLoc(e) += 1/R(0);
       PotLoc(i) += 1/R(0);
     }
-    //    for(int i=e+1; i< nelectrons; i++) {
-    //  sample->getEEDist(e,i,R);
-    //  PotLoc(e) += 1/R(0);
-    //}
+
     // Local external field
     Array1 <doublevar> pos(3);
     sample->getElectronPos(e,pos);
     for(int d=0; d< 3; d++) 
       PotLoc(e) += -electric_field(d)*pos(d);
   }
+  */
 }
 
 //----------------------------------------------------------------------

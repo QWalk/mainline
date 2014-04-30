@@ -73,7 +73,8 @@ public:
                            Sample_point *,
                            Wavefunction *,
                            Array1 <doublevar> &);
-
+  Array2 <doublevar> Kin; 
+  Array1 <doublevar> VLoc; 
   /*!
     \brief 
     This is to return the kinetic energy of each electron
@@ -81,9 +82,8 @@ public:
     e (electron index), iw (wavefunction index)
   */
   virtual void calcKineticSeparated(Wavefunction_data *,
-                           Sample_point *,
-                           Wavefunction *,
-                           Array2<doublevar> &);
+				    Sample_point *,
+				    Wavefunction *); 
 
   /*!
     \brief -- Huihuo

@@ -65,7 +65,7 @@ public:
 
   doublevar calcLoc(Sample_point *);
   void calcLocSeparated(Sample_point *, Array1<doublevar> &); 
-  void calcLocWithTestPos(Sample_point *, Array1<doublevar>, Array1 <doublevar> &); 
+  void calcLocWithTestPos(Sample_point *, Array1<doublevar> &, Array1 <doublevar> &); 
   /*!
     Enforce the periodic boundary conditions on the position.
     Returns one if the vector was changed.
@@ -189,6 +189,8 @@ private:
   //  Array1 <doublevar> self_ee_separated; 
   Array1 <doublevar> ewalde_separated; 
   doublevar self_e_single; 
+  doublevar self_e_single_test; 
+  doublevar ijbg; 
   /*!
     Set the constant ewald terms
    */
@@ -203,7 +205,7 @@ private:
     electron-ion interaction and electron-electron interaction
    */
   doublevar ewaldElectron(Sample_point * sample);
-  
+  doublevar minDistance(Array1 <doublevar> pos1, Array1 <doublevar> pos2, Array1 <doublevar> &rmin ); 
   Array1 <doublevar> ion_polarization;
 };
 

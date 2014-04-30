@@ -58,7 +58,17 @@ void System::calcKinetic(Wavefunction_data * wfdata,
                          Wavefunction * wf,
                          Array1 <doublevar> & lap)
 {
+  calcKineticSeparated(wfdata, sample, wf); 
+  int nelectrons = sample->electronSize();
+  int nwf = wf->nfunc(); 
+  for (int w=0; w<nwf; w++) {
+    lap(w) = 0.0; 
+    for(int e=0; e<nelectrons; e++) {
+      lap(w) += Kin(e, w); 
+    }
+  }
   //cout << "Calculating kinetic energy \n";
+  /*
   assert(lap.GetDim(0)>= wf->nfunc());
   int nelectrons=sample->electronSize();
   int nwf=wf->nfunc();
@@ -82,7 +92,7 @@ void System::calcKinetic(Wavefunction_data * wfdata,
     }
     lap(w)*=-0.5;
   }
-
+  */
   //cout << "laplacian " << lap(0) << endl;
   //cout << "Calculating kinetic energy done \n";
 }
@@ -92,31 +102,38 @@ void System::calcKinetic(Wavefunction_data * wfdata,
   into an array, --- this is particular for single-body term
  */
 void System::calcKineticSeparated(Wavefunction_data * wfdata,
-                         Sample_point * sample,
-                         Wavefunction * wf,
-                         Array2<doublevar>  & lap)
+				  Sample_point * sample,
+				  Wavefunction * wf)
 {
   //cout << "Calculating kinetic energy \n";
-  assert(lap.GetDim(0)>= wf->nfunc());
+
+  //  assert(lap.GetDim(0)>= wf->nfunc());
   int nelectrons=sample->electronSize();
   int nwf=wf->nfunc();
-  lap=0;
+  // lap=0;
   Wf_return temp(nwf,5);
+  Kin.Resize(nelectrons, nwf);
+
   for(int w=0; w< nwf; w++)
   {
     for(int e=0; e< nelectrons; e++)
     {
 
       wf->getLap(wfdata, e, temp);
-      lap(e, w)+=temp.amp(w,4);
+      //  lap(e, w)+=temp.amp(w,4);
+      Kin(e, w) = temp.amp(w, 4); 
       if ( temp.is_complex==1 ) {
-        lap(e, w)-=(  temp.phase(w,1)*temp.phase(w,1)
-            +temp.phase(w,2)*temp.phase(w,2)
-            +temp.phase(w,3)*temp.phase(w,3) );
+	// lap(e, w)-=(  temp.phase(w,1)*temp.phase(w,1)
+	//   +temp.phase(w,2)*temp.phase(w,2)
+	//   +temp.phase(w,3)*temp.phase(w,3) );
+	Kin(e, w)-=(  temp.phase(w,1)*temp.phase(w,1)
+		      +temp.phase(w,2)*temp.phase(w,2)
+		      +temp.phase(w,3)*temp.phase(w,3) );
       }
       //cout << "total laplacian: " << lap(0) <<  " amp  " 
       //  << temp.amp(w,4) << endl;
-      lap(e, w)*=-0.5;
+      //lap(e, w)*=-0.5;
+      Kin(e, w)*=-0.5; 
     }
   }
 

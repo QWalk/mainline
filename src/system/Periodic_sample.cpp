@@ -137,6 +137,15 @@ void Periodic_sample::updateEEDist() {
 }
 
 
+
+void Periodic_sample::minDist(Array1 <doublevar> pos1 , Array1 <doublevar> pos2, Array1<doublevar> &rmin) {
+  Array1 <doublevar> rminc(3); 
+  for(int d=0; d<3; d++) rminc(d)=pos2(d) - pos1(d); 
+  doublevar dist=minimum_image(rminc);
+  for(int d=0; d<3; d++) rmin(d) = rminc(d);
+  //cout << "done" << endl;
+}
+
 //----------------------------------------------------------------------
 void Periodic_sample::updateECDist() {
   //cout << "periodic_sample::updateECDist() " << endl;

@@ -181,7 +181,7 @@ public:
   */
   virtual void getEEDist(const int e1, const int e2,
                          Array1 <doublevar> & distance)=0;
-
+  virtual void minDist(Array1 <doublevar>, Array1 <doublevar>, Array1<doublevar> &) {}; 
   //Electron-ion
   /*!
     \brief
