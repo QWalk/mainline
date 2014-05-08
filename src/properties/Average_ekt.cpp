@@ -256,7 +256,8 @@ void Average_ekt::evaluate_valence(Wavefunction_data * wfdata, Wavefunction * wf
       for(int orbnum=0; orbnum < nmo; orbnum++) { 
         for(int orbnum2=0; orbnum2 < nmo; orbnum2++) { 
 	  //	  assert(wf->nfunc()==1);
-	  tmp = movals_p(orbnum,0)*conj(movals1_base(e)(orbnum2,0))*prefactor;
+	  tmp = 0.5*(movals_p(orbnum,0)*conj(movals1_base(e)(orbnum2,0))*prefactor 
+		     + movals1_base(e)(orbnum, 0)*conj(movals_p(orbnum2, 0))*conj(prefactor));
 	  tmp2 = tmp*(VLoc(e) + sys->Kin(e, 0) + totalv(e, 0)); 
 	  //rho_ij part the one body reduced density matrix
 	  avg.vals(nmo+2*which_obdm*nmo*nmo+place) += tmp.real(); 
