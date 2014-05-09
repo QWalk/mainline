@@ -54,7 +54,11 @@ void read_crystal_orbital(istream & is,
 			  vector < vector < double > > & moCoeff,
 			  vector <double> & shift //amount to shift the atoms
 			  );
-
+void read_kpt_eigenpos(istream & is,
+		       vector <string> & rkpoints,
+		       vector <long int> & reigen_start, 
+		       vector <string> & ckpoints,
+		       vector <long int> & ceigen_start); 
 // for orbitals with complex coefficients
 void read_crystal_orbital(istream & is,
 			  vector <Atom> & atoms,
@@ -68,28 +72,34 @@ void read_crystal_orbital(istream & is,
 
 void read_crystal_orbital_all(istream & is,
 			      string & fort10file,
-			      vector <Atom> & atoms,
+			      vector <Atom> &atoms,
 			      Slat_wf_writer & slwriter,
 			      vector <Gaussian_basis_set> & basis,
 			      vector <double> & origin,
 			      vector < vector <double> >& latvec,
 			      vector < vector < vector < double > > > & moCoeff,
 			      vector <string> &kpoints, 
+			      vector < long int > & eigen_start, 
 			      vector <vector <double> > &kptCoord,
-			      vector <double> & shift //amount to shift the atoms
+			      vector <double> & shift,  //amount to shift the atoms
+			      vector < int > shifted, 
+			      vector < vector <int> > nshift
 			      );
 
 // for orbitals with complex coefficients
 void read_crystal_orbital_all(istream & is,
-			      vector <Atom> & atoms,
+			      vector <Atom> &atoms,
 			      Slat_wf_writer & slwriter,
 			      vector <Gaussian_basis_set> & basis,
 			      vector <double> & origin,
 			      vector < vector <double> >& latvec,
 			      vector < vector < vector < dcomplex > > > & moCoeff,
 			      vector <string> &kpoints,
+			      vector < long int > & eigen_start,
 			      vector < vector <double> > &kptCoord,
-			      vector <double> & shift //amount to shift the atoms
+			      vector <double> & shift, //amount to shift the atoms
+			      vector < int > shifted, 
+			      vector < vector <int> > nshift
 			      );
 
 
@@ -206,6 +216,24 @@ int main(int argc, char ** argv) {
   get_crystal_atoms(infile, atoms);
   infile.close();
   infile.clear();
+  if(latvec.size() > 0) { 
+    vector <double> atomshift;
+    for(int i=0; i< 3; i++) atomshift.push_back(0);
+    for(int i=0; i< 3; i++) {
+      for(int j=0; j< 3; j++) {
+	atomshift[j]+=shift[i]*latvec[i][j];
+      }
+    }
+    for(int i=0; i < atoms.size(); i++) {
+      atoms[i].pos=atoms[i].pos+atomshift;
+    }
+  }
+  Shifter shiftobj; 
+  vector < vector <int> > nshift;
+  nshift.resize(atoms.size());
+  vector <int> shifted(atoms.size()); 
+  for (int at = 0; at<atoms.size(); at++)
+    shifted[at]=shiftobj.enforcepbc(atoms[at].pos, latvec, nshift[at]);
   infile.open(infilename.c_str());
   get_crystal_basis(infile, basis);
   infile.close();
@@ -372,13 +400,15 @@ int main(int argc, char ** argv) {
   vector <string> ckpts; 
   vector < vector <double> > ckptCoord; 
   vector < vector <double> > rkptCoord; 
+  vector <long int > ceigen_start, reigen_start;  
+  read_kpt_eigenpos(infile, rkpts, reigen_start, ckpts, ceigen_start); 
   read_crystal_orbital_all(infile, atoms, slwriter, basis,
-			   origin, latvec, CmoCoeff, ckpts, ckptCoord, shift); 
+			   origin, latvec, CmoCoeff, ckpts, ceigen_start, ckptCoord, shift, shifted, nshift); 
   infile.close();
   infile.clear();
   infile.open(infilename.c_str());
   read_crystal_orbital_all(infile, fort10file, atoms, slwriter, basis,
-			   origin, latvec, moCoeff, rkpts, rkptCoord, shift);
+			   origin, latvec, moCoeff, rkpts, reigen_start, rkptCoord, shift, shifted, nshift);
   infile.close();
   natoms=atoms.size();
   
@@ -447,16 +477,18 @@ int main(int argc, char ** argv) {
   double cutoff_length= sqrt(-log(1e-8)/min);
   cout << "cutoff length " << cutoff_length << endl;
 
-  
+  cout << "Writing real orbitals ...  " << endl; 
   for (int kpt=0; kpt<rkpts.size(); kpt++) {
+
     vector <string> words; 
-    
     string space = " "; 
     split(rkpts[kpt], space, words);
     stringstream lk;
     lk << atoi(words[0].c_str())-1;
+
     string lst = lk.str();
     string forb=outputname+"_"+lst+".orb"; 
+    cout << "  " << forb + ": "; 
     ofstream orbout(forb.c_str());
     print_orbitals(orbout, centers, nbasis_list, moCoeff[kpt]);
     orbout.close();
@@ -509,6 +541,7 @@ int main(int argc, char ** argv) {
     
   }
   //  cout << "Now writing complex orbitals" << endl; 
+  cout << "Writing complex orbitals ...  " << endl; 
   for (int kpt=0; kpt<ckpts.size(); kpt++) {
     vector <string> words; 
     string space = " "; 
@@ -518,6 +551,7 @@ int main(int argc, char ** argv) {
     lk << atoi(words[0].c_str())-1;
     string lst = lk.str();
     string forb=outputname+"_"+lst+".orb"; 
+    cout << "  " << forb << ": "; 
     ofstream orbout(forb.c_str());
     print_orbitals(orbout, centers, nbasis_list, CmoCoeff[kpt]);
     orbout.close(); 
@@ -1639,17 +1673,6 @@ void read_crystal_orbital(istream & is,
   //shift.push_back(shift_amount); shift.push_back(shift_amount); 
   //shift.push_back(shift_amount);
   if(latvec.size() > 0) { 
-    vector <double> atomshift;
-    for(int i=0; i< 3; i++) atomshift.push_back(0);
-    for(int i=0; i< 3; i++) {
-      for(int j=0; j< 3; j++) {
-        atomshift[j]+=shift[i]*latvec[i][j];
-      }
-    }
-
-    for(int i=0; i < natoms; i++) {
-      atoms[i].pos=atoms[i].pos+atomshift;
-    }
     //Now enforce the pbc's.. 
     
     for(unsigned int at=0; at< atoms.size(); at++) {
@@ -1882,17 +1905,20 @@ void read_crystal_orbital(istream & is,
 }
 
 void read_crystal_orbital_all(istream & is,
-                          string & fort10file,
-                          vector <Atom> & atoms,
-                          Slat_wf_writer & slwriter,
-                          vector <Gaussian_basis_set> & basis,
-			  vector <double> & origin,
-                          vector < vector <double> > & latvec,
+			      string & fort10file,
+			      vector <Atom> &atoms,
+			      Slat_wf_writer & slwriter,
+			      vector <Gaussian_basis_set> & basis,
+			      vector <double> & origin,
+			      vector < vector <double> > & latvec,
 			      vector < vector < vector <double> > > & moCoeff, 
 			      vector <string> & kpoints, 
+			      vector <long int> & eigen_start, 
 			      vector < vector < double > > &kptCoord, 
-			  vector <double> & shift) {
-
+			      vector <double> & shift, 
+			      vector <int> shifted, 
+			      vector < vector <int> > nshift) {
+  
   assert(atoms.size() > 0);
   assert(basis.size() > 0);
   string dummy;
@@ -1912,37 +1938,6 @@ void read_crystal_orbital_all(istream & is,
 
   string space=" ";
   int totmo=0;
-  vector <long int> eigen_start;
-  while(is >> dummy) {
-    //cout << "dummy " << dummy << endl;
-    if(dummy == "FINAL") {
-      is >> dummy;
-      if(dummy == "EIGENVECTORS" ) {
-        is.ignore(125, '\n'); //clear the line with FINAL EIG..
-        string line;
-        getline(is, line);
-       // cout << "line " << line << endl;
-        while(getline( is,line)) {
-          if(line.size() > 15 && line[5]=='(' && line[15]==')') {
-            //cout << line[5] << "  " << line[15] << endl;
-            is.ignore(150, '\n');//two blank lines
-            is.ignore(150, '\n');
-            long int pos=is.tellg();
-            string line2;
-            getline(is, line2);
-            vector <string> words;
-            split(line2, space, words);
-            if(words[0]!=words[1]) {
-              //cout << "real k-point line " << line << endl;
-              kpoints.push_back(line);
-              eigen_start.push_back(pos);
-            }
-          }
-        }
-      }
-    }
-   }
-
   
   int nkpts=eigen_start.size();
   if(calctype=="UHF") {
@@ -2036,29 +2031,18 @@ void read_crystal_orbital_all(istream & is,
     //shift.push_back(shift_amount); shift.push_back(shift_amount); 
     //shift.push_back(shift_amount);
     if(latvec.size() > 0) { 
-      vector <double> atomshift;
-      for(int i=0; i< 3; i++) atomshift.push_back(0);
-      for(int i=0; i< 3; i++) {
-	for(int j=0; j< 3; j++) {
-	  atomshift[j]+=shift[i]*latvec[i][j];
-	}
-      }
-      
-      for(int i=0; i < natoms; i++) {
-	atoms[i].pos=atoms[i].pos+atomshift;
-      }
+
       //Now enforce the pbc's.. 
       
       for(unsigned int at=0; at< atoms.size(); at++) {
-	vector <int> nshift;
 	int bas=atoms[at].basis;
 	int nfunc=basis[bas].nfunc();
-	if(shiftobj.enforcepbc(atoms[at].pos, latvec, nshift)) {
+	if(shifted[at]) {
 	  //cout << "at " << at << "  shifted " << nshift[0] << "  " << nshift[1] 
 	  //    << "   " << nshift[2] << endl;
 	  double kdots=0;
 	  for(int d=0; d< 3; d++) 
-	    kdots+=slwriter.kpoint[d]*nshift[d];
+	    kdots+=slwriter.kpoint[d]*nshift[at][d];
 	  kdots=cos(pi*kdots);
 	  //cout << "kdots " << kdots << endl;
 	  for(int i=0; i< nfunc; i++) {
@@ -2077,15 +2061,18 @@ void read_crystal_orbital_all(istream & is,
 
 
 void read_crystal_orbital_all(istream & is,
-			      vector <Atom> & atoms,
+			      vector <Atom> &atoms,
 			      Slat_wf_writer & slwriter,
 			      vector <Gaussian_basis_set> & basis,
 			      vector <double> & origin,
 			      vector < vector <double> > & latvec,
 			      vector <vector < vector <dcomplex> > > & moCoeff,
 			      vector <string> & kpoints, 
+			      vector <long int> & eigen_start, 
 			      vector < vector < double > > &kptCoord, 
-			      vector <double> & shift) {
+			      vector <double> & shift, 
+			      vector <int> shifted, 
+			      vector < vector <int> > nshift) {
 
   assert(atoms.size() > 0);
   assert(basis.size() > 0);
@@ -2104,38 +2091,6 @@ void read_crystal_orbital_all(istream & is,
   
   string space=" ";
   int totmo=0;
-  vector <long int> eigen_start;
-  while(is >> dummy) {
-    //cout << "dummy " << dummy << endl;
-    if(dummy == "FINAL") {
-      is >> dummy;
-      if(dummy == "EIGENVECTORS" ) {
-        is.ignore(125, '\n'); //clear the line with FINAL EIG..
-        string line;
-        getline(is, line);
-       // cout << "line " << line << endl;
-        while(getline( is,line)) {
-          if(line.size() > 15 && line[5]=='(' && line[15]==')') {
-            //cout << line[5] << "  " << line[15] << endl;
-            is.ignore(150, '\n');//two blank lines
-            is.ignore(150, '\n');
-            long int pos=is.tellg();
-            string line2;
-            getline(is, line2);
-            vector <string> words;
-            split(line2, space, words);
-            if(words[0]==words[1]) {
-              //cout << "complex  k-point line " << line << endl;
-              kpoints.push_back(line);
-              eigen_start.push_back(pos);
-            }
-          }
-        }
-      }
-    }
-  }
-
-  
   int nkpts=eigen_start.size();
   if(calctype=="UHF") {
     assert(nkpts%2==0);
@@ -2224,29 +2179,18 @@ void read_crystal_orbital_all(istream & is,
     //shift.push_back(shift_amount); shift.push_back(shift_amount); 
     //shift.push_back(shift_amount);
     if(latvec.size() > 0) { 
-      vector <double> atomshift;
-      for(int i=0; i< 3; i++) atomshift.push_back(0);
-      for(int i=0; i< 3; i++) {
-	for(int j=0; j< 3; j++) {
-	  atomshift[j]+=shift[i]*latvec[i][j];
-	}
-      }
-
-      for(int i=0; i < natoms; i++) {
-	atoms[i].pos=atoms[i].pos+atomshift;
-      }
       //Now enforce the pbc's.. 
       
       for(unsigned int at=0; at< atoms.size(); at++) {
-	vector <int> nshift;
+	
 	int bas=atoms[at].basis;
 	int nfunc=basis[bas].nfunc();
-	if(shiftobj.enforcepbc(atoms[at].pos, latvec, nshift)) {
+	if(shifted[at]) {
 	  //cout << "at " << at << "  shifted " << nshift[0] << "  " << nshift[1] 
 	  //    << "   " << nshift[2] << endl;
 	  dcomplex kdots=0;
 	  for(int d=0; d< 3; d++) 
-	    kdots+=slwriter.kpoint[d]*nshift[d];
+	    kdots+=slwriter.kpoint[d]*nshift[at][d];
 	  //kdots=cos(pi*kdots);
 	  kdots=exp(pi*kdots*dcomplex(0.0,1.0));
 	  //cout << "kdots " << kdots << endl;
@@ -2258,6 +2202,48 @@ void read_crystal_orbital_all(istream & is,
 	  }
 	}
 	else f+=nfunc;
+      }
+    }
+  }
+}
+
+void read_kpt_eigenpos(istream & is,
+		       vector <string> & rkpoints,
+		       vector <long int> & reigen_start, 
+		       vector <string> & ckpoints,
+		       vector <long int> & ceigen_start) {
+
+  string dummy; 
+  string space = " "; 
+  while(is >> dummy) {
+    //cout << "dummy " << dummy << endl;
+    if(dummy == "FINAL") {
+      is >> dummy;
+      if(dummy == "EIGENVECTORS" ) {
+        is.ignore(125, '\n'); //clear the line with FINAL EIG..
+        string line;
+        getline(is, line);
+       // cout << "line " << line << endl;
+        while(getline( is,line)) {
+          if(line.size() > 15 && line[5]=='(' && line[15]==')') {
+            //cout << line[5] << "  " << line[15] << endl;
+            is.ignore(150, '\n');//two blank lines
+            is.ignore(150, '\n');
+            long int pos=is.tellg();
+            string line2;
+            getline(is, line2);
+            vector <string> words;
+            split(line2, space, words);
+            if(words[0]==words[1]) {
+              //cout << "complex  k-point line " << line << endl;
+              ckpoints.push_back(line);
+              ceigen_start.push_back(pos);
+            } else { 
+	      rkpoints.push_back(line);
+              reigen_start.push_back(pos);
+	    }
+          }
+        }
       }
     }
   }
