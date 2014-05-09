@@ -2077,15 +2077,15 @@ void read_crystal_orbital_all(istream & is,
 
 
 void read_crystal_orbital_all(istream & is,
-                          vector <Atom> & atoms,
-                          Slat_wf_writer & slwriter,
-                          vector <Gaussian_basis_set> & basis,
-			  vector <double> & origin,
-                          vector < vector <double> > & latvec,
+			      vector <Atom> & atoms,
+			      Slat_wf_writer & slwriter,
+			      vector <Gaussian_basis_set> & basis,
+			      vector <double> & origin,
+			      vector < vector <double> > & latvec,
 			      vector <vector < vector <dcomplex> > > & moCoeff,
 			      vector <string> & kpoints, 
 			      vector < vector < double > > &kptCoord, 
-			  vector <double> & shift) {
+			      vector <double> & shift) {
 
   assert(atoms.size() > 0);
   assert(basis.size() > 0);
@@ -2142,7 +2142,6 @@ void read_crystal_orbital_all(istream & is,
     nkpts/=2;
   }
   kpoints.resize(nkpts);
-  cout << kpoints.size() << endl; 
   cout << "Found " << nkpts << " k-points with complex eigenvectors " << endl;
   for(int i=0; i< nkpts; i++) {
     cout << i << " : " << kpoints[i] << endl;
