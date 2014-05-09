@@ -544,7 +544,7 @@ int main(int argc, char ** argv) {
   //  cout << "Now writing complex orbitals" << endl; 
   cout << "Writing complex orbitals ...  " << endl; 
   for (int kpt=0; kpt<ckpts.size(); kpt++) {
-    slwriter.orbtype="ORBITALS";
+    slwriter.orbtype="CORBITALS";
     vector <string> words; 
     string space = " "; 
     split(ckpts[kpt], space, words);
