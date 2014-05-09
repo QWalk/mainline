@@ -1969,10 +1969,10 @@ void read_crystal_orbital_all(istream & is,
   }
   for (kpt=0; kpt<nkpts; kpt++) {
     is.clear();
+    cout << "Reading orbital for " << kpoints[kpt] << "..." << endl; 
     totmo=readMO(is, eigen_start[kpt], moCoeff[kpt]);
     if(calctype=="UHF") {
       slwriter.spin_dwn_start=moCoeff[kpt].size();
-      cout << "Reading orbital for " << kpoints[kpt] << "..." << endl; 
       totmo=readMO(is, eigen_start[kpt+nkpts], moCoeff[kpt]);
     }
     // cout << "nmo's " << moCoeff[kpt].size() << endl;
@@ -2125,10 +2125,10 @@ void read_crystal_orbital_all(istream & is,
     //cout << "shrinking factor " << shrink_fact << endl; 
     
     is.clear();
+    cout << "Reading orbital for " << kpoints[kpt] << "..." << endl; 
     totmo=readMO(is, eigen_start[kpt], moCoeff[kpt]);
     if(calctype=="UHF") {
       slwriter.spin_dwn_start=moCoeff[kpt].size();
-      cout << "Reading orbital for " << kpoints[kpt] << "..." << endl; 
       totmo=readMO(is, eigen_start[kpt+nkpts], moCoeff[kpt]);
     }
     //cout << "nmo's " << moCoeff[kpt].size() << endl;
