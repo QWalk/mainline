@@ -1102,12 +1102,15 @@ int readMO(istream & is, long int start, vector < vector <double> > & moCoeff) {
   vector <double> emptyVector;
   while(getline(is, line) ) {
     if(line.size() > 15 && line[5]=='(' && line[15]==')') break;
+    if(line.size() > 45 && line[35]=='(' && line[45]==')') break;
+
     //check for various words that crystal can end with
     if(line[1]=='E' || line[3] == 'T' || line[6]=='B') break;
     vector <string> words;
     //cout << "start line " << line << endl;
     split(line, space, words);
     int nmo_this=words.size();
+    if (words[1]=="NEWK") break; 
     for(int i=0; i< nmo_this; i++)
       moCoeff.push_back(emptyVector);
     //cout << "nmo_this " << nmo_this << endl;
@@ -1119,6 +1122,7 @@ int readMO(istream & is, long int start, vector < vector <double> > & moCoeff) {
       split(line, space, words);
       //cout << "line " << line << " size " << words.size() << endl;
       if(words[0]=="BETA") break;
+      if (words[1]=="NEWK") break; 
       assert(words.size() == nmo_this+1);
       for(int i=0; i< nmo_this; i++) {
         moCoeff[totmo+i].push_back(atof(words[i+1].c_str()));
@@ -1142,11 +1146,13 @@ int readMO(istream & is, long int start,
   vector <dcomplex> emptyVector;
   while(getline(is, line) ) {
     if(line.size() > 15 && line[5]=='(' && line[15]==')') break;
+    if(line.size() > 45 && line[35]=='(' && line[45]==')') break;
     //check for various words that crystal can end with
     if(line[1]=='E' || line[3] == 'T' || line[6]=='B') break;
     vector <string> words;
     //cout << "start line " << line << endl;
     split(line, space, words);
+    if (words[1]=="NEWK") break; 
     int nmo_this=words.size()/2;
     for(int i=0; i< nmo_this; i++)
       moCoeff.push_back(emptyVector);
@@ -1159,7 +1165,9 @@ int readMO(istream & is, long int start,
       split(line, space, words);
       //cout << "line " << line << " size " << words.size() << endl;
       if(words[0]=="BETA") break;
+      if (words[1]=="NEWK") break; 
       assert(words.size() == 2*nmo_this+1);
+
       for(int i=0; i< nmo_this; i++) {
         moCoeff[totmo+i].push_back(
             dcomplex( atof(words[2*i+1].c_str()), atof(words[2*i+2].c_str()) )
@@ -2242,6 +2250,37 @@ void read_kpt_eigenpos(istream & is,
               ceigen_start.push_back(pos);
             } else { 
 	      rkpoints.push_back(line);
+              reigen_start.push_back(pos);
+	    }
+          }
+        }
+      }
+    }
+    else if(dummy == "NEWK") {
+      is >> dummy;
+      if(dummy == "EIGENVECTORS" ) {
+        is.ignore(125, '\n'); //clear the line with FINAL EIG..
+        string line;
+        //getline(is, line);
+       // cout << "line " << line << endl;
+        while(getline( is,line)) {
+          if(line.size() > 45 && line[28]=='K' && line[29]=='='&& line[35]=='(' && line[45]==')') {
+            //cout << line[5] << "  " << line[15] << endl;
+            is.ignore(150, '\n');//one blank lines
+            long int pos=is.tellg();
+	    string line2;
+            getline(is, line2);
+            vector <string> words1, words;
+	    split(line, space, words1);
+	    string kstr = words1[4] + " ( " + words1[6] + "  " + words1[7] + " " + words1[8]; 
+            split(line2, space, words);
+	    //	    cout << words[0] << " " << words[1] << endl; 
+            if(words[0]==words[1]) {
+              //cout << "complex  k-point line " << line << endl;
+              ckpoints.push_back(kstr);
+              ceigen_start.push_back(pos);
+            } else { 
+	      rkpoints.push_back(kstr);
               reigen_start.push_back(pos);
 	    }
           }
