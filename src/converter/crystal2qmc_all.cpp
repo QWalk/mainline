@@ -1805,14 +1805,16 @@ void read_crystal_orbital(istream & is,
   is.clear();
   is.seekg(1);
   string line;
-  int shrink_fact;
+  int shrink_fact[3];
   while ( getline(is,line) ) {
     vector<string> words;
     split(line, space, words);
-    if ( ( words.size()>3 )
+    if ( ( words.size()>5 )
 	 && ( words[0]=="SHRINK." )
 	 && ( words[1]=="FACT.(MONKH.)" ) ) {
-      shrink_fact=atoi(words[3].c_str());
+      for (int is = 0; is < 3; is++ ) {
+	shrink_fact[is]=atoi(words[3+is].c_str());
+      }
       break;
     }
   }
@@ -1835,7 +1837,7 @@ void read_crystal_orbital(istream & is,
     slwriter.kpoint[i]=atoi(kwords[i+2].c_str());
   }
   for(int i=0; i< 3; i++) 
-    slwriter.kpoint[i]/=shrink_fact/2.0;
+    slwriter.kpoint[i]/=shrink_fact[i]/2.0;
     
       
   cout << "chosen k-point " << slwriter.kpoint[0] <<"   " 
@@ -1966,14 +1968,15 @@ void read_crystal_orbital_all(istream & is,
   is.clear();
   is.seekg(1);
   string line;
-  int shrink_fact;
+  int shrink_fact[3];
   while ( getline(is,line) ) {
     vector<string> words;
     split(line, space, words);
-    if ( ( words.size()>3 )
+    if ( ( words.size()>5 )
 	 && ( words[0]=="SHRINK." )
 	 && ( words[1]=="FACT.(MONKH.)" ) ) {
-      shrink_fact=atoi(words[3].c_str());
+      for (int is=0; is<3;is++) 
+	shrink_fact[is]=atoi(words[3+is].c_str());
       break;
     }
   }
@@ -1995,13 +1998,12 @@ void read_crystal_orbital_all(istream & is,
     double max=0;
     for(int i=0; i< 3; i++) {
       slwriter.kpoint[i]=atoi(kwords[i+2].c_str());
-      if(slwriter.kpoint[i] > max) max=slwriter.kpoint[i];
+      //if(slwriter.kpoint[i] > max) max=slwriter.kpoint[i];
+      slwriter.kpoint[i]/=shrink_fact[i]/2.;
     }
     kptCoord[kpt].resize(3);
     for(int i=0; i< 3; i++) {
-      kptCoord[kpt][i] = slwriter.kpoint[i]/shrink_fact*2.0;
-      if(abs(max) > 1e-5) slwriter.kpoint[i]/=max;
-      
+      kptCoord[kpt][i] = slwriter.kpoint[i]; 
     }
       
     
@@ -2119,14 +2121,16 @@ void read_crystal_orbital_all(istream & is,
   is.clear();
   is.seekg(1);
   string line;
-  int shrink_fact;
+  int shrink_fact[3];
   while ( getline(is,line) ) {
     vector<string> words;
     split(line, space, words);
-    if ( ( words.size()>3 )
+    if ( ( words.size()>5 )
 	 && ( words[0]=="SHRINK." )
 	 && ( words[1]=="FACT.(MONKH.)" ) ) {
-      shrink_fact=atoi(words[3].c_str());
+      for (int is = 0; is<3; is++) {
+	shrink_fact[is]=atoi(words[3+is].c_str());
+      }
       break;
     }
   }
@@ -2154,7 +2158,7 @@ void read_crystal_orbital_all(istream & is,
     }
     kptCoord[kpt].resize(3);
     for(int i=0; i< 3; i++) {
-      slwriter.kpoint[i]/=shrink_fact/2.0;
+      slwriter.kpoint[i]/=shrink_fact[i]/2.0;
       kptCoord[kpt][i] =  slwriter.kpoint[i];
     }
 
