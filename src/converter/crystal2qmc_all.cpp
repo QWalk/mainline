@@ -1813,7 +1813,7 @@ void read_crystal_orbital(istream & is,
 	 && ( words[0]=="SHRINK." )
 	 && ( words[1]=="FACT.(MONKH.)" ) ) {
       for (int is = 0; is < 3; is++ ) {
-	shrink_fact[is]=atoi(words[3+is].c_str());
+	shrink_fact[is]=atoi(words[2+is].c_str());
       }
       break;
     }
@@ -1976,7 +1976,7 @@ void read_crystal_orbital_all(istream & is,
 	 && ( words[0]=="SHRINK." )
 	 && ( words[1]=="FACT.(MONKH.)" ) ) {
       for (int is=0; is<3;is++) 
-	shrink_fact[is]=atoi(words[3+is].c_str());
+	shrink_fact[is]=atoi(words[2+is].c_str());
       break;
     }
   }
@@ -2129,11 +2129,12 @@ void read_crystal_orbital_all(istream & is,
 	 && ( words[0]=="SHRINK." )
 	 && ( words[1]=="FACT.(MONKH.)" ) ) {
       for (int is = 0; is<3; is++) {
-	shrink_fact[is]=atoi(words[3+is].c_str());
+	shrink_fact[is]=atoi(words[2+is].c_str());
       }
       break;
     }
   }
+  //  cout << "shrinking factor: " << shrink_fact[0] << "  " << shrink_fact[1] << "  " << shrink_fact[2] << endl; 
   for (kpt = 0; kpt < nkpts; kpt++) {
 
     //cout << "shrinking factor " << shrink_fact << endl; 
