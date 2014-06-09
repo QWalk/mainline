@@ -45,6 +45,8 @@ int decide_averager(string & label, Average_generator *& avg) {
     avg=new Average_wf_parmderivs;
   else if(caseless_eq(label,"ENMOMENT"))
     avg=new Average_enmoment;
+  else if(caseless_eq(label,"FOURIER_DENSITY"))
+    avg=new Average_fourier_density;
   else 
     error("Didn't understand ", label, " in Average_generator.");
   
@@ -241,6 +243,139 @@ void Average_structure_factor::write_summary(Average_return & avg, Average_retur
   }
   
 }
+//############################################################################
+
+void Average_fourier_density::read(System * sys, Wavefunction_data * wfdata, vector <string> & words) {
+  unsigned int pos=0;
+  int np_side;
+  if(!readvalue(words, pos=0, np_side, "NGRID")) 
+    np_side=5;
+  
+  Array2 <doublevar> gvec;
+  vector <string> gvec_sec;
+  if(readsection(words, pos=0, gvec_sec, "GVEC")) {
+    int count=0;
+    gvec.Resize(3,3);
+    for(int i=0; i< 3; i++) { 
+      for(int j=0; j< 3; j++) { 
+        gvec(i,j)=atof(gvec_sec[count++].c_str());
+      }
+    }
+  }
+  else { 
+    if(!sys->getRecipLattice(gvec)) 
+      error("You don't have a periodic cell and you haven't specified GVEC for Fourier_density");
+  }
+  
+  npoints=np_side*np_side*np_side; 
+  kpts.Resize(npoints, 3);
+  kpts=0;
+  int c=0;
+  for(int ix=0; ix < np_side; ix++) {
+    for(int iy=0; iy < np_side; iy++) {
+      for(int iz=0; iz < np_side; iz++) {
+        for(int i=0; i< 3; i++)
+          kpts(c,i)+=2*pi*(gvec(0,i)*ix+gvec(1,i)*iy+gvec(2,i)*iz);
+        c++;
+      }
+    }
+  }
+}  
+
+//-----------------------------------------------------------------------------
+
+void Average_fourier_density::write_init(string & indent, ostream & os) { 
+  os << indent << "fourier_density\n";
+  for(int i=0; i< npoints; i++) { 
+    os << indent << "kpoint { " << kpts(i,0) << " " << kpts(i,1) << " " 
+    << kpts(i,2) << " } " <<endl;
+  }
+}
+//-----------------------------------------------------------------------------
+
+void Average_fourier_density::read(vector <string> & words) { 
+  vector <vector <string> > kpttext;
+  vector <string> tmp;
+  unsigned int pos=0;
+  while(readsection(words, pos, tmp, "KPOINT")) kpttext.push_back(tmp);
+  npoints=kpttext.size();
+  kpts.Resize(npoints,3);
+  for(int i=0; i< npoints; i++) { 
+    for(int d=0; d< 3; d++) { 
+      kpts(i,d)=atof(kpttext[i][d].c_str());
+    }
+  }
+}
+//-----------------------------------------------------------------------------
+
+
+void Average_fourier_density::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+                                        System * sys, Sample_point * sample, Average_return & avg) {
+  avg.type="fourier_density";
+  int nelectrons=sample->electronSize();
+  int start[2],end[2],ne[2];
+  ne[0]=sys->nelectrons(0);
+  ne[1]=sys->nelectrons(1);
+  start[0]=0; start[1]=ne[0];
+  end[0]=ne[0]; end[1]=ne[0]+ne[1];
+  int nspin=2;
+  int stride=10;
+  Array1 <doublevar> pos(3),pos2(3);
+  avg.vals.Resize(stride*npoints); //(upcos,upsin,downcos,downsin,upupcos,upupsin)
+  avg.vals=0;
+
+  for(int p=0; p < npoints; p++) {
+    //----------Here we do the total density 
+    for(int s=0; s<nspin; s++) {  
+      doublevar sum_cos=0, sum_sin=0;
+      for(int e=start[s]; e< end[s]; e++) {
+        sample->getElectronPos(e,pos);
+        doublevar dot=0;
+        for(int d=0; d< 3; d++) dot+=pos(d)*kpts(p,d);
+        sum_cos+=cos(dot);
+        sum_sin+=sin(dot);
+      }
+      avg.vals(stride*p+s*2)+=sum_cos/ne[s];
+      avg.vals(stride*p+s*2+1)+=sum_sin/ne[s];
+    }
+    //------And here we do the pair density
+    
+    for(int s1=0; s1 < nspin; s1++) { 
+      for(int e1=start[s1]; e1 < end[s1]; e1++) { 
+        sample->getElectronPos(e1,pos);
+        for(int s2=0; s2 < nspin; s2++) { 
+          doublevar sum_cos=0, sum_sin=0;
+          for(int e2=start[s2]; e2 < end[s2]; e2++) { 
+            sample->getElectronPos(e2,pos2);
+            doublevar dot=0;
+            for(int d=0; d< 3; d++) dot+=kpts(p,d)*(pos2(d)-pos(d));
+            sum_cos+=cos(dot);
+            sum_sin+=sin(dot);
+          }
+          int offset=stride*p+nspin*2+2*(s1+s2);
+          avg.vals(offset)+=sum_cos/ne[s2];
+          avg.vals(offset+1)+=sum_sin/ne[s2];
+        }
+      }
+    }
+  }
+
+  
+}
+
+void Average_fourier_density::write_summary(Average_return & avg, Average_return & err, ostream & os) { 
+  int stride=avg.vals.GetDim(0)/npoints;
+  os << "fourier_out kx ky kz upcos upcoserr upsin upsinerr downcos downcoserr downsin downsinerr uucos uucoserr uusin uusinerr udcos udcoserr udsin udsinerr  ddcos ddcoserr ddsin ddsinerr \n";
+  for(int p=0; p < npoints; p++) { 
+     os << "fourier_out ";
+     for(int d=0; d< 3; d++) os << " " << kpts(p,d);
+     for(int i=0; i< stride; i++) 
+       os << " " << avg.vals(stride*p+i) << " " << err.vals(stride*p+i);
+     os << endl;
+  }
+
+}
+
 //############################################################################
 
 void Average_twobody_correlation::read(System * sys, Wavefunction_data * wfdata, 

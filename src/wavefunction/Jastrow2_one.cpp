@@ -213,7 +213,7 @@ void Jastrow_onebody_piece::getParmDeriv(int e, const Array3 <doublevar> & eibas
 //----------------------------------------------------------------------
 void Jastrow_onebody_piece::getParmDeriv(const Array4 <doublevar> & eibasis,
                   Parm_deriv_return & parm_deriv) { 
-  assert(parm_deriv.gradient.GetDim(0)==nparms() || freeze);
+//  assert(parm_deriv.gradient.GetDim(0)==nparms() || freeze);
   assert(eibasis.GetDim(0) >= parm_centers.GetDim(0));
   if(freeze) return;
   int natoms=parm_centers.GetDim(0);
