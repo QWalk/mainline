@@ -1,6 +1,7 @@
 /*
  
 Copyright (C) 2007 Michal Bajdich
+Copyright (C) 2012 Shuming Hu
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -81,45 +82,26 @@ void Nodes_method::read(vector <string> words,
     minmax(i)=atof(Tminmax[i].c_str());
   }
   
-  /*
-  if(readvalue(words, pos=0, readconfig, "READCONFI"G)) {
-    tmp_configs.Resize(1);
-    tmp_configs(0)=mywalker;
-    ifstream configin(readconfig.c_str());
-    if(!configin)
-      cout <<"Couldn't open " << readconfig <<endl;
-    nconfigsread=read_array(tmp_configs, configin);
-    cout << "nconfigsread= "<< nconfigsread <<endl;
-    configin.close();
-  }
-  else {
-    mywalker->randomGuess();
-  }
-  */
+ 
 
+  // Makes the Nodes methods use the current implementation of Nodes
   if(readvalue(words, pos=0, readconfig, "READCONFIG")){
-    canonical_filename(readconfig);
-    ifstream checkfile(readconfig.c_str());
-    if(!checkfile) 
-      error("Couldn't open ", checkfile);
-    long int is1, is2;
-    string dummy;
-    checkfile >> dummy;
-    if(dummy != "RANDNUM") error("Expected RANDNUM in checkfile");
-    checkfile >> is1 >> is2;
-    //rng.seed(is1, is2);  
-    while(checkfile >>dummy ) {
-      read_config(dummy, checkfile, mywalker);
+    Array1 <Config_save_point> config_pos;
+    config_pos.Resize(0);
+    if(readconfig!="") { 
+      read_configurations(readconfig, config_pos);
     }
-    checkfile.close();
+    if(config_pos.GetDim(0)<1)
+      error("Could not read a single walker from config file");
+    //take a first one
+    config_pos(0).restorePos(mywalker);
   }
   else {
     mywalker->randomGuess();
     debug_write(cout, 0, " configs read ", 1,
                 " configs randomly generated \n");
   }
- 
-
+  
   pos=0;
   doublemove=false;
   if( readsection(words,pos,Tdxyz,"DOUBLEMOVES")){

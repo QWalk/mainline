@@ -364,6 +364,8 @@ void Average_fourier_density::evaluate(Wavefunction_data * wfdata, Wavefunction 
 }
 
 void Average_fourier_density::write_summary(Average_return & avg, Average_return & err, ostream & os) { 
+  //To get an output in table form, do 
+  //gosling log  | grep fourier_out | awk '{$1=""; print $0}'
   int stride=avg.vals.GetDim(0)/npoints;
   os << "fourier_out kx ky kz upcos upcoserr upsin upsinerr downcos downcoserr downsin downsinerr uucos uucoserr uusin uusinerr udcos udcoserr udsin udsinerr  ddcos ddcoserr ddsin ddsinerr \n";
   for(int p=0; p < npoints; p++) { 
