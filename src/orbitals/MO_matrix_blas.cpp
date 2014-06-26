@@ -113,13 +113,14 @@ void MO_matrix_blas::init() {
       for(int i=0; i<imax; i++){ 
         for(int mo=0; mo<nmo; mo++) {	   
 
-          moCoeff(totfunc, mo)=magnification_factor*kptfac*coeff(coeffmat(mo,ion,f));
           if(coeffmat(mo,ion, f) == -1) {
-            cout << "missing MO pointer: mo# " << mo << " ion # " << ion
-            << " function on ion: " << f << endl;
-            error("In the orb file, there is a missing pointer. It might "
-                  "be a badly structured file.");
+            moCoeff(totfunc,mo)=0.0;
+            //cout << "missing MO pointer: mo# " << mo << " ion # " << ion
+            //<< " function on ion: " << f << endl;
+            //error("In the orb file, there is a missing pointer. It might "
+            //      "be a badly structured file.");
           }
+          else moCoeff(totfunc, mo)=magnification_factor*kptfac*coeff(coeffmat(mo,ion,f));
         }//mo
         f++;  //keep a total of functions on center
         totfunc++;
@@ -128,7 +129,7 @@ void MO_matrix_blas::init() {
   }  //ion
 
 
-  //cout << " all coefficients " << endl;
+  cout << " all coefficients " << endl;
   //output_array(moCoeff);
 
 }
@@ -227,12 +228,13 @@ int MO_matrix_blas::writeinput(string & indent, ostream & os)
 
 void MO_matrix_blas::updateVal(Sample_point * sample,
                                int e, int listnum, Array2 <doublevar> & newvals) {
+  cout << "updatval" << endl;
 
 #ifdef USE_BLAS
   int centermax=centers.size();
 
   assert(e < sample->electronSize());
-  assert(newvals.GetDim(1) >=5);
+  assert(newvals.GetDim(1) >=1);
 
 
   Array1 <doublevar> R(5);
