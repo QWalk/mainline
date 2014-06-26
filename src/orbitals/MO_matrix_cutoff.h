@@ -241,13 +241,15 @@ template <class T> void MO_matrix_cutoff<T>::init() {
 
       for(int i=0; i<imax; i++) { //sum over the symmetries
         for(int mo=0; mo<nmo; mo++) {      //and the MO's
+          T temp;
           if(coeffmat(mo,ion, f) == -1) {
-            cout << "missing MO pointer: mo# " << mo << " ion # " << ion
-            << " function on ion: " << f << endl;
-            error("In the orb file, there is a missing pointer. It might "
-                  "be a badly structured file.");
+	    temp=T(0.0);
+            //cout << "missing MO pointer: mo# " << mo << " ion # " << ion
+            //<< " function on ion: " << f << endl;
+            //error("In the orb file, there is a missing pointer. It might "
+            //      "be a badly structured file.");
           }
-          T temp=coeff(coeffmat(mo,ion,f));
+          temp=coeff(coeffmat(mo,ion,f));
           if(abs(temp) > threshold) {
             mofill(mo, nbasis(mo))=totfunc;
             moCoeff2(mo, nbasis(mo))=kptfac*magnification_factor*temp;
