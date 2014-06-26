@@ -249,7 +249,7 @@ template <class T> void MO_matrix_cutoff<T>::init() {
             //error("In the orb file, there is a missing pointer. It might "
             //      "be a badly structured file.");
           }
-          temp=coeff(coeffmat(mo,ion,f));
+	  else temp=coeff(coeffmat(mo,ion,f));
           if(abs(temp) > threshold) {
             mofill(mo, nbasis(mo))=totfunc;
             moCoeff2(mo, nbasis(mo))=kptfac*magnification_factor*temp;
