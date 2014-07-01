@@ -402,8 +402,9 @@ int main(int argc, char ** argv) {
   vector < vector <double> > rkptCoord; 
   vector <long int > ceigen_start, reigen_start;  
   read_kpt_eigenpos(infile, rkpts, reigen_start, ckpts, ceigen_start); 
-  read_crystal_orbital_all(infile, atoms, slwriter, basis,
-      origin, latvec, CmoCoeff, ckpts, ceigen_start, ckptCoord, shift, shifted, nshift); 
+  if(cmplx) 
+    read_crystal_orbital_all(infile, atoms, slwriter, basis,
+        origin, latvec, CmoCoeff, ckpts, ceigen_start, ckptCoord, shift, shifted, nshift); 
   infile.close();
   infile.clear();
   infile.open(infilename.c_str());
@@ -1006,7 +1007,7 @@ void get_crystal_pseudo(istream & infile,
             temp.assign(line.begin()+34, line.begin()+41);
             //pseudo[currpsp].effcharge=int(atof(words[5].c_str()));
             //cout << "found " << pseudo[currpsp].label << endl;
-            cout << "Find " << pseudo[currpsp].label << " of charge " << atoi(temp.c_str()) << endl; 
+            cout << "Found " << pseudo[currpsp].label << " : effective charge " << atoi(temp.c_str()) << endl; 
             pseudo[currpsp].effcharge=int(atoi(temp.c_str())); 
             currl=-1;
           }
