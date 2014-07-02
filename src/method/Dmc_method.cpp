@@ -65,6 +65,9 @@ void Dmc_method::read(vector <string> words,
   if(!readvalue(words, pos=0, eref, "EREF"))
     eref=0.0;
 
+  if(!readvalue(words,pos=0, max_poss_weight, "MAX_POSS_WEIGHT")) 
+    max_poss_weight=3.0;
+
   if(haskeyword(words, pos=0, "CDMC")) do_cdmc=1;
   else do_cdmc=0;
   if(haskeyword(words, pos=0, "TMOVES")) tmoves=1; 
@@ -455,8 +458,11 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
             past.erase(past.begin()+nhist, past.end());
           
           pts(walker).prop=pt;
-          if(!pure_dmc)
+          if(!pure_dmc) { 
             pts(walker).weight*=getWeight(pts(walker),teff,etrial);
+            //Introduce potentially a small bias to avoid instability.
+            if(pts(walker).weight>max_poss_weight) pts(walker).weight=max_poss_weight;
+          }
           else
             pts(walker).weight=getWeightPURE_DMC(pts(walker),teff,etrial);
           

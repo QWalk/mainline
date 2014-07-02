@@ -210,6 +210,9 @@ public:
   //these times the standard deviation are branchcut_start, branchcut_stop
   doublevar branch_start_cutoff, branch_stop_cutoff;
 
+  //A cutoff for the maximum possible weight a walker can carry.
+  doublevar max_poss_weight;
+
   System * mysys;
   Pseudopotential * mypseudo;
   Sample_point * sample;
