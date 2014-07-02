@@ -133,6 +133,7 @@ class Properties_manager {
   Properties_final_average final_avg;
 };
 
+void update_avgvar(doublevar & avg, doublevar & var, int pt_number, doublevar nwpt);
 
 
 //####################################################################################

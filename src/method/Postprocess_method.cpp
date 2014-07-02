@@ -26,190 +26,142 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "ulec.h"
 
 /*!
-Read the "words" from the method section in the input file
-via doinput() parsing, and store section information in private
-variables orbs, resolution, and minmax.
-Set up MO_matrix and Sample_point objects for wavefunction from input
 */
 void Postprocess_method::read(vector <string> words,
                        unsigned int & pos,
                        Program_options & options)
 {
-  sys=NULL;
-  allocate(options.systemtext[0],  sys);
-  sample=NULL;
-  sys->generateSample(sample);
 
   if(!readvalue(words, pos=0, configfile, "READCONFIG"))
     error("Need READCONFIG in Postprocess");
 
-  canonical_filename(configfile);
+
+  vector <vector < string> > dens_words;
+  vector<string> tmp_dens;
+  pos=0;
+  while(readsection(words, pos, tmp_dens, "DENSITY")) {
+    dens_words.push_back(tmp_dens);
+  }
+
+
+  vector <vector < string> > avg_words;
+  pos=0;
+  while(readsection(words, pos, tmp_dens, "AVERAGE")) {
+    avg_words.push_back(tmp_dens);
+  }
+  
+  sys=NULL;
+  allocate(options.systemtext[0],  sys);
+  sys->generatePseudo(options.pseudotext, pseudo);
+  debug_write(cout, "wfdata allocate\n");
+  wfdata=NULL;
+  if(options.twftext.size() < 1) error("Need TRIALFUNC section for POSTPROCESS");
+  allocate(options.twftext[0], sys, wfdata);
+
+
+
+   
+  average_var.Resize(avg_words.size());
+  average_var=NULL;
+  for(int i=0; i< average_var.GetDim(0); i++) { 
+    allocate(avg_words[i], sys, wfdata, average_var(i));
+  }
+
+  densplt.Resize(dens_words.size());
+  for(int i=0; i< densplt.GetDim(0); i++) {
+    allocate(dens_words[i], sys, options.runid,densplt(i));
+  }
+
+  
 }
 
-class Postprocess_accumulator {
-public:
-  Postprocess_accumulator(System * sys) { 
-    npoints=0;
-    nelectrons=sys->nelectrons(0)+sys->nelectrons(1);
-    
-    vector <double> cvg_tmp;
-    for(double i=1; i <= nelectrons; i++) 
-      cvg_tmp.push_back(i);
-    
-
-    cvg.Resize(cvg_tmp.size());
-    for(int i=0; i< cvg.GetDim(0); i++) cvg(i)=cvg_tmp[i];
-   
-
-    sys->getAtomicLabels(atom_names);
-    
-    zpol_cvg_avg.Resize(cvg.GetDim(0),3);
-    zpol_cvg_var.Resize(cvg.GetDim(0),3);
-    zpol_cvg_avg=0;
-    zpol_cvg_var=0;
-    
-    zpol_single.Resize(3);
-    zpol_single_var.Resize(3);
-    zpol_single=dcomplex(0.0,0.0);zpol_single_var=dcomplex(0.0,0.0);
-  }
-
-
-  //--------------------------------------------------
-  void accumulate(System * sys, Sample_point * sample) {
-
-
-    int nelectrons=sample->electronSize();
-    Array2 <doublevar> gvec;
-    //Array2 <doublevar> latvec;
-    Array1 <doublevar> pos(3);
-    sys->getRecipLattice(gvec);
-    //sys->getBounds(latvec);
-
-    dcomplex zpol;
-    Array1 <doublevar> sum(3,0.0);
-    for(int e=0; e< nelectrons; e++) {
-      sample->getElectronPos(e,pos);
-      for(int i=0; i< 3; i++) {
-        for(int d=0; d< 3; d++) 
-          sum(i)+=gvec(i,d)*pos(d);
-      }
-    }
-    
-
-    for(int j=0; j< cvg.GetDim(0); j++) { 
-      for(int i=0; i< 3; i++) {
-        double temp_sum=sum(i);
-        zpol=dcomplex(cos(2*pi*temp_sum/doublevar(cvg(j))),
-                      sin(2*pi*temp_sum/doublevar(cvg(j))));
-
-        dcomplex old_av=zpol_cvg_avg(j,i);
-        dcomplex new_av=old_av+(zpol-old_av)/doublevar(npoints+1);
-        dcomplex old_var=zpol_cvg_var(j,i);
-        dcomplex new_var=old_var;
-        if(npoints>1)
-          new_var=dcomplex(doublevar(1-1.0/npoints)*old_var.real()
-                           +doublevar(npoints+1)*(new_av.real()-old_av.real())
-                           *(new_av.real()-old_av.real()),
-                           doublevar(1-1.0/npoints)*old_var.imag()
-                           +doublevar(npoints+1)*(new_av.imag()-old_av.imag())
-                           *(new_av.imag()-old_av.imag()));
-        zpol_cvg_avg(j,i)=new_av;
-        zpol_cvg_var(j,i)=new_var;
-
-      }
-    }
-    
-
-    for(int i=0; i< 3; i++) {
-      zpol=dcomplex(0.0,0.0);
-      for(int e=0; e< nelectrons; e++) {
-        doublevar ov=0;
-        for(int d=0; d< 3; d++) { 
-          ov+=gvec(i,d)*pos(d);
-        }
-        zpol+=dcomplex(cos(2*pi*ov),sin(2*pi*ov));
-        dcomplex old_av=zpol_single(i);
-        dcomplex new_av=old_av+(zpol-old_av)/doublevar(npoints+1);
-        dcomplex old_var=zpol_single_var(i);
-        dcomplex new_var=old_var;
-        if(npoints>1)
-          new_var=dcomplex(doublevar(1-1.0/npoints)*old_var.real()
-                           +doublevar(npoints+1)*(new_av.real()-old_av.real())
-                           *(new_av.real()-old_av.real()),
-                           doublevar(1-1.0/npoints)*old_var.imag()
-                           +doublevar(npoints+1)*(new_av.imag()-old_av.imag())
-                           *(new_av.imag()-old_av.imag()));
-        zpol_single(i)=new_av;
-        zpol_single_var(i)=new_var;        
-      }
-    }
-    npoints++;
-  }
-
-  //----------------------------------------
-  void printout(ostream & os) { 
-
-    os << "Single-point zpol " << endl;
-    for(int d=0; d< 3; d++) {
-      os  << "sing " <<  d<< "   " <<zpol_single(d).real()<< "  " 
-      << zpol_single(d).imag() 
-      << "  " << sqrt(zpol_single_var(d).real()/npoints)
-      << "  " << sqrt(zpol_single_var(d).imag()/npoints) <<  "   " 
-      <<  endl;      
-    } 
-    
-    os << "Convergence: " << endl;
-    os << "d  n    z +/- zerr phase(without error bars) \n";
-    
-    for(int j=0; j< cvg.GetDim(0); j++) {
-      for(int d=0; d< 3; d++) {
-        
-        os <<cvg(j) << "   " <<  d<< "   " <<zpol_cvg_avg(j,d).real()<< "  " 
-        << zpol_cvg_avg(j,d).imag() 
-        << "  " << sqrt(zpol_cvg_var(j,d).real()/npoints)
-        << "  " << sqrt(zpol_cvg_var(j,d).imag()/npoints) <<  "   " 
-        <<  endl;
-      }
-    }
-
-  }
-  //----------------------------------------------------
-
-private:
-  long int npoints;
-  int nelectrons;
-  Array2 <dcomplex>  zpol_cvg_avg; //!< n-body zpol
-  Array2 <dcomplex> zpol_cvg_var;
-  Array1 <doublevar> cvg;
-
-  Array1 <doublevar> atomcharges;
-  vector <string> atom_names;
-  
-  
-  Array1 <dcomplex> zpol_single; //!< single-body zpol
-  Array1 <dcomplex> zpol_single_var;
-};
-
-//----------------------------------------------------------------------
+void weighted_update_average(doublevar weight, doublevar xnew,doublevar &  xavg, doublevar &  xvar, doublevar & totweight)
+  {
+  doublevar nweight=totweight+weight;
+  doublevar navg=(weight*xnew+totweight*xavg)/nweight;
+  doublevar nvar=(weight*xnew*xnew+totweight*(xavg*xavg+xvar))/nweight-navg*navg;
+  xavg=navg;
+  xvar=nvar;
+}
 
 void Postprocess_method::run(Program_options & options, ostream & output) {
-
-  ifstream checkfile(configfile.c_str());
-  if(!checkfile) error("Couldn't open ", configfile);
-  string dummy;
-  int nread=0;
-  Postprocess_accumulator accumulator(sys);
-  while(checkfile >> dummy) {
-    if(read_config(dummy, checkfile,sample)) {
-      accumulator.accumulate(sys,sample);
-      nread++;
-      if(nread%1000==0) output << nread << " configs read" << endl;
-    }
-  }
-  checkfile.close();
-  accumulator.printout(output);
+  Sample_point * sample=NULL;
+  Wavefunction * wf=NULL;
+  sys->generateSample(sample);
+  wfdata->generateWavefunction(wf);
+  sample->attachObserver(wf);
+  Properties_gather gather;
+  Primary guide;
   
+  int nelec=sample->electronSize();
+  int ndim=3;
+  Config_save_point tmpconfig;
+  FILE * f=fopen(configfile.c_str(),"r");
+  Properties_point pt;
+  pt.setSize(1);
+  doublevar avgen=0,varen=0,avgwt=0,varwt=0;
+  Array1 <Average_return> avgavg(average_var.GetDim(0)), varavg(average_var.GetDim(0));
+  int npoints=0;
+  int skip=2048; 
+  fseek(f,0,SEEK_END);
+  long int lSize=ftell(f);
+  rewind(f);
+  int npoints_tot=lSize/(sizeof(doublevar)*(nelec*3+1));
+  output << "Estimated number of samples in this file: " << npoints_tot << endl;
+  
+  while(tmpconfig.readBinary(f,nelec,ndim)) {
+    doublevar weight;
+    if(!fread(&weight,sizeof(doublevar),1,f)) error("Misformatting in binary file",configfile);
+    tmpconfig.restorePos(sample);
 
+    ///--------------------------------Gather the data
+    gather.gatherData(pt,pseudo,sys,wfdata,wf,sample,&guide);
+    pt.avgrets.Resize(1,average_var.GetDim(0));
+    for(int i=0; i< average_var.GetDim(0); i++) { 
+      average_var(i)->randomize(wfdata,wf,sys,sample);
+      average_var(i)->evaluate(wfdata, wf, sys, sample,pt, pt.avgrets(0,i));
+    }
+    for(int i=0; i< densplt.GetDim(0); i++) densplt(i)->accumulate(sample,weight);
+    //-------------------Done gathering data
+
+    //-----------------------------------Update our averages and variances
+    weighted_update_average(pt.weight(0),pt.energy(0),avgen,varen,avgwt);
+    for(int i=0; i< average_var.GetDim(0); i++) { 
+      if(avgavg(i).vals.GetDim(0)==0) { 
+        avgavg(i)=pt.avgrets(0,i);
+        varavg(i)=pt.avgrets(0,i);
+        avgavg(i).vals=0;
+        varavg(i).vals=0;
+      }
+      for(int j=0; j< pt.avgrets(0,i).vals.GetDim(0); j++) { 
+        weighted_update_average(pt.weight(0),pt.avgrets(0,i).vals(j),avgavg(i).vals(j),varavg(i).vals(j),avgwt);
+      }
+    }
+    avgwt+=pt.weight(0);
+
+    //--------------------------------Done with the update
+    
+    npoints++;
+    doublevar progress=doublevar(npoints)/doublevar(npoints_tot);
+    if(fabs(progress*10-int(progress*10)) < 1e-7) { 
+      cout << "progress: " << progress*100 << "% done" << endl;
+    }
+    
+  }
+  fclose(f);
+  for(int i=0; i< densplt.GetDim(0); i++) densplt(i)->write();
+
+  output << "Averages" << endl;
+  output << "total_energy " << avgen << " +/- " << sqrt(varen/npoints) << " (sigma " << sqrt(varen) << ") "<< endl;
+  output << "weight " << avgwt/npoints << endl;
+  for(int i=0; i< average_var.GetDim(0); i++) { 
+    for(int j=0; j< varavg(i).vals.GetDim(0); j++) 
+      varavg(i).vals(j)=sqrt(varavg(i).vals(j)/npoints);
+    average_var(i)->write_summary(avgavg(i),varavg(i),output);
+  }
+
+  delete sample;
+  delete wf;
 }
 
 
@@ -220,6 +172,6 @@ int Postprocess_method::showinfo(ostream & os)
 {
   os<<"#############Postprocess_method#################\n";
   sys->showinfo(os);
-
+  wfdata->showinfo(os);
   return 1;
 }

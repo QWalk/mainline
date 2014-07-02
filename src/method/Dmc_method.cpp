@@ -29,6 +29,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Generate_sample.h"
 #include <algorithm>
 #include <ctime>
+#include <cstdio>
 void Dmc_method::read(vector <string> words,
                       unsigned int & pos,
                       Program_options & options)
@@ -68,6 +69,8 @@ void Dmc_method::read(vector <string> words,
   else do_cdmc=0;
   if(haskeyword(words, pos=0, "TMOVES")) tmoves=1; 
   else tmoves=0;
+
+  readvalue(words,pos=0,save_trace,"SAVE_TRACE");
 
   if(!readvalue(words, pos=0, nhist, "CORR_HIST")) 
     nhist=-1;
@@ -642,41 +645,39 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
 
 void Dmc_method::savecheckpoint(string & filename,                     
                                  Sample_point * config) {
-  if(filename=="") return;
-  
-  write_configurations(filename, pts);
-  return;
-  /*
-  ofstream checkfile(filename.c_str());
-  if(!checkfile) error("Couldn't open", filename );
-  checkfile.precision(15);
-  
-  long int is1, is2;
-  rng.getseed(is1, is2);
-  checkfile << "RANDNUM " << is1 << "  " << is2 << endl;
 
-  checkfile.precision(15);
-  for(int i=0; i< nconfig; i++) { 
-    Dmc_point & mypt(pts(i));
-    checkfile << "SAMPLE_POINT { \n";
-    mypt.config_pos.restorePos(config);
-    write_config(checkfile, config);
-    checkfile << "   DMC { \n";
-    checkfile << "DMCWEIGHT " << mypt.weight << endl;
-    checkfile << "VALEN " << nwf << endl; 
-    for(int w=0; w< nwf; w++) {
-      checkfile << mypt.prop.wf_val.phase(w,0) << "  "
-		<< mypt.prop.wf_val.amp(w,0) << "  "
-		<< mypt.prop.energy(w)
-		<< endl;
+  if(save_trace!="") { 
+    if(mpi_info.node==0) { 
+      FILE * f=fopen(save_trace.c_str(),"a");
+      for(int i=0;i<nconfig; i++) {
+        pts(i).config_pos.writeBinary(f);
+        fwrite(&pts(i).weight, sizeof(doublevar),1, f);
+      }
+#ifdef USE_MPI
+      Dmc_point tmppt;
+      for(int p=1; p < mpi_info.nprocs; p++) { 
+        for(int i=0; i < nconfig; i++) { 
+          tmppt.mpiReceive(p);
+          tmppt.config_pos.writeBinary(f);
+          fwrite(&tmppt.weight, sizeof(doublevar),1, f);
+        }
+      }
+#endif
+      fclose(f);
     }
-
-    checkfile << "   } \n";
-    checkfile << "}\n\n";
+#ifdef USE_MPI
+    else { 
+      for(int i=0; i< nconfig; i++) { 
+        pts(i).mpiSend(0);
+      }
+    }
+#endif
   }
+  if(filename=="") return;
+  write_configurations(filename, pts);
 
-  checkfile.close();
-   */
+
+  return;
 }
 
 

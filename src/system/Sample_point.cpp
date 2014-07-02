@@ -142,3 +142,23 @@ void Config_save_point::write(ostream & os) {
 }
 
 //----------------------------------------------------------------------
+int Config_save_point::writeBinary(FILE * f) { 
+  for(int e=0; e< electronpos.GetDim(0); e++) { 
+    fwrite(electronpos(e).v, sizeof(doublevar),3, f);
+  }
+  return 1;
+}
+//----------------------------------------------------------------------
+int Config_save_point::readBinary(FILE * f,int nelec, int ndim) { 
+  size_t nread;
+  electronpos.Resize(nelec);
+  for(int e=0; e< electronpos.GetDim(0); e++) { 
+    electronpos(e).Resize(ndim);
+    nread=fread(electronpos(e).v, sizeof(doublevar),ndim, f);
+    if(nread!=ndim) return 0;
+  }
+  return 1;
+  
+}
+//----------------------------------------------------------------------
+
