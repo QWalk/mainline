@@ -654,18 +654,33 @@ void Dmc_method::savecheckpoint(string & filename,
 
   if(save_trace!="") { 
     if(mpi_info.node==0) { 
+      cout << "entering trace write" << endl;
+      long int time_ent=clock();
       FILE * f=fopen(save_trace.c_str(),"a");
       for(int i=0;i<nconfig; i++) {
+        cout << "writing " << i << endl;
         pts(i).config_pos.writeBinary(f);
         fwrite(&pts(i).weight, sizeof(doublevar),1, f);
       }
+    long int time_b=clock();
+    single_write(cout,"writing my walkers: ",double(time_b-time_ent)/CLOCKS_PER_SEC,"\n");
+
 #ifdef USE_MPI
       Dmc_point tmppt;
       for(int p=1; p < mpi_info.nprocs; p++) { 
-        for(int i=0; i < nconfig; i++) { 
-          tmppt.mpiReceive(p);
+        cout << "saving from processor " << p << endl;
+        int nconfigthis;
+        MPI_Recv(nconfigthis,p);
+        for(int i=0; i < nconfigthis; i++) { 
+          long int time_a=clock();
+          tmppt.config_pos.mpiReceive(p);
+          MPI_Recv(tmppt.weight,p);
+          long int time_b=clock();
           tmppt.config_pos.writeBinary(f);
           fwrite(&tmppt.weight, sizeof(doublevar),1, f);
+          long int time_c=clock();
+          single_write(cout,"receiving: ",double(time_b-time_a)/CLOCKS_PER_SEC,"\n");
+          single_write(cout,"writing: ",double(time_c-time_b)/CLOCKS_PER_SEC,"\n");
         }
       }
 #endif
@@ -673,8 +688,10 @@ void Dmc_method::savecheckpoint(string & filename,
     }
 #ifdef USE_MPI
     else { 
+      MPI_Send(nconfig,0);
       for(int i=0; i< nconfig; i++) { 
-        pts(i).mpiSend(0);
+        pts(i).config_pos.mpiSend(0);
+        MPI_Send(pts(i).weight,0);
       }
     }
 #endif
