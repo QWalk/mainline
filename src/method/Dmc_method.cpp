@@ -66,7 +66,7 @@ void Dmc_method::read(vector <string> words,
     eref=0.0;
 
   if(!readvalue(words,pos=0, max_poss_weight, "MAX_POSS_WEIGHT")) 
-    max_poss_weight=3.0;
+    max_poss_weight=7.0;
 
   if(haskeyword(words, pos=0, "CDMC")) do_cdmc=1;
   else do_cdmc=0;
