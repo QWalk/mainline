@@ -58,6 +58,18 @@ void Properties_point::mpiSend(int node) {
            MPI_DOUBLE, node, 0, MPI_Comm_grp);
   MPI_Send(wf_val.phase.v, wf_val.phase.GetDim(0)*wf_val.phase.GetDim(1),
            MPI_DOUBLE, node, 0, MPI_Comm_grp);
+
+  
+  int ni=avgrets.GetDim(0);
+  int nj=avgrets.GetDim(1);
+  MPI_Send(ni,node);
+  MPI_Send(nj,node);
+  for(int i=0; i< ni; i++) { 
+    for(int j=0; j< nj; j++) { 
+      MPI_Send(avgrets(i,j).vals,node);
+      MPI_Send(avgrets(i,j).type,node);
+    }
+  }
 #else
     error("Properties_point::mpi_send: not using MPI,"
           " this is most likely a bug");
@@ -72,7 +84,7 @@ void Properties_point::mpiReceive(int node) {
 
   int nwf;
   MPI_Recv(&nwf, 1, MPI_INT, node, 0, MPI_Comm_grp, &status);
-  //cout << mpi_info.node << "  " << nwf << "  " << naux << endl;
+  //cout << mpi_info.node << "  " << nwf << endl;
 
   setSize(nwf);
   MPI_Recv(children.v, children.GetDim(0), MPI_INT,
@@ -94,6 +106,16 @@ void Properties_point::mpiReceive(int node) {
            MPI_DOUBLE,node, 0, MPI_Comm_grp, & status);
   MPI_Recv(wf_val.phase.v, wf_val.phase.GetDim(0)*wf_val.phase.GetDim(1),
            MPI_DOUBLE,node, 0, MPI_Comm_grp, & status);
+  int ni,nj;
+  MPI_Recv(ni,node);
+  MPI_Recv(nj,node);
+  avgrets.Resize(ni,nj);
+  for(int i=0; i< ni; i++) { 
+    for(int j=0; j< nj; j++) { 
+      MPI_Recv(avgrets(i,j).vals,node);
+      MPI_Recv(avgrets(i,j).type,node);
+    }
+  }
 
 #else
   

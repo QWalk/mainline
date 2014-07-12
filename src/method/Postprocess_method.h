@@ -73,15 +73,89 @@ public:
   ~Postprocess_method()
   {
     if(sys != NULL) delete sys;
+    if(pseudo!=NULL) delete pseudo;
+    if(wfdata!=NULL) delete wfdata;
+    for(int i=0; i< densplt.GetDim(0); i++) delete densplt(i);
+    for(int i=0; i< average_var.GetDim(0); i++) delete average_var(i);
   }
 
 private:
+  int gen_point(Wavefunction * wf, Sample_point * sample,
+    Config_save_point & configpos, doublevar weight, Properties_point & pt);
+  int worker(Wavefunction * wf, Sample_point * sample);
+  int master(Wavefunction * wf, Sample_point * sample,FILE * f,ostream & );
+  
+  
+  
   System * sys;
   Pseudopotential * pseudo;
   Wavefunction_data * wfdata;
   Array1 < Local_density_accumulator *> densplt;
   Array1 < Average_generator * > average_var;
   string configfile;
+};
+
+//----------------------------------------------------------------------
+
+
+inline void weighted_update_average(doublevar weight, doublevar xnew,doublevar &  xavg, doublevar &  xvar, doublevar & totweight)
+  {
+  doublevar nweight=totweight+weight;
+  doublevar navg=(weight*xnew+totweight*xavg)/nweight;
+  doublevar nvar=(weight*xnew*xnew+totweight*(xavg*xavg+xvar))/nweight-navg*navg;
+  xavg=navg;
+  xvar=nvar;
+}
+//----------------------------------------------------------------------
+
+class Postprocess_average { 
+public:
+  Postprocess_average(int navg) { 
+    avgavg.Resize(navg);
+    varavg.Resize(navg);
+    avgen=varen=avgwt=varwt=0.0;
+    npoints=0;
+  }
+
+
+  void update_average(Properties_point & pt) { 
+   // cout << "here" << endl;
+    weighted_update_average(pt.weight(0),pt.energy(0),avgen,varen,avgwt);
+    for(int i=0; i< avgavg.GetDim(0); i++) { 
+      //cout << "resizing avg " <<i << " avgavg " << avgavg.GetDim(0) 
+       // << " varavg " << varavg.GetDim(0) << " pt.avgrets "<< pt.avgrets.GetDim(0) << " " 
+       // << pt.avgrets.GetDim(1) << endl;
+      if(avgavg(i).vals.GetDim(0)==0) { 
+        avgavg(i)=pt.avgrets(0,i);
+        varavg(i)=pt.avgrets(0,i);
+        avgavg(i).vals=0;
+        varavg(i).vals=0;
+      }
+      //cout << "updaing average " << endl;
+      for(int j=0; j< pt.avgrets(0,i).vals.GetDim(0); j++) { 
+        weighted_update_average(pt.weight(0),pt.avgrets(0,i).vals(j),avgavg(i).vals(j),varavg(i).vals(j),avgwt);
+      }
+    }
+    avgwt+=pt.weight(0);
+    npoints++;
+  }
+
+  void print(Array1<Average_generator *> average_var,ostream & output) { 
+    output << "Averages" << endl;
+    output << "total_energy " << avgen << " +/- " << sqrt(varen/npoints) << " (sigma " << sqrt(varen) << ") "<< endl;
+    output << "weight " << avgwt/npoints << endl;
+    for(int i=0; i< avgavg.GetDim(0); i++) { 
+      for(int j=0; j< varavg(i).vals.GetDim(0); j++) 
+        varavg(i).vals(j)=sqrt(varavg(i).vals(j)/npoints);
+      average_var(i)->write_summary(avgavg(i),varavg(i),output);
+  }
+    
+  }
+private:
+  doublevar avgen,varen,avgwt,varwt;
+  long int npoints;
+  Array1 <Average_return> avgavg, varavg;
+  
 };
 
 #endif //POSTPROCESS_METHOD_H_INCLUDED
