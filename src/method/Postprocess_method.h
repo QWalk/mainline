@@ -87,6 +87,7 @@ private:
   
   
   
+  int nskip;
   System * sys;
   Pseudopotential * pseudo;
   Wavefunction_data * wfdata;
@@ -141,6 +142,7 @@ public:
   }
 
   void print(Array1<Average_generator *> average_var,ostream & output) { 
+    output.precision(10);
     output << "Averages" << endl;
     output << "total_energy " << avgen << " +/- " << sqrt(varen/npoints) << " (sigma " << sqrt(varen) << ") "<< endl;
     output << "weight " << avgwt/npoints << endl;

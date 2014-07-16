@@ -34,7 +34,10 @@ void Postprocess_method::read(vector <string> words,
 
   if(!readvalue(words, pos=0, configfile, "READCONFIG"))
     error("Need READCONFIG in Postprocess");
-
+  
+  if(!readvalue(words, pos=0, nskip, "NSKIP"))
+    nskip=0;
+  
 
   vector <vector < string> > dens_words;
   vector<string> tmp_dens;
@@ -86,23 +89,39 @@ void Postprocess_method::run(Program_options & options, ostream & output) {
   Primary guide;
   int nelec=sample->electronSize();
   int ndim=3;
+  int npoints_tot=0;
+  FILE * f;
+  if(mpi_info.node==0) { 
+    f=fopen(configfile.c_str(),"r");
+    fseek(f,0,SEEK_END);
+    long int lSize=ftell(f);
+    rewind(f);
+    npoints_tot=lSize/(sizeof(doublevar)*(nelec*3+1));
+    output << "Estimated number of samples in this file: " << npoints_tot << endl;
+    output << "We are skipping the first " << nskip << " of these " << endl;
+    Config_save_point tmpconfig;
+    for(int i=0; i< nskip; i++) { 
+      tmpconfig.readBinary(f,nelec,ndim);
+      doublevar weight;
+      if(!fread(&weight,sizeof(doublevar),1,f)) error("Misformatting in binary file",configfile, " perhaps nskip is too large?");
+    }
+  }
+    
+
 #ifdef USE_MPI
   if(mpi_info.nprocs<2) error("POSTPROCESS must be run with at least 2 processes if it is run in parallel.");
   if(mpi_info.node==0) { 
-    FILE * f=fopen(configfile.c_str(),"r");
     master(wf,sample,f,output);
-    fclose(f);
   }
   else { 
     worker(wf,sample);
   }
 #else
-  FILE * f=fopen(configfile.c_str(),"r");
-  fseek(f,0,SEEK_END);
-  long int lSize=ftell(f);
-  rewind(f);
-  int npoints_tot=lSize/(sizeof(doublevar)*(nelec*3+1));
-  output << "Estimated number of samples in this file: " << npoints_tot << endl;
+//  fseek(f,0,SEEK_END);
+//  long int lSize=ftell(f);
+//  rewind(f);
+//  int npoints_tot=lSize/(sizeof(doublevar)*(nelec*3+1));
+//  output << "Estimated number of samples in this file: " << npoints_tot << endl;
   Config_save_point tmpconfig;
   Properties_point pt;
   pt.setSize(1);
@@ -122,11 +141,11 @@ void Postprocess_method::run(Program_options & options, ostream & output) {
     }
     
   }
-  fclose(f);
   postavg.print(average_var,output);
 #endif //USE_MPI
   for(int i=0; i< densplt.GetDim(0); i++) densplt(i)->write();
 
+  if(mpi_info.node==0) fclose(f);
 
   delete sample;
   delete wf;
@@ -151,7 +170,6 @@ int Postprocess_method::gen_point(Wavefunction * wf, Sample_point * sample,
   
   configpos.restorePos(sample);
   
-  pt.weight(0)=weight;
   pseudo->randomize();
   gather.gatherData(pt,pseudo,sys,wfdata,wf,sample,&guide);
   pt.avgrets.Resize(1,average_var.GetDim(0));
@@ -161,6 +179,8 @@ int Postprocess_method::gen_point(Wavefunction * wf, Sample_point * sample,
     average_var(i)->evaluate(wfdata, wf, sys, sample,pt, pt.avgrets(0,i));
   }
   for(int i=0; i< densplt.GetDim(0); i++) densplt(i)->accumulate(sample,weight);
+  pt.weight(0)=weight;
+  
 }
 
 //----------------------------------------------------------------------
