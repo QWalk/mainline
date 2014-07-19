@@ -232,6 +232,7 @@ int Postprocess_method::master(Wavefunction * wf, Sample_point * sample,FILE * f
      MPI_Send(weight,r);
   }
   
+  int totcount=0;
   cout << "master : going through file " << endl;
   while(tmpconfig.readBinary(f,nelec,ndim)) {
     doublevar weight;
@@ -250,6 +251,8 @@ int Postprocess_method::master(Wavefunction * wf, Sample_point * sample,FILE * f
     //introduce completed point into the average
     //cout << "master: updating average " << endl;
     postavg.update_average(pt);
+    totcount++;
+    if(totcount%1000==0) cout << "Completed " << totcount << " walkers " << endl;
   }
   
   cout << "master: collecting final averages " << endl;
