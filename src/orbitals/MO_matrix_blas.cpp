@@ -129,7 +129,6 @@ void MO_matrix_blas::init() {
   }  //ion
 
 
-  cout << " all coefficients " << endl;
   //output_array(moCoeff);
 
 }
