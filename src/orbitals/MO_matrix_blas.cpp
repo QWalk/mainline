@@ -228,7 +228,6 @@ int MO_matrix_blas::writeinput(string & indent, ostream & os)
 
 void MO_matrix_blas::updateVal(Sample_point * sample,
                                int e, int listnum, Array2 <doublevar> & newvals) {
-  cout << "updatval" << endl;
 
 #ifdef USE_BLAS
   int centermax=centers.size();
