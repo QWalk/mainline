@@ -1,0 +1,21 @@
+/*! \page nwchem2qmcDoc NWChem to QMC
+
+
+\section description Description
+
+Basic usage:  nwchem2qmc -o [outputroot]  [inputroot] <br><br>
+   Unlike gamess, nwchem prints out orbitals in a binary file called
+   [input].movecs. So there is an additional step to first convert
+   the .movecs to ASCII file. Go to nwchem_directory/contrib/mov2asc/,
+   then make it. We need executable file called "mov2asc".
+
+   Then, run
+   mov2asc [large number]  [input].movecs [input].nw.vecs.
+   Be sure to name the nwchem output file [input].nw.out. So
+   [input].nw.vecs and [input].nw.out are the two files we need. Now run
+   /qwalk_directory/src/converter/nwchem2qmc [input],
+   this generates all the files needed by qwalk.
+
+   The converter only supports the Cartesian representation of the basis; i.e., 6D, 10F, etc.
+</pre>
+*/
