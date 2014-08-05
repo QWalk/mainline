@@ -648,8 +648,13 @@ void get_crystal_latvec(istream & infile,
           for(int j=0; j< 3; j++) {
             double dummy;
             infile >> dummy;
+            //here we try to avoid having issues with the Ewald summation
+            if(dummy > 100.) { 
+              cout << "WARNING: rescaling lattice vector to " << 100 << " from " << dummy 
+                << ". This will probably not change your results, but if it does, change EWALD_GMAX in the system input to something higher." << endl;
+              dummy=100.;
+            }
             tmp.push_back(dummy);
-            //cout << dummy  << "  ";
           }
           latvec.push_back(tmp);
           //cout << endl;
