@@ -146,23 +146,40 @@ void Config_save_point::write(ostream & os) {
     os << endl;
   }
 }
-
+#include "qmc_io.h"
 //----------------------------------------------------------------------
-int Config_save_point::writeBinary(FILE * f) { 
-  for(int e=0; e< electronpos.GetDim(0); e++) { 
-    fwrite(electronpos(e).v, sizeof(doublevar),3, f);
+int Config_save_point::writeBinary(FILE * f,doublevar weight) { 
+  //for(int e=0; e< electronpos.GetDim(0); e++) { 
+  //  fwrite(electronpos(e).v, sizeof(doublevar),3, f);
+  //}
+
+  int ndim=electronpos(0).GetDim(0);
+  int ne=electronpos.GetDim(0);
+  Array1<doublevar> a(ne*ndim+1);
+  int count=0;
+  for(int e=0; e< ne; e++) { 
+    for(int d=0; d< ndim; d++) {
+      a(count++)=electronpos(e)(d);
+    }
   }
+  a(count)=weight;
+  binary_write_checksum(a,f);
+  
   return 1;
 }
 //----------------------------------------------------------------------
-int Config_save_point::readBinary(FILE * f,int nelec, int ndim) { 
-  size_t nread;
+int Config_save_point::readBinary(FILE * f,int nelec, int ndim, doublevar & weight) { 
+  Array1 <doublevar> a;
+  if(!binary_read_checksum(a,f,nelec*ndim+1)) return 0;
+  if(a.GetDim(0)!=nelec*ndim+1) error("Array size wrong in Config_save_point::readBinary");
   electronpos.Resize(nelec);
+  int count=0;
   for(int e=0; e< electronpos.GetDim(0); e++) { 
     electronpos(e).Resize(ndim);
-    nread=fread(electronpos(e).v, sizeof(doublevar),ndim, f);
-    if(nread!=ndim) return 0;
+    //nread=fread(electronpos(e).v, sizeof(doublevar),ndim, f);
+    for(int d=0; d< ndim; d++) electronpos(e)(d)=a(count++);
   }
+  weight=a(count);
   return 1;
   
 }

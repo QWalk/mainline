@@ -93,17 +93,20 @@ void Postprocess_method::run(Program_options & options, ostream & output) {
   FILE * f;
   if(mpi_info.node==0) { 
     f=fopen(configfile.c_str(),"r");
+    if(ferror(f)) error("Could not open",configfile);
+    cout << "here " << endl;
     fseek(f,0,SEEK_END);
     long int lSize=ftell(f);
     rewind(f);
-    npoints_tot=lSize/(sizeof(doublevar)*(nelec*3+1));
+    npoints_tot=lSize/(sizeof(doublevar)*(nelec*3+1+4));
     output << "Estimated number of samples in this file: " << npoints_tot << endl;
     output << "We are skipping the first " << nskip << " of these " << endl;
     Config_save_point tmpconfig;
     for(int i=0; i< nskip; i++) { 
-      tmpconfig.readBinary(f,nelec,ndim);
       doublevar weight;
-      if(!fread(&weight,sizeof(doublevar),1,f)) error("Misformatting in binary file",configfile, " perhaps nskip is too large?");
+      tmpconfig.readBinary(f,nelec,ndim,weight);
+//     doublevar weight;
+//      if(!fread(&weight,sizeof(doublevar),1,f)) error("Misformatting in binary file",configfile, " perhaps nskip is too large?");
     }
   }
     
@@ -225,7 +228,7 @@ int Postprocess_method::master(Wavefunction * wf, Sample_point * sample,FILE * f
   //Get everyone started with data
   cout << "master: sending initial data" << endl;
   for(int r=1; r < mpi_info.nprocs; r++) { 
-     if(!tmpconfig.readBinary(f,nelec,ndim) or !fread(&weight,sizeof(doublevar),1,f)) { 
+     if(!tmpconfig.readBinary(f,nelec,ndim,weight)) {  
        error("Binary file may not contain enough walkers; finished after ",r);
      }
      tmpconfig.mpiSend(r);
@@ -234,9 +237,9 @@ int Postprocess_method::master(Wavefunction * wf, Sample_point * sample,FILE * f
   
   int totcount=0;
   cout << "master : going through file " << endl;
-  while(tmpconfig.readBinary(f,nelec,ndim)) {
-    doublevar weight;
-    if(!fread(&weight,sizeof(doublevar),1,f)) error("Misformatting in binary file",configfile);
+  while(tmpconfig.readBinary(f,nelec,ndim,weight)) {
+//    doublevar weight;
+//    if(!fread(&weight,sizeof(doublevar),1,f)) error("Misformatting in binary file",configfile);
 
     //Is anyone done?
     //When done, receive completed point and send out new point
