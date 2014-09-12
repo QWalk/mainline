@@ -661,14 +661,10 @@ void Dmc_method::savecheckpoint(string & filename,
         pts(i).config_pos.writeBinary(f,pts(i).weight);
       //  fwrite(&pts(i).weight, sizeof(doublevar),1, f);
       }
-    long int time_b=clock();
-    single_write(cout,"writing my walkers: ",double(time_b-time_ent)/CLOCKS_PER_SEC,"\n");
 
 #ifdef USE_MPI
       Dmc_point tmppt;
       for(int p=1; p < mpi_info.nprocs; p++) { 
-        cout << "saving from processor " << p << endl;
-        long int time_a=clock();
         int nconfigthis;
         MPI_Recv(nconfigthis,p);
         for(int i=0; i < nconfigthis; i++) { 
@@ -676,11 +672,10 @@ void Dmc_method::savecheckpoint(string & filename,
           MPI_Recv(tmppt.weight,p);
           tmppt.config_pos.writeBinary(f,tmppt.weight);
         }
-        long int time_b=clock();
-        single_write(cout,"writing: ",double(time_b-time_a)/CLOCKS_PER_SEC,"\n");
-        
       }
 #endif
+      long int time_b=clock();
+      single_write(cout,"writing to trace : ",double(time_b-time_ent)/CLOCKS_PER_SEC,"\n");
       fclose(f);
     }
 #ifdef USE_MPI

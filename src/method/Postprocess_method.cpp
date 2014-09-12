@@ -130,9 +130,8 @@ void Postprocess_method::run(Program_options & options, ostream & output) {
   pt.setSize(1);
   int npoints=0;
   Postprocess_average postavg(average_var.GetDim(0));
-  while(tmpconfig.readBinary(f,nelec,ndim)) {
-    doublevar weight;
-    if(!fread(&weight,sizeof(doublevar),1,f)) error("Misformatting in binary file",configfile);
+  doublevar weight;
+  while(tmpconfig.readBinary(f,nelec,ndim,weight)) {
     tmpconfig.restorePos(sample);
     gen_point(wf,sample,tmpconfig,weight,pt);
     postavg.update_average(pt);
