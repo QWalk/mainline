@@ -435,11 +435,12 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
                 sum-=timestep*mov->vxx;
                 if(rand < sum) { 
                   Array1 <doublevar> epos(3);
-                  sample->getElectronPos(mov->e, epos);
+                  //sample->getElectronPos(mov->e, epos);
                   //cout << "moving electron " << mov->e << " from " << epos(0) << " " << epos(1)
                   //  << " " << epos(2) << " to " << mov->pos(0) << " " << mov->pos(1) 
                   //  << " " << mov->pos(2) << endl;
-                  sample->setElectronPos(mov->e,mov->pos);
+                  //sample->setElectronPos(mov->e,mov->pos);
+                  sample->translateElectron(mov->e,mov->pos);
                   break;
                 }
               }
