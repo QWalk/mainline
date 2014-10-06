@@ -44,6 +44,8 @@ void Wannier_method::read(vector <string> words,
     resolution=.2;
   if(!readvalue(words,pos=0, out_orbs, "OUT_ORB"))
     out_orbs=options.runid+".orb";
+  if(!readvalue(words,pos=0, shake,"SHAKE"))
+    shake=1./10.;
 
   vector <vector < string> > orbgroup_txt;
   pos=0;
@@ -494,7 +496,7 @@ void Wannier_method::optimize_rotation(Array3 <dcomplex> &  eikr,
   Rgen=0.0;
   for(int ii=0; ii< norb; ii++) { 
     for(int jj=ii+1; jj< norb; jj++) { 
-      Rgen(ii,jj)=rng.gasdev()*pi/10.0;
+      Rgen(ii,jj)=rng.gasdev()*pi*shake;
     }
   }
   for(int step=0; step < 800; step++) { 

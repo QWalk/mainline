@@ -72,7 +72,7 @@ private:
   Array2 <doublevar> mymovals; //(i,j) where i=MO#, j=0 default (for now)
   Array2 <doublevar> LatticeVec;
   Array1 <doublevar> origin;
-
+  doublevar shake;
   string out_orbs;
 
 
