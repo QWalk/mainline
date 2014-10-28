@@ -38,6 +38,8 @@ void Postprocess_method::read(vector <string> words,
   if(!readvalue(words, pos=0, nskip, "NSKIP"))
     nskip=0;
   
+  evaluate_energy=true;
+  if(haskeyword(words,pos=0,"NOENERGY")) evaluate_energy=false;
 
   vector <vector < string> > dens_words;
   vector<string> tmp_dens;
@@ -52,6 +54,7 @@ void Postprocess_method::read(vector <string> words,
   while(readsection(words, pos, tmp_dens, "AVERAGE")) {
     avg_words.push_back(tmp_dens);
   }
+
   
   sys=NULL;
   allocate(options.systemtext[0],  sys);
@@ -94,7 +97,6 @@ void Postprocess_method::run(Program_options & options, ostream & output) {
   if(mpi_info.node==0) { 
     f=fopen(configfile.c_str(),"r");
     if(ferror(f)) error("Could not open",configfile);
-    cout << "here " << endl;
     fseek(f,0,SEEK_END);
     long int lSize=ftell(f);
     rewind(f);
@@ -120,11 +122,6 @@ void Postprocess_method::run(Program_options & options, ostream & output) {
     worker(wf,sample);
   }
 #else
-//  fseek(f,0,SEEK_END);
-//  long int lSize=ftell(f);
-//  rewind(f);
-//  int npoints_tot=lSize/(sizeof(doublevar)*(nelec*3+1));
-//  output << "Estimated number of samples in this file: " << npoints_tot << endl;
   Config_save_point tmpconfig;
   Properties_point pt;
   pt.setSize(1);
@@ -173,7 +170,8 @@ int Postprocess_method::gen_point(Wavefunction * wf, Sample_point * sample,
   configpos.restorePos(sample);
   
   pseudo->randomize();
-  gather.gatherData(pt,pseudo,sys,wfdata,wf,sample,&guide);
+  if(evaluate_energy) 
+    gather.gatherData(pt,pseudo,sys,wfdata,wf,sample,&guide);
   pt.avgrets.Resize(1,average_var.GetDim(0));
   //cout << mpi_info.node << " generating a point with " << average_var.GetDim(0) << " avgrets " << endl;
   for(int i=0; i< average_var.GetDim(0); i++) { 
@@ -262,7 +260,6 @@ int Postprocess_method::master(Wavefunction * wf, Sample_point * sample,FILE * f
   //Loop through all the nodes and collect their last points, adding them in
   //Write out the final averages.
   for(int r=1; r < mpi_info.nprocs; r++) { 
-    cout << "collecting from " << r << endl;
     int done;
     MPI_Recv(done,r);
     done=0;
@@ -270,7 +267,6 @@ int Postprocess_method::master(Wavefunction * wf, Sample_point * sample,FILE * f
     MPI_Send(done,r);
     postavg.update_average(pt);
   }
-  cout << "printing " << endl;
   postavg.print(average_var,os);
   
 #endif //USE_MPI

@@ -88,6 +88,7 @@ private:
   
   
   int nskip;
+  bool evaluate_energy;
   System * sys;
   Pseudopotential * pseudo;
   Wavefunction_data * wfdata;
@@ -144,7 +145,8 @@ public:
   void print(Array1<Average_generator *> average_var,ostream & output) { 
     output.precision(10);
     output << "Averages" << endl;
-    output << "total_energy " << avgen << " +/- " << sqrt(varen/npoints) << " (sigma " << sqrt(varen) << ") "<< endl;
+    if(avgen!=0 and varen!=0)
+      output << "total_energy " << avgen << " +/- " << sqrt(varen/npoints) << " (sigma " << sqrt(varen) << ") "<< endl;
     output << "weight " << avgwt/npoints << endl;
     for(int i=0; i< avgavg.GetDim(0); i++) { 
       for(int j=0; j< varavg(i).vals.GetDim(0); j++) 
