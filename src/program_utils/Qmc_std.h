@@ -72,6 +72,8 @@ int MPI_Send(double &, int node);
 int MPI_Recv(double &, int node);
 int MPI_Send(int &, int node);
 int MPI_Recv(int &, int node);
+int MPI_Send(string &, int node);
+int MPI_Recv(string &, int node);
 
 
 

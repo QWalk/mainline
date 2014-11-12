@@ -1,10 +1,10 @@
  ######################################################################
 
-CXX:=clang++
+CXX:=g++
 
-CXXFLAGS := -O2   \
-   -funroll-loops -ffast-math  \
+CXXFLAGS := -O2 -pg -g  \
   $(INCLUDEPATH) 
+#   -funroll-loops -ffast-math  \
  #not omitting the frame pointer so we get instrumentation
 
 CXXFLAGS+= -DUSE_LAPACK -DUSE_BLAS 

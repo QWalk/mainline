@@ -1,4 +1,4 @@
-/*! \page crystal2qmcDoc Crystal to QMC
+/*! \page crystal2qmcDoc Crystal 
 
 
 \section description Description
@@ -16,12 +16,14 @@ Crystal's input file. This turns off a feature that boosts the speed
 quite a bit in certain circumstances, but mangles the wave function in
 fort.10.
 
-Note that the current version of crystal2qmc is not tested with versions previous to Crystal2009.  It may or may not work properly.
+Note that the current version of crystal2qmc is not tested with versions previous to Crystal2009.  It may or may not work properly. It should work with Crystal2014.
+
 
 \section crystal_options Important options of Crystal code
 
 Several options have to be present in the Crystal's input file
 for proper function of the crystal2qmc converter. These are listed below.
+
 
 \subsection crys2009 Crystal2009
 
@@ -31,11 +33,40 @@ PRINTOUT
 EIGENVAL
 -1
 EIGENVEC
--100
+-999
 END
 </pre>
 in the third section.
 
+CRYSTAL2009 has a bug when run in parallel, in which the eigenvec printout is sometimes corrupted. 
+crystal2qmc will try to detect this, but may crash randomly on CRYSTAL runs that have been done in parallel.
+There are essentially two options;
+<ul>
+  <li> Restart the CRYSTAL run in serial and use the resulting output file.
+  <li>  Using 'properties' and NEWK
+    <ul>
+     <li>Make sure that you did not run CRYSTAL with the PRINTOUT section above.
+     <li> Run properties with the following input 
+     <pre>
+NEWK 
+4 4 
+1 1
+67 999
+END
+     </pre>
+     <li> Use the following script to generate an output file
+     <pre>
+#!/bin/sh 
+if [ $# -lt 3 ]; then
+    echo "Syntax: newk.sh crystal_out newk_out output"
+    exit 1
+fi
+head -50000 $1 > $1.tmp
+sed -n -e '1,/FINAL EIGENVECTORS/p' $1.tmp | sed 's/FINAL EIGENVECTORS/NEWK EIGENVECTORS/g' > $3
+sed -n -e '/HAMILTONIAN EIGENVECTORS/, $p' $2 >> $3
+     </pre>
+   </ul>
+</ul>
 
 \subsection crys98 Crystal98
 

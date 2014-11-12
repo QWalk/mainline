@@ -288,6 +288,12 @@ class Config_save_point {
   }
   void read(istream & is);
   void write(ostream & os);
+
+  //These are supposed to be fast routines that 
+  //write fairly efficiently.
+  int writeBinary(FILE * f, doublevar weight=1.0);
+  int readBinary(FILE * f,int nelec, int ndim,doublevar & weight);
+
  private:
   Array1 <Array1 <doublevar> > electronpos;
 };

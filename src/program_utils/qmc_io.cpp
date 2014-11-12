@@ -19,7 +19,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 
 #include "qmc_io.h"
-
+#include <cstdio>
 //---------------------------------------------------------------------
 
 int caseless_eq(const string & s1, const string & s2) {
@@ -381,3 +381,66 @@ int checkbrackets(vector <string> & words)
 }
 
 //----------------------------------------------------------------------
+
+int binary_write_checksum(Array1 <doublevar> & a, FILE * f) { 
+  int n=a.GetDim(0);
+  doublevar n_d=n;
+  doublevar zero=0.0;
+  fwrite(&zero,sizeof(doublevar),1,f);
+  fwrite(&zero,sizeof(doublevar),1,f);
+  fwrite(&n_d,sizeof(doublevar),1,f);
+  double check=checksum(a);
+  fwrite(a.v,sizeof(doublevar),n,f);
+  fwrite(&check,sizeof(doublevar),1,f);
+  if(ferror(f)) { 
+    return 0;
+  }
+  return 1;
+}
+
+int binary_read_checksum(Array1 <doublevar> & a, FILE * f,int nhint) { 
+  int ntry=0;
+  while(true) { 
+  //First try to read in zeros
+    ntry++;
+    if(ntry>1) cout << "WARNING: detected corruption" << endl;
+    doublevar zero1,zero2;
+    int ntry_zero=0;
+    while(true) { 
+      ntry_zero++;
+      if(!fread(&zero1,sizeof(doublevar),1,f)) return 0;
+      //cout << "zero1 " << zero1 << endl;
+      if(zero1==0) {
+          if(!fread(&zero2,sizeof(doublevar),1,f)) return 0;
+          if(zero2==0) break;
+      }
+    }
+    if(ntry_zero> 1) cout << "WARNING: possible corruption: had to search " << ntry_zero << endl;
+    doublevar n_d;
+    fread(&n_d,sizeof(doublevar),1,f);
+    int n=int(n_d);
+    if(n_d-n == 0 and ( nhint<0 or n==nhint))  { 
+      a.Resize(n);
+      fread(a.v,sizeof(doublevar),n,f);
+      doublevar check_array=checksum(a);
+      doublevar check_file=1e99;
+      fread(&check_file,sizeof(doublevar),1,f);
+      if(fabs(check_array-check_file) < 1e-10) return ntry;
+      else { 
+        cout << "WARNING: detected corruption" << endl;
+      }
+      if(ferror(f)) return 0;
+    }
+  }
+}
+
+double checksum(Array1 <doublevar> & a) {
+  //Here we just take the average of the array.
+  int n=a.GetDim(0);
+  doublevar check=0;
+  for(int i=0; i< n; i++) 
+    check+=a[i]/n;
+  return check;
+}
+
+

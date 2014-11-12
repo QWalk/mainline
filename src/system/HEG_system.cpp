@@ -140,7 +140,7 @@ int HEG_system::read(vector <string> & words,
 
   vector <string> spintxt;
   if(!readsection(words, pos, spintxt, "NSPIN")) {
-    error("Need NSPIN in molecular system");
+    error("Need NSPIN in HEG system");
   }
   nspin.Resize(2);
   nspin(0)=atoi(spintxt[0].c_str());
@@ -576,29 +576,30 @@ doublevar HEG_system::calcLocGauss(Sample_point * sample)
 
   doublevar ee_pot=0.0;
   Array1 <doublevar> eidist(5);
-  
+
   if (diff_spin_int) {
     for(int e1=0; e1< nspin(0); e1++) {
       for(int e2 =nspin(0); e2 < totnelectrons; e2++) {
-	sample->getEEDist(e1,e2, eidist);
-	ee_pot+=exp(-eidist(1)/2.0/Gauss_s2);
+        sample->getEEDist(e1,e2, eidist);
+        ee_pot+=exp(-eidist(1)/2.0/Gauss_s2);
       }
     }
   }
   if (same_spin_int) {
     for(int e1=0; e1< nspin(0); e1++) {
       for(int e2 =e1+1; e2 < nspin(0); e2++) {
-	sample->getEEDist(e1,e2, eidist);
-	ee_pot+=exp(-eidist(1)/2.0/Gauss_s2);
+        sample->getEEDist(e1,e2, eidist);
+        ee_pot+=exp(-eidist(1)/2.0/Gauss_s2);
       }
     }
     for(int e1=nspin(0); e1< totnelectrons; e1++) {
       for(int e2 =e1+1; e2 < totnelectrons; e2++) {
-	sample->getEEDist(e1,e2, eidist);
-	ee_pot+=exp(-eidist(1)/2.0/Gauss_s2);
+        sample->getEEDist(e1,e2, eidist);
+        ee_pot+=exp(-eidist(1)/2.0/Gauss_s2);
       }
     }   
   }
+
 
   return Gauss_a*ee_pot/Gauss_s/sqrt(2*pi);
 }

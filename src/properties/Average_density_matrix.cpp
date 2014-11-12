@@ -27,7 +27,7 @@ void Average_tbdm_basis::randomize(Wavefunction_data * wfdata, Wavefunction * wf
   int ndown=sys->nelectrons(1);
   Array2 <dcomplex> movals1(nmo,1),movals2(nmo,1);
   //Make a copy of the Sample so that it doesn't have to update the wave function.
-  Sample_point * sample;
+  Sample_point * sample=NULL;
   sys->generateSample(sample);
   for(int i=0; i< npoints_eval; i++) { 
     int k=0,l=0;
@@ -109,18 +109,17 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
 }
 
 
+//----------------------------------------------------------------------
 
 void Average_tbdm_basis::evaluate_obdm(Wavefunction_data * wfdata, Wavefunction * wf,
                         System * sys, Sample_point * sample, Average_return & avg) { 
   avg.type="tbdm_basis";
-
   wf->updateVal(wfdata,sample);
   Wf_return wfval_base(wf->nfunc(),2);
   wf->getVal(wfdata,0,wfval_base);
   int nup=sys->nelectrons(0);
   int ndown=sys->nelectrons(1);
   int nelectrons=nup+ndown;
-
   Array1 <Array2 <dcomplex> > movals1_base(nelectrons);
   for(int e=0; e< nelectrons; e++) { 
     movals1_base(e).Resize(nmo,1);
@@ -635,7 +634,7 @@ void Average_tbdm_basis::write_init(string & indent, ostream & os) {
 
   os << indent << "}\n";
   os << indent << "STATES { ";
-  int nstates=occupations(0).GetDim(1);
+  int nstates=occupations(0).GetDim(0);
   for(int i=0; i < nstates; i++) { 
     os << occupations(0)(i)+1 << " ";
     if( (i+1)%30==0) os << "\n" << indent << " ";

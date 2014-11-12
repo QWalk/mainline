@@ -92,7 +92,8 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
     Array1 <doublevar> olden=en;
     wavefunction_derivative(H,S,en);
 
-    output << "step " << it << ": current energy " << en(0) << " +/- " << en(1);
+    output << "step " << it << ": current energy " << setprecision(10) << en(0) 
+           << " +/- " << setprecision(10) << en(1);
     output.flush();
     //if(it > 0) 
     //  output << "  energy change " << en(0)-olden(0) 

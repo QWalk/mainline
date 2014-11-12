@@ -457,8 +457,9 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
         }
         if(dump_file!="") { 
           if(mpi_info.nprocs !=1) error("Only one processor dump for now");
-          ofstream dumpout(dump_file.c_str());
+          ofstream dumpout(dump_file.c_str(),ios::app);
           dumpout << pt.energy(0) << " ";
+          dumpout << pt.wf_val.sign(0) << " " << pt.wf_val.amp(0,0) << " ";
           for(int e=0; e< nelectrons; e++)  { 
             sample->getElectronPos(e,newpos);
             for(int d=0; d< 3; d++) dumpout << newpos(d) << " ";

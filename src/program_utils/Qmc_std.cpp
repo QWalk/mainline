@@ -113,6 +113,27 @@ int MPI_Recv(int &i, int node) {
 }
 
 
+int MPI_Send(string & str, int node) { 
+#ifdef USE_MPI
+  int nstring=str.size();
+  MPI_Send(nstring,node);
+  MPI_Send((char *) str.c_str(),nstring, MPI_CHAR, node,0,MPI_Comm_grp);
+#endif 
+  return 1;
+}
+int MPI_Recv(string &str, int node) { 
+#ifdef USE_MPI
+  int nstring;
+  MPI_Status status;
+  MPI_Recv(nstring,node);
+  char * buf=new char[nstring+1];
+  MPI_Recv(buf,nstring,MPI_CHAR, node, 0, MPI_Comm_grp, & status);
+  buf[nstring]='\0';
+  str=buf;
+#endif
+  return 1;
+}
+
 
 //----------------------------------------------------------------------
 

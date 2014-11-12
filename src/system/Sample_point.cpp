@@ -91,10 +91,14 @@ void Config_save_point::mpiReceive(int node) {
   MPI_Recv(&nelectrons,1, MPI_INT, node, 0, MPI_Comm_grp,
            &status);
   electronpos.Resize(nelectrons);
+  Array2 <doublevar> epos(nelectrons,3);
+  MPI_Recv(epos.v,3*nelectrons,MPI_DOUBLE,node,0,MPI_Comm_grp,&status);
+
   for(int e=0; e< nelectrons; e++) {
     electronpos(e).Resize(3);
-    MPI_Recv(electronpos(e).v, 3, MPI_DOUBLE,
-        node, 0, MPI_Comm_grp, &status);
+    for(int d=0; d < 3; d++) electronpos(e)(d)=epos(e,d);
+   // MPI_Recv(electronpos(e).v, 3, MPI_DOUBLE,
+   //     node, 0, MPI_Comm_grp, &status);
   }
 #endif
 }
@@ -103,10 +107,12 @@ void Config_save_point::mpiSend(int node) {
 #ifdef USE_MPI
   int nelectrons=electronpos.GetDim(0);
   MPI_Send(&nelectrons,1, MPI_INT, node, 0, MPI_Comm_grp);
+  Array2 <doublevar> epos(nelectrons,3);
   for(int e=0; e< nelectrons; e++) {
-    MPI_Send(electronpos(e).v, 3, MPI_DOUBLE,
-        node, 0, MPI_Comm_grp);
+    for(int d=0; d< 3; d++) epos(e,d)=electronpos(e)(d);
   }
+  MPI_Send(epos.v, 3*nelectrons, MPI_DOUBLE,
+        node, 0, MPI_Comm_grp);
 #endif
 }
 
@@ -140,5 +146,42 @@ void Config_save_point::write(ostream & os) {
     os << endl;
   }
 }
-
+#include "qmc_io.h"
 //----------------------------------------------------------------------
+int Config_save_point::writeBinary(FILE * f,doublevar weight) { 
+  //for(int e=0; e< electronpos.GetDim(0); e++) { 
+  //  fwrite(electronpos(e).v, sizeof(doublevar),3, f);
+  //}
+
+  int ndim=electronpos(0).GetDim(0);
+  int ne=electronpos.GetDim(0);
+  Array1<doublevar> a(ne*ndim+1);
+  int count=0;
+  for(int e=0; e< ne; e++) { 
+    for(int d=0; d< ndim; d++) {
+      a(count++)=electronpos(e)(d);
+    }
+  }
+  a(count)=weight;
+  binary_write_checksum(a,f);
+  
+  return 1;
+}
+//----------------------------------------------------------------------
+int Config_save_point::readBinary(FILE * f,int nelec, int ndim, doublevar & weight) { 
+  Array1 <doublevar> a;
+  if(!binary_read_checksum(a,f,nelec*ndim+1)) return 0;
+  if(a.GetDim(0)!=nelec*ndim+1) error("Array size wrong in Config_save_point::readBinary");
+  electronpos.Resize(nelec);
+  int count=0;
+  for(int e=0; e< electronpos.GetDim(0); e++) { 
+    electronpos(e).Resize(ndim);
+    //nread=fread(electronpos(e).v, sizeof(doublevar),ndim, f);
+    for(int d=0; d< ndim; d++) electronpos(e)(d)=a(count++);
+  }
+  weight=a(count);
+  return 1;
+  
+}
+//----------------------------------------------------------------------
+

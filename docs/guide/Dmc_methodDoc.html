@@ -1,4 +1,4 @@
-/*! \page Dmc_methodDoc Diffusion Monte Carlo method
+/*! \page Dmc_methodDoc Diffusion Monte Carlo 
 
 Keyword: DMC
 
@@ -42,37 +42,45 @@ need highly accurate results.
 <table>
 <tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b> Default </b> 
      <td> <b>Description</b>
-<tr> <td> NCONFIG  <td> Integer <td> Special <td> The desired average number of walkers 
-per node.  The default is set such that the average number of walkers is approximately 2048.
-<tr> <td> NSTEP <td> Integer <td> Special <td>  Number of DMC steps to take in a block.
-        The default is set such that NSTEP*TIMESTEP is approximately 1.
-<tr> <td> NBLOCK <td> Integer <td> 100 <td>Number of blocks to calculate
         
-<tr> <td> READCONFIG <td> String <td> runid.config <td> Read from a configuration file
-previously written by STORECONFIG.  If there are more  configurations 
-than NCONFIG, DMC will read NCONFIG. If this file is absent, then appropriate starting configurations will be generated. 
-<tr> <td> STORECONFIG <td> String <td> runid.config <td> Write the
-     configurations and DMC weights to this file every block. 
-<tr> <td> LABEL <td> String <td> dmc <td> Label in the .log file.
-<tr> <td> DYNAMICS <td> Section <td> {&nbsp;SPLIT&nbsp;}
-     <td> Choose a dynamics generator (i.e., a strategy of the stochastic
-       sampling). Possible options are { SPLIT }, { SRK }, and { UNR }. Use UNR
-     when you don't have pseudopotentials. Further possibilities of
-     fine tuning are described on the \ref DynamicsDoc page.
 
 <tr> <td> AVERAGE,<br>DENSITY,<br>NONLOCAL_DENSITY <td> Section <td> empty 
      <td> Sections for evaluation of \ref PropertiesDoc . <i>Mixed</i>
      estimators are provided.
+     
+<tr> <td> SAVE_TRACE <td> String <td> none
+     <td> Every block, save the current configurations and their weights (in binary). Note that since this is a binary file, you may need to use the utility swap_endian (provided in utils) to change architectures.
+     
+<tr> <td> TMOVES <td> Flag <td> Off <td> Use Michele Casula's T-moves, which
+  makes DMC rigorously variational when there are non-local pseudopotentials
+  at the cost of increasing the timestep error slightly
+     
 </table>
 
 The following options are advanced, and can be left as they are with no ill effects.
 In other words, don't change these unless you know what you're doing!
 
 <table>
+<tr> <td> DYNAMICS <td> Section <td> {&nbsp;SPLIT&nbsp;}
+     <td> Choose a dynamics generator (i.e., a strategy of the stochastic
+       sampling). Possible options are { SPLIT }, { SRK }, and { UNR }. Use UNR
+     when you don't have pseudopotentials. Further possibilities of
+     fine tuning are described on the \ref DynamicsDoc page.
+  
+<tr> <td> NCONFIG  <td> Integer <td> Special <td> The desired average number of walkers 
+per node.  The default is set such that the average number of walkers is approximately 2048.
+<tr> <td> NSTEP <td> Integer <td> Special <td>  Number of DMC steps to take in a block.
+        The default is set such that NSTEP*TIMESTEP is approximately 1.
+<tr> <td> NBLOCK <td> Integer <td> 100 <td>Number of blocks to calculate
+  
+<tr> <td> LABEL <td> String <td> dmc <td> Label in the .log file.
 
-<tr> <td> TMOVES <td> Flag <td> Off <td> Use Michele Casula's T-moves, which
-  makes DMC rigorously variational when there are non-local pseudopotentials
-  at the cost of increasing the timestep error slightly
+<tr> <td> READCONFIG <td> String <td> runid.config <td> Read from a configuration file
+previously written by STORECONFIG.  If there are more  configurations 
+than NCONFIG, DMC will read NCONFIG. If this file is absent, then appropriate starting configurations will be generated. 
+<tr> <td> STORECONFIG <td> String <td> runid.config <td> Write the
+     configurations and DMC weights to this file every block. 
+  
 <tr> <td> LOW_IO <td> Flag <td> Off <td> Try to limit the amount of I/O, which
 is useful when the run is faster than the I/O, or in the case of writing to
 flaky NFS servers that are so prevalent.  Currently it just turns off writing 

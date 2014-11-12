@@ -1,6 +1,7 @@
 /*
  
 Copyright (C) 2007 Michal Bajdich
+Copyright (C) 2012 Shuming Hu
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -71,55 +72,56 @@ void Nodes_method::read(vector <string> words,
 
 
   pos=0;
-  if(! readsection(words,pos,Tminmax,"MINMAX"))
-    error("Need MINMAX in METHOD section");
-  if(Tminmax.size() != 6)
-    error("MINMAX needs 6 values");
   minmax.Resize(6);
-  for(unsigned int i=0; i<Tminmax.size(); i++)
-  {
-    minmax(i)=atof(Tminmax[i].c_str());
-  }
-  
-  /*
-  if(readvalue(words, pos=0, readconfig, "READCONFI"G)) {
-    tmp_configs.Resize(1);
-    tmp_configs(0)=mywalker;
-    ifstream configin(readconfig.c_str());
-    if(!configin)
-      cout <<"Couldn't open " << readconfig <<endl;
-    nconfigsread=read_array(tmp_configs, configin);
-    cout << "nconfigsread= "<< nconfigsread <<endl;
-    configin.close();
-  }
-  else {
-    mywalker->randomGuess();
-  }
-  */
-
-  if(readvalue(words, pos=0, readconfig, "READCONFIG")){
-    canonical_filename(readconfig);
-    ifstream checkfile(readconfig.c_str());
-    if(!checkfile) 
-      error("Couldn't open ", checkfile);
-    long int is1, is2;
-    string dummy;
-    checkfile >> dummy;
-    if(dummy != "RANDNUM") error("Expected RANDNUM in checkfile");
-    checkfile >> is1 >> is2;
-    //rng.seed(is1, is2);  
-    while(checkfile >>dummy ) {
-      read_config(dummy, checkfile, mywalker);
+  if(readsection(words,pos,Tminmax,"MINMAX")) { 
+    if(Tminmax.size() != 6)
+      error("MINMAX needs 6 values");
+    for(unsigned int i=0; i<Tminmax.size(); i++)
+    {
+      minmax(i)=atof(Tminmax[i].c_str());
     }
-    checkfile.close();
+  }
+  else  { 
+    minmax=0.0;
+  
+    int nions=sysprop->nIons();
+    Array1 <doublevar> ionpos(3);
+    for(int i=0; i< nions; i++) {
+      sysprop->getIonPos(i,ionpos);
+      for(int d=0; d< 3; d++) {
+        if(ionpos(d) < minmax(2*d)) minmax(2*d) = ionpos(d);
+        if(ionpos(d) > minmax(2*d+1)) minmax(2*d+1)=ionpos(d);
+      }
+    }
+
+    for(int d=0; d< 3; d++) {
+      minmax(2*d)-=4.0;
+      minmax(2*d+1)+=4.0;
+      cout << "minmax " << minmax(2*d) << " " << minmax(2*d+1) << endl;
+    }
+  } 
+  
+  
+ 
+
+  // Makes the Nodes methods use the current implementation of Nodes
+  if(readvalue(words, pos=0, readconfig, "READCONFIG")){
+    Array1 <Config_save_point> config_pos;
+    config_pos.Resize(0);
+    if(readconfig!="") { 
+      read_configurations(readconfig, config_pos);
+    }
+    if(config_pos.GetDim(0)<1)
+      error("Could not read a single walker from config file");
+    //take a first one
+    config_pos(0).restorePos(mywalker);
   }
   else {
     mywalker->randomGuess();
     debug_write(cout, 0, " configs read ", 1,
                 " configs randomly generated \n");
   }
- 
-
+  
   pos=0;
   doublemove=false;
   if( readsection(words,pos,Tdxyz,"DOUBLEMOVES")){
@@ -167,7 +169,7 @@ void Nodes_method::run(Program_options & options, ostream & output)
     // excited state and so on, and second label is for two values, sign and log(wf).
 
  //scan electron positions
-  cout << "Using this electron positions:"<<endl;
+  cout << "Using these electron positions:"<<endl;
   for(int i=0; i<mywalker->electronSize(); i++){
     mywalker->getElectronPos(i, tmp);
     cout.precision(5);
@@ -244,7 +246,13 @@ void Nodes_method::run(Program_options & options, ostream & output)
             mywalker->setElectronPos(plots(i)-1,xyz); //move elec#plots(i) to point specified by xyz
             wf->updateVal(wfdata, mywalker); //update wfdata
             wf->getVal(wfdata, 0, wfvals); //get wf value
-            grid(i,count)=wfvals.sign(0)*exp(wfvals.amp(0,0));
+            const doublevar cutoff=15;
+            if(wfvals.amp(0,0)<cutoff) { 
+              grid(i,count)=wfvals.sign(0)*exp(wfvals.amp(0,0));
+            }
+            else { //cut off the maximum value output so that there aren't overflow errors
+              grid(i,count)=wfvals.sign(0)*exp(cutoff);
+            }
             //grid(i,count)=exp(2.0*wfvals(0,1));//!square of wavefunction
             if (grid(i,count)>max_value) max_value=grid(i,count);
             if (grid(i,count)<min_value) min_value=grid(i,count);
@@ -281,11 +289,11 @@ void Nodes_method::run(Program_options & options, ostream & output)
         os.open(pltfile.c_str());
         cout<<"writing to "<<pltfile<<endl;
 
-	os << "GOS nodes output\n";
-	os << "Wavefunction single scan with " <<   plots(i) <<" electron"<<endl;
-	int natoms=sysprop->nIons();
+        os << "QWalk nodes output\n";
+        os << "Wavefunction single scan with " <<   plots(i) <<" electron"<<endl;
+        int natoms=sysprop->nIons();
         os << "  " << natoms+ mywalker->electronSize()-1 << "   " << minmax(0) << "   "
-           << minmax(2) << "   " << minmax(4) << endl;
+          << minmax(2) << "   " << minmax(4) << endl;
         os << D_array1(0) << "   " << resolution_array(0) << "  0.0000   0.0000" << endl;
         os << D_array1(1) << "   0.0000   " << resolution_array(1) << "  0.0000" << endl;
         os << D_array1(2) << "   0.0000    0.0000    " << resolution_array(2) << endl;
@@ -293,7 +301,7 @@ void Nodes_method::run(Program_options & options, ostream & output)
         for(int at=0; at< natoms; at++) {
           mywalker->getIonPos(at,pos);
           os << "   " << mywalker->getIonCharge(at) << "   0.0000    " << pos(0) 
-             <<"    " << pos(1) << "   " << pos(2) << endl;
+            <<"    " << pos(1) << "   " << pos(2) << endl;
         }
         for(int j=0; j<mywalker->electronSize(); j++){
           if (j!=plots(i)-1){
@@ -302,14 +310,14 @@ void Nodes_method::run(Program_options & options, ostream & output)
             os<< oldpos(j,0)<<"   "<<oldpos(j,1)<<"   "<< oldpos(j,2)<<endl;
           }
         }
-	os.setf(ios::scientific);
+        os.setf(ios::scientific);
         for(int j=0; j< D_array1(0)*D_array1(1)*D_array1(2); j++) {
           os <<setw(16)<<setprecision(8)<<grid(i,j);
           if(j%6 ==5) os << endl;
         }
         os << endl;
-	os.unsetf(ios::scientific);
-	os<<setprecision(6);
+        os.unsetf(ios::scientific);
+        os<<setprecision(6);
         os.close();
 
 	

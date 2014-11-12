@@ -630,11 +630,6 @@ void Properties_manager::endBlock() {
   }
   current_block++;
   npoints_this_block=0;
-  /*
-  for(int step=0; step < nsteps; step++)
-    for(int walker=0; walker < nwalkers; walker++) 
-      trace(step, walker).reset();
-      */
   final_avg.blockReduce(block_avg, 0, current_block,1);
 }
 

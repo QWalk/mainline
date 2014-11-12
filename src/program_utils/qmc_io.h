@@ -523,6 +523,33 @@ template <class ConfigType> void read_configurations(string & filename,
 }
 
 
+/*!
+ Write the array in binary to a file, with a checksum at the end.
+ The format is (everything in double):
+ 0 0 nelements arr[0] arr[1] ... checksum
+ The reason nelements is kept as a double is to make conversion between little endian and big endian simple.
+
+Returns:
+  1 if successful
+  0 if not
+*/
+int binary_write_checksum(Array1 <doublevar> & , FILE * f);
+/*!
+ Read the binary file written by binary_write_checksum, check that the checksum matches.
+ If an array was cut off (i.e. the checksum doesn't match), try to find the next array to read in.
+ If you know how big the array should have been, you can give nhint, in which case it will look for an array with that size (it can thus recover from more severe errors)
+Returns:
+ 1 if sucessful
+ n for n attempts to read
+ 0 if the file doesn't contain another valid array.
+*/
+int binary_read_checksum(Array1 <doublevar> & , FILE * f,int nhint=-1);
+
+/*!
+ Return the checksum for an array.
+ */
+double checksum(Array1 <doublevar> &);
+
 #endif  //QMC_IO_H_INCLUDED
 
 //--------------------------------------------------------------------------

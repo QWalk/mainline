@@ -66,6 +66,9 @@ private:
   Array1 < Array2 <T> > moCoeff_list;
   Array1 < Array1 <int> > basismo_list;
 
+ Array1 <doublevar> symmvals_temp1d;
+ Array2 <doublevar> symmvals_temp2d;
+
 
 
 public:
@@ -241,13 +244,15 @@ template <class T> void MO_matrix_cutoff<T>::init() {
 
       for(int i=0; i<imax; i++) { //sum over the symmetries
         for(int mo=0; mo<nmo; mo++) {      //and the MO's
+          T temp;
           if(coeffmat(mo,ion, f) == -1) {
-            cout << "missing MO pointer: mo# " << mo << " ion # " << ion
-            << " function on ion: " << f << endl;
-            error("In the orb file, there is a missing pointer. It might "
-                  "be a badly structured file.");
+            temp=T(0.0);
+            //cout << "missing MO pointer: mo# " << mo << " ion # " << ion
+            //<< " function on ion: " << f << endl;
+            //error("In the orb file, there is a missing pointer. It might "
+            //      "be a badly structured file.");
           }
-          T temp=coeff(coeffmat(mo,ion,f));
+          else temp=coeff(coeffmat(mo,ion,f));
           if(abs(temp) > threshold) {
             mofill(mo, nbasis(mo))=totfunc;
             moCoeff2(mo, nbasis(mo))=kptfac*magnification_factor*temp;
@@ -260,6 +265,8 @@ template <class T> void MO_matrix_cutoff<T>::init() {
       } //i
     } //n
   }  //ion
+  symmvals_temp1d.Resize(maxbasis);
+  symmvals_temp2d.Resize(maxbasis,10);
 
 }
 
@@ -387,9 +394,10 @@ template <class T> int MO_matrix_cutoff<T>::writeinput(string & indent, ostream 
 
 template <class T> void MO_matrix_cutoff<T>::updateVal(
   Sample_point * sample,  int e,  int listnum,  Array2 <T> & newvals) {
+  //cout << "start updateval " << endl;
   int centermax=centers.size();
   static Array1 <doublevar> R(5);
-  static Array1 <doublevar> symmvals_temp(maxbasis);
+  //Array1 <doublevar> symmvals_temp(maxbasis);
 
   //Make references for easier access to the list variables.
   Array1 <int> & basismotmp(basismo_list(listnum));
@@ -406,7 +414,7 @@ template <class T> void MO_matrix_cutoff<T>::updateVal(
   int scalebasis=basisfill_list(listnum).GetDim(1);
   int totfunc=0;
   int b; //basis
-  
+  //cout << "here " << endl;
   centers.updateDistance(e, sample);
   //int retscale=newvals.GetDim(1);
   for(int ion=0; ion < centermax; ion++) {
@@ -416,7 +424,8 @@ template <class T> void MO_matrix_cutoff<T>::updateVal(
       b=centers.basis(ion,n);
       tempbasis=basis(b);
       if(obj_cutoff(b) > R(0)) {
-        tempbasis->calcVal(R, symmvals_temp);
+        tempbasis->calcVal(R, symmvals_temp1d);
+        //cout << "ion " << ion << "b " << b << " mo "<< mo << endl;
         int imax=nfunctions(b);
         for(int i=0; i< imax; i++) {
           int reducedbasis=scalebasis*totfunc;
@@ -430,7 +439,8 @@ template <class T> void MO_matrix_cutoff<T>::updateVal(
               //cout << "mocoeff (mo=" << mo <<  endl;
               //mo_counter(mo)++;
               c=moCoefftmp.v[reducedbasis+basmo];
-              newvals(mo, 0)+=c*symmvals_temp(i);
+
+              newvals(mo, 0)+=c*symmvals_temp1d(i);
               //newvals.v[retscale*mo]+=c*symmvals_temp.v[i];
 
             }
@@ -444,7 +454,7 @@ template <class T> void MO_matrix_cutoff<T>::updateVal(
     }
   }
   //n_calls++;
-  //  cout << "done updateVal " << endl;
+    //cout << "done updateVal " << endl;
 }
 
 //------------------------------------------------------------------------
@@ -463,9 +473,8 @@ template <class T>void MO_matrix_cutoff<T>::updateLap( Sample_point * sample,
   // cout << "array " << endl;
   Array1 <doublevar> R(5);
   // cout << "symvals " << endl;
-  static Array2 <doublevar> symmvals_temp(maxbasis,5);
+   //cout << "arrayref " << endl;
 
-  //cout << "arrayref " << endl;
   //References to make the code easier to read and slightly faster.
   Array1 <int> & basismotmp(basismo_list(listnum));
   Array2 <int> & basisfilltmp(basisfill_list(listnum));
@@ -480,6 +489,7 @@ template <class T>void MO_matrix_cutoff<T>::updateLap( Sample_point * sample,
   centers.updateDistance(e, sample);
   int totfunc=0;
   int b;
+  int symmvals_stride=symmvals_temp2d.GetDim(1);
   for(int ion=0; ion < centermax; ion++) {
     centers.getDistance(e, ion, R);
     for(int n=0; n< centers.nbasis(ion); n++) {
@@ -487,14 +497,14 @@ template <class T>void MO_matrix_cutoff<T>::updateLap( Sample_point * sample,
       tempbasis=basis(b);
       if(R(0) < obj_cutoff(b)) {
        // cout << "basis " << endl;
-      tempbasis->calcLap(R, symmvals_temp);
+      tempbasis->calcLap(R, symmvals_temp2d);
 
       int imax=nfunctions(b);
       for(int i=0; i< imax; i++) {
         //cout << "i " << i << endl;
 
         int reducedbasis=scalebasis*totfunc;
-        scalesymm=i*5;
+        scalesymm=i*symmvals_stride;
         if(R(0) < cutoff(totfunc)) {
           for(int basmo=0; basmo < basismotmp.v[totfunc]; basmo++) {
             //mo=basisfill(basis, basmo);
@@ -514,7 +524,7 @@ template <class T>void MO_matrix_cutoff<T>::updateLap( Sample_point * sample,
 
             for(int j=0; j< 5; j++) {
               //newvals(mo,j)+=c*symmvals(fn,j);
-              newvals.v[scaleval+j]+=c*symmvals_temp.v[scalesymm+j];
+              newvals.v[scaleval+j]+=c*symmvals_temp2d.v[scalesymm+j];
               //cout << "newvals(" << mo << "," << j << ")  " << newvals(mo,j) << endl;
               //cout << "symmvals(" << j << ")  " << symmvals(fn,j) << endl;
             }
@@ -560,7 +570,7 @@ template <class T>void MO_matrix_cutoff<T>::updateHessian(
   
 
   Array1 <doublevar> R(5);
-  static Array2 <doublevar> symmvals_temp(maxbasis,10);
+ // static Array2 <doublevar> symmvals_temp(maxbasis,10);
 
   //References to make the code easier to read and slightly faster.
   Array1 <int> & basismotmp(basismo_list(listnum));
@@ -576,13 +586,14 @@ template <class T>void MO_matrix_cutoff<T>::updateHessian(
   centers.updateDistance(e, sample);
   int totfunc=0;
   int b;
+  int symmvals_stride=symmvals_temp2d.GetDim(1);
   for(int ion=0; ion < centermax; ion++)  {
     centers.getDistance(e, ion, R);
     for(int n=0; n< centers.nbasis(ion); n++)  {
       b=centers.basis(ion, n);
       tempbasis=basis(b);
       if(R(0) < obj_cutoff(b)) {
-        tempbasis->calcHessian(R, symmvals_temp);
+        tempbasis->calcHessian(R, symmvals_temp2d);
 
         int imax=nfunctions(b);
         for(int i=0; i< imax; i++)  {
@@ -592,9 +603,9 @@ template <class T>void MO_matrix_cutoff<T>::updateHessian(
             for(int basmo=0; basmo < basismotmp.v[totfunc]; basmo++)   {
               mo=basisfilltmp.v[reducedbasis+basmo];
               c=moCoefftmp.v[reducedbasis+basmo];
-              scaleval=mo*10;
+              scaleval=mo*symmvals_stride;
               for(int j=0; j< 10; j++) {
-                newvals.v[scaleval+j]+=c*symmvals_temp.v[scalesymm+j];
+                newvals.v[scaleval+j]+=c*symmvals_temp2d.v[scalesymm+j];
               }
             }
           }

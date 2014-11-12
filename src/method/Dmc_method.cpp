@@ -29,6 +29,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Generate_sample.h"
 #include <algorithm>
 #include <ctime>
+#include <cstdio>
 void Dmc_method::read(vector <string> words,
                       unsigned int & pos,
                       Program_options & options)
@@ -64,10 +65,15 @@ void Dmc_method::read(vector <string> words,
   if(!readvalue(words, pos=0, eref, "EREF"))
     eref=0.0;
 
+  if(!readvalue(words,pos=0, max_poss_weight, "MAX_POSS_WEIGHT")) 
+    max_poss_weight=7.0;
+
   if(haskeyword(words, pos=0, "CDMC")) do_cdmc=1;
   else do_cdmc=0;
   if(haskeyword(words, pos=0, "TMOVES")) tmoves=1; 
   else tmoves=0;
+
+  readvalue(words,pos=0,save_trace,"SAVE_TRACE");
 
   if(!readvalue(words, pos=0, nhist, "CORR_HIST")) 
     nhist=-1;
@@ -429,11 +435,12 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
                 sum-=timestep*mov->vxx;
                 if(rand < sum) { 
                   Array1 <doublevar> epos(3);
-                  sample->getElectronPos(mov->e, epos);
+                  //sample->getElectronPos(mov->e, epos);
                   //cout << "moving electron " << mov->e << " from " << epos(0) << " " << epos(1)
                   //  << " " << epos(2) << " to " << mov->pos(0) << " " << mov->pos(1) 
                   //  << " " << mov->pos(2) << endl;
-                  sample->setElectronPos(mov->e,mov->pos);
+                  //sample->setElectronPos(mov->e,mov->pos);
+                  sample->translateElectron(mov->e,mov->pos);
                   break;
                 }
               }
@@ -452,8 +459,11 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
             past.erase(past.begin()+nhist, past.end());
           
           pts(walker).prop=pt;
-          if(!pure_dmc)
+          if(!pure_dmc) { 
             pts(walker).weight*=getWeight(pts(walker),teff,etrial);
+            //Introduce potentially a small bias to avoid instability.
+            if(pts(walker).weight>max_poss_weight) pts(walker).weight=max_poss_weight;
+          }
           else
             pts(walker).weight=getWeightPURE_DMC(pts(walker),teff,etrial);
           
@@ -642,41 +652,48 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
 
 void Dmc_method::savecheckpoint(string & filename,                     
                                  Sample_point * config) {
-  if(filename=="") return;
-  
-  write_configurations(filename, pts);
-  return;
-  /*
-  ofstream checkfile(filename.c_str());
-  if(!checkfile) error("Couldn't open", filename );
-  checkfile.precision(15);
-  
-  long int is1, is2;
-  rng.getseed(is1, is2);
-  checkfile << "RANDNUM " << is1 << "  " << is2 << endl;
 
-  checkfile.precision(15);
-  for(int i=0; i< nconfig; i++) { 
-    Dmc_point & mypt(pts(i));
-    checkfile << "SAMPLE_POINT { \n";
-    mypt.config_pos.restorePos(config);
-    write_config(checkfile, config);
-    checkfile << "   DMC { \n";
-    checkfile << "DMCWEIGHT " << mypt.weight << endl;
-    checkfile << "VALEN " << nwf << endl; 
-    for(int w=0; w< nwf; w++) {
-      checkfile << mypt.prop.wf_val.phase(w,0) << "  "
-		<< mypt.prop.wf_val.amp(w,0) << "  "
-		<< mypt.prop.energy(w)
-		<< endl;
+  if(save_trace!="") { 
+    if(mpi_info.node==0) { 
+      cout << "entering trace write" << endl;
+      long int time_ent=clock();
+      FILE * f=fopen(save_trace.c_str(),"a");
+      for(int i=0;i<nconfig; i++) {
+        pts(i).config_pos.writeBinary(f,pts(i).weight);
+      //  fwrite(&pts(i).weight, sizeof(doublevar),1, f);
+      }
+
+#ifdef USE_MPI
+      Dmc_point tmppt;
+      for(int p=1; p < mpi_info.nprocs; p++) { 
+        int nconfigthis;
+        MPI_Recv(nconfigthis,p);
+        for(int i=0; i < nconfigthis; i++) { 
+          tmppt.config_pos.mpiReceive(p);
+          MPI_Recv(tmppt.weight,p);
+          tmppt.config_pos.writeBinary(f,tmppt.weight);
+        }
+      }
+#endif
+      long int time_b=clock();
+      single_write(cout,"writing to trace : ",double(time_b-time_ent)/CLOCKS_PER_SEC,"\n");
+      fclose(f);
     }
-
-    checkfile << "   } \n";
-    checkfile << "}\n\n";
+#ifdef USE_MPI
+    else { 
+      MPI_Send(nconfig,0);
+      for(int i=0; i< nconfig; i++) { 
+        pts(i).config_pos.mpiSend(0);
+        MPI_Send(pts(i).weight,0);
+      }
+    }
+#endif
   }
+  if(filename=="") return;
+  write_configurations(filename, pts);
 
-  checkfile.close();
-   */
+
+  return;
 }
 
 
