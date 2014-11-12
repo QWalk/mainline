@@ -402,13 +402,14 @@ int main(int argc, char ** argv) {
   vector < vector <double> > rkptCoord; 
   vector <long int > ceigen_start, reigen_start;  
   read_kpt_eigenpos(infile, rkpts, reigen_start, ckpts, ceigen_start); 
-  read_crystal_orbital_all(infile, atoms, slwriter, basis,
-			   origin, latvec, CmoCoeff, ckpts, ceigen_start, ckptCoord, shift, shifted, nshift); 
+  read_crystal_orbital_all(infile, fort10file, atoms, slwriter, basis,
+			   origin, latvec, moCoeff, rkpts, reigen_start, rkptCoord, shift, shifted, nshift);
   infile.close();
   infile.clear();
   infile.open(infilename.c_str());
-  read_crystal_orbital_all(infile, fort10file, atoms, slwriter, basis,
-			   origin, latvec, moCoeff, rkpts, reigen_start, rkptCoord, shift, shifted, nshift);
+  read_crystal_orbital_all(infile, atoms, slwriter, basis,
+			   origin, latvec, CmoCoeff, ckpts, ceigen_start, ckptCoord, shift, shifted, nshift); 
+
   infile.close();
   natoms=atoms.size();
   
@@ -2266,6 +2267,7 @@ void read_kpt_eigenpos(istream & is,
     else if(dummy == "NEWK") {
       is >> dummy;
       if(dummy == "EIGENVECTORS" ) {
+	cout << "NEWK OUTPUT FORMAT" << endl;
         is.ignore(125, '\n'); //clear the line with FINAL EIG..
         string line;
         //getline(is, line);
@@ -2280,6 +2282,7 @@ void read_kpt_eigenpos(istream & is,
             vector <string> words1, words;
 	    split(line, space, words1);
 	    string kstr = words1[4] + " ( " + words1[6] + "  " + words1[7] + " " + words1[8]; 
+	    cout << "  Find kpt: " << kstr << endl; 
             split(line2, space, words);
 	    //	    cout << words[0] << " " << words[1] << endl; 
             if(words[0]==words[1]) {
