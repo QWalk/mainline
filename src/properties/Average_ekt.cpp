@@ -114,7 +114,7 @@ void Average_ekt::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
   int ndown = sys->nelectrons(1); 
   totnelectrons = nup + ndown; 
   //  avg.vals.Resize(nmo + 3*4*nmo*nmo + nelectrons + nelectrons); 
-    avg.vals.Resize(nmo + 12*nmo*nmo); 
+  avg.vals.Resize(nmo + 12*nmo*nmo); 
   avg.vals = 0.0; 
   avg.type="EKT";
   //  cout << "Test" << endl; 

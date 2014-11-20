@@ -1665,14 +1665,15 @@ void read_crystal_orbital(istream & is,
   is.clear();
   is.seekg(1);
   string line;
-  int shrink_fact;
+  int shrink_fact[3];
   while ( getline(is,line) ) {
     vector<string> words;
     split(line, space, words);
     if ( ( words.size()>3 )
 	 && ( words[0]=="SHRINK." )
 	 && ( words[1]=="FACT.(MONKH.)" ) ) {
-      shrink_fact=atoi(words[3].c_str());
+      for (int d=0; d<3; d++) 
+	shrink_fact[d]=atoi(words[2+d].c_str());
       break;
     }
   }
@@ -1695,7 +1696,7 @@ void read_crystal_orbital(istream & is,
     slwriter.kpoint[i]=atoi(kwords[i+2].c_str());
   }
   for(int i=0; i< 3; i++) 
-    slwriter.kpoint[i]/=shrink_fact/2.0;
+    slwriter.kpoint[i]/=shrink_fact[i]/2.0;
     
       
   cout << "chosen k-point " << slwriter.kpoint[0] <<"   " 

@@ -206,7 +206,6 @@ int main(int argc, char ** argv) {
     cout << "couldn't open " << infilename << endl;
     exit(1);
   }
-
   get_crystal_latvec(infile, latvec);
   infile.close();
   infile.clear();
@@ -232,8 +231,10 @@ int main(int argc, char ** argv) {
   vector < vector <int> > nshift;
   nshift.resize(atoms.size());
   vector <int> shifted(atoms.size()); 
-  for (int at = 0; at<atoms.size(); at++)
-    shifted[at]=shiftobj.enforcepbc(atoms[at].pos, latvec, nshift[at]);
+  if (latvec.size() >0) {
+    for (int at = 0; at<atoms.size(); at++)
+      shifted[at]=shiftobj.enforcepbc(atoms[at].pos, latvec, nshift[at]);
+  }
   infile.open(infilename.c_str());
   get_crystal_basis(infile, basis);
   infile.close();
