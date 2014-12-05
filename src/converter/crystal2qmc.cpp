@@ -1310,10 +1310,10 @@ void MO_analysis(istream & is,
     vector < vector <double> > & latvec,
     vector < vector <double> > & moCoeff,
     vector <double> & shift, 
-    int totmo) {
+    int totmo, string mo_filename="mo_analysis") {
 
   int natoms=atoms.size();
-  ofstream an_out("mo_analysis");
+  ofstream an_out(mo_filename);
 
   const double print_thresh=1e-3;
   //const double pi=3.1415926535897932385;
@@ -1425,10 +1425,10 @@ void MO_analysis(istream & is,
     vector < vector <double> > & latvec,
     vector < vector <dcomplex> > & moCoeff,
     vector <double> & shift, 
-    int totmo) {
+    int totmo, string mo_filename="mo_analysis") {
 
   int natoms=atoms.size();
-  ofstream an_out("mo_analysis");
+  ofstream an_out(mo_filename);
 
   const double print_thresh=1e-3;
   //const double pi=3.1415926535897932385;
@@ -1673,8 +1673,10 @@ void read_crystal_orbital(istream & is,
       latvec, moCoeff, shift);
 
   // analysis of band character and NORMALIZATION(!) of coefficients
+  string mo_filename="xxmo_analysis";
+  for(int d=0; d< 3; d++) append_number(mo_filename,slwriter.kpoint[d]);
   MO_analysis(is, fort10file, atoms, slwriter, basis, origin,
-      latvec, moCoeff, shift, totmo);
+      latvec, moCoeff, shift, totmo,mo_filename);
 
 
   //if our k-point isn't zero, we need to fix any shifts
@@ -2034,8 +2036,10 @@ void read_crystal_orbital_all(istream & is,
         latvec, moCoeff[kpt], shift);
 
     // analysis of band character and NORMALIZATION(!) of coefficients
+    string mo_filename="mo_analysis";
+    for(int d=0; d< 3; d++) append_number(mo_filename,slwriter.kpoint[d]);
     MO_analysis(is, fort10file, atoms, slwriter, basis, origin,
-        latvec, moCoeff[kpt], shift, totmo);
+        latvec, moCoeff[kpt], shift, totmo,mo_filename);
 
 
     //if our k-point isn't zero, we need to fix any shifts
@@ -2187,8 +2191,10 @@ void read_crystal_orbital_all(istream & is,
     }
 
     // analysis of band character and NORMALIZATION(!) of coefficients
+    string mo_filename="mo_analysis";
+    for(int d=0; d< 3; d++) append_number(mo_filename,slwriter.kpoint[d]);
     MO_analysis(is, atoms, slwriter, basis, origin,
-        latvec, moCoeff[kpt], shift, totmo);
+        latvec, moCoeff[kpt], shift, totmo,mo_filename);
 
     //if our k-point isn't zero, we need to fix any shifts
     int f=0;
