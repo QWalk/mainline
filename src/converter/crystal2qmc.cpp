@@ -1313,7 +1313,7 @@ void MO_analysis(istream & is,
     int totmo, string mo_filename="mo_analysis") {
 
   int natoms=atoms.size();
-  ofstream an_out(mo_filename);
+  ofstream an_out(mo_filename.c_str());
 
   const double print_thresh=1e-3;
   //const double pi=3.1415926535897932385;
@@ -1428,7 +1428,7 @@ void MO_analysis(istream & is,
     int totmo, string mo_filename="mo_analysis") {
 
   int natoms=atoms.size();
-  ofstream an_out(mo_filename);
+  ofstream an_out(mo_filename.c_str());
 
   const double print_thresh=1e-3;
   //const double pi=3.1415926535897932385;
