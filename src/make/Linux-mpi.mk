@@ -1,11 +1,12 @@
 ######################################################################
 # Compiler definitions for Linux systems
 #  all compiler specific information should be declared here
-CXX:=mpicxx -I/usr/include/x86_64-linux-gnu/c++/4.8/
+include $(HOME)/mylibs/make.inc
+CXX:=mpicxx 
 
-CXXFLAGS:= -O3 -fomit-frame-pointer -funroll-loops -ffast-math 
-CXXFLAGS += -DUSE_MPI $(INCLUDEPATH)
-
+CXXFLAGS:= -O3 -fomit-frame-pointer -funroll-loops # -ffast-math 
+CXXFLAGS += -DUSE_MPI -DUSE_BLAS -DUSE_LAPACK $(INCLUDEPATH)
+LAPACKLIB := $(LAPACK)
 #DEBUG := -Wall  -DRANGE_CHECKING -DDEBUG_WRITE
 DEBUG:= -Wall -DNO_RANGE_CHECKING   -DNDEBUG 
 

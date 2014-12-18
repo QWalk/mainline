@@ -66,7 +66,10 @@ public:
                            Sample_point *,
                            Wavefunction *,
                            Array1 <doublevar> &);
-
+  void calcLocSeparated(Sample_point *, Array1<doublevar> &) {
+    cout << "Not implemented!" << endl; 
+  }
+  
   virtual int nelectrons(int s) {
     assert(s==0 || s==1);
     return nspin(s);

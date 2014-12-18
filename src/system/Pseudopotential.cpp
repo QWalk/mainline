@@ -99,7 +99,7 @@ int Pseudopotential::initializeStatic(Wavefunction_data *wfdata,
   }
 
   for(int at=0; at< natoms; at++)  {
-    if(numL(at) != 0) {
+    if(numL(at) != 0) {// if atom has psp
       sample->getIonPos(at, ionpos);
       for(int e=0; e < sample->electronSize(); e++) {
         sample->getElectronPos(e, oldpos);
@@ -383,8 +383,33 @@ void Pseudopotential::calcNonlocTmove(Wavefunction_data * wfdata, System * sys,
     test(i)=rng.ulec();
   }
   Array1 <doublevar> parm_deriv;
-  calcNonlocWithAllvariables(wfdata,sys,sample, wf, test,totalv, true, tmoves,false, parm_deriv);
+  Array2 <doublevar> totalv_alle(nelectrons, wf->nfunc());
+  totalv = 0.0; 
+  calcNonlocWithAllvariables(wfdata,sys,sample, wf, test,totalv_alle, Tmoves::negative_tmove, tmoves,false, parm_deriv);
+  for (int e=0; e<nelectrons; e++) 
+    for (int w = 0; w < wf->nfunc(); w++)
+      totalv(w) += totalv_alle(e, w);
 }
+
+//----------------------------------------------------------------------
+
+void Pseudopotential::calcNonlocSeparated(Wavefunction_data * wfdata, System * sys,
+					  Sample_point * sample,
+					  Wavefunction * wf,
+					  Array2 <doublevar> & totalv
+					  ) 
+{ 
+  int tot=nTest();
+  Array1 <doublevar> test(tot);
+  for(int i=0; i< tot; i++) {
+    test(i)=rng.ulec();
+  }
+  Array1 <doublevar> parm_deriv;
+  //  Array1 <doublevar> totalv(wf->nfunc(),0.0);
+  vector<Tmove> tmoves; 
+  calcNonlocWithAllvariables(wfdata,sys,sample, wf, test, totalv, Tmoves::no_tmove, tmoves,false, parm_deriv);
+}
+
 //----------------------------------------------------------------------
 
 void Pseudopotential::calcNonlocWithTest(Wavefunction_data *wfdata , System * sys, 
@@ -393,7 +418,12 @@ void Pseudopotential::calcNonlocWithTest(Wavefunction_data *wfdata , System * sy
                                          Array1 <doublevar> & totalv) { 
   vector<Tmove>  tmoves;
   Array1 <doublevar> parm_deriv;
-  calcNonlocWithAllvariables(wfdata,sys, sample, wf, accept_var,totalv, false, tmoves,false, parm_deriv);
+  Array2 <doublevar> totalv_alle(nelectrons, wf->nfunc());
+  totalv = 0.0; 
+  calcNonlocWithAllvariables(wfdata,sys, sample, wf, accept_var,totalv_alle, Tmoves::no_tmove, tmoves,false, parm_deriv);
+  for (int w = 0; w < wf->nfunc(); w++) 
+    for (int e=0; e<nelectrons; e++) 
+      totalv(w) += totalv_alle(e, w);
 }
 
 void Pseudopotential::calcNonlocParmDeriv(Wavefunction_data * wfdata, System * sys,
@@ -402,8 +432,166 @@ void Pseudopotential::calcNonlocParmDeriv(Wavefunction_data * wfdata, System * s
                                           const Array1 <doublevar> & accept_var,
                                           Array1 <doublevar> & totalv, Array1 <doublevar> & parm_deriv) { 
   vector<Tmove>  tmoves;
-  calcNonlocWithAllvariables(wfdata,sys,sample, wf, accept_var,totalv, false, tmoves,true, parm_deriv);
+  assert(totalv.GetDim(0)>=wf->nfunc());
+  Array2 <doublevar> totalv_alle(nelectrons,wf->nfunc());
+  calcNonlocWithAllvariables(wfdata,sys,sample, wf, accept_var,totalv_alle, Tmoves::no_tmove, tmoves,true, parm_deriv);
+  totalv=0.0;
+  for(int e=0; e< nelectrons; e++) 
+    for(int w=0; w< wf->nfunc(); w++) 
+      totalv(w)+=totalv_alle(e,w);
   
+}
+
+
+
+
+void Pseudopotential::calcPseudoSeparated(Wavefunction_data * wfdata,
+					  System * sys,
+					  Sample_point * sample,
+					  Wavefunction * wf,
+					  const Array1 <doublevar> & accept_var,
+					  Array2 <doublevar> & totalv)//, 
+{
+  int natoms=sample->ionSize();
+  int nwf=wf->nfunc();
+  assert(accept_var.GetDim(0) >= nTest());
+  //assert(totalv.GetDim(0) >= nwf);
+  assert(nelectrons == sample->electronSize());
+
+  Array1 <doublevar> ionpos(3), oldpos(3), newpos(3);
+  Array1 <doublevar> newdist(5), olddist(5);
+  Wf_return val(nwf,2);
+  
+  //totalv=0;
+  //  doublevar accum_local=0;
+  //  doublevar accum_nonlocal=0;
+  
+  wf->updateVal(wfdata, sample);
+  wfStore.initialize(sample, wf);
+  
+  int accept_counter=0;
+  //deriv.Resize(natoms, 3);
+  //deriv=0;
+  Array1 <doublevar> nonlocal(nwf);
+  Array2 <doublevar> integralpts(nwf, maxaip);
+  Array1 <doublevar> rDotR(maxaip);
+  for(int at = 0; at< natoms; at++){
+    if(numL(at) != 0) {
+      Array1 <doublevar> v_l(numL(at));
+      sample->getIonPos(at, ionpos);
+      for (int e=0; e<sample->electronSize(); e++) {
+	sample->getElectronPos(e, oldpos);
+	
+	//note: this updateEIDist might become inefficient..
+	//depends on how often we're rejecting/how much it costs
+	//to do it.  If needed, we should add an interface to 
+	//Sample_point
+	sample->updateEIDist();
+	sample->getEIDist(e, at, olddist);
+	nonlocal=0.0; 
+	
+	int spin=1;
+	if(e < sys->nelectrons(0)) spin=0;
+	getRadial(at,spin, sample, olddist, v_l);
+	
+	//----------------------------------------
+	//Start integral
+	
+	int accept;
+	if(deterministic) {
+	  accept= olddist(0) < cutoff(at);
+	}
+	else {
+	  doublevar strength=0;
+	  const doublevar calculate_threshold=10;
+	  
+	  for(int l=0; l<numL(at)-1; l++)
+	    strength+=calculate_threshold*(2*l+1)*fabs(v_l(l));
+	  
+	  strength=min((doublevar) 1.0, strength);
+	  
+	  doublevar rand=accept_var(accept_counter++);
+	  //cout << at <<"  random number  " << rand
+	  //   << "  p_eval  " << strength  << endl;
+	  for(int l=0; l<numL(at)-1; l++)
+	    v_l(l)/=strength;
+	  accept=strength>rand;
+	}
+	
+	//bool localonly = true;
+	if(accept)  {
+	  wfStore.saveUpdate(sample, wf, e);
+	  Wf_return  oldWfVal(nwf,2);
+	  wf->getVal(wfdata, e,oldWfVal);
+	  
+	  for(int i=0; i< aip(at); i++) {
+	    sample->setElectronPos(e, oldpos);
+	    doublevar base_sign=sample->overallSign();
+	    doublevar base_phase=sample->overallPhase();
+	    
+	    for(int d=0; d < 3; d++) 
+	      newpos(d)=integralpt(at,i,d)*olddist(0)-olddist(d+2);
+	    sample->translateElectron(e, newpos);
+	    sample->updateEIDist();
+	    sample->getEIDist(e,at,newdist);
+	    rDotR(i)=0;
+	    for(int d=0; d < 3; d++)
+	      rDotR(i)+=newdist(d+2)*olddist(d+2);
+	    doublevar new_sign=sample->overallSign();
+	    doublevar new_phase=sample->overallPhase();
+	    
+	    rDotR(i)/=(newdist(0)*olddist(0));  //divide by the magnitudes
+	    wf->updateVal(wfdata, sample);
+	    wf->getVal(wfdata, e, val); 
+	    //----
+	    //cout << "signs " << base_sign << "  " << new_sign << endl;;
+	    for(int w=0; w< nwf; w++) {
+	      integralpts(w,i)=exp(val.amp(w, 0) - oldWfVal.amp(w, 0))*integralweight(at, i);
+	      if (val.is_complex==1) {
+		integralpts(w, i)*=cos(val.phase(w, 0)+new_phase - oldWfVal.phase(w, 0) - base_phase); 
+	      } else {
+		integralpts(w, i)*=val.sign(w)*oldWfVal.sign(w)*base_sign*new_sign; 
+	      }
+	    }
+	    
+	    for(int w=0; w< nwf; w++)  {
+	      doublevar tempsum=0;
+	      for(int l=0; l< numL(at)-1; l++) {
+		tempsum+=(2*l+1)*v_l(l)*legendre(rDotR(i), l);
+	      }
+	      doublevar vxx=tempsum*integralpts(w,i);
+	      //if (vxx>=0.0)
+	      nonlocal(w) += vxx; 
+	    }
+	    sample->setElectronPos(e, oldpos);
+	  } 
+	  
+	  //--------------------
+	  wfStore.restoreUpdate(sample, wf, e);
+	}
+
+      //----------------------------------------------
+      //now do the local part
+	doublevar vLocal=0;
+	int localL=numL(at)-1; //The l-value of the local part is
+	//the last part.
+	
+	vLocal=v_l(localL);
+	//        accum_local+=vLocal;
+	//accum_nonlocal+=nonlocal(0);
+	
+	//cout << "atom " << at << " r " << olddist(0) <<   " vLocal  " << vLocal
+	// << "    nonlocal   " << nonlocal(0) << endl;
+	for(int w=0; w< nwf; w++) {
+	  totalv(e, w)+=vLocal+nonlocal(w);
+	}
+      }
+    }  //if atom has any psp's
+    
+  }  //atom loop
+  
+  //cout << "psp: local part " << accum_local
+  // << "  nonlocal part " << accum_nonlocal << endl;
 }
 
 void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
@@ -411,8 +599,8 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
                                                  Sample_point * sample,
                                                  Wavefunction * wf,
                                                  const Array1 <doublevar> & accept_var,
-                                                 Array1 <doublevar> & totalv,
-                                                 bool do_tmoves,vector <Tmove> & tmoves,
+                                                 Array2 <doublevar> & totalv,
+                                                 Tmoves::tmove_type do_tmoves,vector <Tmove> & tmoves,
                                                  bool parm_derivatives, Array1 <doublevar> & parm_deriv
                                           )
 {
@@ -423,7 +611,8 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
   int nwf=wf->nfunc();
 
   assert(accept_var.GetDim(0) >= nTest());
-  assert(totalv.GetDim(0) >= nwf);
+  assert(totalv.GetDim(1) >= nwf);
+  assert(totalv.GetDim(0) >= nelectrons);
   assert(nelectrons == sample->electronSize());
 
   Array1 <doublevar> ionpos(3), oldpos(3), newpos(3);
@@ -563,7 +752,7 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
                 tempsum+=(2*l+1)*v_l(l)*legendre(rDotR(i), l);
               }
               doublevar vxx=tempsum*integralpts(w,i);
-              if(!do_tmoves || w!=0 || vxx >= 0.0) { 
+              if(do_tmoves==Tmoves::no_tmove || w!=0 || (do_tmoves==Tmoves::negative_tmove && vxx >= 0.0) ) { 
                 nonlocal(w)+=vxx;
               }
               else { 
@@ -611,9 +800,8 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
         //cout << "atom " << at << " r " << olddist(0) <<   " vLocal  " << vLocal
         // << "    nonlocal   " << nonlocal(0) << endl;
         for(int w=0; w< nwf; w++) {
-          totalv(w)+=vLocal+nonlocal(w);
-          //totalv(w)+=nonlocal(w); 
-          //totalv(w)+=vLocal;
+          //totalv(w)+=vLocal+nonlocal(w);
+          totalv(e,w)+=vLocal+nonlocal(w);
         }
 
 
@@ -714,7 +902,7 @@ void Pseudopotential::read(vector <vector <string> > & pseudotext,
     unsigned int pos=0;
     basistxt.push_back(basistmp);
   }
-   */
+  */
 
   for(unsigned int i=0; i< pseudotext.size(); i++ ) {
     for(int at=0; at<natoms; at++) {
@@ -893,5 +1081,6 @@ int Pseudopotential::showinfo(ostream & os)
 
   return 1;
 }
+
 
 //------------------------------------------------------------------------

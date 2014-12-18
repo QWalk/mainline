@@ -17,33 +17,35 @@
  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  
  */
-
-#ifndef AVERAGE_DENSITY_MATRIX_H_INCLUDED
-#define AVERAGE_DENSITY_MATRIX_H_INCLUDED
-
+#ifndef AVERAGE_EKT_H_INCLUDED
+#define AVERAGE_EKT_H_INCLUDED
 #include "Average_generator.h"
 #include "MO_matrix.h"
-
-//Evaluate the two-body density matrix on a basis.
-class Average_tbdm_basis:public Average_generator { 
+#include "Pseudopotential.h"
+//Evaluate extended Koopmans' theorem.
+class Average_ekt:public Average_generator { 
  public:
   virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
-                        System * sys, Sample_point * sample, Average_return & );
+                        System * sys, Sample_point * sample, Average_return & ) {};
+  virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+                        System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & );
   virtual void read(System * sys, Wavefunction_data * wfdata, vector
                     <string> & words);
   virtual void write_init(string & indent, ostream & os);
   virtual void randomize(Wavefunction_data * wfdata, Wavefunction * wf,
-                        System * sys, Sample_point * sample);
+			 System * sys, Sample_point * sample);
   virtual void read(vector <string> & words);
   virtual void write_summary(Average_return &,Average_return &, ostream & os);
-  virtual ~Average_tbdm_basis() { 
+  virtual ~Average_ekt() { 
     if(momat) delete momat;
     if(cmomat) delete cmomat;
   }
-  Average_tbdm_basis() { 
+  Average_ekt() { 
     momat=NULL;
     cmomat=NULL;
   }
+
+  //		  bool do_tmoves,vector <Tmove> & tmoves); 
  private:
   MO_matrix * momat;
   Complex_MO_matrix * cmomat;
@@ -52,30 +54,31 @@ class Average_tbdm_basis:public Average_generator {
   int nstep_sample; //Number of steps to use when sampling the auxilliary points
   doublevar gen_sample(int nstep, doublevar  tstep, int e, Array2 <dcomplex> & movals, Sample_point * sample) ;
   void calc_mos(Sample_point *, int e, Array2 <dcomplex> & movals);
+  void calc_mosLap(Sample_point * sample, int e, Array2 <dcomplex> & molaps); 
+
+  void evaluate_valence(Wavefunction_data * wfdata, Wavefunction * wf,
+                        System * sys, Pseudopotential *psp, 
+			Sample_point * sample, Average_return & avg);
   void evaluate_obdm(Wavefunction_data * wfdata, Wavefunction * wf,
-                        System * sys, Sample_point * sample, Average_return & avg);
-
+		     System * sys, Sample_point * sample, 
+		     Average_return & avg);
   //  void evaluate_ekt();
-  void evaluate_tbdm(Wavefunction_data * wfdata, Wavefunction * wf,
-                        System * sys, Sample_point * sample, Average_return & avg);
-  void evaluate_old(Wavefunction_data * wfdata, Wavefunction * wf,
-                        System * sys, Sample_point * sample, Average_return & avg);
-  
-  
-
-  enum tbdm_t { tbdm_uu,tbdm_ud, tbdm_du,tbdm_dd } ;
-  int tbdm_index(tbdm_t typ, int i, int j, int k, int l) { 
-    return nmo+4*nmo*nmo+2*(typ*nmo*nmo*nmo*nmo+i*nmo*nmo*nmo+j*nmo*nmo+k*nmo+l);
-  }
-
-  Array1 <Array1 <int> > occupations;
+  void evaluate_conduction(Wavefunction_data * wfdata, Wavefunction * wf,
+			   System * sys, Pseudopotential *psp, 
+			   Sample_point * sample, Average_return & avg); 
+  void calcPseudoMo(System * sys,
+		    Sample_point * sample,
+		    Pseudopotential *psp, 
+		    const Array1 <doublevar> & accept_var,
+		    Array1 <dcomplex> & totalv);//, 
+  Array1 <Array1<int> > occupations;
   Array1 < Array1 <doublevar> > saved_r;
   Array1 < int > rk; //the electron number that each position corresponds to
   bool complex_orbitals; 
-  bool eval_tbdm;
-  bool eval_old;
-  bool tbdm_diagonal;
-  
+  bool eval_conduction;
+  bool eval_valence;
+  bool eval_obdm; 
+  int totnelectrons; 
 };
 
-#endif //AVERAGE_DENSITY_MATRIX_H_INCLUDED
+#endif //AVERAGE_EKT_H_INCLUDED
