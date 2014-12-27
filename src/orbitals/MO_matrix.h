@@ -187,12 +187,17 @@ void rotate_Corb(istream & orbin, ostream & orbout,
 		 Array1 <int>  & moList, int nfunctions);
 
 
-int readorb(istream & input, Center_set & centers, 
-            int nmo, int maxbasis, Array1 <doublevar> & kpoint, 
-	    Array3 <int > & coeffmat, Array1 <doublevar> & coeff);
-int readorb(istream & input, Center_set & centers, 
-            int nmo, int maxbasis, Array1 <doublevar> & kpoint, 
-	    Array3 <int > & coeffmat, Array1 <dcomplex> & coeff);
+/*
+ Gets the coefficients and sets everything up from a formatted
+ input file(ORB).  The file should look like: <br>
+ MO#  AO#(for center) Center# Coeff# <br>
+ for all MO's, then a listing of the coefficients in sequential order
+
+*/	    
+template <class T> int readorb(istream & input, Center_set & centers, 
+                                  int nmo, int maxbasis, Array1 <doublevar> & kpoint,
+                                  Array3 <int> & coeffmat, Array1 <T> & coeff);
+
 
 //----------------------------------------------------------------------
 //A simple templated function to evaluate the k-point when it is real versus

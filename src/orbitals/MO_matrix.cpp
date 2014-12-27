@@ -209,250 +209,95 @@ void rotate_Corb(istream & orbin, ostream & orbout,
 
 */
 //------------------------------------------------------------------------------------------
+#ifdef USE_MPI
+void overloaded_broadcast(Array1 <doublevar> & v) { 
+  MPI_Bcast(v.v,v.GetDim(0), MPI_DOUBLE,0,MPI_Comm_grp);
+}
+void overloaded_broadcast(Array1 <dcomplex> & v) { 
+  MPI_Bcast(v.v,v.GetDim(0), MPI_DOUBLE_COMPLEX,0,MPI_Comm_grp);
+}
+#endif
 
-
-/*!
-foo.readorb(input stream)
- Gets the coefficients and sets everything up from a formatted
- input file(ORB).  The file should look like: <br>
- MO#  AO#(for center) Center# Coeff# <br>
- for all MO's, then a listing of the coefficients in sequential order
-
- All the listings for a given MO must be in one block.
-
-\todo
-Check the sums of functions versus how many we think should
-be there, and make sure everything adds up correctly.
-
-*/
-int readorb(istream & input, Center_set & centers, 
-            int nmo, int maxbasis, Array1 <doublevar> & kpoint, Array3 <int > & coeffmat, 
-            Array1 <doublevar> & coeff
-           )
-{
-  
-  int center;
-  int max=0;
-  int mo=0;
-  int molast=0;
-  int fn;
-
-  //cout << "readorb" << endl;
-  int ncenters=centers.ncenters_atom.GetDim(0);
-  
-  coeffmat.Resize(nmo, centers.size(), maxbasis);
-  //cout << "nmo " << nmo << "  ncenters "
-  //    << centers.size() << "  maxbasis " << maxbasis << endl;
-  coeffmat=-1;
-  
-  string dummy;
-  input >> mo;
-
- 
-  for(int i=0; i< nmo; i++)
-  {
-    int firstDone=0;
-    while(1)
+template <class T> int readorb(istream & input, Center_set & centers, 
+                                  int nmo, int maxbasis, Array1 <doublevar> & kpoint,
+                                  Array3 <int> & coeffmat, Array1 <T> & coeff) {
+  int nmo_read=0;
+  int maxlabel=0; 
+  coeffmat.clear(); //important to do this so that we know exactly how big the array v will be
+                    //This enables us to use relatively fast Bcast() operations.
+  coeff.clear();
+  if(mpi_info.node==0) { 
+    string dummy;
+    vector <int> mo,center,basis,label;
+    while(true) { 
+      input >> dummy;
+      if(dummy=="COEFFICIENTS") break;
+      int currmo=atoi(dummy.c_str())-1;
+      if(currmo > nmo) { 
+        input.ignore(300,'\n');
+      }
+      else { 
+        mo.push_back(currmo);
+        input >> dummy;
+        basis.push_back(atoi(dummy.c_str())-1);
+        if(basis.back() >= maxbasis) 
+          error("Basis function greater than maxbasis requested:",basis.back()+1);
+        else if(basis.back() < 0) 
+          error("Basis function cannot be less than 1:",basis.back()+1);
+        input >> dummy;
+        center.push_back(atoi(dummy.c_str())-1);
+        if(center.back() > centers.equiv_centers.GetDim(0) )
+          error("Center number in orb file greater than maximum number ", 
+                 centers.equiv_centers.GetDim(0));
+        
+        input >> dummy;
+        label.push_back(atoi(dummy.c_str())-1);
+      }
+      if(!input) 
+        error("Unexpected end of file; did not find COEFFICIENTS while reading orbitals");
+    }
+    nmo_read=*max_element(mo.begin(),mo.end())+1;
+    coeffmat.Resize(nmo_read, centers.size(), maxbasis);
+    coeffmat=-1;
     {
-      if(firstDone)
-      {
-        if(!(input >> dummy)) error("Unexpected end of orbital file\n");
-        mo=atoi(dummy.c_str());
+      vector<int>::iterator m=mo.begin(),
+        c=center.begin(),
+        b=basis.begin(),
+        l=label.begin();
+
+      for(  ; m!=mo.end() && c!=center.end() && b!=basis.end() && l!=label.end();
+          m++,c++,b++,l++) { 
+//        coeffmat(*m,*c,*b)=*l;
+        for(int c_eq=0; c_eq < centers.ncenters_atom(*c); c_eq++) {
+          int cen2=centers.equiv_centers(*c, c_eq);
+          coeffmat(*m, cen2,*b)=*l;
+        }
+        
       }
+    }
 
-
-      if(mo != molast+1 &&  firstDone)
-      {
-        break;
-      }
-      mo-=1;
-
-      
-      if(mo != i)
-      {
-        cout << "mo " << mo << " i " << i << "   dummy " << dummy << endl;
-        error("Bad formatting in the orb file, or not enough mo's there.");
-      }
-
-      if(!input) cout << " here" << endl;
-
-      input >> fn;
-      if(fn > maxbasis) error("Function in orb file greater than maximum number"
-                              "of basis functions", fn);
-      fn-=1;
-      input >> center;
-      if(center > centers.equiv_centers.GetDim(0) )
-        error("Center number in orb file greater than maximum number ", 
-               centers.equiv_centers.GetDim(0));
-      center-=1;
-       
-      int coeffnum;
-
-            
-      input >> coeffnum;
-
-      if(max < coeffnum) max=coeffnum;
-      coeffnum-=1;
-
-      if(coeffnum < 0)
-         error("Coefficient pointer less than one in orb file");
-
-      //loop through equivalent centers..
-
-      if(center > ncenters) error("center number too high in orb file: ", center+1);
-      //cout << " mo " << mo << " cen " << center << " fn " << fn << endl;
-      
-      for(int c=0; c < centers.ncenters_atom(center); c++) {
-        int cen2=centers.equiv_centers(center, c);
-        coeffmat(mo, cen2, fn)=coeffnum;
-      }
-
-      firstDone=1;
-      molast=mo;
-      
+    maxlabel=*max_element(label.begin(),label.end())+1;
+    coeff.Resize(maxlabel);
+    for(int i=0; i< maxlabel; i++) { 
+      if(! (input >> coeff(i) ) )
+        error("unexpected end of file when reading orbital coefficients");
     }
   }
-    
-  //Find the coefficients section.
-  while(dummy!="COEFFICIENTS")
-  {
-    if(!(input >> dummy))
-      error("Couldn't find COEFFICIENTS section in the orb file.\n");
+#ifdef USE_MPI
+  MPI_Bcast(&nmo_read,1,MPI_INT,0,MPI_Comm_grp);
+  MPI_Bcast(&maxlabel,1,MPI_INT,0,MPI_Comm_grp);
+  int coeffmatsize;
+  
+  if(mpi_info.node!=0) { 
+    coeffmat.Resize(nmo_read,centers.size(),maxbasis);
+    coeff.Resize(maxlabel);
   }
-
-  //cout << "half " << endl;
-
-  coeff.Resize(max);
-  //coeff=1e99;
-  for(int i=0; i<max; i++)
-  {
-    //input >> dummy;
-    //cout << dummy << endl;
-    //cout << i << endl;
-    if(!(input >> coeff(i)))
-      error("Didn't find all the MO coefficients I should've");
-
-  }
-
-  //cout << "done readorb" << endl;
-
-  return max;
+  MPI_Bcast(coeffmat.v,coeffmat.size,MPI_INT,0,MPI_Comm_grp);
+  overloaded_broadcast(coeff);
+#endif
+  return nmo_read;
 }
 
-//----------------------------------------------------------------------------------
-
-
-/*!
-Version of 'readorb' that reads complex orbital expansion coefficients. Just a
-plain copy of above real version, the only change is in declaration of parameters.
- */
-int readorb(istream & input, Center_set & centers, 
-            int nmo, int maxbasis, Array1 <doublevar> & kpoint,
-	    Array3 <int > & coeffmat, Array1 <dcomplex> & coeff
-           )
-{
-  
-  int center;
-  int max=0;
-  int mo=0;
-  int molast=0;
-  int fn;
-
-  //cout << "readorb" << endl;
-  int ncenters=centers.ncenters_atom.GetDim(0);
-  
-  coeffmat.Resize(nmo, centers.size(), maxbasis);
-  //cout << "nmo " << nmo << "  ncenters "
-  //    << centers.size() << "  maxbasis " << maxbasis << endl;
-  coeffmat=-1;
-  
-  string dummy;
-  input >> mo;
-
- 
-  for(int i=0; i< nmo; i++)
-  {
-    int firstDone=0;
-    while(1)
-    {
-      if(firstDone)
-      {
-        if(!(input >> dummy)) error("Unexpected end of orbital file\n");
-        mo=atoi(dummy.c_str());
-      }
-
-
-      if(mo != molast+1 &&  firstDone)
-      {
-        break;
-      }
-      mo-=1;
-
-      
-      if(mo != i)
-      {
-        cout << "mo " << mo << " i " << i << "   dummy " << dummy << endl;
-        error("Bad formatting in the orb file, or not enough mo's there.");
-      }
-
-      if(!input) cout << " here" << endl;
-
-      input >> fn;
-      if(fn > maxbasis) error("Function in orb file greater than maximum number"
-                              "of basis functions", fn);
-      fn-=1;
-      input >> center;
-      if(center > centers.equiv_centers.GetDim(0) )
-        error("Center number in orb file greater than maximum number ", 
-               centers.equiv_centers.GetDim(0));
-      center-=1;
-       
-      int coeffnum;
-
-            
-      input >> coeffnum;
-
-      if(max < coeffnum) max=coeffnum;
-      coeffnum-=1;
-
-      if(coeffnum < 0)
-         error("Coefficient pointer less than one in orb file");
-
-      //loop through equivalent centers..
-
-      if(center > ncenters) error("center number too high in orb file: ", center+1);
-      //cout << " mo " << mo << " cen " << center << " fn " << fn << endl;
-      
-      for(int c=0; c < centers.ncenters_atom(center); c++) {
-        int cen2=centers.equiv_centers(center, c);
-        coeffmat(mo, cen2, fn)=coeffnum;
-      }
-
-      firstDone=1;
-      molast=mo;
-      
-    }
-  }
-    
-  //Find the coefficients section.
-  while(dummy!="COEFFICIENTS")
-  {
-    if(!(input >> dummy))
-      error("Couldn't find COEFFICIENTS section in the orb file.\n");
-  }
-
-  coeff.Resize(max);
-  //coeff=1e99;
-  for(int i=0; i<max; i++)
-  {
-    if(!(input >> coeff(i)))
-      error("Didn't find all the MO coefficients I should've");
-  }
-
-  //cout << "done readorb" << endl;
-
-  return max;
-}
 
 
 //----------------------------------------------------------------------
