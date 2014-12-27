@@ -29,6 +29,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "MO_matrix_basfunc.h"
 #include "MO_matrix_Cbasfunc.h"
 #include "MO_matrix_einspline.h"
+#include <algorithm>
 
 int allocate(vector <string> & words, System * sys, MO_matrix *& moptr) {
   assert(moptr==NULL);
@@ -256,7 +257,7 @@ template <class T> int readorb(istream & input, Center_set & centers,
       if(!input) 
         error("Unexpected end of file; did not find COEFFICIENTS while reading orbitals");
     }
-    nmo_read=*max_element(mo.begin(),mo.end())+1;
+    nmo_read=*std::max_element(mo.begin(),mo.end())+1;
     coeffmat.Resize(nmo_read, centers.size(), maxbasis);
     coeffmat=-1;
     {
@@ -276,7 +277,7 @@ template <class T> int readorb(istream & input, Center_set & centers,
       }
     }
 
-    maxlabel=*max_element(label.begin(),label.end())+1;
+    maxlabel=*std::max_element(label.begin(),label.end())+1;
     coeff.Resize(maxlabel);
     for(int i=0; i< maxlabel; i++) { 
       if(! (input >> coeff(i) ) )
