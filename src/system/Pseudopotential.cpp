@@ -568,7 +568,8 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
               }
               else { 
                 Tmove nwtmove; nwtmove.pos.Resize(3);
-                sample->getElectronPos(e,nwtmove.pos);
+                //sample->getElectronPos(e,nwtmove.pos);
+                nwtmove.pos=newpos;
                 nwtmove.e=e;
                 nwtmove.vxx=vxx;
                 tmoves.push_back(nwtmove);
