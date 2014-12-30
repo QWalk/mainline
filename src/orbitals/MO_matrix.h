@@ -25,6 +25,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Qmc_std.h"
 #include "Basis_function.h"
 #include "Center_set.h"
+#include <algorithm> 
 
 class System;
 class Sample_point;
