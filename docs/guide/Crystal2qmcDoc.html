@@ -25,7 +25,7 @@ Several options have to be present in the Crystal's input file
 for proper function of the crystal2qmc converter. These are listed below.
 
 
-\subsection crys2009 Crystal2009
+\subsection crys2009 Crystal2009/2014
 
 For Crystal 2009, one only needs
 <pre>
@@ -45,7 +45,7 @@ There are essentially two options;
   <li> Restart the CRYSTAL run in serial and use the resulting output file.
   <li>  Using 'properties' and NEWK
     <ul>
-     <li>Make sure that you did not run CRYSTAL with the PRINTOUT section above.
+      <li>Make sure that you did <b> not</b> run CRYSTAL with the PRINTOUT section above.
      <li> Run properties with the following input 
      <pre>
 NEWK 
@@ -54,17 +54,11 @@ NEWK
 67 999
 END
      </pre>
-     <li> Use the following script to generate an output file
+     <li> Use the Python script utils/crystal_patch_output.py as follows:
      <pre>
-#!/bin/sh 
-if [ $# -lt 3 ]; then
-    echo "Syntax: newk.sh crystal_out newk_out output"
-    exit 1
-fi
-head -50000 $1 > $1.tmp
-sed -n -e '1,/FINAL EIGENVECTORS/p' $1.tmp | sed 's/FINAL EIGENVECTORS/NEWK EIGENVECTORS/g' > $3
-sed -n -e '/HAMILTONIAN EIGENVECTORS/, $p' $2 >> $3
+       python crystal_patch_output.py crystal.d12.o properties.d3.o patched.o
      </pre>
+       where crystal.d12.o is the output of the crystal run, properties.d3.o is the output of the properties run, and patched.o will be the file you use with crystal2qmc.
    </ul>
 </ul>
 
