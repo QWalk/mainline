@@ -206,11 +206,9 @@ int main(int argc, char ** argv) {
     cout << "couldn't open " << infilename << endl;
     exit(1);
   }
-
   get_crystal_latvec(infile, latvec);
   infile.close();
   infile.clear();
-
 
   infile.open(infilename.c_str());
   get_crystal_atoms(infile, atoms);
@@ -232,13 +230,14 @@ int main(int argc, char ** argv) {
   vector < vector <int> > nshift;
   nshift.resize(atoms.size());
   vector <int> shifted(atoms.size()); 
-  for (int at = 0; at<atoms.size(); at++)
-    shifted[at]=shiftobj.enforcepbc(atoms[at].pos, latvec, nshift[at]);
+  if(latvec.size() > 0) { 
+    for (int at = 0; at<atoms.size(); at++)
+      shifted[at]=shiftobj.enforcepbc(atoms[at].pos, latvec, nshift[at]);
+  }
   infile.open(infilename.c_str());
   get_crystal_basis(infile, basis);
   infile.close();
   infile.clear();
-
   infile.open(infilename.c_str());
   get_crystal_pseudo(infile, pseudo);
   infile.close();
@@ -789,7 +788,6 @@ void get_crystal_atoms(istream & infile,
 
 void get_crystal_basis(istream & infile,
     vector <Gaussian_basis_set> & basis) {
-
   string line;
   string space=" ";
   vector <string> words;
@@ -1979,6 +1977,7 @@ void read_crystal_orbital_all(istream & is,
   is.seekg(1);
   string line;
   int shrink_fact[3];
+  for(int i=0; i<3; i++) shrink_fact[i]=1.0;
   while ( getline(is,line) ) {
     vector<string> words;
     split(line, space, words);
@@ -2001,10 +2000,15 @@ void read_crystal_orbital_all(istream & is,
     // cout << "nmo's " << moCoeff[kpt].size() << endl;
 
     slwriter.kpoint.resize(3);
+    for(int i=0; i<3; i++) slwriter.kpoint[i]=0.0;
     vector<string> kwords;
     kpoints[kpt].erase(kpoints[kpt].find(')'));
     split(kpoints[kpt], space, kwords);
-    assert(kwords.size()>=5);
+    if(kwords.size()<5) {
+      cout << "Not enough words in " << kpoints[kpt] << endl;
+      exit(1);
+    }
+    
     double max=0;
     for(int i=0; i< 3; i++) {
       slwriter.kpoint[i]=atoi(kwords[i+2].c_str());
@@ -2037,7 +2041,8 @@ void read_crystal_orbital_all(istream & is,
 
     // analysis of band character and NORMALIZATION(!) of coefficients
     string mo_filename="mo_analysis";
-    for(int d=0; d< 3; d++) append_number(mo_filename,slwriter.kpoint[d]);
+    for(vector<double>::iterator d=slwriter.kpoint.begin(); d!=slwriter.kpoint.end(); d++)
+      append_number(mo_filename,*d);
     MO_analysis(is, fort10file, atoms, slwriter, basis, origin,
         latvec, moCoeff[kpt], shift, totmo,mo_filename);
 
@@ -2134,6 +2139,7 @@ void read_crystal_orbital_all(istream & is,
   is.seekg(1);
   string line;
   int shrink_fact[3];
+  for(int i=0; i<3; i++) shrink_fact[i]=1.0;
   while ( getline(is,line) ) {
     vector<string> words;
     split(line, space, words);
@@ -2161,11 +2167,15 @@ void read_crystal_orbital_all(istream & is,
     //cout << "nmo's " << moCoeff[kpt].size() << endl;
 
     slwriter.kpoint.resize(3);
+    for(int i=0;i < 3; i++) 
+      slwriter.kpoint[i]=0.0;
 
     vector<string> kwords;
     kpoints[kpt].erase(kpoints[kpt].find(')'));
     split(kpoints[kpt], space, kwords);
-    assert(kwords.size()>=5);
+    if(kwords.size()<5) {
+      cout << "Not enough words in " << kpoints[kpt] << endl;
+    }
     for(int i=0; i< 3; i++) {
       slwriter.kpoint[i]=atoi(kwords[i+2].c_str());
     }
@@ -2192,7 +2202,8 @@ void read_crystal_orbital_all(istream & is,
 
     // analysis of band character and NORMALIZATION(!) of coefficients
     string mo_filename="mo_analysis";
-    for(int d=0; d< 3; d++) append_number(mo_filename,slwriter.kpoint[d]);
+    for(vector<double>::iterator d=slwriter.kpoint.begin(); d!=slwriter.kpoint.end(); d++)
+      append_number(mo_filename,*d);
     MO_analysis(is, atoms, slwriter, basis, origin,
         latvec, moCoeff[kpt], shift, totmo,mo_filename);
 
