@@ -34,6 +34,20 @@ public:
   {
     is1=12345;
     is2=56789;
+    //Try to read in a true random number from 
+    ///dev/urandom or /dev/random. This should work on 
+    //most UNIX-like machines. Note that it will not work for
+    //Windows
+    FILE *fp;
+    fp = fopen("/dev/urandom","r");
+    if(fp==NULL)
+      fp=fopen("/dev/random","r");
+    if(fp!=NULL) { 
+      fread(&is1,sizeof(long int),1,fp);
+      fread(&is2,sizeof(long int),1,fp);
+      fclose(fp);
+    }
+    
     iset=0;
     gset=.1;
   }
