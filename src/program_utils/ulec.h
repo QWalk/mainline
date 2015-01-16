@@ -42,11 +42,18 @@ public:
     fp = fopen("/dev/urandom","r");
     if(fp==NULL)
       fp=fopen("/dev/random","r");
-    if(fp!=NULL) { 
-      fread(&is1,sizeof(long int),1,fp);
-      fread(&is2,sizeof(long int),1,fp);
+    if(fp!=NULL) {
+      is1=0; is2=0;
+      while(is1==0)
+        fread(&is1,sizeof(long int),1,fp);
+      while(is2==0)
+        fread(&is2,sizeof(long int),1,fp);
       fclose(fp);
+      is1=abs(is1%1000000000);
+      is2=abs(is2%1000000000);
+      
     }
+    //cout << "is1 " << is1 << "is2 " << is2 << endl;
     
     iset=0;
     gset=.1;
