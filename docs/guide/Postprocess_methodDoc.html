@@ -27,6 +27,9 @@ The file should be in C binary format (that is, no headers as in Fortran).
      <td> Sections for evaluation of \ref PropertiesDoc . <i>Mixed</i>
      estimators are provided, if the trace file is from DMC.
      
+<tr> <td> NOENERGY <td> Keyword <td> off 
+     <td> Do not calculate the energy of the walkers. This can improve the speed significantly.
+     
 <tr> <td> NSKIP <td> Integer <td> none
      <td> Skip the first NSKIP configurations. This should be set to the number of warmup blocks times the number of configurations in the DMC run. The number of warmup blocks can be gotten by running gosling on the log file and counting how many blocks are thrown out. 
 </table>

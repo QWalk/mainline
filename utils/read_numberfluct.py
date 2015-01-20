@@ -5,6 +5,8 @@ def read_number_dens(filename):
   data_err=np.zeros((0,0,0,0,0,0))
   while True:
     line=f.readline()
+    if line=="":
+      break
     #print line
     if line.find("Region fluctuation")!=-1:
       line=f.readline()
@@ -30,6 +32,9 @@ def read_number_dens(filename):
                   data_err[s1,s2,r1,r2,n1,n2-maxn]=float(spl[n2])
       break
   return data,data_err
+
+
+
 
 def moments(data):
   nspin=data.shape[0]
