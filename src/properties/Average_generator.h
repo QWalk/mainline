@@ -72,7 +72,7 @@ public:
 
   virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
                         System * sys, Sample_point * sample, Properties_point & pt,Average_return &avg) { 
-    evaluate(wfdata,wf,sys,sample,avg);
+    evaluate(wfdata,wf,sys,sample, pt, avg);
   };
   virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
 			System * sys, Pseudopotential * psp, Sample_point * sample, Average_return &avg ) {
@@ -81,7 +81,7 @@ public:
   
   virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
                         System * sys, Pseudopotential *psp, Sample_point * sample, Properties_point & pt,Average_return &avg) { 
-    evaluate(wfdata,wf,sys, psp, sample,avg);
+    evaluate(wfdata,wf,sys, psp, sample, pt, avg);
   }
 
   virtual void read(System * sys, Wavefunction_data * wfdata, vector
@@ -386,7 +386,6 @@ public:
                         System * sys, Sample_point * sample, Average_return & avg);
   virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
                         System * sys, Sample_point * sample, Properties_point & pt, Average_return & avg);
-
   virtual void read(System * sys, Wavefunction_data * wfdata, vector
                     <string> & words);
   virtual void write_init(string & indent, ostream & os);
