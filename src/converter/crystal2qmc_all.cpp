@@ -1295,7 +1295,7 @@ void fort10input(istream & is,
 
 //-----------------------------------------------------------------------------
 
-void MO_analysis(istream & is,
+void MO_analysis(istream & is, string fmo,
 		 string & fort10file,
 		 vector <Atom> & atoms,
 		 Slat_wf_writer & slwriter,
@@ -1307,7 +1307,7 @@ void MO_analysis(istream & is,
 		 int totmo) {
 
   int natoms=atoms.size();
-  ofstream an_out("mo_analysis");
+  ofstream an_out(fmo.c_str());
 
   const double print_thresh=1e-3;
   //const double pi=3.1415926535897932385;
@@ -1411,7 +1411,7 @@ void MO_analysis(istream & is,
 
 }
 
-void MO_analysis(istream & is,
+void MO_analysis(istream & is, string fmo, 
 		 vector <Atom> & atoms,
 		 Slat_wf_writer & slwriter,
 		 vector <Gaussian_basis_set> & basis,
@@ -1422,7 +1422,7 @@ void MO_analysis(istream & is,
 		 int totmo) {
 
   int natoms=atoms.size();
-  ofstream an_out("mo_analysis");
+  ofstream an_out(fmo.c_str());
 
   const double print_thresh=1e-3;
   //const double pi=3.1415926535897932385;
@@ -1667,7 +1667,8 @@ void read_crystal_orbital(istream & is,
 	      latvec, moCoeff, shift);
   
   // analysis of band character and NORMALIZATION(!) of coefficients
-  MO_analysis(is, fort10file, atoms, slwriter, basis, origin,
+  string fmo = "mo_analysis"; 
+  MO_analysis(is, fmo, fort10file, atoms, slwriter, basis, origin,
 	      latvec, moCoeff, shift, totmo);
 
   
@@ -1861,7 +1862,8 @@ void read_crystal_orbital(istream & is,
   }
 
   // analysis of band character and NORMALIZATION(!) of coefficients
-  MO_analysis(is, atoms, slwriter, basis, origin,
+  string fmo = "mo_analysis"; 
+  MO_analysis(is, fmo,  atoms, slwriter, basis, origin,
 	      latvec, moCoeff, shift, totmo);
 
   //if our k-point isn't zero, we need to fix any shifts
@@ -2026,9 +2028,15 @@ void read_crystal_orbital_all(istream & is,
     
     fort10input(is, fort10file, atoms, slwriter, basis, origin,
 		latvec, moCoeff[kpt], shift);
-  
+    vector <string> words; 
+    string space = " "; 
+    split(kpoints[kpt], space, words);
+    stringstream lk;
+    lk << atoi(words[0].c_str())-1;
+    string lst = lk.str();
+    string fmo="mo_analysis_" + lst; 
     // analysis of band character and NORMALIZATION(!) of coefficients
-    MO_analysis(is, fort10file, atoms, slwriter, basis, origin,
+    MO_analysis(is, fmo, fort10file, atoms, slwriter, basis, origin,
 		latvec, moCoeff[kpt], shift, totmo);
     
     
@@ -2181,7 +2189,14 @@ void read_crystal_orbital_all(istream & is,
     }
 
     // analysis of band character and NORMALIZATION(!) of coefficients
-    MO_analysis(is, atoms, slwriter, basis, origin,
+    vector <string> words; 
+    string space = " "; 
+    split(kpoints[kpt], space, words);
+    stringstream lk;
+    lk << atoi(words[0].c_str())-1;
+    string lst = lk.str();
+    string fmo="mo_analysis_" + lst; 
+    MO_analysis(is, fmo , atoms, slwriter, basis, origin,
 		latvec, moCoeff[kpt], shift, totmo);
 
     //if our k-point isn't zero, we need to fix any shifts
