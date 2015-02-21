@@ -301,9 +301,9 @@ void doinput(Program_options & options,
     long int is2=atoi(randnum[1].c_str());
     rng.seed(is1, is2);
   }
-  else {
-    rng.seed(12345, 98234 );
-  }
+  //else {
+  //  rng.seed(12345, 98234 );
+  //}
 
   pos=0;
   readvalue(words, pos, options.runid, "RUNID");
