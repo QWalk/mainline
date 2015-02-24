@@ -252,7 +252,10 @@ int main(int argc, char ** argv) {
   int nelectrons_up=-1, nelectrons_down=-1;
   string line, space=" ";
   vector <string> spl;
-  while(true) {
+  bool fspin=false; 
+  bool fne=false; 
+  bool fcalctype=false;
+  while(not (fspin and fne and fcalctype)) {
     spl.clear();
     getline(infile,line);
     split(line,space,spl);
@@ -268,13 +271,15 @@ int main(int argc, char ** argv) {
       for(vector<string>::iterator i=spl.begin(); i!=spl.end(); i++) { 
         totspin+=atof(i->c_str());
       }
+      fspin = true; 
     }
     if(spl.size() > 4 and spl[0]=="N." and spl[2]=="ELECTRONS" and spl[4]=="CELL") { 
       nelectrons=atof(spl[5].c_str());
+      fne = true; 
     }
     if(spl.size() > 4 and spl[0]=="TYPE" and spl[2]=="CALCULATION") {
       if(spl[4]=="RESTRICTED") {
-        if(spl[5]=="CLOSED") calctype="RHF";
+        if(spl[5]=="CLOSED") { calctype="RHF"; fspin = true; } 
         else if(spl[5]=="OPEN") calctype="ROHF";
       }
       else if(spl[4]=="UNRESTRICTED") calctype="UHF";
@@ -282,6 +287,7 @@ int main(int argc, char ** argv) {
         cout << "Didn't understand calctype " << spl[4] << endl;
         exit(1);
       }
+      fcalctype=true; 
     }
   }
   slwriter.calctype=calctype;
