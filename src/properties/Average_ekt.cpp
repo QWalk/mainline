@@ -235,6 +235,7 @@ void Average_ekt::evaluate_valence(Wavefunction_data * wfdata, Wavefunction * wf
 	int which_obdm = 0; 
 	avg.vals(nmo+8*nmo*nmo + 2*which_obdm*nmo*nmo+place) += tmp3.real();
 	avg.vals(nmo+8*nmo*nmo + 2*which_obdm*nmo*nmo+place+1) += tmp3.imag();
+
 	which_obdm = 1; 
 	//tmp3=conj(movals_p(orbnum, 0))*(-0.5*movals_lap(orbnum2, 4))/(dist1*npoints_eval); 
 	avg.vals(nmo+8*nmo*nmo + 2*which_obdm*nmo*nmo+place) += tmp3.real();
@@ -838,7 +839,7 @@ void Average_ekt::calcPseudoMo(System * sys,
   //deriv.Resize(natoms, 3);
   //deriv=0;
   dcomplex nonlocal; 
-  Array1 <doublevar> rDotR(psp->maxaip);
+  Array1 <doublevar> rDotR(psp->GetMaxAIP());
   Array2 <dcomplex> movals_t(nmo, 1);
   Array2 <dcomplex> movals(nmo, 1);
   sample->getElectronPos(0, oldpos);
@@ -848,45 +849,46 @@ void Average_ekt::calcPseudoMo(System * sys,
     nonlocal=0.0; 
     local = 0.0; 
     for(int at = 0; at< natoms; at++){
-      if(psp->numL(at) != 0) {
-	Array1 <doublevar> v_l(psp->numL(at));
+      if(psp->GetNumL(at) != 0) {
+	Array1 <doublevar> v_l(psp->GetNumL(at));
 	sample->getIonPos(at, ionpos);
 	sample->updateEIDist();
 	sample->getEIDist(0, at, olddist);
 	int spin=1;
 	//	if(e < sys->nelectrons(0)) spin=0;
 	spin = 0;
-	psp->getRadial(at, spin, sample, olddist, v_l);
+	psp->GetRadialOut(at, spin, sample, olddist, v_l);
 	
 	//----------------------------------------
 	//Start integral
 	
 	int accept;
-	if(psp->deterministic) {
-	  accept= olddist(0) < psp->cutoff(at);
+	if(psp->GetDeterministic()) {
+	  accept= olddist(0) < psp->GetCutoff(at);
 	}
 	else {
 	  doublevar strength=0;
 	  const doublevar calculate_threshold=10;
 	  
-	  for(int l=0; l<psp->numL(at)-1; l++)
+	  for(int l=0; l<psp->GetNumL(at)-1; l++) {
 	    strength+=calculate_threshold*(2*l+1)*fabs(v_l(l));
-	  
+	  }
 	  strength=min((doublevar) 1.0, strength);
-	  
 	  doublevar rand=accept_var(accept_counter++);
 	  //cout << at <<"  random number  " << rand
 	  //   << "  p_eval  " << strength  << endl;
-	  for(int l=0; l<psp->numL(at)-1; l++)
-	    v_l(l)/=strength;
+	  if ( strength > 0.0 ) {
+	    for(int l=0; l<psp->GetNumL(at)-1; l++)
+	      v_l(l)/=strength;
+	  }
 	  accept=strength>rand;
 	}
 	
 	//bool localonly = true;
 	if(accept)  {
-	  for(int i=0; i< psp->aip(at); i++) {
+	  for(int i=0; i< psp->GetAIP(at); i++) {
 	    for(int d=0; d < 3; d++) 
-	      newpos(d)=psp->integralpt(at,i,d)*olddist(0)-olddist(d+2);
+	      newpos(d)=psp->GetIntegralPt(at,i,d)*olddist(0)-olddist(d+2);
 	    sample->translateElectron(0, newpos);
 	    sample->updateEIDist();
 	    sample->getEIDist(0,at,newdist);
@@ -898,13 +900,13 @@ void Average_ekt::calcPseudoMo(System * sys,
 	    calc_mos(sample, 0, movals_t);//update value
 	    //----
 	    //cout << "signs " << base_sign << "  " << new_sign << endl;;
-	    for(int l=0; l< psp->numL(at)-1; l++) {
-	      nonlocal+=(2*l+1)*v_l(l)*legendre(rDotR(i), l)*psp->integralweight(at, i)*movals_t(jmo, 0);
+	    for(int l=0; l< psp->GetNumL(at)-1; l++) {
+	      nonlocal+=(2*l+1)*v_l(l)*legendre(rDotR(i), l)*psp->GetIntegralWeight(at, i)*movals_t(jmo, 0);
 	    }
 	    sample->setElectronPos(0, oldpos);
 	  } 
 	}
-	int localL=psp->numL(at)-1; //The l-value of the local part is
+	int localL=psp->GetNumL(at)-1; //The l-value of the local part is
 	local += v_l(localL); 
       } // if atom has psp
     }  //atom loop
