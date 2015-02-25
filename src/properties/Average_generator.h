@@ -81,7 +81,7 @@ public:
   
   virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
                         System * sys, Pseudopotential *psp, Sample_point * sample, Properties_point & pt,Average_return &avg) { 
-    evaluate(wfdata,wf,sys, sample, pt, avg);
+    evaluate(wfdata,wf,sys, sample, avg);// for ekt, we do not need Properties_point input
   }
 
   virtual void read(System * sys, Wavefunction_data * wfdata, vector

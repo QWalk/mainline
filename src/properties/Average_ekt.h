@@ -22,11 +22,15 @@
 #include "Average_generator.h"
 #include "MO_matrix.h"
 #include "Pseudopotential.h"
+#include <iostream>
+using namespace std; 
 //Evaluate extended Koopmans' theorem.
 class Average_ekt:public Average_generator { 
  public:
   virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
-                        System * sys, Sample_point * sample, Average_return & ) {};
+                        System * sys, Sample_point * sample, Average_return & ) {
+    cout << "need psp object" << endl;
+  };
   virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
                         System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & );
   virtual void read(System * sys, Wavefunction_data * wfdata, vector
