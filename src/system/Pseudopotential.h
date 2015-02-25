@@ -192,8 +192,45 @@ public:
   void rotateQuadrature(Array1 <doublevar> & x,
                         Array1 <doublevar> & y,
                         Array1 <doublevar> & z);
+  /*!
+    \bief 
+    This set of Get... functions are for EKT calculations, for getting value of some private numbers. 
+   */
+  int GetNumL(int at) {
+    return numL(at); 
+  }
 
+  doublevar GetCutoff(int at) {
+    return cutoff(at); 
+  }
+  int GetDeterministic() {
+    return deterministic; 
+  }
+  
+  int GetAIP(int at) {
+    return aip(at); 
+  }
+  
+  int GetIntegralWeight(int at, int i) {
+    return integralweight(at, i); 
+  }
+
+  doublevar GetIntegralPt(int at, int i, int d) 
+  {
+    return integralpt(at, i, d); 
+  }
+  int GetMaxAIP() {
+    return maxaip; 
+  }
+
+
+  void GetRadialOut(int at, int spin, Sample_point *sample, 
+		    Array1 <doublevar> & r, Array1 <doublevar> & v_l) {
+    getRadial(at, spin, sample, r, v_l);//This is completely the same with getRadial. we redefine this so as not to mix with the original private one.
+  }
   ~Pseudopotential();
+
+ private:
   int deterministic;
   void getRadial(int at, int spin, Sample_point * sample,
 		   Array1 <doublevar> & r, Array1 <doublevar> & v_l);
@@ -208,7 +245,6 @@ public:
   Array3 <doublevar> integralpt_orig;
   Array2 <doublevar> integralweight;
   Array1 <doublevar> cutoff;
-private:
   vector <string> atomnames;
   Array1 <bool> addzeff; //!< whether or not to add Z_eff/r to the local function
   
