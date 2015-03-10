@@ -33,6 +33,8 @@ class Average_ekt:public Average_generator {
   };
   virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
                         System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & );
+  virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+		System * sys, Pseudopotential *psp, Sample_point * sample, Properties_point & pt, Average_return & );
   virtual void read(System * sys, Wavefunction_data * wfdata, vector
                     <string> & words);
   virtual void write_init(string & indent, ostream & os);

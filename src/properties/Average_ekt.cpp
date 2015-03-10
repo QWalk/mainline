@@ -102,6 +102,12 @@ void Average_ekt::randomize(Wavefunction_data * wfdata, Wavefunction * wf,
 //----------------------------------------------------------------------
 
 void Average_ekt::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+	      System * sys, Pseudopotential *psp, Sample_point * sample, Properties_point & pt, Average_return & avg) {
+  evaluate(wfdata, wf, sys, psp, sample, avg);
+  // for ekt, we do not need pt. 
+}
+
+void Average_ekt::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
 			   System * sys, Pseudopotential * psp, Sample_point * sample, Average_return & avg) { 
   /*
     For our first testing case, we implemented the three matrix independently, but in principle they can be grouped 
@@ -131,6 +137,7 @@ void Average_ekt::evaluate_conduction(Wavefunction_data * wfdata, Wavefunction *
 				      System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & avg) {
   cout << "Not implemented " << endl; 
 }
+
 
 //----------------------------------------------------------------------
 
