@@ -513,8 +513,10 @@ void Pseudopotential::calcPseudoSeparated(Wavefunction_data * wfdata,
 	  doublevar rand=accept_var(accept_counter++);
 	  //cout << at <<"  random number  " << rand
 	  //   << "  p_eval  " << strength  << endl;
-	  for(int l=0; l<numL(at)-1; l++)
-	    v_l(l)/=strength;
+	  if (strength > 0.0) {
+	    for(int l=0; l<numL(at)-1; l++)
+	      v_l(l)/=strength;
+	  }
 	  accept=strength>rand;
 	}
 	
