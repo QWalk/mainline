@@ -49,8 +49,8 @@ public:
       while(is2==0)
         fread(&is2,sizeof(long int),1,fp);
       fclose(fp);
-      is1=abs(is1%1000000000);
-      is2=abs(is2%1000000000);
+      is1=int(fabs(is1%1000000000+0.0));
+      is2=int(fabs(is2%1000000000+0.0));
       
     }
     //cout << "is1 " << is1 << "is2 " << is2 << endl;
