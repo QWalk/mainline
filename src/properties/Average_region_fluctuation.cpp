@@ -267,8 +267,7 @@ void Average_region_density_matrix::read(System * sys, Wavefunction_data * wfdat
   nregion=natoms;
   latvec.Resize(3,3);
   origin.Resize(3);
-  if(sys->getBounds(latvec)) { 
-    sys->getorigin(origin); 
+  if(sys->getBounds(latvec,origin)) { 
   }
   else { 
     Array1 <doublevar> mi(3),ma(3),pos(3);

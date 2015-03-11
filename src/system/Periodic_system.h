@@ -112,8 +112,9 @@ public:
     displacements=center_displacement;
   }
 
-  int getBounds(Array2 <doublevar> & latvec) {
+  int getBounds(Array2 <doublevar> & latvec,Array1<doublevar>& origin) {
     latvec=latVec;
+    origin=origin;
     return 1;
   }
 

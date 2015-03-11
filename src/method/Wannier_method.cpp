@@ -77,9 +77,8 @@ void Wannier_method::read(vector <string> words,
   origin=0;
   LatticeVec.Resize(3,3);
    
-  if(!sys->getBounds(LatticeVec))
+  if(!sys->getBounds(LatticeVec,origin))
     error("need getBounds");
-  sys->getorigin(origin);
 
 }
 

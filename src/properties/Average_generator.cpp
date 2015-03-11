@@ -603,7 +603,8 @@ void Average_obdm::read(System * sys, Wavefunction_data * wfdata,
   doublevar cutoff;
   if(!readvalue(words, pos=0, cutoff, "CUTOFF")) {
     Array2 <doublevar> latVec(3,3);
-    if(!sys->getBounds(latVec))
+    Array1 <doublevar> origin(3);
+    if(!sys->getBounds(latVec,origin))
       error("In non-periodic systems, CUTOFF has to be given in the OBDM section.");
     cutoff=smallest_height(latVec)/2;
   }
@@ -748,7 +749,8 @@ void Average_tbdm::read(System * sys, Wavefunction_data * wfdata,
   doublevar cutoff;
   if(!readvalue(words, pos=0, cutoff, "CUTOFF")) {
     Array2 <doublevar> latVec(3,3);
-    if(!sys->getBounds(latVec))
+    Array1 <doublevar> origin(3);
+    if(!sys->getBounds(latVec,origin))
       error("In non-periodic systems, CUTOFF has to be given in the TBDM section.");
     cutoff=smallest_height(latVec)/2;
   }
@@ -1304,7 +1306,8 @@ void Average_spherical_density::read(System * sys, Wavefunction_data * wfdata,
   //doublevar cutoff;
   if(!readvalue(words, pos=0, cutoff, "CUTOFF")) {
     Array2 <doublevar> latVec(3,3);
-    if(!sys->getBounds(latVec))
+    Array1 <doublevar> origin(3);
+    if(!sys->getBounds(latVec,origin))
       error("In non-periodic systems, CUTOFF has to be given in the OBDM section.");
     cutoff=smallest_height(latVec)/2;
   }
@@ -1545,7 +1548,8 @@ void Average_spherical_density_grid::read(System * sys, Wavefunction_data * wfda
   doublevar cutoff;
   if(!readvalue(words, pos=0, cutoff, "CUTOFF")) {
     Array2 <doublevar> latVec(3,3);
-    if(!sys->getBounds(latVec))
+    Array1 <doublevar> origin(3);
+    if(!sys->getBounds(latVec,origin))
       error("In non-periodic systems, CUTOFF has to be given in the OBDM section.");
     cutoff=smallest_height(latVec)/2;
   }

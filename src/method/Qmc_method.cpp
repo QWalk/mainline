@@ -37,6 +37,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Rotate_orbs.h"
 #include "Determinant_select_method.h"
 #include "Energy_slice.h"
+#include "Lowdin_method.h"
 
 int allocate(vector <string> & words,
              Program_options & options,
@@ -96,6 +97,8 @@ int allocate(vector <string> & words,
     methptr=new Determinant_select_method;
   else if(caseless_eq(words[0],"ENERGY_SLICE"))
     methptr=new Energy_slice;
+  else if(caseless_eq(words[0],"LOWDIN"))
+    methptr=new Lowdin_method;
   
   
   else

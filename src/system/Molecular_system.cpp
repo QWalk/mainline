@@ -327,3 +327,31 @@ void Molecular_system::locDerivative(int ion, Sample_point * sample,
 //------------------------------------------------------------------------
 
 
+int Molecular_system::getBounds(Array2 <doublevar> & latticevec,Array1<doublevar> & origin) { 
+  cout << "getBounds()" << endl;
+  latticevec.Resize(3,3);
+  latticevec=0.0;
+  Array1 <doublevar> minmax(6);
+  for(int d=0; d< 3; d++) { 
+    minmax(2*d)=minmax(2*d+1)=0.0;
+  }
+  
+  int nions=nIons();
+  Array1 <doublevar> ionpos(3);
+  for(int i=0; i< nions; i++) {
+    getIonPos(i,ionpos);
+    for(int d=0; d< 3; d++) {
+      if(ionpos(d) < minmax(2*d)) minmax(2*d) = ionpos(d);
+      if(ionpos(d) > minmax(2*d+1)) minmax(2*d+1)=ionpos(d);
+    }
+  }
+
+  for(int d=0; d< 3; d++) {
+   // minmax(2*d)-=4.0;
+   //minmax(2*d+1)+=4.0;
+    origin(d)=minmax(2*d)-4.0;
+    latticevec(d,d)=minmax(2*d+1)-origin(d)+4.0;
+  }
+  cout << "getBounds done" << endl;
+  return 1;
+}

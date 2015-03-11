@@ -99,7 +99,7 @@ public:
     \brief 
     Get a representative box for the simulation cell
    */
-  virtual int getBounds(Array2 <doublevar> & latvec) { return 0;};
+  virtual int getBounds(Array2 <doublevar> & latvec,Array1 <doublevar> & origin) { return 0;};
 
   
   virtual void kpoint(Array1 <doublevar> & kp) {

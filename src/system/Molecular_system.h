@@ -90,6 +90,8 @@ public:
     }
   }
 
+  virtual int getBounds(Array2<doublevar> & latvec,Array1 <doublevar> & origin);
+
 
 private:
   friend class Molecular_sample;

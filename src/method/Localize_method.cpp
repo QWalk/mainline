@@ -117,7 +117,7 @@ void Localize_method::read(vector <string> words,
   int ndim=3;
   latVec.Resize(ndim, ndim);
   origin.Resize(3);
-  if(!sysprop->getBounds(latVec)){
+  if(!sysprop->getBounds(latVec,origin)){
     cout <<" Not a periodic system, will need latice vectors"<<endl;
     pos=0;
     vector <string> latvectxt;

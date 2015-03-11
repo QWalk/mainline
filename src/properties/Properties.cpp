@@ -108,7 +108,8 @@ void One_particle_density::init(vector<string> & words, System * sys,
   }
   
   Array2 <doublevar> latvec;
-  if(sys->getBounds(latvec)) { 
+  Array1<doublevar> origin(3);
+  if(sys->getBounds(latvec,origin)) { 
     //assume origin is zero for the moment
     min_=0; max=0;
     for(int d=0; d< ndim; d++) {
@@ -117,6 +118,12 @@ void One_particle_density::init(vector<string> & words, System * sys,
         if(latvec(i,d)<0) min_(d)+=latvec(i,d);
       }
     }
+    //correct for the origin
+    for(int d=0; d< ndim; d++) {
+      max(d)+=origin(d);
+      min_(d)+=origin(d);
+    }
+      
   }
 
   

@@ -153,7 +153,7 @@ void Plot_method::read(vector <string> words,
       minmax(i)=atof(Tminmax[i].c_str());
     }
   }
-  else if(sysprop->getBounds(LatticeVec)){
+  else if(sysprop->getBounds(LatticeVec,origin)){
     periodic=1;
     single_write(cout,"Using periodic boundaries\n");
     sysprop->kpoint(kpoint);
