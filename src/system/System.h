@@ -106,7 +106,8 @@ public:
     kp.Resize(3); kp=0;
   }
   virtual void getorigin (Array1 <doublevar> & o) {
-    o.Resize(3);o=0;
+    //o.Resize(3);o=0;
+    error("Origin not implemented for this method");
   }
   /*!
     \brief

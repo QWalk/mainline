@@ -157,7 +157,6 @@ void Plot_method::read(vector <string> words,
     periodic=1;
     single_write(cout,"Using periodic boundaries\n");
     sysprop->kpoint(kpoint);
-    sysprop->getorigin(origin);
     //these is periodic MINMAX
     for(int d=0;d<3;d++){
       minmax(2*d)=origin(d);
