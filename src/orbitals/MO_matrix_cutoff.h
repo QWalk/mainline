@@ -280,9 +280,6 @@ template<class T> void MO_matrix_cutoff<T>::writeorb(ostream & os,
   assert(rotation.GetDim(0)==nmo_write);
   assert(rotation.GetDim(1)==nmo_write);
 
-  
-
-
   os.precision(15);
   int counter=0;
   int totfuncs=0;
@@ -312,11 +309,55 @@ template<class T> void MO_matrix_cutoff<T>::writeorb(ostream & os,
   }
   os << "COEFFICIENTS\n";
   ifstream orbin(orbfile.c_str());
-  //rotate_orb(orbin, os, rotation, moList, totbasis);
-  rotate_orb(orbin, os, rotation, moList, totfuncs);
+
+  Array1 <T> coeff;
+  Array3 <int> coeffmat;
+  readorb(orbin,centers, nmo, maxbasis,kpoint, coeffmat, coeff);
   orbin.close();
 
+  Array2 <T> moCoeff(nmo,totbasis);
+  moCoeff=0.0;
+  int totfunc=0;
+  for(int ion=0; ion<centers.size(); ion++) {
+    int f=0;
+    for(int n=0; n< centers.nbasis(ion); n++) {
+      int fnum=centers.basis(ion,n);
+      int imax=basis(fnum)->nfunc();
+      for(int i=0; i<imax; i++){ 
+        for(int mo=0; mo<nmo; mo++) {	   
+          if(coeffmat(mo,ion, f) == -1) {
+            moCoeff(mo,totbasis)=0.0;
+          }
+          else moCoeff(mo,totfunc)=coeff(coeffmat(mo,ion,f));
+        }//mo
+        f++;  //keep a total of functions on center
+        totfunc++;
+      } //i
+    } //n
+  }  //ion
+  
+  // Now we rotate and write out the coefficients
+  int totwritten=0;
+  Array2 <T> rotatedMO(nmo_write,totbasis);
+  rotatedMO=0.0;
+  for(int mo=0; mo < nmo_write; mo++) { 
+    for(int f=0; f< totbasis; f++) { 
+      for(int mo2=0; mo2 < nmo_write; mo2++) { 
+        int realmo=moList(mo2);
+        rotatedMO(mo,f)+=rotation(mo,mo2)*moCoeff(realmo,f);
+      }
+    }
+  }
 
+  for(int m=0; m < nmo_write; m++) {
+    int counter2=1;
+    for(int f=0; f< totbasis; f++) {
+      os << rotatedMO(m, f) << "   ";
+      if(counter2 % 5 ==0) os << endl;
+      counter2++;
+    }
+    os << endl;
+  }
 }
 //---------------------------------------------------------------------
 
