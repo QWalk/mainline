@@ -326,7 +326,7 @@ template<class T> void MO_matrix_cutoff<T>::writeorb(ostream & os,
       for(int i=0; i<imax; i++){ 
         for(int mo=0; mo<nmo; mo++) {	   
           if(coeffmat(mo,ion, f) == -1) {
-            moCoeff(mo,totbasis)=0.0;
+            moCoeff(mo,totfunc)=0.0;
           }
           else moCoeff(mo,totfunc)=coeff(coeffmat(mo,ion,f));
         }//mo
