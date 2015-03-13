@@ -291,8 +291,6 @@ template<class T> void MO_matrix_cutoff<T>::writeorb(ostream & os,
   }
   
   for(int m=0; m < nmo_write; m++) {
-    int mo=moList(m);
-    
     for(int ion=0; ion<centers.equiv_centers.GetDim(0); ion++) {
       int f=0;
       for(int n=0; n< centers.nbasis(centers.equiv_centers(ion,0)); n++) {
@@ -310,6 +308,7 @@ template<class T> void MO_matrix_cutoff<T>::writeorb(ostream & os,
   os << "COEFFICIENTS\n";
   ifstream orbin(orbfile.c_str());
 
+  //cout << "orbfile " << orbfile << endl;
   Array1 <T> coeff;
   Array3 <int> coeffmat;
   readorb(orbin,centers, nmo, maxbasis,kpoint, coeffmat, coeff);
@@ -317,46 +316,48 @@ template<class T> void MO_matrix_cutoff<T>::writeorb(ostream & os,
 
   Array2 <T> moCoeff(nmo,totbasis);
   moCoeff=0.0;
-  int totfunc=0;
-  for(int ion=0; ion<centers.size(); ion++) {
-    int f=0;
-    for(int n=0; n< centers.nbasis(ion); n++) {
-      int fnum=centers.basis(ion,n);
-      int imax=basis(fnum)->nfunc();
-      for(int i=0; i<imax; i++){ 
-        for(int mo=0; mo<nmo; mo++) {	   
-          if(coeffmat(mo,ion, f) == -1) {
-            moCoeff(mo,totfunc)=0.0;
-          }
-          else moCoeff(mo,totfunc)=coeff(coeffmat(mo,ion,f));
-        }//mo
-        f++;  //keep a total of functions on center
-        totfunc++;
-      } //i
-    } //n
-  }  //ion
-  
-  // Now we rotate and write out the coefficients
-  int totwritten=0;
-  Array2 <T> rotatedMO(nmo_write,totbasis);
-  rotatedMO=0.0;
-  for(int mo=0; mo < nmo_write; mo++) { 
-    for(int f=0; f< totbasis; f++) { 
-      for(int mo2=0; mo2 < nmo_write; mo2++) { 
-        int realmo=moList(mo2);
-        rotatedMO(mo,f)+=rotation(mo,mo2)*moCoeff(realmo,f);
+  int nmo_read=coeffmat.GetDim(0);
+  int ncenter=coeffmat.GetDim(1);
+  int maxfunc=coeffmat.GetDim(2);
+  int currfunc;
+  for(int mo=0; mo < nmo_read; mo++) { 
+    currfunc=0;
+    for(int ion=0; ion<centers.equiv_centers.GetDim(0); ion++) {
+      int f=0;
+      int equiv_center=centers.equiv_centers(ion,0);
+      for(int n=0; n< centers.nbasis(centers.equiv_centers(ion,0)); n++) {
+        int fnum=centers.basis(centers.equiv_centers(ion,0),n);
+        int imax=basis(fnum)->nfunc();
+        for(int i=0; i<imax; i++) {
+          if(coeffmat(mo,equiv_center,f)!=-1)
+            moCoeff(mo,currfunc)=coeff(coeffmat(mo,equiv_center,f));
+          f++;
+          currfunc++;
+        }
       }
     }
   }
-
+  // Now we rotate and write out the coefficients
+  Array2 <T> rotatedMO(nmo_write,currfunc);
+  rotatedMO=0.0;
+  for(int mo=0; mo < nmo_write; mo++) { 
+    for(int f=0; f< currfunc; f++) { 
+      for(int mo2=0; mo2 < nmo_write; mo2++) { 
+        int realmo=moList(mo2);
+        rotatedMO(mo,f)+=rotation(mo,mo2)*moCoeff(realmo,f);
+        //cout << "mo1 " << mo << " mo2 " << mo2 << " f " << f 
+        //  << " realmo " << realmo << " rotation " << rotation(mo,mo2) 
+        //     << " rotatedmo " << rotatedMO(mo,f) << " coeff " << moCoeff(realmo,f) << endl;
+      }
+    }
+  }
+  int counter2=1;
   for(int m=0; m < nmo_write; m++) {
-    int counter2=1;
-    for(int f=0; f< totbasis; f++) {
+    for(int f=0; f< currfunc; f++) {
       os << rotatedMO(m, f) << "   ";
       if(counter2 % 5 ==0) os << endl;
       counter2++;
     }
-    os << endl;
   }
 }
 //---------------------------------------------------------------------

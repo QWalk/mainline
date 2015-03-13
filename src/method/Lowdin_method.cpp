@@ -85,6 +85,7 @@ void Lowdin_method::run(Program_options & options, ostream & output) {
   Array2 <doublevar> S;
   cout << "calc overlap " << endl;
   Array2 <doublevar>  Rtot(nmo,nmo);
+  Rtot=0.0;
 
   calculate_overlap(S);
 
@@ -125,6 +126,14 @@ void Lowdin_method::run(Program_options & options, ostream & output) {
     }
   }
   MultiplyMatrices(eigenvecs,eigenvec_inverse,Rtot,nmo);
+  cout << "Rotation" << endl;
+  for(int i=0; i < nmo; i++) { 
+    for(int j=0; j< nmo; j++) { 
+      if(fabs(Rtot(i,j)) < threshold) Rtot(i,j)=0.0;
+      cout << setw(15) << Rtot(i,j);
+    }
+    cout << endl;
+  }
   Array1 <int> allorbs(nmo);
   for(int i=0; i< nmo; i++) allorbs(i)=i;
   ofstream testorb(out_orbs.c_str());
