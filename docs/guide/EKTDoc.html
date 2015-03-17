@@ -58,7 +58,7 @@ method { VMC
 include qwalk.sys
 trialfunc {  include qwalk.slater }
 
-In this example, we calculate the matrix element \f$M_{i, j}\f$ (M can be \f$\rho\f$, \f$V^v\f$, and \f$V^c\f$), with i from 1 to 8. The current computation is in the state-of-art stage. We need to choose a proper value of Ns in 'STATES {1 2 3 ... Ns}'. Normally, we will choose Ns to be sufficiently large. However, if we include too many orbitals, the stochastical error will be too large. Therefore, in solving the generalized eigenvalue pro
+In this example, we calculate the matrix element \f$M_{i, j}\f$ (M can be \f$\rho\f$, \f$V^v\f$, and \f$V^c\f$), with i from 1 to 8. The current computation is still in the state-of-art stage. Regarding the orbitals taking into account -- 'STATES {1 2 3 ... Ns}', we will choose Ns to be sufficiently large. However, if we include too many orbitals, the stochastic error will be too large. Therefore, in solving the generalized eigenvalue problem, we might include only {1 2 3 ... Ns'}, we increase Ns' before the stochastic error goes up. 
 
 </pre>
 
