@@ -1,0 +1,86 @@
+/*! \page Extended Koopmans' theorem
+
+Keyword: EKT
+
+\section description Description
+
+This is to calculate the ionization energy and electron affinity using the extended Koopmans' theorem (EKT). The EKT module compute the following matrix element,
+
+(1) One-body reduced density matrix: \f$\rho_{ij}=\langle \Psi^N |c_i^\dagger c_j|\Psi^N\rangle\f$, where \f$ \Psi^N\f$ is the ground state of the N-electron system, and \f$c_i\f$ is the annihilation operator in second quantization. This matrix elements of \f$\rho\f$ is evaluated as
+\f[
+\rho_{ij} &=&\sum_{n=1}^N \int d\vec r'\left\langle \phi_i(\vec r_n)\phi_j^*(\vec r')\frac{\psi(\vec r_1,\cdots,\vec r',\cdots,\vec r_N)}{\psi(\vec r_1, \cdots, \vec r_n,\cdots,\vec r_N)}\right\rangle_{|\psi|^2} 
+\f]
+while \$\phi_i\$ is the orbitals by which the density matrix is represented with.
+
+(2) Electron ionization matrix: \f$V_{ij}^v = \langle \Psi^{N}|c_i^\dagger c_j H -c_i^\dagger H c_j  |\Psi^{N}\rangle\f$
+\f[
+V_{ij}^v
+&=&\sum_{n=1}^N\int d\vec r_n'\Big\langle \phi_i(\vec r_n')\phi_j^*(\vec r_n)\frac{\psi^*(\vec r_1, \cdots, \vec r_n', \cdots, \vec r_N)}{\psi^*(\vec r_1, \cdots, \vec r_n, \cdots, \vec r_N)}\frac{H_n \psi(\vec r_1, \cdots, \vec r_n \cdots, \vec r_N)}{ \psi(\vec r_1, \cdots, \vec r_n \cdots, \vec r_N)}\Big\rangle_{|\psi|^2}\,,
+\f]
+where \f$H_n\f$ is the hamiltonian corresponds to the n-th particle (including kinetic energy, external potential energy, and coloumb energy from other electrons). 
+
+(3) Electron affinity matrix: \f$V_{ij}^c = \langle \psi^N|c_i [\hat H, c_j^\dagger]|\psi^N\rangle\f$, which is evaluated as
+\f[
+\int \phi_i^*(r_0) \hat h_0\phi_j(r_0)dr_0 + \sum_{n=1}^N \int dr_0 \Bigg[\langle\phi_i^*(\vec r_0)\phi_j(\vec r_0)v(\vec r_0, \vec r_n)\rangle_{|\psi(\vec r_1\cdots r_N)|^2} \nonumber\\&&
+\quad - \left\langle\frac{\psi^*(\vec r_1,\cdots,\vec r_0,\cdots, \vec r_N)}{\psi^*(\vec r_1,\cdots, \vec r_n, \cdots \vec r_N)}\phi_i^*(\vec r_n)\Big(\phi_j(\vec r_0)\sum_{m=1}^Nv(\vec r_0, \vec r_m)+\hat{h}_0\phi_j(\vec r_0)\Big)\right\rangle_{|\psi(\vec r_1\cdots\vec r_N)|^2}\Bigg]\,,
+\f]
+where \f$ \hat h_0 \f$ is the kinetic term, and \f$ v(\vec r_i, \vec r_j)\f$ is the Coulomb interacting term. 
+
+The ionization spectrum is obtained by solving the following generalized eigenvalue problem, 
+\f[
+[\vec V^v - \epsilon \bm{\rho} ]\bm{\alpha}  = 0\,.
+\f]
+Suppose the number of electron in the system is N. The inonization spectrum corresponds to the lowest N eigenvalues of the equation.
+
+The electron affinity spectrum is obtained by 
+\f[
+(\vec V^c - \epsilon_c \vec S^c)\vec \alpha_c = 0, \quad \vec S = 1 -\vec \rho\,,
+\f]
+The electron affinity spectrum corresponds to the eigenvalues start from N+1. 
+
+\section example Example
+
+<pre>
+method { VMC
+  average { 
+     EKT
+     STATES { 1 2 3 4 5 6 7 8 }
+     ORBITALS {
+         CUTOFF_MO
+         MAGNIFY 1
+         NMO 8
+         ORBFILE qwalk.orb
+         INCLUDE qwalk.basis
+         CENTERS { USEATOMS }
+     } 
+  }
+}
+include qwalk.sys
+trialfunc {  include qwalk.slater }
+
+In this example, we calculate the matrix element \f$M_{i, j}\f$ (M can be \f$\rho\f$, \f$V^v\f$, and \f$V^c\f$), with i from 1 to 8. The current computation is in the state-of-art stage. We need to choose a proper value of Ns in 'STATES {1 2 3 ... Ns}'. Normally, we will choose Ns to be sufficiently large. However, if we include too many orbitals, the stochastical error will be too large. Therefore, in solving the generalized eigenvalue pro
+
+</pre>
+
+
+\section options Options
+
+\subsection reqopt Required 
+
+
+<table>
+<tr><th>Option</th><th>Type</th><th>Description</th></tr>
+<tr> 
+  <td> ORBITALS/CORBITALS </td>
+  <td> Section </td>
+  <td>
+Input for a \subpage MO_matrixDoc. When ORBITALS section is used,
+a real-valued wave function is constructed.  When a CORBITALS section is used,
+the orbitals will be complex-valued.
+</td>
+</tr>
+</table>
+
+
+\subsection optopt Optional
+*/
