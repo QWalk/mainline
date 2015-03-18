@@ -6,7 +6,6 @@ OBJPATH:=$(DVLPATH)/obj/$(PLATFORM)
 
 ALLOBJS:=$(OBJPATH)/converter.o $(OBJPATH)/Pseudo_writer.o $(OBJPATH)/wf_writer.o $(OBJPATH)/basis_writer.o
 include $(MAKEPATH)/$(PLATFORM).mk
-CRYSTAL2QMCALLOBJS:=$(OBJPATH)/crystal2qmc_all.o $(ALLOBJS)
 GAMESS2QMCOBJS:=$(OBJPATH)/gamess2qmc.o $(ALLOBJS)
 GAMESSCI2QMCOBJS:=$(OBJPATH)/gamessci2qmc.o $(ALLOBJS) 
 CRYSTAL2QMCOBJS:=$(OBJPATH)/crystal2qmc.o $(ALLOBJS)
@@ -21,7 +20,7 @@ SQD2QMCOBJS:=$(OBJPATH)/sqd2qmc.o $(ALLOBJS)
 
 SUFFIX := -$(PLATFORM) 
 
-all: nwchem2qmc$(SUFFIX) gamess2qmc$(SUFFIX) gamessci2qmc$(SUFFIX) crystal2qmc$(SUFFIX) siesta2qmc$(SUFFIX) g032qmc$(SUFFIX) heg2qmc$(SUFFIX) abinit2qmc$(SUFFIX) crystal2qmc_all$(SUFFIX)
+all: nwchem2qmc$(SUFFIX) gamess2qmc$(SUFFIX) gamessci2qmc$(SUFFIX) crystal2qmc$(SUFFIX) siesta2qmc$(SUFFIX) g032qmc$(SUFFIX) heg2qmc$(SUFFIX) abinit2qmc$(SUFFIX) 
 .PHONY: clean 
 
 gamess2qmc$(SUFFIX): $(GAMESS2QMCOBJS)
