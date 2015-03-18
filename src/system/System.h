@@ -25,10 +25,11 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Qmc_std.h"
 #include "Wavefunction.h"
 #include "Force_fitter.h"
+#include "Pseudopotential.h"
 class Sample_point;
 class Wavefunction_data;
 class Wavefunction;
-class Pseudopotential;
+//class Pseudopotential;
 /*!
   \brief
   Holds the information about the system; knows how to calculate energies
@@ -49,6 +50,11 @@ public:
                               Pseudopotential * & pseudo);
   virtual doublevar calcLoc(Sample_point *)=0;
   /*!
+    Added by Huihuo Zheng for extended Koopmans' theorem; 
+   */
+  virtual void calcLocSeparated(Sample_point *, Array1 <doublevar> &)=0;
+  virtual void calcLocWithTestPos(Sample_point * sample, Array1 <doublevar> & tpos, Array1 <doublevar> & Vtest) {};
+  /*!
     Return the local potential separated into onebody and twobody 
     terms.  Onebody is per quantum particle, and twobody is a nxn upper
     triangular matrix (i.e., filled in (i,j) for i < j)
@@ -67,8 +73,28 @@ public:
                            Sample_point *,
                            Wavefunction *,
                            Array1 <doublevar> &);
+  Array2 <doublevar> Kin; 
+  Array1 <doublevar> VLoc; 
+  /*!
+    \brief 
+    This is to return the kinetic energy of each electron
+     ------------ lap(e, iw)
+    e (electron index), iw (wavefunction index)
+  */
+  virtual void calcKineticSeparated(Wavefunction_data *,
+				    Sample_point *,
+				    Wavefunction *); 
 
-
+  /*!
+    \brief -- Huihuo
+    calculate the Kinetic energy of specific electron--e, returned as an array
+    decided not to use this
+  virtual void calcKineticNoNotify(const int e, 
+				   Wavefunction_data *,
+				   Sample_point *,
+				   Wavefunction *,
+  				   Array1 <doublevar> &);
+  */
   /*!
     \brief
      give the reciprocal lattice.  return 1 on success and 0 on error.

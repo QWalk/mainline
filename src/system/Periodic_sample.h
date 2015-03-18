@@ -147,7 +147,7 @@ public:
       distance(i)=pointdist(e1,e2,i);
     }
   }
-
+  void minDist(Array1 <doublevar> pos1, Array1 <doublevar> pos2, Array1 <doublevar> &rmin); 
   void rawOutput(ostream &);
   void rawInput(istream &);
 

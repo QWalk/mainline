@@ -52,6 +52,9 @@ public:
 
 
   doublevar calcLoc(Sample_point *);
+  void calcLocWithTestPos(Sample_point * sample, Array1 <doublevar> & tpos, Array1 <doublevar> & Vtest); 
+  void calcLocSeparated(Sample_point *, Array1<doublevar> & ); 
+  //  doublevar calcPotNoNotify(const int e, Sample_point * sample); //added by Huihuo Zheng for extended Koopmans' theorem
   void locDerivative(int ion, Sample_point * sample, 
                      Force_fitter &,Array1 <doublevar> & der);
   virtual void separatedLocal(Sample_point *,Array1 <doublevar> & onebody,
