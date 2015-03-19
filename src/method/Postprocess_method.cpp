@@ -176,7 +176,7 @@ int Postprocess_method::gen_point(Wavefunction * wf, Sample_point * sample,
   //cout << mpi_info.node << " generating a point with " << average_var.GetDim(0) << " avgrets " << endl;
   for(int i=0; i< average_var.GetDim(0); i++) { 
     average_var(i)->randomize(wfdata,wf,sys,sample);
-    average_var(i)->evaluate(wfdata, wf, sys, sample,pt, pt.avgrets(0,i));
+    average_var(i)->evaluate(wfdata, wf, sys, pseudo,sample,pt, pt.avgrets(0,i));
   }
   for(int i=0; i< densplt.GetDim(0); i++) densplt(i)->accumulate(sample,weight);
   pt.weight(0)=weight;
