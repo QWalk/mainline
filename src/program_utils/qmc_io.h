@@ -447,55 +447,66 @@ template <class ConfigType> void write_configurations(string & filename,
 //for this 
 template <class ConfigType> void read_configurations(string & filename, 
                                                      Array1 <ConfigType> & configs) { 
-  cout << "read_configurations" << mpi_info.node << endl;
-  vector <ConfigType> allconfigs; 
+  //vector <ConfigType> allconfigs; 
   time_t starttime;  time(&starttime);
   if(mpi_info.node==0) { 
+
+    //First let's do one pass through the file to count how many walkers.
+    //We could do this without two passes, but at the cost of a lot of memory.
     ifstream is(filename.c_str());
     if(!is) { error("Could not open ", filename); } 
     string dummy;
-    //This may be rough on memory, but gets deleted quickly and is relatively
-    //easy to implement
+    int totconfs=0;
+    while(is >> dummy) {
+      if(caseless_eq(dummy,"walker")) totconfs++;
+    }
+
+    is.clear();
+    is.seekg(0); //Go back to the beginning of the file
+
+    if(totconfs%mpi_info.nprocs != 0) {
+      error("Non-even number of walkers/node.  Change the number of processors to something that divides ",totconfs);
+    }
+    int n_per_node=totconfs/mpi_info.nprocs;
+    cout << mpi_info.node << ": n_per_node " << n_per_node << endl;
+    //Go ahead and get the slaves to allocate their walkers.
+    //(probably should be broadcast())
+#ifdef USE_MPI
+    for(int node=1; node < mpi_info.nprocs; node++) 
+      MPI_Send(&n_per_node, 1, MPI_INT,node, 0, MPI_Comm_grp);
+#endif    
+    configs.Resize(n_per_node);
+    int currwalker=0;
+    int currwalker_node0=0;
     ConfigType tmpconf;
+    
     while(is >> dummy) { 
       if(caseless_eq(dummy, "walker")) { 
         is >> dummy;
         if(dummy!="{") error("expected { in read_configurations()");
         tmpconf.read(is);
-        allconfigs.push_back(tmpconf);
-        //is >> dummy;
-        //if(dummy!="}") error("expected } in read_configurations()");
+        //Now decide what to do with this configuration
+        int targetnode=currwalker%mpi_info.nprocs;
+        cout << "targetnode " << targetnode << endl;
+        
+        if(targetnode==0) configs(currwalker_node0++)=tmpconf;
+        else { 
+#ifdef USE_MPI
+          tmpconf.mpiSend(targetnode);
+#else
+          error("in read_configurations, targetnode!=0 and MPI is not used");
+#endif
+        }
+        currwalker++;
       }
     }
     //cout << mpi_info.node << ": Done reading " << endl;
   }
   
-  
+
 #ifdef USE_MPI
-  if(mpi_info.node==0) { 
-    int totconfs=allconfigs.size();
-    if(totconfs%mpi_info.nprocs != 0) {
-      error("Non-even number of walkers/node.  Change the number of processors to something that divides ",totconfs);
-    }
-    int n_per_node=totconfs/mpi_info.nprocs;
-    //cout << mpi_info.node << ": n_per_node " << n_per_node << endl;
-    configs.Resize(n_per_node);
-    
-    int count=0;
-    for(int i=0; i< n_per_node; i++) { 
-      configs(i)=allconfigs[count++];
-    }
-    //cout << mpi_info.node << ": ......" << endl;
-    for(int node=1; node < mpi_info.nprocs; node++) { 
-      MPI_Send(&n_per_node, 1, MPI_INT,node, 0, MPI_Comm_grp);
-      for(int i=0; i< n_per_node; i++) { 
-        //cout << mpi_info.node << ": count " << count << endl;
-        allconfigs[count++].mpiSend(node);
-      }
-    }
-    //cout << mpi_info.node << ": done sending "<< count << endl;
-  }
-  else { 
+  //All the slave nodes need to do is to wait and receive their walkers
+  if(mpi_info.node!=0) { 
     int nconf_node;
     MPI_Status status;
     MPI_Recv(&nconf_node, 1, MPI_INT,
@@ -505,17 +516,9 @@ template <class ConfigType> void read_configurations(string & filename,
     for(int i=0; i< nconf_node; i++) { 
       configs(i).mpiReceive(0);
     }
-    //cout << mpi_info.node << ": done receiving " << endl;
   }
-#else
-  int totconfs=allconfigs.size();
-  //cout << mpi_info.node << ": totconfs " << totconfs << endl;
-  configs.Resize(totconfs);
-  for(int i=0; i< totconfs; i++) {
-    configs(i)=allconfigs[i];
-  }
-#endif //USE_MPI
-
+#endif
+  
   time_t endtime;
   time(&endtime);
   single_write(cout, "Read took ", difftime(endtime, starttime), " seconds\n");  
