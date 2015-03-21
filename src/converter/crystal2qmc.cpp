@@ -795,15 +795,16 @@ void get_crystal_basis(istream & infile,
   vector <string> basis_labels;
   vector <string> blank_strvec;
   while(getline(infile, line)) {
-    //cout << line << endl;
+    cout << line << endl;
     words.clear();
     split(line, space, words);
-    if(words.size() > 4 && words[0]=="ATOM" && words[1] == "X(AU)" && words[4]=="NO.") {
+    if(words.size() > 4 && words[0]=="ATOM" && words[1] == "X(AU)" && 
+        (words[4]=="NO." or words[4]=="N.")) {
       infile.ignore(150,'\n');
 
-      //cout << "found basis " << line << endl;
+      cout << "found basis " << line << endl;
       getline(infile, line);
-      //cout << "first line " << line << endl;
+      cout << "first line " << line << endl;
 
       const char endmatch='*';
       string currname;
@@ -1130,7 +1131,12 @@ int readMO(istream & is, long int start, vector < vector <double> > & moCoeff) {
       split(line, space, words);
       //cout << "line " << line << " size " << words.size() << endl;
       if(words[0]=="BETA") break;
-      if (words[1]=="NEWK") break; 
+      if(words[1]=="NEWK") break; 
+      if(words.size()!= nmo_this+1) {
+        cerr << "Problem reading in MOs: expected " << nmo_this << " orbitals, got " << words.size()-1 << endl;
+        cerr << "Line:" << line << endl;
+        exit(1);
+      }
       assert(words.size() == nmo_this+1);
       for(int i=0; i< nmo_this; i++) {
         moCoeff[totmo+i].push_back(atof(words[i+1].c_str()));
@@ -1174,8 +1180,13 @@ int readMO(istream & is, long int start,
       //cout << "line " << line << " size " << words.size() << endl;
       if(words[0]=="BETA") break;
       if (words[1]=="NEWK") break; 
-      assert(words.size() == 2*nmo_this+1);
 
+      if(words.size()!= nmo_this+1) {
+        cerr << "Problem reading in MOs: expected " << nmo_this << " orbitals, got " << words.size()-1 << endl;
+        cerr << "Line:" << line << endl;
+        exit(1);
+      }
+      
       for(int i=0; i< nmo_this; i++) {
         moCoeff[totmo+i].push_back(
             dcomplex( atof(words[2*i+1].c_str()), atof(words[2*i+2].c_str()) )
