@@ -56,128 +56,89 @@ def pseudopotential_section(symbol, xml_name):
         pseudopot_strlist.append('{}\n'.format(r_to_n))
     pseudopot_string = ''.join(pseudopot_strlist)
     return pseudopot_string
+
+
 ######################################################################
-def angular_momentum(string):
+def modify_basis(symbol,xml_name,cutoff=0.2,params=[0.2,2,3]):
     """
-    Returns a corresponding CRYSTAL input value and the maximum number of
-    electrons in the shell of the orbital angular momentum represented by
-    the string parameter.
+    Author: "Kittithat (Mick) Krongchon" <pikkienvd3@gmail.com> and Lucas K. Wagner
+    Returns a string containing the basis section.  It is modified according to a simple recipe:
+    1) The occupied atomic orbitals are kept, with exponents less than 'cutoff' removed.
+    2) These atomic orbitals are augmented with uncontracted orbitals according to the formula 
+        e_i = params[0]*params[2]**i, where i goes from 0 to params[1]
+        These uncontracted orbitals are added for every occupied atomic orbital (s,p for most elements and s,p,d for transition metals)
 
     Args:
-        string (str): The orbital angular momentum.
+        symbol (str): The symbol of the element to be specified in the
+            D12 file.
+        xml_name (str): The name of the XML pseudopotential and basis
+            set database.
+        cutoff: smallest allowed exponent
+        params: parameters for generating the augmenting uncontracted orbitals
 
     Returns:
-        str: The number represents the orbital as specified in the
-            CRYSTAL manual.
-        int: The maximum number of electrons in the given shells.
+        str: The pseudopotential and basis section.
     """
-    if string == 's':
-        return '0', 2
-    elif string == 'sp':
-        return '1', 8
-    elif string == 'p':
-        return '2', 6
-    elif string == 'd':
-        return '3', 10
-    elif string == 'f':
-        return '4', 14
-    elif string == 'g':
-        return '5', -99
-    elif string == 'h':
-        return '6', -99
-    elif string == 'i':
-        return '7', -99
-    else:
-        return 'error', -99
-######################################################################
-def fill(charge_left, cap):
-    """
-    Fills shell with the effective core charges and returns the number of
-    charges left and charges in the shell.
-    """
-    if charge_left <= cap:
-        charge = charge_left
-        charge_left = 0
-    else:
-        charge_left -= cap
-        charge = cap
-    return charge_left, charge
-######################################################################
-
-def basis_modified(symbol, xml_name, basis_name, params):
-    """
-    Author: "Kittithat (Mick) Krongchon" <pikkienvd3@gmail.com>
     
-    Returns a string of the modified basis set section for D12 input file.
-
-    Args:
-        symbol (str): The symbol of the element to be specified
-            in the D12 file
-        xml_name (str): The name of the XML pseudopotential
-            and basis set database
-        basis_name (str): The name of the basis set (e.g. 'vtz')
-        params (list): [coeff, n, base]
-            coeff (double): aka alpha. The coefficient of the exponential
-                operation.
-            n (int): The exponent.
-            base (double): aka c. The base of the exponential operation.
-
-    Returns:
-        str: The basis set section.
-    """
+    maxorb=3
+    basis_name="vtz"
+    nangular={"s":1,"p":1,"d":1,"f":1,"g":0}
+    maxcharge={"s":2,"p":6,"d":10,"f":15}
+    basis_index={"s":0,"p":2,"d":3,"f":4}
+    transition_metals=["Sc","Ti","V","Cr","Mn","Fe","Co","Ni","Cu","Zn"]
+    if symbol in transition_metals:
+      maxorb=4
+      nangular['s']=2
+    
     tree = ElementTree()
     tree.parse(xml_name)
     element = tree.find('./Pseudopotential[@symbol="{}"]'.format(symbol))
     eff_core_charge = int(element.find('./Effective_core_charge').text)
     basis_path = './Basis-set[@name="{}"]/Contraction'.format(basis_name)
-    contractions = OrderedDict()
     found_orbitals = []
+    totcharge=0
+    ret=""
+    ncontract=0
     for contraction in element.findall(basis_path):
         angular = contraction.get('Angular_momentum')
-        if angular in found_orbitals or not angular in 'spdf':
+        if found_orbitals.count(angular) >= nangular[angular]:
             continue
         found_orbitals.append(angular)
-        contractions[angular] = []
-        indent = 0
+
+        #Figure out which coefficients to print out based on the minimal exponent
+        nterms = 0
+        basis_part=""
         for basis_term in contraction.findall('./Basis-term'):
             exp = basis_term.get('Exp')
             coeff = basis_term.get('Coeff')
-            if float(exp) > params[0]:
+            if float(exp) > cutoff:
                 line = '  {} {}\n'.format(exp, coeff)
-                if indent < 2:
-                    contractions[angular].append('  ' + line)
-                else:
-                    contractions[angular].append(line)
-                indent = (indent + 1) % 4
-    result = []
-    charge_left = eff_core_charge
-    ncontractions = 0
+                basis_part+=line
+                nterms+=1
+        #now write the header 
+        if nterms > 0:
+          charge=min(eff_core_charge-totcharge,maxcharge[angular])
+          totcharge+=charge
+          ret+="0 %i %i %g 1\n"%(basis_index[angular],nterms,charge) +\
+                basis_part
+          ncontract+=1
 
-    maxorb=3
-    if symbol in ["Sc","Ti","V","Cr","Mn","Fe","Co","Ni","Cu","Zn"]:
-      maxorb=4
-    for angular, basis_terms in contractions.items():
-        orbital, cap = angular_momentum(angular)
-        charge_left, charge = fill(charge_left, cap)
-        l = orbital, len(contractions[angular]), charge
-        if basis_terms:
-            result.append('0 {} {} {} 1\n'.format(l[0], l[1], l[2]))
-            ncontractions += 1
-            for basis_term in basis_terms:
-                result.append(basis_term)
-        else:
-            break
-        if int(orbital) < maxorb:
-            for i in range(params[1]):
-                result.append('0 {} 1 0 1\n'.format(orbital))
-                ncontractions += 1
-                exp = params[0] * params[2] ** i
-                result.append('    {} 1.000000\n'.format(exp))
-    atomic = '2{:02}'.format(mg.Element(symbol).number)
-    result = (['{} {}\n'.format(atomic, ncontractions),
-               pseudopotential_section(symbol, xml_name)] +
-               result)
-    return ''.join(result)
+    #Add in the uncontracted basis elements
+    angular_uncontracted=['s','p']
+    if symbol in transition_metals:
+        angular_uncontracted.append('d')
+
+    for angular in angular_uncontracted:
+        for i in range(0,params[1]):
+            exp=params[0]*params[2]**i
+            line='  {} {}\n'.format(exp,1.0)
+            ret+="0 %i %i %g 1\n"%(basis_index[angular],1,0.0) +\
+                line
+            ncontract+=1
+
+    return "%i %i\n"%(mg.Element(symbol).number+200,ncontract) +\
+            pseudopotential_section(symbol,xml_name) +\
+            ret
 
 ######################################################################
 
@@ -189,7 +150,7 @@ def basis_section(struct):
     elements.add(nm)
   basisstring=""
   for e in elements:
-    basisstring+=basis_modified(e,"BFD_Library.xml","vtz",[0.2,2,3])
+    basisstring+=modify_basis(e,"BFD_Library.xml")
   return basisstring
 
 
@@ -228,11 +189,12 @@ PBE
 CORRELAT
 PBE
 END
+SCFDIR
 BIPOSIZE
 100000000
 FMIXING
 99
 BROYDEN
-.01 60 5
+.01 60 8
 END
 """)
