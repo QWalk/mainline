@@ -1,4 +1,5 @@
 import os
+import job_submission
 ####################################################
 
 def crystal_patch_output(propname,outname,patchname):
@@ -39,16 +40,15 @@ def crystal_patch_output(propname,outname,patchname):
 
 
 class Crystal2QWalk:
+  _name_="Crystal2QWalk"
   def run(self,job_record):
-    d=str(job_record['control']['id'])+"/"
-    crystal_patch_output(d+"prop.in.o",d+"autogen.d12.o",d+"patched.o")
-    os.system("cd %s; crystal2qmc -o qw patched.o > crystal2qmc.stdout"%d)
+    crystal_patch_output("prop.in.o","autogen.d12.o","patched.o")
+    os.system("crystal2qmc -o qw patched.o > crystal2qmc.stdout")
     return 'ok'
   def check_status(self,job_record):
-    outfilename=str(job_record['control']['id'])+"/qw_0.sys"
+    outfilename="qw_0.sys"
     if os.path.exists(outfilename):
       return 'ok'
-    #this will just always run. Ideally should check to see if the files are there
     return 'not_started'
       
   def retry(self,job_record):
@@ -59,9 +59,14 @@ class Crystal2QWalk:
 ####################################################
 
 class QWalkVarianceOptimize:
+  _name_="QWalkVarianceOptimize"
+  _submitter=job_submission.TorqueQWalkSubmitter()
+  
+  def __init__(self,submitter=job_submission.TorqueQWalkSubmitter()):
+    self._submitter=submitter
+  
   def run(self,job_record):
-    d=str(job_record['control']['id'])+"/"
-    f=open(d+"qw_0.opt",'w')
+    f=open("qw_0.opt",'w')
     f.write("""method { optimize } 
 include qw_0.sys
 trialfunc { slater-jastrow
@@ -70,24 +75,39 @@ wf2 { include qw.jast2 }
 }
 """)
     f.close()
-    os.system("cd %s; qwalk qw_0.opt >& qw_0.opt.stdout "%d)
-    os.system("cd %s; separate_jastrow qw_0.opt.wfout > opt.jast"%d)
-    return 'ok'
+    self._submitter.execute(job_record,
+            ['qw_0.opt','qw_0.sys','qw_0.slater','qw_0.orb','qw.basis','qw.jast2'])
+    
+    return 'running'
+
+
+  def check_outputfile(self,outfilename):
+    if os.path.isfile(outfilename):
+      f=open(outfilename,'r')
+      for line in f:
+        if 'Wall' in line:
+          return 'ok'
+      return 'running'
 
 
   def check_status(self,job_record):
-    outfilename=str(job_record['control']['id'])+"/qw_0.opt.o"
-    if os.path.isfile(outfilename):
-      if os.path.isfile(str(job_record['control']['id'])+"/opt.jast"):
-        return 'ok'
-      else:
-        return 'running'
+    outfilename="qw_0.opt.o"
+      
+    if self.check_outputfile(outfilename)=='ok':
+      return 'ok'
+    status=self._submitter.status(job_record,[outfilename,'qw_0.opt.wfout'])
+    if status=='running':
+      return status
+    if self.check_outputfile(outfilename)=='ok':
+      return 'ok'
+      
+  
     return 'not_started'
       
   def retry(self,job_record):
     return self.run(job_record)
   def output(self,job_record):
-    outfilename=str(job_record['control']['id'])+"/qw_0.opt.o"
+    outfilename="qw_0.opt.o"
     f=open(outfilename,'r')
     disp=0.00
     for line in f:
@@ -102,37 +122,53 @@ wf2 { include qw.jast2 }
 ####################################################
 
 class QWalkRunDMC:
+  _name_="QwalkRunDMC"
+  _submitter=job_submission.TorqueQWalkSubmitter()
+  def __init__(self,submitter=job_submission.TorqueQWalkSubmitter()):
+    self._submitter=submitter
+  
   def run(self,job_record):
-    d=str(job_record['control']['id'])+"/"
-    f=open(d+"qw_0.dmc",'w')
-    f.write("""method { DMC timestep .02 nblock 16 } 
+    qmc_options=job_record['qmc']
+    f=open("qw_0.dmc",'w')
+    f.write("""method { DMC timestep %g nblock 16 %s  } 
 include qw_0.sys
 trialfunc { slater-jastrow
 wf1 { include qw_0.slater } 
 wf2 { include opt.jast } 
 }
-""")
+"""%(qmc_options['timestep'],qmc_options['localization']))
     f.close()
-    os.system("cd %s; qwalk qw_0.dmc >& qw_0.dmc.stdout "%d)
-    return 'ok'
+    os.system("separate_jastrow qw_0.opt.wfout > opt.jast")
+    self._submitter.execute(job_record,["qw_0.dmc","opt.jast",'qw_0.sys','qw_0.slater','qw_0.orb','qw.basis'])
+    return 'running'
 
-  def check_status(self,job_record):
-    outfilename=str(job_record['control']['id'])+"/qw_0.dmc.o"
+  def check_outputfile(self,outfilename):
     if os.path.isfile(outfilename):
       f=open(outfilename,'r')
       for line in f:
-        if "Total wall" in line:
+        if 'Wall' in line:
           return 'ok'
       return 'running'
+
+
+  def check_status(self,job_record):
+    outfilename="qw_0.dmc.o"
+    if self.check_outputfile(outfilename)=='ok':
+      return 'ok'
+    status=self._submitter.status(job_record,[outfilename,'qw_0.dmc.log','qw_0.dmc.config'])
+    if status=='running':
+      return status
+    if self.check_outputfile(outfilename)=='ok':
+      return 'ok'
     return 'not_started'
+
       
   def retry(self,job_record):
     return self.run(job_record)
 
   def output(self,job_record):
-    d=str(job_record['control']['id'])+"/"      
-    os.system("cd %s; gosling qw_0.dmc.log > qw_0.dmc.log.stdout"%d)
-    f=open(d+"qw_0.dmc.log.stdout")
+    os.system("gosling qw_0.dmc.log > qw_0.dmc.log.stdout")
+    f=open("qw_0.dmc.log.stdout")
     for line in f:
       if "total_energy0" in line:
         spl=line.split()
