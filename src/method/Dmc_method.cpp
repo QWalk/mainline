@@ -49,9 +49,13 @@ void Dmc_method::read(vector <string> words,
 
   if(!readvalue(words, pos=0, nblock, "NBLOCK"))
     nblock=100;
-  
+ 
+  int target_config;
+  if(!readvalue(words,pos=0,target_config,"TARGET_CONFIG"))
+    target_config=2048;
+
   if(!readvalue(words, pos=0, nconfig, "NCONFIG"))
-    nconfig=max(2048/mpi_info.nprocs,1);
+    nconfig=max(target_config/mpi_info.nprocs,1);
 
   if(!readvalue(words, pos=0, nstep, "NSTEP"))
     nstep=max(int(1.0/timestep+0.5),1);
