@@ -22,8 +22,6 @@ def default_job_record(ciffile):
   job_record['dft']['kmesh']=[8,8,8]
   job_record['dft']['spin_polarized']=True
   job_record['dft']['initial_spin']=[]
-  job_record['dft']['input_file']="autogen.d12"
-  job_record['dft']['output_files']=["autogen.d12.o","fort.9"]
 
 
   #QMC-specific options

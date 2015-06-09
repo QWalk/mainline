@@ -25,7 +25,6 @@ for alpha in [0.1,0.2,0.3]:
   job_record['control']['id']=count
   job_list.append(copy.deepcopy(job_record))
   count+=1
-
   
 for alpha in [0.1,0.2,0.3]:
   job_record['dft']['basis']=[alpha,2,2]
@@ -36,6 +35,23 @@ for alpha in [0.1,0.2,0.3]:
 for alpha in [0.1,0.2,0.3]:
   job_record['dft']['basis']=[alpha,1,2]
   job_record['control']['id']=count
+  job_list.append(copy.deepcopy(job_record))
+  count+=1
+
+#after running the above basis convergence, we select the minimal basis that gives a low energy
+#and calculate at a larger supercell
+job_record['dft']['basis']=[0.1,1,2]
+job_record['control']['id']=count
+job_record['supercell']=[[2,0,0],[0,2,0],[0,0,2]]
+job_list.append(copy.deepcopy(job_record))
+count+=1
+
+#We decided to go back and check the mixing percentage for the primitive cell
+job_record['supercell']=[[1,0,0],[0,1,0],[0,0,1]]
+
+for mixing in [0,10,20,30,40]: 
+  job_record['control']['id']=count
+  job_record['dft']['functional']['hybrid']=mixing
   job_list.append(copy.deepcopy(job_record))
   count+=1
 
@@ -60,5 +76,6 @@ for result in job_list:
 print("QMC energy")
 for result in job_list:
   if 'total_energy' in result['qmc'].keys():
-    print(result['dft']['basis'],result['qmc']['total_energy'],result['qmc']['total_energy_err'])
+    print(result['dft']['functional']['hybrid'],result['dft']['basis'],
+            result['qmc']['total_energy'],result['qmc']['total_energy_err'])
 

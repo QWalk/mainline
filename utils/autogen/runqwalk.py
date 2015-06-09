@@ -149,6 +149,17 @@ wf2 { include opt.jast }
         if 'Wall' in line:
           return 'ok'
       return 'running'
+  def energy(self,job_record):
+    os.system("gosling qw_0.dmc.log > qw_0.dmc.log.stdout")
+    f=open("qw_0.dmc.log.stdout")
+    energy=0
+    err=0
+    for line in f:
+      if "total_energy0" in line:
+        spl=line.split()
+        energy=float(spl[1])
+        err=float(spl[3])
+    
 
 
   def check_status(self,job_record):

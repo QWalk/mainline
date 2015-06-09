@@ -8,18 +8,19 @@ class MyTorqueCrystalSubmitter:
   
   def execute(self,job_record,input_files):
     shutil.copy(input_files[0],"INPUT")
-    directory="project-cse/autogen/"+str(job_record['control']['id'])
+    jobid=str(job_record['control']['id'])
+    directory="project-cse/autogen/"+jobid
     
     f=open("QSUB",'w')
     f.write("""#PBS -q secondary
 #PBS -l nodes=1:ppn=16
 #PBS -l walltime=4:00:00
 #PBS -j oe
-#PBS -N autogen
+#PBS -N autogen%s
 #PBS -o QSUB.stdout
 module load openmpi/1.4-gcc+ifort
 cd ${PBS_O_WORKDIR}
-mpirun -np 16 ~/bin/Pcrystal >& %s \n"""%(input_files[0]+".o"))
+mpirun -np 16 ~/bin/Pcrystal >& %s \n"""%(jobid,input_files[0]+".o"))
     f.close()
     input_files.append('QSUB')
     input_files.append('INPUT')
@@ -65,18 +66,19 @@ class MyTorqueQWalkSubmitter:
   
   def execute(self,job_record,input_files):
     shutil.copy(input_files[0],"INPUT")
-    directory="project-cse/autogen/"+str(job_record['control']['id'])
+    jobid=str(job_record['control']['id'])
+    directory="project-cse/autogen/"+jobid
     
     f=open("QSUB",'w')
     f.write("""#PBS -q secondary
 #PBS -l nodes=1:ppn=16
 #PBS -l walltime=4:00:00
 #PBS -j oe
-#PBS -N autogen
+#PBS -N autogen%s
 #PBS -o QSUB.stdout
 module load openmpi/1.6.5-gcc-4.7.1 intel/14.0
 cd ${PBS_O_WORKDIR}
-mpirun -np 16 ~/qwalk/bin/qwalk %s >& %s \n"""%(input_files[0],input_files[0]+".stdout"))
+mpirun -np 16 ~/qwalk/bin/qwalk %s >& %s \n"""%(jobid,input_files[0],input_files[0]+".stdout"))
     f.close()
     input_files.append('QSUB')
     #transfer input files to taub (making directory if needed)
