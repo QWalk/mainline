@@ -561,13 +561,13 @@ void read_gamess_psp(istream & is,
   string space=" ";
   while(getline(is, line)) {
     split(line, space, words);
-    if(words[0]=="ECP" && words[1]=="POTENTIALS") {
+    if(words.size() > 1 && words[0]=="ECP" && words[1]=="POTENTIALS") {
       is.ignore(200, '\n'); //line of ---'s
       is.ignore(200, '\n'); //empty line
       while(getline(is, line)) {
         words.clear();
         split(line, space, words);
-        if(words[0]=="THE" && words[2] == "RUN") break;
+        if(words.size() > 2 && words[0]=="THE" && words[2] == "RUN") break;
 
         //-------Read in a pseudopotential
         if(words[0]=="PARAMETERS" && words.size() > 7 ) {
@@ -611,7 +611,7 @@ void read_gamess_psp(istream & is,
                 words.clear();
                 split(line, space, words);
                 if(words.size()==0 || words[0]=="FOR") break;
-            pseudotmp.coefficients[block].push_back(atof(words[1].c_str()));
+                pseudotmp.coefficients[block].push_back(atof(words[1].c_str()));
                 pseudotmp.nvalue[block].push_back(atoi(words[2].c_str())-2);
                 pseudotmp.exponents[block].push_back(atof(words[3].c_str()));
               }
@@ -681,7 +681,7 @@ void read_gamess_punch(int & vorb,
       getline(is, line); //symmetry line
       words.clear();
       split(line, space, words);
-      if(words[0] != "C1") {
+      if(words.size() > 0 && words[0] != "C1") {
         getline(is, line); //For non-C1 symmetry, there's an
         //extra line after the symmetry line
       }
@@ -735,6 +735,10 @@ void read_gamess_punch(int & vorb,
               for(int i=0; i< nexpansion; i++) {
                 getline(is, line);
                 words.clear(); split(line, space, words);
+                if(words.size() < 3) {
+                  cout << "Line: " << line << " is unexpected in read_gamess_punch" << endl;
+                  exit(1);
+                }
                 tmpbasis.exponents[place].push_back(atof(words[1].c_str()));
                 tmpbasis.coefficients[place].push_back(atof(words[2].c_str()));
                 if (haveLtype) { 
@@ -810,6 +814,10 @@ void read_gamess_punch(int & vorb,
 
       while(getline(is, line)) {
         words.clear(); split(line, space, words);
+        if(words.empty()) {
+          cout << "Didn't expect empty line in read_gamess_punch()" << endl;
+          exit(1);
+        }
         if(words[0]=="$END") break;
         temp.assign(line.begin(), line.begin()+2);
         int currmo=atoi(temp.c_str());
