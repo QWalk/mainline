@@ -33,8 +33,10 @@ class RunCrystal:
       return status
     if self.check_outputfile(outfilename)=='ok':
       return 'ok'
+    if not os.path.isfile(outfilename):
+      return 'not_started'
 
-    return 'not_started'
+    return 'failed'
       
   def retry(self,job_record):
     return self.run(job_record)

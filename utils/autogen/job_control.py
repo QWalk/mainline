@@ -22,6 +22,7 @@ def default_job_record(ciffile):
   job_record['dft']['kmesh']=[8,8,8]
   job_record['dft']['spin_polarized']=True
   job_record['dft']['initial_spin']=[]
+  job_record['dft']['initial_charges']={} #For example, 'O':-2,'Mg':2 
 
 
   #QMC-specific options
@@ -63,11 +64,9 @@ def execute(job_list, element_list):
         status=element.run(record)
         print(element._name_,"status",status)
 
-      if status=='running':
+      if status!='ok':
         break
-  
-      if status=='ok':
-        record=element.output(record)
+      record=element.output(record)
 
     f=open(jsonfile,'w')
     json.dump(record,f)
