@@ -67,8 +67,10 @@ In other words, don't change these unless you know what you're doing!
      when you don't have pseudopotentials. Further possibilities of
      fine tuning are described on the \ref DynamicsDoc page.
   
-<tr> <td> NCONFIG  <td> Integer <td> Special <td> The desired average number of walkers 
-per node.  The default is set such that the average number of walkers is approximately 2048.
+<tr> <td> NCONFIG  <td> Integer <td> Special <td> The number of walkers 
+per MPI process.  The default is set such that the average number of walkers is approximately TARGET_CONFIG. If this is set, it overrides TARGET_CONFIG.
+<tr> <td> TARGET_CONFIG  <td> Integer <td> 2048 <td> The desired number of walkers 
+total across all processes. The actual number will be selected to evenly distribute the walkers.
 <tr> <td> NSTEP <td> Integer <td> Special <td>  Number of DMC steps to take in a block.
         The default is set such that NSTEP*TIMESTEP is approximately 1.
 <tr> <td> NBLOCK <td> Integer <td> 100 <td>Number of blocks to calculate
