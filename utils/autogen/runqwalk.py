@@ -118,6 +118,69 @@ wf2 { include qw.jast2 }
     job_record['qmc']['optimized_variance']=disp
     return job_record
 
+####################################################
+class QWalkEnergyOptimize:
+  _name_="QWalkEnergyOptimize"
+  _submitter=job_submission.TorqueQWalkSubmitter()
+  
+  def __init__(self,submitter=job_submission.TorqueQWalkSubmitter()):
+    self._submitter=submitter
+  
+  def run(self,job_record):
+    if not os.path.isfile("qw_0.opt.wfout"):
+      print("Could not find qw_0.opt.wfout")
+      return "failed"
+    os.system("sed s/OPTIMIZEBASIS//g qw_0.opt.wfout > qw_0.enopt.wfin")
+    f=open("qw_0.enopt",'w')
+    f.write("""method { LINEAR VMC_NSTEP 5000 } 
+include qw_0.sys
+trialfunc { include qw_0.enopt.wfin }
+""")
+    f.close()
+    self._submitter.execute(job_record,
+            ['qw_0.enopt','qw_0.enopt.wfin','qw_0.sys','qw_0.slater','qw_0.orb','qw.basis'])
+    
+    return 'running'
+
+
+  def check_outputfile(self,outfilename):
+    if os.path.isfile(outfilename):
+      f=open(outfilename,'r')
+      for line in f:
+        if 'Wall' in line:
+          return 'ok'
+      return 'running'
+
+
+  def check_status(self,job_record):
+    outfilename="qw_0.enopt.o"
+      
+    if self.check_outputfile(outfilename)=='ok':
+      return 'ok'
+    status=self._submitter.status(job_record,[outfilename,'qw_0.enopt.wfout'])
+    if status=='running':
+      return status
+    if self.check_outputfile(outfilename)=='ok':
+      return 'ok'
+      
+  
+    return 'not_started'
+      
+  def retry(self,job_record):
+    return self.run(job_record)
+  def output(self,job_record):
+    outfilename="qw_0.opt.o"
+    f=open(outfilename,'r')
+    disp=0.00
+    for line in f:
+      if 'iteration' in line and 'dispersion' in line:
+        spl=line.split()
+        disp=float(spl[4])
+
+    job_record['qmc']['vmc_energy']=disp
+    return job_record
+
+
 
 ####################################################
 

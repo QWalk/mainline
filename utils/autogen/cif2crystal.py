@@ -224,10 +224,11 @@ SCFDIR
 BIPOSIZE
 100000000
 FMIXING
-99
-BROYDEN
-.01 60 8
-TOLINTEG 
+"""
++str(job_record['dft']['fmixing'])+"""
+BROYDEN\n"""+
+"%g %i %i\n"%(job_record['dft']['broyden'][0],job_record['dft']['broyden'][1],job_record['dft']['broyden'][2]) +
+"""TOLINTEG 
 12 12 12 12 20
 """)
     if job_record['dft']['spin_polarized']:

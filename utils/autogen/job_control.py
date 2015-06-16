@@ -23,6 +23,8 @@ def default_job_record(ciffile):
   job_record['dft']['spin_polarized']=True
   job_record['dft']['initial_spin']=[]
   job_record['dft']['initial_charges']={} #For example, 'O':-2,'Mg':2 
+  job_record['dft']['fmixing']=99
+  job_record['dft']['broyden']=[0.1,60,8]
 
 
   #QMC-specific options
