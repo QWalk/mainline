@@ -32,6 +32,7 @@ def default_job_record(ciffile):
   job_record['qmc']['jastrow']='twobody'
   job_record['qmc']['optimize']='variance'
   job_record['qmc']['localization']='tmoves'
+  job_record['qmc']['target_error']=0.01
 
   #Control options
   job_record['control']['id']=1
@@ -64,6 +65,9 @@ def execute(job_list, element_list):
       print(element._name_,"status",status)
       if status=='not_started':
         status=element.run(record)
+        print(element._name_,"status",status)
+      if status=='not_finished':
+        status=element.retry(record)
         print(element._name_,"status",status)
 
       if status!='ok':

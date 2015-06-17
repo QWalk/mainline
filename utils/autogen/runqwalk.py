@@ -189,8 +189,8 @@ class QWalkRunDMC:
   _submitter=job_submission.TorqueQWalkSubmitter()
   def __init__(self,submitter=job_submission.TorqueQWalkSubmitter()):
     self._submitter=submitter
-  
-  def run(self,job_record):
+#-----------------------------------------------
+  def run(self,job_record,restart=False):
     qmc_options=job_record['qmc']
     f=open("qw_0.dmc",'w')
     f.write("""method { DMC timestep %g nblock 16 %s  } 
@@ -202,9 +202,12 @@ wf2 { include opt.jast }
 """%(qmc_options['timestep'],qmc_options['localization']))
     f.close()
     os.system("separate_jastrow qw_0.opt.wfout > opt.jast")
-    self._submitter.execute(job_record,["qw_0.dmc","opt.jast",'qw_0.sys','qw_0.slater','qw_0.orb','qw.basis'])
+    infiles=["qw_0.dmc","opt.jast",'qw_0.sys','qw_0.slater','qw_0.orb','qw.basis']
+    if restart:
+      infiles.extend(['qw_0.dmc.config','qw_0.dmc.log'])
+    self._submitter.execute(job_record,infiles)
     return 'running'
-
+#-----------------------------------------------
   def check_outputfile(self,outfilename):
     if os.path.isfile(outfilename):
       f=open(outfilename,'r')
@@ -212,42 +215,53 @@ wf2 { include opt.jast }
         if 'Wall' in line:
           return 'ok'
       return 'running'
-
+#-----------------------------------------------
   def energy(self,job_record):
     os.system("gosling qw_0.dmc.log > qw_0.dmc.log.stdout")
     f=open("qw_0.dmc.log.stdout")
     energy=0
-    err=0
+    err=1e8
     for line in f:
       if "total_energy0" in line:
         spl=line.split()
         energy=float(spl[1])
         err=float(spl[3])
+        return (energy,err)
+    return (energy,err)
 
+#-----------------------------------------------
 
   def check_status(self,job_record):
     outfilename="qw_0.dmc.o"
-    if self.check_outputfile(outfilename)=='ok':
+    #if self.check_outputfile(outfilename)=='ok':
+    #  return 'ok'
+    energy,err=self.energy(job_record)
+    print("check",energy,err)
+    
+    if err< job_record['qmc']['target_error']:
       return 'ok'
     status=self._submitter.status(job_record,[outfilename,'qw_0.dmc.log','qw_0.dmc.config'])
     if status=='running':
       return status
-    if self.check_outputfile(outfilename)=='ok':
-      return 'ok'
-    return 'not_started'
+    if not os.path.isfile("qw_0.dmc.log"):
+      return 'not_started'
 
+    energy,err=self.energy(job_record)
+    if err < job_record['qmc']['target_error']:
+      return 'ok'
+    else:
+      return 'not_finished'
+#-----------------------------------------------
+    
       
   def retry(self,job_record):
-    return self.run(job_record)
+    return self.run(job_record,restart=True)
+#-----------------------------------------------
 
   def output(self,job_record):
-    os.system("gosling qw_0.dmc.log > qw_0.dmc.log.stdout")
-    f=open("qw_0.dmc.log.stdout")
-    for line in f:
-      if "total_energy0" in line:
-        spl=line.split()
-        job_record['qmc']['total_energy']=float(spl[1])
-        job_record['qmc']['total_energy_err']=float(spl[3])
+    energy,err=self.energy(job_record)
+    job_record['qmc']['total_energy']=energy
+    job_record['qmc']['total_energy_err']=err
     return job_record
 ####################################################
 
