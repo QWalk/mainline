@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import job_submission
 ####################################################
@@ -126,16 +127,22 @@ class QWalkEnergyOptimize:
   def __init__(self,submitter=job_submission.TorqueQWalkSubmitter()):
     self._submitter=submitter
   
-  def run(self,job_record):
+  def run(self,job_record,restart=False):
     if not os.path.isfile("qw_0.opt.wfout"):
       print("Could not find qw_0.opt.wfout")
       return "failed"
-    os.system("sed s/OPTIMIZEBASIS//g qw_0.opt.wfout > qw_0.enopt.wfin")
+    if restart:
+      os.system("cp qw_0.enopt.wfout qw_0.enopt.wfin")
+    else:
+      os.system("sed s/OPTIMIZEBASIS//g qw_0.opt.wfout > qw_0.enopt.wfin")
+
+    enopt_options=job_record['qmc']['energy_optimize']
+
     f=open("qw_0.enopt",'w')
-    f.write("""method { LINEAR VMC_NSTEP 5000 } 
+    f.write("""method { LINEAR VMC_NSTEP %i } 
 include qw_0.sys
 trialfunc { include qw_0.enopt.wfin }
-""")
+"""%enopt_options['vmc_nstep'])
     f.close()
     self._submitter.execute(job_record,
             ['qw_0.enopt','qw_0.enopt.wfin','qw_0.sys','qw_0.slater','qw_0.orb','qw.basis'])
@@ -143,13 +150,22 @@ trialfunc { include qw_0.enopt.wfin }
     return 'running'
 
 
-  def check_outputfile(self,outfilename):
+  def check_outputfile(self,outfilename, threshold=0.001):
     if os.path.isfile(outfilename):
       f=open(outfilename,'r')
+      last_change=1e8
       for line in f:
         if 'Wall' in line:
           return 'ok'
+        if 'step' in line:
+          spl=line.split()
+          if len(spl) > 9:
+            last_change=float(spl[9])
+      print("energy optimize: last change",last_change, 'threshold',threshold)
+      if abs(last_change) > threshold:
+        return 'not_finished'
       return 'running'
+    return 'not_started'
 
 
   def check_status(self,job_record):
@@ -157,17 +173,15 @@ trialfunc { include qw_0.enopt.wfin }
       
     if self.check_outputfile(outfilename)=='ok':
       return 'ok'
+    
     status=self._submitter.status(job_record,[outfilename,'qw_0.enopt.wfout'])
     if status=='running':
       return status
-    if self.check_outputfile(outfilename)=='ok':
-      return 'ok'
-      
-  
-    return 'not_started'
+    return self.check_outputfile(outfilename,
+            threshold=job_record['qmc']['energy_optimize']['threshold'])
       
   def retry(self,job_record):
-    return self.run(job_record)
+    return self.run(job_record,restart=True)
   def output(self,job_record):
     outfilename="qw_0.opt.o"
     f=open(outfilename,'r')

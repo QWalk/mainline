@@ -30,9 +30,12 @@ def default_job_record(ciffile):
   #QMC-specific options
   job_record['qmc']['timestep']=0.02
   job_record['qmc']['jastrow']='twobody'
-  job_record['qmc']['optimize']='variance'
   job_record['qmc']['localization']='tmoves'
   job_record['qmc']['target_error']=0.01
+  job_record['qmc']['energy_optimize']={}
+  job_record['qmc']['energy_optimize']['threshold']=0.001
+  job_record['qmc']['energy_optimize']['vmc_nstep']=1000
+
 
   #Control options
   job_record['control']['id']=1
