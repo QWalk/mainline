@@ -29,14 +29,14 @@ class RunCrystal:
     d=str(job_record['control']['id'])
     outfilename="autogen.d12.o"
     status=self.check_outputfile(outfilename)
-    if status=='ok' or status=='failed'
+    if status=='ok' or status=='failed':
       return status
 
     status=self._submitter.status(job_record,[outfilename,'fort.9'])
     if status=='running':
       return status
     status=self.check_outputfile(outfilename)
-    if status=='ok' or status=='failed'
+    if status=='ok' or status=='failed':
       return status
   
     if not os.path.isfile(outfilename):
