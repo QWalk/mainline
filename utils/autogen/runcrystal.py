@@ -19,20 +19,26 @@ class RunCrystal:
       f=open(outfilename,'r')
       for line in f:
         if "SCF ENDED" in line:
+          if "TOO MANY CYCLES" in line:
+            print("Crystal failed: too many cycles")
+            return 'failed'
           return 'ok'
 
 
   def check_status(self,job_record):
     d=str(job_record['control']['id'])
     outfilename="autogen.d12.o"
-    if self.check_outputfile(outfilename)=='ok':
-      return 'ok'
+    status=self.check_outputfile(outfilename)
+    if status=='ok' or status=='failed'
+      return status
 
     status=self._submitter.status(job_record,[outfilename,'fort.9'])
     if status=='running':
       return status
-    if self.check_outputfile(outfilename)=='ok':
-      return 'ok'
+    status=self.check_outputfile(outfilename)
+    if status=='ok' or status=='failed'
+      return status
+  
     if not os.path.isfile(outfilename):
       return 'not_started'
 
