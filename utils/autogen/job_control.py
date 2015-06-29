@@ -20,6 +20,7 @@ def default_job_record(ciffile):
   job_record['dft']['functional']={'exchange':'PBE','correlation':'PBE','hybrid':25}
   job_record['dft']['basis']=[0.2,3,3]
   job_record['dft']['kmesh']=[8,8,8]
+  job_record['dft']['tolinteg']=[12,12,12,12,20]
   job_record['dft']['spin_polarized']=True
   job_record['dft']['initial_spin']=[]
   job_record['dft']['initial_charges']={} #For example, 'O':-2,'Mg':2 
@@ -43,6 +44,16 @@ def default_job_record(ciffile):
   job_record['control']['pretty_formula']=''
   job_record['control']['queue_id']=[]
   return job_record
+
+def read_job_record(cryinp):
+  """Create a job record by reading in a crystal input file.
+  
+  Useful for making modifications to a complicated input file that you've already
+  generated, and feeding them into autogen.
+  """
+
+  return job_record
+
 
 def execute(job_list, element_list):
   updated_job_list=[]
