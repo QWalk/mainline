@@ -376,27 +376,6 @@ template <class ConfigType> void write_configurations(string & filename,
   string tmpfilename=filename; //+".qw_tomove";
   string backfilename=filename+".backup";
   if(mpi_info.node==0) { rename(tmpfilename.c_str(),backfilename.c_str()); }
-/*
-  wait_turn();
-  cout << mpi_info.node << " writing " << nconfigs << endl;
-
-  ofstream os(tmpfilename.c_str(),ios::app);
-  os.precision(15);
-  if(!os) { error("Could not open ", tmpfilename); } 
-  for(int i=0; i< nconfigs; i++) {
-    os << " walker { \n";
-    configs(i).write(os);
-    os << "} \n";
-    os << "written by " << mpi_info.node << endl;
-  }
-  os.flush();
-  os.close();
-  finish_turn();
-
-#ifdef USE_MPI
-  MPI_Barrier(MPI_Comm_grp);
-#endif
-*/
 #ifdef USE_MPI
   stringstream os;
   os.precision(15);
