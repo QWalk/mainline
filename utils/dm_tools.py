@@ -30,7 +30,7 @@ def plot_color(A,filename,ticklabels=None, annotate=True):
   vmin=np.min(A*100)
   vmax=max(-vmin,vmax)
   vmin=min(-vmax,vmin)
-  print vmax,vmin
+  #print vmax,vmin
 #  P.pcolor(A*100,cmap=my_cmap,edgecolors='k',vmin=vmin,vmax=vmax,array=True)
   P.imshow(A*100,cmap=my_cmap,vmin=vmin,vmax=vmax,interpolation='nearest',origin='upper')
 
@@ -65,7 +65,10 @@ def convert(s):
 def read_dm(filename):
   """Read in the 1-RDM and/or 1-RDM and diagonals of the 2-RDM, if only 
   the diagonals were calculated"""
-  f=open(filename,'r')
+  try:
+    f=open(filename,'r')
+  except IOError:
+    return None
   nmo=0
   while True:
     line=f.readline()
@@ -73,7 +76,7 @@ def read_dm(filename):
       spl=line.split()
       nmo=int(spl[2])
       break
-  print "nmo ",nmo
+  #print "nmo ",nmo
   data={}
   #one-body up, one-body up err,   two-body-uu, two-body-uu err
   for nm in ['ou','oue','od','ode','tuu','tuue','tud','tude','tdu','tdue','tdd','tdde']:
@@ -85,7 +88,7 @@ def read_dm(filename):
       break;
     if line.find("tbdm: states") != -1:
       data['states']=np.array(map(int,line.split()[3:-2]))
-      print data['states']
+      #print data['states']
     if line.find("One-body density") != -1:
       line=f.readline()
       for i in range(0,nmo):
