@@ -8,7 +8,7 @@ import cStringIO
 import sys
 
 # this is relative to the run directories. You can also put an absolute position
-library_directory="/home/brian/programs/qwalk/mainline/resources/"
+library_directory="../"
 
 ######################################################################
 def pseudopotential_section(symbol, xml_name):

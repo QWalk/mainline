@@ -45,16 +45,6 @@ def default_job_record(ciffile):
   job_record['control']['queue_id']=[]
   return job_record
 
-def read_job_record(cryinp):
-  """Create a job record by reading in a crystal input file.
-  
-  Useful for making modifications to a complicated input file that you've already
-  generated, and feeding them into autogen.
-  """
-
-  return job_record
-
-
 def execute(job_list, element_list):
   updated_job_list=[]
   for record in job_list:

@@ -27,7 +27,7 @@ class RunCrystal:
 
   def check_status(self,job_record):
     d=str(job_record['control']['id'])
-    outfilename="autogen.d12.out"
+    outfilename="autogen.d12.o"
     status=self.check_outputfile(outfilename)
     if status=='ok' or status=='failed':
       return status
@@ -48,7 +48,7 @@ class RunCrystal:
     return self.run(job_record)
 
   def output(self,job_record):
-    outfilename="autogen.d12.out"
+    outfilename="autogen.d12.o"
     if os.path.isfile(outfilename):
       f=open(outfilename,'r')
       for line in f:
@@ -77,10 +77,10 @@ END
 """)
 
     f.close()
-    os.system("properties < prop.in > prop.in.out")
+    os.system("properties < prop.in > prop.in.o")
     return 'ok'
   def check_status(self,job_record):
-    outfilename="prop.in.out"
+    outfilename="prop.in.o"
     if os.path.isfile(outfilename):
       f=open(outfilename,'r')
       for line in f:
