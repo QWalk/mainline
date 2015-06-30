@@ -73,7 +73,9 @@ def read_dm(filename):
       spl=line.split()
       nmo=int(spl[2])
       break
-  print "nmo ",nmo
+    if line=="":
+      return None
+  #print "nmo ",nmo
   data={}
   #one-body up, one-body up err,   two-body-uu, two-body-uu err
   for nm in ['ou','oue','od','ode','tuu','tuue','tud','tude','tdu','tdue','tdd','tdde']:
@@ -85,7 +87,7 @@ def read_dm(filename):
       break;
     if line.find("tbdm: states") != -1:
       data['states']=np.array(map(int,line.split()[3:-2]))
-      print data['states']
+      #print data['states']
     if line.find("One-body density") != -1:
       line=f.readline()
       for i in range(0,nmo):
@@ -211,15 +213,15 @@ def analyze_excitations(d):
       occ_down.append(i)
     else:
       unocc_down.append(i)
-  print "occ_up",occ_up
-  print "occ_down",occ_down
+  #print "occ_up",occ_up
+  #print "occ_down",occ_down
   
   threshold=0.001
   nup=0
   for i in occ_up:
     for j in unocc_up:
       if abs(d['ou'][i,j]) > threshold:
-        print 'up ',i,'->',j,d['ou'][i,j]
+        #print 'up ',i,'->',j,d['ou'][i,j]
         #print "exc ", gen_excitation([(i,j)],occ_up), d['ou'][i,j]
         nup+=1
   for i in occ_down:
