@@ -113,10 +113,10 @@ def gen_properties(cryinp,natoms,kpath,denom,projs,
                    above=5,below=8,
                    kresfactor=20,eres=200,
                    npoly=25,):
-  """ User-friendly properties input generator.
+  """ User-friendly properties input generator, for bandstructure and DOS.
 
       Factor "denom" out of kpath to make it integer.
-      TODO: negative DOSS projects (onto atoms)
+      TODO: negative DOSS projections (onto atoms)
   """
   inp = read_cryinp(cryinp)
   shrink = inp['kdens']
