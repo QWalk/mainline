@@ -30,6 +30,8 @@ def read_number_dens(inpf):
                 for n2 in range(maxn,2*maxn):
                   data_err[s1,s2,r1,r2,n1,n2-maxn]=float(spl[n2])
       break
+    elif line == '':
+      return None,None
   return data,data_err
 
 def moments(data,data_err):
