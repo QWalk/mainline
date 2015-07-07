@@ -1,18 +1,14 @@
 # Lucas Wagner, edited by Brian Busemeyer
 
 import numpy as np
-def read_number_dens(filename):
-  try:
-    f=open(filename,'r')
-  except IOError:
-    return None,None
+def read_number_dens(inpf):
   data=np.zeros((0,0,0,0,0,0))
   data_err=np.zeros((0,0,0,0,0,0))
   while True:
-    line=f.readline()
+    line=inpf.readline()
     #print line
     if line.find("Region fluctuation")!=-1:
-      line=f.readline()
+      line=inpf.readline()
       spl=line.split()
       nspin=int(spl[1])
       maxn=int(spl[3])
@@ -25,15 +21,17 @@ def read_number_dens(filename):
         for s2 in range(0,nspin):
           for r1 in range(0,nregion):
             for r2 in range(0,nregion):
-              line=f.readline()
+              line=inpf.readline()
               #print line
               for n1 in range(0,maxn):
-                spl=f.readline().split()
+                spl=inpf.readline().split()
                 for n2 in range(0,maxn):
                   data[s1,s2,r1,r2,n1,n2]=float(spl[n2])
                 for n2 in range(maxn,2*maxn):
                   data_err[s1,s2,r1,r2,n1,n2-maxn]=float(spl[n2])
       break
+    elif line == '':
+      return None,None
   return data,data_err
 
 def moments(data,data_err):
