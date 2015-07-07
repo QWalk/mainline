@@ -182,16 +182,20 @@ trialfunc { include qw_0.enopt.wfin }
       
   def retry(self,job_record):
     return self.run(job_record,restart=True)
-  def output(self,job_record):
-    outfilename="qw_0.opt.o"
-    f=open(outfilename,'r')
-    disp=0.00
-    for line in f:
-      if 'iteration' in line and 'dispersion' in line:
-        spl=line.split()
-        disp=float(spl[4])
 
-    job_record['qmc']['vmc_energy']=disp
+  def output(self,job_record):
+    outfilename="qw_0.enopt.o"
+    f=open(outfilename,'r')
+    last_energy=1e8
+    last_energy_err=1e8
+    for line in f:
+      if 'step' in line:
+        if len(spl) > 9:
+          last_energy=spl[4]
+          last_energy_err=spl[6]
+
+    job_record['qmc']['vmc_energy']=last_energy
+    job_record['qmc']['vmc_energy_err']=last_energy_err
     return job_record
 
 
