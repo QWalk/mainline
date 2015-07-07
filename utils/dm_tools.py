@@ -30,7 +30,7 @@ def plot_color(A,filename,ticklabels=None, annotate=True):
   vmin=np.min(A*100)
   vmax=max(-vmin,vmax)
   vmin=min(-vmax,vmin)
-  print vmax,vmin
+  #print vmax,vmin
 #  P.pcolor(A*100,cmap=my_cmap,edgecolors='k',vmin=vmin,vmax=vmax,array=True)
   P.imshow(A*100,cmap=my_cmap,vmin=vmin,vmax=vmax,interpolation='nearest',origin='upper')
 
@@ -62,13 +62,12 @@ def convert(s):
 ################################################################
 
 
-def read_dm(filename):
+def read_dm(inpf):
   """Read in the 1-RDM and/or 1-RDM and diagonals of the 2-RDM, if only 
   the diagonals were calculated"""
-  f=open(filename,'r')
   nmo=0
   while True:
-    line=f.readline()
+    line=inpf.readline()
     if line.find("tbdm")!=-1:
       spl=line.split()
       nmo=int(spl[2])
@@ -82,27 +81,27 @@ def read_dm(filename):
     data[nm]=np.zeros((nmo,nmo))
   
   while True:
-    line=f.readline()
+    line=inpf.readline()
     if line=="":
       break;
     if line.find("tbdm: states") != -1:
       data['states']=np.array(map(int,line.split()[3:-2]))
       #print data['states']
     if line.find("One-body density") != -1:
-      line=f.readline()
+      line=inpf.readline()
       for i in range(0,nmo):
         for j in range(0,nmo):
-          a=f.readline().split()
+          a=inpf.readline().split()
           data['ou'][i,j]=convert(a[2])
           data['oue'][i,j]=convert(a[3])
           data['od'][i,j]=convert(a[4])
           data['ode'][i,j]=convert(a[5])
     if line.find("two-body density") != -1:
-      line=f.readline()
+      line=inpf.readline()
       #print "two-body",line
       for i in range(0,nmo):
         for j in range(0,nmo):
-          a=f.readline().split()
+          a=inpf.readline().split()
           #print i,j,"a ",a
           data['tuu'][i,j]=convert(a[4])
           data['tuue'][i,j]=convert(a[5])

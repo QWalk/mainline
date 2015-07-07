@@ -20,6 +20,7 @@ def default_job_record(ciffile):
   job_record['dft']['functional']={'exchange':'PBE','correlation':'PBE','hybrid':25}
   job_record['dft']['basis']=[0.2,3,3]
   job_record['dft']['kmesh']=[8,8,8]
+  job_record['dft']['tolinteg']=[12,12,12,12,20]
   job_record['dft']['spin_polarized']=True
   job_record['dft']['initial_spin']=[]
   job_record['dft']['initial_charges']={} #For example, 'O':-2,'Mg':2 
