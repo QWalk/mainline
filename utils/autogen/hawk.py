@@ -46,10 +46,13 @@ cd ${PBS_O_WORKDIR}
 mpirun -np 6 ~/qwalk/bin/qwalk %s > %s \n"""%(argument,argument+".stdout"))
     f.close()
     print("submitting...")
+
     output=subprocess.check_output(["qsub", "QSUB"])
-    job_record['control']['qwalk_jobid']=output
+    if not 'qwalk_jobid' in job_record['control']:
+      job_record['control']['qwalk_jobid']=[]
+    job_record['control']['qwalk_jobid'].append(output)
     
-    return output
+    
   def cancel(self, handle):
     return "did_not_cancel"
 
@@ -59,9 +62,17 @@ mpirun -np 6 ~/qwalk/bin/qwalk %s > %s \n"""%(argument,argument+".stdout"))
     jobsign=job_record['control']['qwalk_jobid']
     jobnum=jobsign.split('.')[0]
     output=subprocess.check_output(["qstat"])
-    if jobnum in output:
-      return "running"
-    else:
-      return "not_started"
+    for line in output.split('\n'):
+      for j in jobsign: 
+        jobnum=j.split('.')[0]
+        if jobnum in line:
+          print("job",line)
+          spl=line.split()
+          if len(spl) > 9:
+            s=line.split()[9 ]
+            if s!='C':
+              return "running"
+    
+    return "not_running"
 
-
+    

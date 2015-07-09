@@ -87,32 +87,41 @@ mpirun -np 16 ~/qwalk/bin/qwalk %s >& %s \n"""%(jobid,input_files[0],input_files
       subprocess.check_output(['scp',fi,self.hostname+':'+directory])
     #submit job
     output=subprocess.check_output(["ssh", self.hostname,"cd "+directory+"; qsub QSUB"])
-    job_record['control']['qwalk_jobid']=output
+    if not 'qwalk_jobid' in job_record['control']:
+      job_record['control']['qwalk_jobid']=[]
+
+    job_record['control']['qwalk_jobid'].append(output)
+    
     
   def cancel(self, handle):
     return "did_not_cancel"
 
   def status(self, job_record,output_files):
-    directory="project-cse/autogen/"+str(job_record['control']['id'])
-      
     if not 'qwalk_jobid' in job_record['control']:
       return "not_started"
     jobsign=job_record['control']['qwalk_jobid']
-    jobnum=jobsign.split('.')[0]
     output=subprocess.check_output(["ssh",self.hostname,"qstat -u "+self.username])
+    print(output)
     for line in output.split('\n'):
-      if jobnum in line:
-        print("job",line)
-        spl=line.split()
-        if len(spl) > 9:
-          s=line.split()[9 ]
-          if s!='C':
-            return "running"
+      for j in jobsign: 
+        jobnum=j.split('.')[0]
+        if jobnum in line:
+          print("job",line)
+          spl=line.split()
+          if len(spl) > 9:
+            s=line.split()[9 ]
+            if s!='C':
+              return "running"
     
     #try to transfer output files back
     try:
-      for fi in output_files:
-        subprocess.check_output(['scp',self.hostname+':'+directory+"/"+fi,"."])
+      #for fi in output_files:
+      print("transferring",output_files)
+      str_output_files=directory+"/"+(" "+directory+"/").join(output_files)
+      print("from",str_output_files)
+      subprocess.check_output(['scp',self.hostname+':'+ \
+                str_output_files, "."])
+     # subprocess.check_output(['scp',self.hostname+':'+directory+"/"+fi,"."])
     except:
       return "not_started"
       

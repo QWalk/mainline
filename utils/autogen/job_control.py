@@ -25,14 +25,27 @@ def default_job_record(ciffile):
   job_record['dft']['initial_spin']=[]
   job_record['dft']['initial_charges']={} #For example, 'O':-2,'Mg':2 
   job_record['dft']['fmixing']=99
-  job_record['dft']['broyden']=[0.1,60,8]
+  job_record['dft']['broyden']=[0.01,60,8]
+
 
 
   #QMC-specific options
-  job_record['qmc']['timestep']=0.02
-  job_record['qmc']['jastrow']='twobody'
-  job_record['qmc']['localization']='tmoves'
-  job_record['qmc']['target_error']=0.01
+  job_record['qmc']['dmc']={}
+  job_record['qmc']['dmc']['timestep']=[0.02]
+  job_record['qmc']['dmc']['jastrow']='twobody'
+  job_record['qmc']['dmc']['nblock']=16
+  job_record['qmc']['dmc']['optimizer']='variance' #or energy
+  job_record['qmc']['dmc']['localization']=['tmoves']
+  job_record['qmc']['dmc']['target_error']=0.01
+  job_record['qmc']['dmc']['kpoints']='real' # or a list of numbers
+  job_record['qmc']['dmc']['excitations']='no'#VBM-CBM or other..
+
+
+  job_record['qmc']['variance_optimize']={}
+  job_record['qmc']['variance_optimize']['niterations']=10
+  job_record['qmc']['variance_optimize']['nruns']=2
+
+
   job_record['qmc']['energy_optimize']={}
   job_record['qmc']['energy_optimize']['threshold']=0.001
   job_record['qmc']['energy_optimize']['vmc_nstep']=1000
@@ -57,8 +70,11 @@ def execute(job_list, element_list):
     os.chdir(d)
     jsonfile="record.json"
     if os.path.isfile(jsonfile):
+      #We could do checking to make sure the 
+      #definition hasn't changed.
       f=open('record.json','r')
-      record=json.load(f)
+      record_read=json.load(f)
+      record['control']=record_read['control']
       f.close()
 
 
