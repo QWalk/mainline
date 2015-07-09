@@ -296,6 +296,8 @@ wf2 { include opt.jast }
           entry={}
           entry['knum']=k
           entry['energy']=self.energy(basename+".dmc.log")
+          entry['timestep']=t
+          entry['localization']=loc
           ret.append(entry)
     return ret
           
