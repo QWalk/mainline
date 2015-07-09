@@ -228,9 +228,9 @@ class QWalkRunDMC:
       for t in qmc_options['dmc']['timestep']:
         for loc in qmc_options['dmc']['localization']:
           kname="qw_%i"%k
-          basename="qwt%g%s_%i"%(t,loc,k,qmc_options['dmc']['nblock'])
+          basename="qwt%g%s_%i"%(t,loc,k)
           f=open(basename+".dmc",'w')
-          f.write(self.dmcinput(t,loc,k))
+          f.write(self.dmcinput(t,loc,k,qmc_options['dmc']['nblock']))
           f.close()
           infiles=[basename+".dmc","opt.jast",kname+'.sys',kname+'.slater',
               kname+'.orb','qw.basis']
