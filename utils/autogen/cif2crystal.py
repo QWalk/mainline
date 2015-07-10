@@ -8,7 +8,7 @@ import os
 import cStringIO 
 import sys
 
-library_directory="../" #this is relative to the run directorys. You can also put an absolute position
+library_directory="/projects/wagner/apps/qwalk_src/utils/autogen/" #this is relative to the run directorys. You can also put an absolute position
 
 ######################################################################
 def pseudopotential_section(symbol, xml_name):
