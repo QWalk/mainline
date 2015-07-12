@@ -69,7 +69,6 @@ mpirun -np 16 ~/qwalk/bin/qwalk %s > %s \n"""%(jobid,argument,argument+".stdout"
     if not 'qwalk_jobid' in job_record['control']:
       return "not_started"
     jobsign=job_record['control']['qwalk_jobid']
-    jobnum=jobsign.split('.')[0]
     output=subprocess.check_output(["qstat"])
     for line in output.split('\n'):
       for j in jobsign: 
