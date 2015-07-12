@@ -1,14 +1,13 @@
 from __future__ import print_function
 from xml.etree.ElementTree import ElementTree
-from collections import OrderedDict
-import pymatgen as mg
+from collections import OrderedDict # TODO: Is this used?
 from pymatgen.io.cifio import CifParser
 from pymatgen.core.periodic_table import Element
 import os
 import cStringIO 
 import sys
 
-library_directory="/projects/wagner/apps/qwalk_src/utils/autogen/" #this is relative to the run directorys. You can also put an absolute position
+library_directory="/projects/wagner/apps/qwalk_src/utils/autogen/" 
 
 ######################################################################
 def pseudopotential_section(symbol, xml_name):
@@ -24,7 +23,7 @@ def pseudopotential_section(symbol, xml_name):
             set database.
 
     Returns:
-        str: The pseudopotential section.
+        list of lines of pseudopotential section (edit by Brian Busemeyer).
     """
     tree = ElementTree()
     tree.parse(xml_name)
@@ -40,26 +39,21 @@ def pseudopotential_section(symbol, xml_name):
     proj_list = element.findall(proj_path)
     for projector in proj_list:
         m[int(projector.text)] += 1
-    pseudopot_strlist = []
-    ecp_keyword = 'INPUT'
-    pseudopot_strlist.append('{}\n'.format(ecp_keyword))
-    pseudopot_strlist.append('{}    '.format(eff_core_charge))
-    pseudopot_strlist.append('{} {} {} '.format(nlocal, m[0], m[1]))
-    pseudopot_strlist.append('{} {} {}\n'.format(m[2], m[3], m[4]))
+    strlist = []
+    strlist.append('INPUT')
+    strlist.append(' '.join(map(str,[eff_core_charge,nlocal,
+                                     m[0],m[1],m[2],m[3],m[4]])))
     for local_component in local_list:
         exp_gaus = local_component.find('./Exp').text
         coeff_gaus = local_component.find('./Coeff').text
         r_to_n = local_component.find('./r_to_n').text
-        pseudopot_strlist.append('  {} {} '.format(exp_gaus, coeff_gaus))
-        pseudopot_strlist.append('{}\n'.format(r_to_n))
+        strlist.append(' '.join([exp_gaus, coeff_gaus,r_to_n]))
     for non_local_component in non_local_list:
         exp_gaus = non_local_component.find('./Exp').text
         coeff_gaus = non_local_component.find('./Coeff').text
         r_to_n = non_local_component.find('./r_to_n').text
-        pseudopot_strlist.append('  {} {} '.format(exp_gaus, coeff_gaus))
-        pseudopot_strlist.append('{}\n'.format(r_to_n))
-    pseudopot_string = ''.join(pseudopot_strlist)
-    return pseudopot_string
+        strlist.append(' '.join([exp_gaus, coeff_gaus,r_to_n]))
+    return strlist
 
 
 ######################################################################
@@ -104,7 +98,7 @@ def modify_basis(symbol,xml_name,cutoff=0.2,params=[0.2,2,3],initial_charges={})
     basis_path = './Basis-set[@name="{}"]/Contraction'.format(basis_name)
     found_orbitals = []
     totcharge=0
-    ret=""
+    ret=[]
     ncontract=0
     for contraction in element.findall(basis_path):
         angular = contraction.get('Angular_momentum')
@@ -114,13 +108,12 @@ def modify_basis(symbol,xml_name,cutoff=0.2,params=[0.2,2,3],initial_charges={})
 
         #Figure out which coefficients to print out based on the minimal exponent
         nterms = 0
-        basis_part=""
+        basis_part=[]
         for basis_term in contraction.findall('./Basis-term'):
             exp = basis_term.get('Exp')
             coeff = basis_term.get('Coeff')
             if float(exp) > cutoff:
-                line = '  {} {}\n'.format(exp, coeff)
-                basis_part+=line
+                basis_part += ['{} {}'.format(exp, coeff)]
                 nterms+=1
         #now write the header 
         if nterms > 0:
@@ -132,8 +125,7 @@ def modify_basis(symbol,xml_name,cutoff=0.2,params=[0.2,2,3],initial_charges={})
                   and angular=="s":
             charge=0
           totcharge+=charge
-          ret+="0 %i %i %g 1\n"%(basis_index[angular],nterms,charge) +\
-                basis_part
+          ret+=["0 %i %i %g 1"%(basis_index[angular],nterms,charge)] + basis_part
           ncontract+=1
 
     #Add in the uncontracted basis elements
@@ -144,12 +136,11 @@ def modify_basis(symbol,xml_name,cutoff=0.2,params=[0.2,2,3],initial_charges={})
     for angular in angular_uncontracted:
         for i in range(0,params[1]):
             exp=params[0]*params[2]**i
-            line='  {} {}\n'.format(exp,1.0)
-            ret+="0 %i %i %g 1\n"%(basis_index[angular],1,0.0) +\
-                line
+            line='{} {}'.format(exp,1.0)
+            ret+=["0 %i %i %g 1"%(basis_index[angular],1,0.0),line]
             ncontract+=1
 
-    return "%i %i\n"%(mg.Element(symbol).number+200,ncontract) +\
+    return ["%i %i"%(Element(symbol).number+200,ncontract)] +\
             pseudopotential_section(symbol,xml_name) +\
             ret
 
@@ -161,11 +152,11 @@ def basis_section(struct,params=[0.2,2,3],initial_charges={}):
   for s in sites:
     nm=s['species'][0]['element']
     elements.add(nm)
-  basisstring=""
+  basislines=[]
   for e in elements:
-    basisstring+=modify_basis(e,library_directory+"BFD_Library.xml",
+    basislines+=modify_basis(e,library_directory+"BFD_Library.xml",
             params=params,initial_charges=initial_charges)
-  return basisstring
+  return basislines
 
 
 ######################################################################
@@ -176,16 +167,16 @@ def cif2geom(ciffile):
   primstruct=struct.get_primitive_structure()
   lat=primstruct.as_dict()['lattice']
   sites=primstruct.as_dict()['sites']
-  geomstring="CRYSTAL\n0 0 0 \n1\n%g %g %g %g %g %g\n"%\
-          (lat['a'],lat['b'],lat['c'],lat['alpha'],lat['beta'],lat['gamma'])
+  geomlines=["CRYSTAL","0 0 0","1","%g %g %g %g %g %g"%\
+          (lat['a'],lat['b'],lat['c'],lat['alpha'],lat['beta'],lat['gamma'])]
 
-  geomstring+="%i\n"%len(sites)
+  geomlines+=["%i"%len(sites)]
   for v in sites:
       nm=v['species'][0]['element']
       nm=str(Element(nm).Z+200)
-      geomstring+=nm+" %g %g %g\n"%(v['abc'][0],v['abc'][1],v['abc'][2])
+      geomlines+=[nm+" %g %g %g"%(v['abc'][0],v['abc'][1],v['abc'][2])]
 
-  return geomstring,primstruct
+  return geomlines,primstruct
 
 ######################################################################
 
@@ -197,51 +188,48 @@ class Cif2Crystal:
       print("ERROR: only support BFD pseudoptentials for now")
       quit()
 
-    geomstring,primstruct=cif2geom(cStringIO.StringIO(job_record['cif']))
-    basisstring=basis_section(primstruct,job_record['dft']['basis'],
+    geomlines,primstruct=cif2geom(cStringIO.StringIO(job_record['cif']))
+    basislines=basis_section(primstruct,job_record['dft']['basis'],
                               job_record['dft']['initial_charges'])
-    supercell="SUPERCEL\n"
+    supercell=["SUPERCEL"]
     for row in job_record['supercell']:
-      supercell+="%i %i %i\n"%(row[0],row[1],row[2])
+      supercell+=[' '.join(map(str,row))]
 
-    f=open("autogen.d12",'w')
-    f.write("Generated by cif2crystal\n"+geomstring+supercell+"END\n"+\
-          basisstring+"99 0\nCHARGED\nEND\n")
-    f.write("""SHRINK
-8 16
-DFT\n""")
+    # List of lines will be joined by '\n'.
+    outlines = []
+    outlines += ["Generated by cif2crystal"]
+    outlines += geomlines + supercell + ["END"]
+    outlines += basislines + ["99 0","CHARGED","END"]
+    if min(job_record['dft']['kmesh']) != max(job_record['dft']['kmesh']):
+      print("Non-cubic meshes not implemented")
+      quit()
+    else:
+      val = job_record['dft']['kmesh'][0]
+      outlines += ["SHRINK",' '.join(map(str,[val,2*val]))]
+    outlines += ["DFT"]
     if job_record['dft']['spin_polarized']:
-      f.write("SPIN\n")
-    f.write("""EXCHANGE\n"""+
-job_record['dft']['functional']['exchange'] +
-"\nCORRELAT\n"+
-job_record['dft']['functional']['correlation'] +
-"\nHYBRID\n"+
-str(job_record['dft']['functional']['hybrid']) +
-"""\nXLGRID
-END
-SCFDIR
-BIPOSIZE
-100000000
-FMIXING
-"""
-+str(job_record['dft']['fmixing'])+"""
-BROYDEN\n"""+
-"%g %i %i\n"%(job_record['dft']['broyden'][0],job_record['dft']['broyden'][1],job_record['dft']['broyden'][2]) +
-"""TOLINTEG 
-12 12 12 12 20
-""")
+      outlines += ["SPIN"]
+    outlines += [ "EXCHANGE",
+                  job_record['dft']['functional']['exchange'],
+                  "CORRELAT",
+                  job_record['dft']['functional']['correlation'] ]
+    outlines += ["HYBRID", str(job_record['dft']['functional']['hybrid'])]
+    outlines += ["XLGRID","END"]
+    outlines += ["SCFDIR","BIPOSIZE","100000000"]
+    outlines += ["FMIXING",str(job_record['dft']['fmixing'])]
+    outlines += ["BROYDEN",' '.join(map(str,job_record['dft']['broyden']))]
+    outlines += ["TOLINTEG",' '.join(map(str,job_record['dft']['tolinteg']))]
     if job_record['dft']['spin_polarized']:
-      f.write("SPINLOCK\n") 
-      f.write(str(job_record['total_spin'])+' 200 \n')
+      outlines += ["SPINLOCK",str(job_record['total_spin'])+' 200']
       if len(job_record['dft']['initial_spin']) > 0:
         ninit=len(job_record['dft']['initial_spin'])
-        f.write("ATOMSPIN\n"+str(ninit)+'\n')
+        outlines += ["ATOMSPIN",str(ninit)]
         for i,s in enumerate(job_record['dft']['initial_spin']):
-          f.write(str(i+1)+" "+str(s)+" ")
-        f.write('\n')
-    f.write("END\n")
-    f.close()
+          outlines += [str(i+1)+" "+str(s)+" "]
+    outlines += ["END"]
+    with open("autogen.d12",'w') as outf:
+      outf.write('\n'.join(outlines))
+      outf.close()
     return 'ok'
   def check_status(self,job_record):
     if os.path.isfile("autogen.d12"):
