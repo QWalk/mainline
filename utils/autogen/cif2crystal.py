@@ -217,9 +217,11 @@ class Cif2Crystal:
     outlines += ["HYBRID", str(job_record['dft']['functional']['hybrid'])]
     outlines += ["XLGRID","END"]
     outlines += ["SCFDIR","BIPOSIZE","100000000"]
+    outlines += ["EXCHSIZE","10000000"]
     outlines += ["FMIXING",str(job_record['dft']['fmixing'])]
     outlines += ["BROYDEN",' '.join(map(str,job_record['dft']['broyden']))]
     outlines += ["TOLINTEG",' '.join(map(str,job_record['dft']['tolinteg']))]
+    outlines += ["MAXCYCLE","200"]
     if job_record['dft']['spin_polarized']:
       outlines += ["SPINLOCK",str(job_record['total_spin'])+' 200']
       if len(job_record['dft']['initial_spin']) > 0:
