@@ -16,14 +16,21 @@ void Linear_optimization_method::read(vector <string> words,
             unsigned int & pos, Program_options & options_) { 
 
   options=options_;
+
+  int total_nstep,total_fit;
+  if(!readvalue(words,pos=0,total_nstep,"TOTAL_NSTEP"))
+    total_nstep=16384;
+  if(!readvalue(words,pos=0,total_fit,"TOTAL_FIT"))
+    total_fit=1024;
+
   if(!readvalue(words,pos=0, iterations, "ITERATIONS")) 
     iterations=30;
-  if(!readvalue(words,pos=0, vmc_nstep,"VMC_NSTEP"))
-    vmc_nstep=100;
   if(! readvalue(words, pos=0, wfoutputfile, "WFOUTPUT") )
       wfoutputfile=options.runid+".wfout";
+  if(!readvalue(words,pos=0, vmc_nstep,"VMC_NSTEP"))
+    vmc_nstep=max(total_nstep/mpi_info.nprocs,10);
   if(!readvalue(words,pos=0,nconfig_eval,"FIT_NCONFIG")) 
-    nconfig_eval=200;
+    nconfig_eval=max(total_fit/mpi_info.nprocs,1);
   if(!readvalue(words,pos=0,en_convergence,"EN_CONVERGENCE"))
     en_convergence=0.001;
   if(!readvalue(words,pos=0,sig_H_threshold,"SIG_H_THRESHOLD"))
@@ -104,8 +111,8 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
     output << " energy change  " << endiff << endl;
     if(endiff >= 0 && vmc_nstep < max_vmc_nstep) { 
       vmc_nstep*=4;
-      output << "Did not find a downhill move; setting vmc_nstep to "
-        << vmc_nstep << endl;
+      output << "Did not find a downhill move; increasing total vmc steps to "
+        << vmc_nstep*mpi_info.nprocs << endl;
     }
     wfdata->setVarParms(alpha);
     wfdata->renormalize();

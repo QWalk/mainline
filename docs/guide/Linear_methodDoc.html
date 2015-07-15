@@ -12,24 +12,35 @@ Perform energy optimization using the method very similar to the one described b
 
 No options are required.
 
-\subsection optopt Optional
 
-<table>
+\subsection optopt Optional
 <tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b> Default </b> 
      <td> <b>Description</b>
-<tr> <td> VMC_NSTEP  <td> Integer <td> 100
-        <td>  Number of VMC steps to perform per processor to collect statistics on the Hamiltonian matrix.  This is the most important variable to increase when improving the accuracy.
-<tr> <td> MINIMUM_PSI0  <td> Float <td> 0.95
-<td> Fraction of the original wave function to enforce per step.  This is a stabilization parameter.
-<tr> <td> ITERATIONS  <td> Integer <td> 30 
-     <td>  Number of optimization iterations. 
+<tr> <td> TOTAL_NSTEP <td> Integer <td>  16384 <td> Total number of VMC steps to perform when calculating the Hamiltonian matrix. This is the most important variable to increase when improving the accuracy.
+<tr> <td> TOTAL_FIT <td> Integer <td>  1024 
+     <td> Number of configurations to use when calculating the step size using correlated sampling. 
 <tr> <td> WFOUTPUT <td> String <td>  runid.wfout 
      <td> Choose the filename to place an input deck for the final 
 wavefunction and intermediate ones as the optimization
 continues.
+<tr> <td> ITERATIONS  <td> Integer <td> 30 
+     <td>  Number of optimization iterations. 
+<tr> <td> EN_CONVERGENCE <td> Float <td> 0.001
+     <td> Stop run when changes in energy are less than this value (in Hartrees).
+</table>
+
+\subsection advopt Advanced
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b> Default </b> 
+     <td> <b>Description</b>
+<tr> <td> VMC_NSTEP  <td> Integer <td> TOTAL_NSTEP/nprocs
+        <td>  Number of VMC steps to perform per processor to collect statistics on the Hamiltonian matrix.  
+<tr> <td> MINIMUM_PSI0  <td> Float <td> 0.95
+<td> Fraction of the original wave function to enforce per step.  This is a stabilization parameter.
 <tr> <td> MAX_VMC_NSTEP  <td> Integer <td> 8*VMC_NSTEP 
         <td> The optimization method will increase VMC_NSTEP automatically if certain significance requirements are not met in the Hamiltonian matrix.  This variable limits how much VMC_NSTEP can be increased.
-<tr> <td> FIT_NCONFIG  <td> Integer <td> 200
+<tr> <td> FIT_NCONFIG  <td> Integer <td> TOTAL_FIT/nprocs
      <td>  The number of configurations per processor used to evaluate the step size.  This is adjusted automatically up to MAX_FIT_NCONFIG to ensure significance.
 <tr> <td> MAX_FIT_NCONFIG  <td> Integer <td> 8*FIT_NCONFIG
      <td>  Maximum number of configurations per processor to use to evaluate the step size.
