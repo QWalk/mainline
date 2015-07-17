@@ -255,7 +255,7 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   Array1 <bool> fake_linear=linear;
   fake_linear=true;
   doublevar prop_psi0=find_directions(S,Sinv,H,alphas(1),0.0,fake_linear);
-  doublevar stabil=0.01;
+  doublevar stabil=0.0001;
   while(prop_psi0 < minimum_psi0) { 
     prop_psi0=find_directions(S,Sinv,H,alphas(1),stabil,fake_linear);
     single_write(cout,"prop_psi0 ",prop_psi0);
