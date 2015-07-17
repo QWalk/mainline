@@ -1,6 +1,5 @@
 from __future__ import print_function
 from xml.etree.ElementTree import ElementTree
-from collections import OrderedDict # TODO: Is this used?
 from pymatgen.io.cifio import CifParser
 from pymatgen.core.periodic_table import Element
 import os
@@ -93,7 +92,6 @@ def modify_basis(symbol,xml_name,cutoff=0.2,params=[0.2,2,3],initial_charges={})
     tree.parse(xml_name)
     element = tree.find('./Pseudopotential[@symbol="{}"]'.format(symbol))
     atom_charge = int(element.find('./Effective_core_charge').text)
-    print(initial_charges)
     if symbol in initial_charges.keys():
       atom_charge-=initial_charges[symbol]
     basis_path = './Basis-set[@name="{}"]/Contraction'.format(basis_name)
