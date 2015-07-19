@@ -23,7 +23,7 @@ class MyTorqueCrystalSubmitter:
       "#PBS -o QSUB.stdout",
       "module load openmpi/1.4-gcc+ifort",
       "cd ${PBS_O_WORKDIR}",
-      "mpirun -np 16 ~/bin/Pcrystal >& %s "%(input_files[0]+".o"),
+      "mpirun -np %d ~/bin/Pcrystal >& %s "%(self.nodes*self.ppn,input_files[0]+".o"),
       "rm fort.*.pe*"
     ])
     f.write(qf)
@@ -66,7 +66,7 @@ class MyTorqueQWalkSubmitter:
       "#PBS -o QSUB.stdout",
       "cd ${PBS_O_WORKDIR}",
       "module load openmpi/1.6.5-gcc-4.7.1 intel/14.0",
-      "mpirun -np 16 ~/qwalk/bin/qwalk %s > %s"%(argument,argument+".stdout")
+      "mpirun -np %d ~/qwalk/bin/qwalk %s > %s"%(self.nodes*self.ppn,argument,argument+".stdout")
     ])
     f.write(qf)
     f.close()
