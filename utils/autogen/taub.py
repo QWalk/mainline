@@ -4,22 +4,29 @@ import shutil
 #------------Define how we run the calculation
 
 class MyTorqueCrystalSubmitter:
+  def __init__(self,nodes=1,ppn=16,time="48:00:00",queue="wagner"):
+    self.nodes = nodes
+    self.ppn   = ppn
+    self.time  = time
+    self.queue = queue
   def execute(self, job_record,input_files):
     shutil.copy(input_files[0],"INPUT")
     jobid=str(job_record['control']['id'])
 
     f=open("QSUB",'w')
-    f.write("""#PBS -q wagner
-#PBS -l nodes=1:ppn=16
-#PBS -l walltime=48:00:00
-#PBS -j oe
-#PBS -N autogen%s
-#PBS -o QSUB.stdout
-module load openmpi/1.4-gcc+ifort
-cd ${PBS_O_WORKDIR}
-mpirun -np 16 ~/bin/Pcrystal >& %s 
-rm fort.*.pe*
-"""%(jobid,input_files[0]+".o"))
+    qf = '\n'.join([
+      "#PBS -q %s"%self.queue,
+      "#PBS -l nodes=%d:ppn=%d"%(self.nodes,self.ppn),
+      "#PBS -l walltime=%s"%self.time,
+      "#PBS -j oe",
+      "#PBS -N autogen%s"%jobid,
+      "#PBS -o QSUB.stdout",
+      "module load openmpi/1.4-gcc+ifort",
+      "cd ${PBS_O_WORKDIR}",
+      "mpirun -np %d ~/bin/Pcrystal >& %s "%(self.nodes*self.ppn,input_files[0]+".o"),
+      "rm fort.*.pe*"
+    ])
+    f.write(qf)
     f.close()
     print("submitting...")
     output=subprocess.check_output(["qsub", "QSUB"])
@@ -40,20 +47,28 @@ rm fort.*.pe*
 
 
 class MyTorqueQWalkSubmitter:
+  def __init__(self,nodes=1,ppn=16,time="48:00:00",queue="wagner"):
+    self.nodes = nodes
+    self.ppn   = ppn
+    self.time  = time
+    self.queue = queue
   def execute(self, job_record,input_files):
     argument=input_files[0]
     jobid=str(job_record['control']['id'])
     
     f=open("QSUB",'w')
-    f.write("""#PBS -l nodes=1:ppn=16
-#PBS -q secondary
-#PBS -l walltime=4:00:00
-#PBS -j oe
-#PBS -N autogen%s
-#PBS -o QSUB.stdout
-cd ${PBS_O_WORKDIR}
-module load openmpi/1.6.5-gcc-4.7.1 intel/14.0
-mpirun -np 16 ~/qwalk/bin/qwalk %s > %s \n"""%(jobid,argument,argument+".stdout"))
+    qf = '\n'.join([
+      "#PBS -l nodes=%d:ppn=%d"%(self.nodes,self.ppn),
+      "#PBS -q %s"%self.queue,
+      "#PBS -l walltime=%s"%self.time,
+      "#PBS -j oe",
+      "#PBS -N autogen%s"%jobid,
+      "#PBS -o QSUB.stdout",
+      "cd ${PBS_O_WORKDIR}",
+      "module load openmpi/1.6.5-gcc-4.7.1 intel/14.0",
+      "mpirun -np %d ~/qwalk/bin/qwalk %s > %s"%(self.nodes*self.ppn,argument,argument+".stdout")
+    ])
+    f.write(qf)
     f.close()
     print("submitting...")
     output=subprocess.check_output(["qsub", "QSUB"])
@@ -82,5 +97,3 @@ mpirun -np 16 ~/qwalk/bin/qwalk %s > %s \n"""%(jobid,argument,argument+".stdout"
               return "running"
     
     return "not_running"
-
-
