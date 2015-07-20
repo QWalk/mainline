@@ -26,8 +26,7 @@ def default_job_record(ciffile):
   job_record['dft']['initial_charges']={} #For example, 'O':-2,'Mg':2 
   job_record['dft']['fmixing']=99
   job_record['dft']['broyden']=[0.01,60,8]
-
-
+  job_record['dft']['maxcycle']=200
 
   #QMC-specific options
   job_record['qmc']['dmc']={}
