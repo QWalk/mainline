@@ -252,6 +252,8 @@ class Cif2Crystal:
         ]
         for i,s in enumerate(job_record['dft']['initial_spin']):
           outlines += [str(i+1)+" "+str(s)+" "]
+    if job_record['dft']['restart']:
+      outlines += ["GUESSP"]
     outlines += ["END"]
     with open("autogen.d12",'w') as outf:
       outf.write('\n'.join(outlines))

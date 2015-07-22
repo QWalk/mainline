@@ -55,7 +55,6 @@ class RunCrystal:
       lines[-1] = "GUESSP\nEND"
       with open('autogen.d12','w') as d12f:
         d12f.write('\n'.join(lines))
-    job_record['dft']['nretries'] += 1
     return self.run(job_record)
 
   def output(self,job_record):
@@ -74,12 +73,15 @@ class RunProperties:
   def run(self,job_record):
     f=open("prop.in",'w')
     if 'cif' in job_record.keys():
-      f.write("""NEWK 
-4 4 
-1 1
-67 999
-END 
-""")
+      kmax = max(job_record['dft']['kmesh'])
+      out = '\n'.join([
+        "NEWK",
+        "%d %d"%(kmax,2*kmax),
+        "1 1",
+        "67 999",
+        "END"
+      ])
+      f.write(out)
     else:
       f.write("""NEWK 
 1 1

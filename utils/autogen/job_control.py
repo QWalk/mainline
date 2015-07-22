@@ -28,6 +28,7 @@ def default_job_record(ciffile):
   job_record['dft']['broyden']=[0.01,60,8]
   job_record['dft']['maxcycle']=200
   job_record['dft']['nretries']=0
+  job_record['dft']['restart']=False
 
   #QMC-specific options
   job_record['qmc']['dmc']={}
@@ -76,8 +77,6 @@ def execute(job_list, element_list):
       record_read=json.load(f)
       record['control']=record_read['control']
       f.close()
-
-
     print("#######################ID",record['control']['id'])
 
     for element in element_list:
@@ -91,6 +90,7 @@ def execute(job_list, element_list):
         #if record['dft']['nretries'] > MAXRETRY:
           #print("Warning! DFT has been retried more than %d times!"%MAXRETRY)
         status=element.retry(record)
+        record['dft']['nretries'] += 1
         print(element._name_,"status",status)
 
       if status!='ok':
