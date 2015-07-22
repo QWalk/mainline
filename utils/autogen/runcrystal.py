@@ -20,8 +20,8 @@ class RunCrystal:
       for line in f:
         if "SCF ENDED" in line:
           if "TOO MANY CYCLES" in line:
-            print("Crystal failed: too many cycles")
-            return 'failed'
+            print("Crystal failed: too many cycles.")
+            return 'not_finished'
           return 'ok'
 
 
@@ -36,7 +36,7 @@ class RunCrystal:
     if status=='running':
       return status
     status=self.check_outputfile(outfilename)
-    if status=='ok' or status=='failed':
+    if status=='ok' or status=='not_finished' or status=='failed':
       return status
   
     if not os.path.isfile(outfilename):
@@ -45,6 +45,17 @@ class RunCrystal:
     return 'failed'
       
   def retry(self,job_record):
+    """Copy fort.9 to fort.20 and add GUESSP if it isn't already there."""
+    shutil.copy('fort.9','fort.20')
+    with open('autogen.d12','r') as d12f:
+      lines = d12f.read().split('\n')
+    if not any(["GUESSP" in line for line in lines]):
+      # Currently autogen doesn't end the file with \n (e.g. "END\n"), 
+      # this will fail if in the future it does.
+      lines[-1] = "GUESSP\nEND"
+      with open('autogen.d12','w') as d12f:
+        d12f.write('\n'.join(lines))
+    job_record['dft']['nretries'] += 1
     return self.run(job_record)
 
   def output(self,job_record):
