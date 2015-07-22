@@ -28,7 +28,7 @@ def default_job_record(ciffile):
   job_record['dft']['broyden']=[0.01,60,8]
   job_record['dft']['maxcycle']=200
   job_record['dft']['nretries']=0
-  job_record['dft']['restart']=False
+  #job_record['dft']['restart']=False # Not functioning yet.
 
   #QMC-specific options
   job_record['qmc']['dmc']={}
@@ -76,6 +76,8 @@ def execute(job_list, element_list):
       f=open('record.json','r')
       record_read=json.load(f)
       record['control']=record_read['control']
+      # Read DFT input file and check available keys.
+      # TODO Read QMC input file and check available keys.
       f.close()
     print("#######################ID",record['control']['id'])
 
@@ -87,15 +89,16 @@ def execute(job_list, element_list):
         print(element._name_,"status",status)
       if status=='not_finished':
         # Maybe we should have something like:
+        #record['dft']['nretries'] += 1
         #if record['dft']['nretries'] > MAXRETRY:
           #print("Warning! DFT has been retried more than %d times!"%MAXRETRY)
         status=element.retry(record)
-        record['dft']['nretries'] += 1
         print(element._name_,"status",status)
 
       if status!='ok':
         break
-      record=element.output(record)
+      record=element.output(record) 
+      # Same as "if ok: record=element.output(record)"?
 
     f=open(jsonfile,'w')
     json.dump(record,f)
