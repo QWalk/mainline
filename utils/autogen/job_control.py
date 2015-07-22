@@ -94,11 +94,8 @@ def execute(job_list, element_list):
           #print("Warning! DFT has been retried more than %d times!"%MAXRETRY)
         status=element.retry(record)
         print(element._name_,"status",status)
-
-      if status!='ok':
-        break
-      record=element.output(record) 
-      # Same as "if ok: record=element.output(record)"?
+      if status=='ok':
+        record=element.output(record) 
 
     f=open(jsonfile,'w')
     json.dump(record,f)
