@@ -230,6 +230,8 @@ class Cif2Crystal:
       "100000000",
       "EXCHSIZE",
       "10000000",
+      "TOLDEE",
+      str(job_record['dft']['edifftol']),
       "FMIXING",
       str(job_record['dft']['fmixing']),
       "BROYDEN",

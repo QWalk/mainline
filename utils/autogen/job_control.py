@@ -24,11 +24,12 @@ def default_job_record(ciffile):
   job_record['dft']['spin_polarized']=True
   job_record['dft']['initial_spin']=[]
   job_record['dft']['initial_charges']={} #For example, 'O':-2,'Mg':2 
+  job_record['dft']['edifftol']=10
   job_record['dft']['fmixing']=99
   job_record['dft']['broyden']=[0.01,60,8]
   job_record['dft']['maxcycle']=200
   job_record['dft']['nretries']=0
-  #job_record['dft']['restart']=False # Not functioning yet.
+  job_record['dft']['restart']=False
 
   #QMC-specific options
   job_record['qmc']['dmc']={}
