@@ -1,8 +1,8 @@
  ######################################################################
 
-CXX:=g++
+CXX:=clang++
 
-CXXFLAGS := -O2 -pg -g  \
+CXXFLAGS := -O3  -g  \
   $(INCLUDEPATH) 
 #   -funroll-loops -ffast-math  \
  #not omitting the frame pointer so we get instrumentation
