@@ -19,13 +19,13 @@ class RunCrystal:
       f=open(outfilename,'r')
       for line in f:
         if "SCF ENDED" in line:
-          if "TOO MANY CYCLES" in line:
-            print("Crystal failed: too many cycles.")
-            return 'not_finished'
           energy = float(line.split()[8])
           if energy > 0.0:
             print("Crystal failed: energy divergence.")
             return 'failed'
+          if "TOO MANY CYCLES" in line:
+            print("Crystal not finished: too many cycles.")
+            return 'not_finished'
           return 'ok'
 
 

@@ -28,7 +28,8 @@ def default_job_record(ciffile):
   job_record['dft']['fmixing']=99
   job_record['dft']['broyden']=[0.01,60,8]
   job_record['dft']['maxcycle']=200
-  job_record['dft']['nretries']=0
+  #job_record['dft']['nretries']=0
+  #job_record['dft']['max_retries']=10
   job_record['dft']['restart']=False
 
   #QMC-specific options
@@ -89,14 +90,11 @@ def execute(job_list, element_list):
         status=element.run(record)
         print(element._name_,"status",status)
       if status=='not_finished':
-        # Maybe we should have something like:
-        #record['dft']['nretries'] += 1
-        #if record['dft']['nretries'] > MAXRETRY:
-          #print("Warning! DFT has been retried more than %d times!"%MAXRETRY)
         status=element.retry(record)
         print(element._name_,"status",status)
-      if status=='ok':
-        record=element.output(record) 
+      if status != 'ok':
+        break
+      record=element.output(record) 
 
     f=open(jsonfile,'w')
     json.dump(record,f)
