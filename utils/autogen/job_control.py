@@ -24,11 +24,13 @@ def default_job_record(ciffile):
   job_record['dft']['spin_polarized']=True
   job_record['dft']['initial_spin']=[]
   job_record['dft']['initial_charges']={} #For example, 'O':-2,'Mg':2 
+  job_record['dft']['edifftol']=10
   job_record['dft']['fmixing']=99
   job_record['dft']['broyden']=[0.01,60,8]
   job_record['dft']['maxcycle']=200
-  job_record['dft']['nretries']=0
-  #job_record['dft']['restart']=False # Not functioning yet.
+  #job_record['dft']['nretries']=0
+  #job_record['dft']['max_retries']=10
+  job_record['dft']['restart']=False
 
   #QMC-specific options
   job_record['qmc']['dmc']={}
@@ -88,14 +90,11 @@ def execute(job_list, element_list):
         status=element.run(record)
         print(element._name_,"status",status)
       if status=='not_finished':
-        # Maybe we should have something like:
-        #record['dft']['nretries'] += 1
-        #if record['dft']['nretries'] > MAXRETRY:
-          #print("Warning! DFT has been retried more than %d times!"%MAXRETRY)
         status=element.retry(record)
         print(element._name_,"status",status)
-      if status=='ok':
-        record=element.output(record) 
+      if status != 'ok':
+        break
+      record=element.output(record) 
 
     f=open(jsonfile,'w')
     json.dump(record,f)
@@ -103,3 +102,30 @@ def execute(job_list, element_list):
     updated_job_list.append(record)
   return updated_job_list
 
+def check_status(job_list, element_list):
+  status_report={}
+  for record in job_list:
+    currwd=os.getcwd()
+    d=str(record['control']['id'])
+    os.chdir(d)
+    jsonfile="record.json"
+    if os.path.isfile(jsonfile):
+      f=open('record.json','r')
+      record_read=json.load(f)
+      record['control']=record_read['control']
+      f.close()
+
+    element_status = {}
+    for element in element_list:
+      status=element.check_status(record)
+      if status=='not_started':
+        status=element.run(record)
+      if status=='not_finished':
+        status=element.retry(record)
+      element_status[element._name_] = status
+      if status != 'ok':
+        break
+    status_report[record['control']['id']] = element_status
+
+    os.chdir(currwd)
+  return status_report

@@ -7,6 +7,8 @@
 *.o
 *.so
 *.pyc
+*-taub
+*-Linux
  
 # Packages #
 ############
@@ -27,3 +29,7 @@
 *.log
 *.sql
 *.sqlite
+
+# Misc files #
+##############
+taub.mk
