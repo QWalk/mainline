@@ -24,7 +24,7 @@ class MyTorqueCrystalSubmitter:
       "module load openmpi/1.4-gcc+ifort",
       "cd ${PBS_O_WORKDIR}",
       "mpirun -np %d ~/bin/Pcrystal >& %s "%(self.nodes*self.ppn,input_files[0]+".o"),
-      "rm fort.*.pe*"
+      "rm fort*.pe*"
     ])
     f.write(qf)
     f.close()
@@ -45,6 +45,47 @@ class MyTorqueCrystalSubmitter:
     else:
       return "not_started"
 
+class MyTorquePropertiesSubmitter:
+  def __init__(self,nodes=1,ppn=1,time="4:00:00",queue="secondary"):
+    self.nodes = 1
+    self.ppn   = 1
+    self.time  = time
+    self.queue = queue
+    if (nodes!=1) or (ppn!=1):
+      print("Notice: RunProperties disobeys you, and will only be running on one processor.")
+  def execute(self, job_record,input_files):
+    jobid=str(job_record['control']['id'])
+
+    f=open("QSUB",'w')
+    qf = '\n'.join([
+      "#PBS -q %s"%self.queue,
+      "#PBS -l nodes=%d:ppn=%d"%(self.nodes,self.ppn),
+      "#PBS -l walltime=%s"%self.time,
+      "#PBS -j oe",
+      "#PBS -N autogen_%s"%jobid,
+      "#PBS -o QSUB.stdout",
+      "module load openmpi/1.4-gcc+ifort",
+      "cd ${PBS_O_WORKDIR}",
+      "~/bin/properties < %s > %s"%(input_files[0],input_files[0]+".o")
+    ])
+    f.write(qf)
+    f.close()
+    print("submitting...")
+    output=subprocess.check_output(["qsub", "QSUB"])
+    job_record['control']['properties_jobid']=output
+
+  def cancel(self, handle):
+    return "did_not_cancel"
+  def status(self, job_record,output_files):
+    if not 'properties_jobid' in job_record['control']:
+      return "not_started"
+    jobsign=job_record['control']['properties_jobid']
+    jobnum=jobsign.split('.')[0]
+    output=subprocess.check_output(["qstat"])
+    if jobnum in output:
+      return "running"
+    else:
+      return "not_started"
 
 class MyTorqueQWalkSubmitter:
   def __init__(self,nodes=1,ppn=16,time="48:00:00",queue="wagner"):
@@ -80,20 +121,39 @@ class MyTorqueQWalkSubmitter:
   def cancel(self, handle):
     return "did_not_cancel"
 
+  # Brian: This doesn't seem to be working, any reason this should be different
+  # from MyTorqueQwalkSubmitter?
+  #def status(self, job_record,output_files):
+  #  if not 'qwalk_jobid' in job_record['control']:
+  #    return "not_started"
+  #  jobsign=job_record['control']['qwalk_jobid']
+  #  output=subprocess.check_output(["qstat"])
+  #  for line in output.split('\n'):
+  #    for j in jobsign: 
+  #      jobnum=j.split('.')[0]
+  #      if jobnum in line:
+  #        print("job",line)
+  #        spl=line.split()
+  #        if len(spl) > 9:
+  #          s=line.split()[9 ]
+  #          print("s:",s)
+  #          if s!='C':
+  #            print("Found running job")
+  #            return "running"
+
   def status(self, job_record,output_files):
     if not 'qwalk_jobid' in job_record['control']:
+      print("First option")
       return "not_started"
-    jobsign=job_record['control']['qwalk_jobid']
+    jobsign=job_record['control']['crystal_jobid']
+    jobnum=jobsign.split('.')[0]
     output=subprocess.check_output(["qstat"])
-    for line in output.split('\n'):
-      for j in jobsign: 
-        jobnum=j.split('.')[0]
-        if jobnum in line:
-          print("job",line)
-          spl=line.split()
-          if len(spl) > 9:
-            s=line.split()[9 ]
-            if s!='C':
-              return "running"
+    if jobnum in output:
+      print("Second option")
+      return "running"
+    else:
+      print("Third option")
+      return "not_started"
     
+    print("Fourth option")
     return "not_running"

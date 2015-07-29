@@ -74,6 +74,10 @@ class RunCrystal:
 
 class RunProperties:
   _name_="RunProperties"
+  #_submitter=job_submission.TorquePropertiesSubmitter()
+  def __init__(self,submitter=None):
+    # 'None' implies to run in command line.
+    self._submitter=submitter
   def run(self,job_record):
     f=open("prop.in",'w')
     if 'cif' in job_record.keys():
@@ -87,17 +91,23 @@ class RunProperties:
       ])
       f.write(out)
     else:
-      f.write("""NEWK 
-1 1
-67 999
-END 
-""")
-
+      out = '\n'.join([
+        "NEWK",
+        "1 1",
+        "67 999",
+        "END"
+      ])
+      f.write(out)
     f.close()
-    os.system("properties < prop.in > prop.in.o")
-    return 'ok'
-  def check_status(self,job_record):
-    outfilename="prop.in.o"
+
+    if self._submitter==None:
+      os.system("properties < prop.in > prop.in.o")
+      return 'ok'
+    else:
+      self._submitter.execute(job_record,["prop.in"])
+      return 'running'
+
+  def check_outputfile(self,outfilename):
     if os.path.isfile(outfilename):
       f=open(outfilename,'r')
       for line in f:
@@ -106,6 +116,25 @@ END
       return 'running'
     else:
       return 'not_started'
+
+  def check_status(self,job_record):
+    outfilename="prop.in.o"
+    status=self.check_outputfile(outfilename)
+    if status=='ok' or status=='failed':
+      return status
+
+    if self._submitter!=None:
+      status=self._submitter.status(job_record,[outfilename,'fort.9'])
+      if status=='running':
+        return status
+      status=self.check_outputfile(outfilename)
+      if status=='ok' or status=='not_finished' or status=='failed':
+        return status
+    
+    if not os.path.isfile(outfilename):
+      return 'not_started'
+
+    return 'failed'
       
   def retry(self,job_record):
     return self.run(job_record)
