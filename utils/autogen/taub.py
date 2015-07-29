@@ -24,7 +24,7 @@ class MyTorqueCrystalSubmitter:
       "module load openmpi/1.4-gcc+ifort",
       "cd ${PBS_O_WORKDIR}",
       "mpirun -np %d ~/bin/Pcrystal >& %s "%(self.nodes*self.ppn,input_files[0]+".o"),
-      "rm fort*.pe*"
+      "rm fort.*.pe*"
     ])
     f.write(qf)
     f.close()
@@ -122,7 +122,7 @@ class MyTorqueQWalkSubmitter:
     return "did_not_cancel"
 
   # Brian: This doesn't seem to be working, any reason this should be different
-  # from MyTorqueQwalkSubmitter?
+  # from MyTorqueCrystalSubmitter?
   #def status(self, job_record,output_files):
   #  if not 'qwalk_jobid' in job_record['control']:
   #    return "not_started"
@@ -143,17 +143,13 @@ class MyTorqueQWalkSubmitter:
 
   def status(self, job_record,output_files):
     if not 'qwalk_jobid' in job_record['control']:
-      print("First option")
       return "not_started"
     jobsign=job_record['control']['crystal_jobid']
     jobnum=jobsign.split('.')[0]
     output=subprocess.check_output(["qstat"])
     if jobnum in output:
-      print("Second option")
       return "running"
     else:
-      print("Third option")
       return "not_started"
     
-    print("Fourth option")
     return "not_running"
