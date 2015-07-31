@@ -24,6 +24,17 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "qmc_io.h"
 
 
+struct MOBLAS_CalcObjVal { 
+  doublevar * moplace;
+  doublevar sval;
+};
+
+struct MOBLAS_CalcObjLap { 
+  doublevar * moplace;
+  doublevar sval[5];
+};
+
+
 
 inline void output_array(Array2 <doublevar> & arr) {
   for(int i=0; i< arr.GetDim(0); i++) {
@@ -239,6 +250,7 @@ void MO_matrix_blas::updateVal(Sample_point * sample,
   static Array1 <doublevar> symmvals_temp(maxbasis);
   static Array1 <doublevar> newvals_T;
   Array2 <doublevar> & moCoefftmp(moCoeff_list(listnum));
+  int totbasis=moCoefftmp.GetDim(0);
   int nmo_list=moCoefftmp.GetDim(1);
   newvals_T.Resize(nmo_list);
   newvals_T=0.0;
@@ -247,6 +259,9 @@ void MO_matrix_blas::updateVal(Sample_point * sample,
   int totfunc=0;
   
   centers.updateDistance(e, sample);
+  
+  static Array1 <MOBLAS_CalcObjVal> calcobjs(totbasis);
+  int ncalcobj=0;
 
   for(int ion=0; ion < centermax; ion++)  {
     centers.getDistance(e, ion, R);
@@ -258,9 +273,12 @@ void MO_matrix_blas::updateVal(Sample_point * sample,
         int imax=nfunctions(b);
         for(int i=0; i< imax; i++) {
           if(R(0) < cutoff(totfunc)) {
-            cblas_daxpy(nmo_list,symmvals_temp(i),
-                        moCoefftmp.v+totfunc*nmo_list,1,
-                        newvals_T.v,1);
+            //cblas_daxpy(nmo_list,symmvals_temp(i),
+            //            moCoefftmp.v+totfunc*nmo_list,1,
+            //            newvals_T.v,1);
+            calcobjs(ncalcobj).sval=symmvals_temp(i);
+            calcobjs(ncalcobj).moplace=moCoefftmp.v+totfunc*nmo_list;
+            ncalcobj++;
           }
           totfunc++;
         }
@@ -269,6 +287,11 @@ void MO_matrix_blas::updateVal(Sample_point * sample,
         totfunc+=nfunctions(b);
       }
     }
+  }
+
+
+  for(int i=0; i< ncalcobj; i++) { 
+    cblas_daxpy(nmo_list,calcobjs(i).sval,calcobjs(i).moplace,1,newvals_T.v,1);
   }
 
 
@@ -308,6 +331,7 @@ void MO_matrix_blas::updateLap(
   static Array2 <doublevar> symmvals_temp(maxbasis,5);
   static Array2 <doublevar> newvals_T;
   Array2 <doublevar> & moCoefftmp(moCoeff_list(listnum));
+  int totbasis=moCoefftmp.GetDim(0);
   int nmo_list=moCoefftmp.GetDim(1);
   newvals_T.Resize(5, nmo_list);
   newvals_T=0.0;
@@ -317,25 +341,28 @@ void MO_matrix_blas::updateLap(
   
   centers.updateDistance(e, sample);
 
+  static Array1 <MOBLAS_CalcObjLap> calcobjs(totbasis);
+  int ncalcobj=0;
+  
 
   for(int ion=0; ion < centermax; ion++)  {
-    
     centers.getDistance(e, ion, R);
     for(int n=0; n< centers.nbasis(ion); n++) {
       b=centers.basis(ion, n);
       if(R(0) < obj_cutoff(b)) {
-
         basis(b)->calcLap(R, symmvals_temp);
-
         int imax=nfunctions(b);
         for(int i=0; i< imax; i++) {
           if(R(0) < cutoff(totfunc)) {
+            calcobjs(ncalcobj).moplace=moCoefftmp.v+totfunc*nmo_list;
+            
             for(int j=0; j< 5; j++) {
-              
-              cblas_daxpy(nmo_list,symmvals_temp(i,j),
-                          moCoefftmp.v+totfunc*nmo_list,1,
-                          newvals_T.v+j*nmo_list,1);
+              calcobjs(ncalcobj).sval[j]=symmvals_temp(i,j);
+              //cblas_daxpy(nmo_list,symmvals_temp(i,j),
+              //            moCoefftmp.v+totfunc*nmo_list,1,
+              //            newvals_T.v+j*nmo_list,1);
             }           
+            ncalcobj++;
           }
           totfunc++;
         }
@@ -346,6 +373,17 @@ void MO_matrix_blas::updateLap(
     }
   }
 
+  for(int i=0; i< ncalcobj; i++) { 
+    for(int j=0; j< 5; j++) { 
+      cblas_daxpy(nmo_list,calcobjs(i).sval[j],calcobjs(i).moplace,1,
+          newvals_T.v+j*nmo_list,1);
+    }
+    //cblas_dger(CblasRowMajor,5,nmo_list,1.,
+    //      calcobjs(i).sval,1,
+    //      calcobjs(i).moplace,1,
+    //      newvals_T.v,nmo_list);
+  }
+  
 
   for(int m=0; m < nmo_list; m++) {
     for(int j=0; j< 5; j++) {
