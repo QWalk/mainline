@@ -91,8 +91,8 @@ class MyTorqueQWalkSubmitter:
         if jobnum in line:
           print("job",line)
           spl=line.split()
-          if len(spl) > 9:
-            s=line.split()[9 ]
+          if len(spl) > 4:
+            s=spl[4]
             if s!='C':
               return "running"
     
