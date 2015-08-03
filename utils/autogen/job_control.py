@@ -101,31 +101,3 @@ def execute(job_list, element_list):
     os.chdir(currwd)
     updated_job_list.append(record)
   return updated_job_list
-
-def check_status(job_list, element_list):
-  status_report={}
-  for record in job_list:
-    currwd=os.getcwd()
-    d=str(record['control']['id'])
-    os.chdir(d)
-    jsonfile="record.json"
-    if os.path.isfile(jsonfile):
-      f=open('record.json','r')
-      record_read=json.load(f)
-      record['control']=record_read['control']
-      f.close()
-
-    element_status = {}
-    for element in element_list:
-      status=element.check_status(record)
-      if status=='not_started':
-        status=element.run(record)
-      if status=='not_finished':
-        status=element.retry(record)
-      element_status[element._name_] = status
-      if status != 'ok':
-        break
-    status_report[record['control']['id']] = element_status
-
-    os.chdir(currwd)
-  return status_report
