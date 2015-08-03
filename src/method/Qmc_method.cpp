@@ -38,6 +38,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Determinant_select_method.h"
 #include "Energy_slice.h"
 #include "Lowdin_method.h"
+#include "Maximize_method.h"
 
 int allocate(vector <string> & words,
              Program_options & options,
@@ -99,6 +100,8 @@ int allocate(vector <string> & words,
     methptr=new Energy_slice;
   else if(caseless_eq(words[0],"LOWDIN"))
     methptr=new Lowdin_method;
+  else if(caseless_eq(words[0],"MAXIMIZE"))
+    methptr=new Maximize_method;
   
   
   else

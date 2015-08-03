@@ -11,6 +11,7 @@ MY_SOURCES:= \
         Linear_optimization.cpp \
         Localize_method.cpp \
 	Lowdin_method.cpp \
+	Maximize_method.cpp \
 	Nodes_method.cpp \
         Shdmc_method.cpp \
 	Optimize_method2.cpp \
