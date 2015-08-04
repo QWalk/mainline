@@ -46,17 +46,18 @@ class RunCrystal:
       
   def retry(self,job_record):
     """Copy fort.9 to fort.20 and add GUESSP if it isn't already there."""
-    shutil.copy('fort.9','fort.20')
-    with open('autogen.d12','r') as d12f:
-      lines = d12f.read().split('\n')
-    if not any(["GUESSP" in line for line in lines]):
+    #Removing this behavior for now as it doesn't seem to help too much.
+    #shutil.copy('fort.9','fort.20')
+    #with open('autogen.d12','r') as d12f:
+    #  lines = d12f.read().split('\n')
+    #if not any(["GUESSP" in line for line in lines]):
       # Currently autogen doesn't end the file with \n (e.g. "END\n"), 
       # this will fail if in the future it does.
-      lines[-1] = "GUESSP\nEND"
-      with open('autogen.d12','w') as d12f:
-        d12f.write('\n'.join(lines))
-    job_record['dft']['nretries'] += 1
-    return self.run(job_record)
+    #  lines[-1] = "GUESSP\nEND"
+    #  with open('autogen.d12','w') as d12f:
+    #    d12f.write('\n'.join(lines))
+    #job_record['dft']['nretries'] += 1
+    return "did_not_retry" #self.run(job_record)
 
   def output(self,job_record):
     outfilename="autogen.d12.o"
