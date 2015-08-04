@@ -55,11 +55,11 @@ class RunCrystal:
     #with open('autogen.d12','r') as d12f:
     #  lines = d12f.read().split('\n')
     #if not any(["GUESSP" in line for line in lines]):
-      # Currently autogen doesn't end the file with \n (e.g. "END\n"), 
-      # this will fail if in the future it does.
-      lines[-1] = "GUESSP\nEND"
-      with open('autogen.d12','w') as d12f:
-        d12f.write('\n'.join(lines))
+    # Currently autogen doesn't end the file with \n (e.g. "END\n"), 
+    # this will fail if in the future it does.
+    lines[-1] = "GUESSP\nEND"
+    with open('autogen.d12','w') as d12f:
+      d12f.write('\n'.join(lines))
     return self.run(job_record)
 
   def output(self,job_record):
