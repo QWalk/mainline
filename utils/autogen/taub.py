@@ -124,8 +124,7 @@ class MyTorqueQWalkSubmitter:
   def status(self, job_record,output_files):
     if not 'qwalk_jobid' in job_record['control']:
       return "not_started"
-    jobsign=job_record['control']['crystal_jobid']
-    jobnum=jobsign.split('.')[0]
+    jobsign=job_record['control']['qwalk_jobid']
     output=subprocess.check_output(["qstat"])
     for line in output.split('\n'):
       for j in jobsign: 
