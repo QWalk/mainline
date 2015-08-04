@@ -121,35 +121,21 @@ class MyTorqueQWalkSubmitter:
   def cancel(self, handle):
     return "did_not_cancel"
 
-  # Brian: This doesn't seem to be working, any reason this should be different
-  # from MyTorqueCrystalSubmitter?
-  #def status(self, job_record,output_files):
-  #  if not 'qwalk_jobid' in job_record['control']:
-  #    return "not_started"
-  #  jobsign=job_record['control']['qwalk_jobid']
-  #  output=subprocess.check_output(["qstat"])
-  #  for line in output.split('\n'):
-  #    for j in jobsign: 
-  #      jobnum=j.split('.')[0]
-  #      if jobnum in line:
-  #        print("job",line)
-  #        spl=line.split()
-  #        if len(spl) > 9:
-  #          s=line.split()[9 ]
-  #          print("s:",s)
-  #          if s!='C':
-  #            print("Found running job")
-  #            return "running"
-
   def status(self, job_record,output_files):
     if not 'qwalk_jobid' in job_record['control']:
       return "not_started"
     jobsign=job_record['control']['crystal_jobid']
     jobnum=jobsign.split('.')[0]
     output=subprocess.check_output(["qstat"])
-    if jobnum in output:
-      return "running"
-    else:
-      return "not_started"
+    for line in output.split('\n'):
+      for j in jobsign: 
+        jobnum=j.split('.')[0]
+        if jobnum in line:
+          print("job",line)
+          spl=line.split()
+          if len(spl) > 4:
+            s=spl[4]
+            if s!='C':
+              return "running"
     
     return "not_running"
