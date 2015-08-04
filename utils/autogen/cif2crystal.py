@@ -5,6 +5,7 @@ from pymatgen.core.periodic_table import Element
 import os
 import cStringIO 
 import sys
+import shutil
 
 # this is relative to the run directories. You can also put an absolute position
 library_directory="../"
@@ -181,7 +182,10 @@ def cif2geom(ciffile):
 
 class Cif2Crystal:
   _name_="Cif2Crystal"
-  def run(self,job_record):
+  # Currently, check_status() and runcrystal requires user not to modify outfn. 
+  # In the future, we should probably store name of d12 in record, 
+  # so this is not needed.
+  def run(self,job_record,outfn="autogen.d12"):
     #TODO: support  kmesh,charge
     if job_record['pseudopotential']!='BFD':
       print("ERROR: only support BFD pseudoptentials for now")
@@ -254,18 +258,31 @@ class Cif2Crystal:
         ]
         for i,s in enumerate(job_record['dft']['initial_spin']):
           outlines += [str(i+1)+" "+str(s)+" "]
-    if job_record['dft']['restart']:
-      outlines += ["GUESSP"]
+    if job_record['dft']['restart_from'] != None:
+      try: 
+        shutil.copy(job_record['dft']['restart_from'],'fort.20')
+        outlines += ["GUESSP"]
+      except IOError:
+        print("Error: couldn't find restart file")
+        return 'failed'
     outlines += ["END"]
-    with open("autogen.d12",'w') as outf:
+    with open(outfn,'w') as outf:
       outf.write('\n'.join(outlines))
       outf.close()
     return 'ok'
+
   def check_status(self,job_record):
-    if os.path.isfile("autogen.d12"):
-      return 'ok'
-    else:
+    if not os.path.isfile("autogen.d12"):
       return 'not_started'
+    status = self.run(job_record,outfn="new.autogen.d12")
+    new = open("new.autogen.d12",'r').read()
+    old = open("autogen.d12",'r').read()
+    if new != old:
+      print("Error: job record inconsistent with past input")
+      return 'failed'
+    else:
+      return 'ok'
+
   def retry(self,job_record):
     return self.run(job_record)
   def output(self,job_record):
