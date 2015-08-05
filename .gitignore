@@ -29,7 +29,3 @@
 *.log
 *.sql
 *.sqlite
-
-# Misc files #
-##############
-taub.mk
