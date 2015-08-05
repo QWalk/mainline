@@ -90,7 +90,6 @@ def execute(job_list, element_list):
       if status=='not_finished':
         status=element.retry(record)
         print(element._name_,"status",status)
-        record['control']['incomplete'] = False
       if status != 'ok':
         break
       record=element.output(record)
