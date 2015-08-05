@@ -24,7 +24,7 @@ class RunCrystal:
             print("Crystal failed: energy divergence.")
             return 'failed'
           if "TOO MANY CYCLES" in line:
-            print("Crystal not finished: too many cycles.")
+            print("Crystal failed: too many cycles.")
             return 'not_finished'
           return 'ok'
 
@@ -49,7 +49,7 @@ class RunCrystal:
     return 'failed'
       
   def retry(self,job_record):
-    """Copy fort.9 to fort.20 and add GUESSP if it isn't already there."""
+    #"""Copy fort.9 to fort.20 and add GUESSP if it isn't already there."""
     #Removing this behavior for now as it doesn't seem to help too much.
     #shutil.copy('fort.9','fort.20')
     #with open('autogen.d12','r') as d12f:
@@ -57,10 +57,10 @@ class RunCrystal:
     #if not any(["GUESSP" in line for line in lines]):
     # Currently autogen doesn't end the file with \n (e.g. "END\n"), 
     # this will fail if in the future it does.
-    lines[-1] = "GUESSP\nEND"
-    with open('autogen.d12','w') as d12f:
-      d12f.write('\n'.join(lines))
-    return self.run(job_record)
+    #lines[-1] = "GUESSP\nEND"
+    #with open('autogen.d12','w') as d12f:
+    #  d12f.write('\n'.join(lines))
+    return "did_not_retry"
 
   def output(self,job_record):
     outfilename="autogen.d12.o"
