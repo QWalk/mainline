@@ -59,11 +59,6 @@ def default_job_record(ciffile):
   job_record['control']['elements']=[]
   job_record['control']['pretty_formula']=''
   job_record['control']['queue_id']=[]
-  job_record['control']['incomplete'] = False
-  # Currently, force_retry clashes with Cif2Crystal.check_status()
-  # Possible fix: execute checks if element is RunCrystal, and edits
-  # job_record['dft']['restart_from'] accordingly.
-  job_record['control']['force_retry'] = False
   return job_record
 
 def execute(job_list, element_list):
@@ -83,8 +78,6 @@ def execute(job_list, element_list):
       f=open('record.json','r')
       record_read=json.load(f)
       record['control']=record_read['control']
-      # Read DFT input file and check available keys.
-      # TODO Read QMC input file and check available keys.
       f.close()
     print("#######################ID",record['control']['id'])
 
@@ -95,16 +88,12 @@ def execute(job_list, element_list):
         status=element.run(record)
         print(element._name_,"status",status)
       if status=='not_finished':
-        if record['control']['force_retry']:
-          status=element.retry(record)
-        else:
-          record['control']['incomplete'] = True
+        status=element.retry(record)
         print(element._name_,"status",status)
-      else:
         record['control']['incomplete'] = False
       if status != 'ok':
         break
-      record=element.output(record) 
+      record=element.output(record)
 
     f=open(jsonfile,'w')
     json.dump(record,f)
