@@ -107,7 +107,7 @@ class MyTorqueQWalkSubmitter:
       "#PBS -o QSUB.stdout",
       "cd ${PBS_O_WORKDIR}",
       "module load openmpi/1.6.5-gcc-4.7.1 intel/14.0",
-      "mpirun -np %d ~/bin/qwalk %s > %s"%(self.nodes*self.ppn,argument,argument+".stdout")
+      "mpirun -np %d ~/qwalk/bin/qwalk %s > %s"%(self.nodes*self.ppn,argument,argument+".stdout")
     ])
     f.write(qf)
     f.close()
