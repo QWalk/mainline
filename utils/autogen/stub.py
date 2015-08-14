@@ -4,6 +4,8 @@ import runcrystal
 import runqwalk
 import copy
 import job_control
+import os
+import submission_tools
 
 #hawk.py contains submitters for hawk.physics.illinois.edu
 #from hawk import * 
@@ -55,15 +57,22 @@ for mixing in [0,10,20,30,40]:
   job_list.append(copy.deepcopy(job_record))
   count+=1
 
+# Paths #
+main_path = os.getcwd() + '/'
+cif_directory = main_path + 'Run_Cifs/'
+out_directory = main_path+'OutputFiles/'
+
+# Submitters #
+sub_crystal = submission_tools.LocalSubmitter('runcrystal_taub', main_path)
 
 #now we define the job sequence
 element_list=[]
 element_list.append(cif2crystal.Cif2Crystal())
-element_list.append(runcrystal.RunCrystal(submitter=MyTorqueCrystalSubmitter()))
+element_list.append(runcrystal.RunCrystal(sub_crystal))
 element_list.append(runcrystal.RunProperties())
 element_list.append(runqwalk.Crystal2QWalk())
-element_list.append(runqwalk.QWalkVarianceOptimize(submitter=MyTorqueQWalkSubmitter()))
-element_list.append(runqwalk.QWalkRunDMC(submitter=MyTorqueQWalkSubmitter()))
+# element_list.append(runqwalk.QWalkVarianceOptimize(submitter=MyTorqueQWalkSubmitter()))
+# element_list.append(runqwalk.QWalkRunDMC(submitter=MyTorqueQWalkSubmitter()))
 
 job_list=job_control.execute(job_list,element_list)
 

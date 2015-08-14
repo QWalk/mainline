@@ -24,13 +24,10 @@ def default_job_record(ciffile):
   job_record['dft']['spin_polarized']=True
   job_record['dft']['initial_spin']=[]
   job_record['dft']['initial_charges']={} #For example, 'O':-2,'Mg':2 
-  job_record['dft']['edifftol']=10
   job_record['dft']['fmixing']=99
   job_record['dft']['broyden']=[0.01,60,8]
   job_record['dft']['maxcycle']=200
-  # None = fresh run, else copy this path to fort.20;
-  # e.g. job_record['dft']['restart_from'] = ../successful_run/fort.9
-  job_record['dft']['restart_from']=None
+  job_record['dft']['nretries']=0
 
   #QMC-specific options
   job_record['qmc']['dmc']={}
@@ -79,6 +76,8 @@ def execute(job_list, element_list):
       record_read=json.load(f)
       record['control']=record_read['control']
       f.close()
+
+
     print("#######################ID",record['control']['id'])
 
     for element in element_list:
@@ -88,9 +87,13 @@ def execute(job_list, element_list):
         status=element.run(record)
         print(element._name_,"status",status)
       if status=='not_finished':
+        # Maybe we should have something like:
+        #if record['dft']['nretries'] > MAXRETRY:
+          #print("Warning! DFT has been retried more than %d times!"%MAXRETRY)
         status=element.retry(record)
         print(element._name_,"status",status)
-      if status != 'ok':
+
+      if status!='ok':
         break
       record=element.output(record)
 
@@ -99,3 +102,4 @@ def execute(job_list, element_list):
     os.chdir(currwd)
     updated_job_list.append(record)
   return updated_job_list
+
