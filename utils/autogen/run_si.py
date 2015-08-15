@@ -30,7 +30,7 @@ idbase = "si_ag_"
 #An example of varying basis parameters
 job_list=[]
 count=1
-for alpha in [0.1,0.2,0.3]:
+for alpha in [0.1]:
   job_record['dft']['basis']=[alpha,3,3]
   job_record['control']['id']=idbase+str(count)
   job_list.append(copy.deepcopy(job_record))

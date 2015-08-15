@@ -1,4 +1,4 @@
-# QWalkRunDMC for Taub
+# RunVarianceOptimization for Taub
 
 def execute(px_ssh, infile, outfile):
 	qscript = """#PBS -l nodes=1:ppn=12
