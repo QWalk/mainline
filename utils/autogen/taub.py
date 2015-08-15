@@ -19,7 +19,7 @@ class MyTorqueCrystalSubmitter:
       "#PBS -l nodes=%d:ppn=%d"%(self.nodes,self.ppn),
       "#PBS -l walltime=%s"%self.time,
       "#PBS -j oe",
-      "#PBS -N autogen%s"%jobid,
+      "#PBS -N autogen_%s"%jobid,
       "#PBS -o QSUB.stdout",
       "module load openmpi/1.4-gcc+ifort",
       "cd ${PBS_O_WORKDIR}",
@@ -45,6 +45,47 @@ class MyTorqueCrystalSubmitter:
     else:
       return "not_started"
 
+class MyTorquePropertiesSubmitter:
+  def __init__(self,nodes=1,ppn=1,time="4:00:00",queue="secondary"):
+    self.nodes = 1
+    self.ppn   = 1
+    self.time  = time
+    self.queue = queue
+    if (nodes!=1) or (ppn!=1):
+      print("Notice: RunProperties disobeys you, and will only be running on one processor.")
+  def execute(self, job_record,input_files):
+    jobid=str(job_record['control']['id'])
+
+    f=open("QSUB",'w')
+    qf = '\n'.join([
+      "#PBS -q %s"%self.queue,
+      "#PBS -l nodes=%d:ppn=%d"%(self.nodes,self.ppn),
+      "#PBS -l walltime=%s"%self.time,
+      "#PBS -j oe",
+      "#PBS -N autogen_%s"%jobid,
+      "#PBS -o QSUB.stdout",
+      "module load openmpi/1.4-gcc+ifort",
+      "cd ${PBS_O_WORKDIR}",
+      "~/bin/properties < %s > %s"%(input_files[0],input_files[0]+".o")
+    ])
+    f.write(qf)
+    f.close()
+    print("submitting...")
+    output=subprocess.check_output(["qsub", "QSUB"])
+    job_record['control']['properties_jobid']=output
+
+  def cancel(self, handle):
+    return "did_not_cancel"
+  def status(self, job_record,output_files):
+    if not 'properties_jobid' in job_record['control']:
+      return "not_started"
+    jobsign=job_record['control']['properties_jobid']
+    jobnum=jobsign.split('.')[0]
+    output=subprocess.check_output(["qstat"])
+    if jobnum in output:
+      return "running"
+    else:
+      return "not_started"
 
 class MyTorqueQWalkSubmitter:
   def __init__(self,nodes=1,ppn=16,time="48:00:00",queue="wagner"):
@@ -62,7 +103,7 @@ class MyTorqueQWalkSubmitter:
       "#PBS -q %s"%self.queue,
       "#PBS -l walltime=%s"%self.time,
       "#PBS -j oe",
-      "#PBS -N autogen%s"%jobid,
+      "#PBS -N autogen_%s"%jobid,
       "#PBS -o QSUB.stdout",
       "cd ${PBS_O_WORKDIR}",
       "module load openmpi/1.6.5-gcc-4.7.1 intel/14.0",
@@ -91,8 +132,8 @@ class MyTorqueQWalkSubmitter:
         if jobnum in line:
           print("job",line)
           spl=line.split()
-          if len(spl) > 9:
-            s=line.split()[9 ]
+          if len(spl) > 4:
+            s=spl[4]
             if s!='C':
               return "running"
     

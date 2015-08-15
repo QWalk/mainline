@@ -16,7 +16,6 @@ class RunCrystal:
     return 'running'
 
   def output(self,job_record):
-    self._submitter.output(job_record, ['autogen.d12.o', 'fort.9', 'fort.98'])
     if os.path.isfile('autogen.d12.o'):
       f = open('autogen.d12.o', 'r')
       lines = f.readlines()
@@ -113,7 +112,7 @@ class RunProperties:
       os.system("properties < prop.in > prop.in.o")
       return 'ok'
     else:
-      self._submitter.execute(job_record,["prop.in"])
+      job_record['control'][self._name_+'_jobid'] = self._submitter.execute(job_record,["prop.in"])
       return 'running'
 
   def check_outputfile(self,outfilename):
@@ -136,8 +135,12 @@ class RunProperties:
       status=self._submitter.status(job_record,[outfilename,'fort.9'])
       if status=='running':
         return status
+      self._submitter.output(job_record, [outfilename])
       status=self.check_outputfile(outfilename)
-      if status=='ok' or status=='not_finished' or status=='failed':
+      if status=='ok':
+        self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
+        return status
+      elif status=='not_finished' or status=='failed':
         return status
     
     if not os.path.isfile(outfilename):

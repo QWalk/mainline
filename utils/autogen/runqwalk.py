@@ -117,7 +117,6 @@ wf2 { include qw.jast2 }
     return self.run(job_record)
   def output(self,job_record):
     outfilename="qw_0.opt.o"
-    self._submitter.output(job_record, ['qw_0.opt.o', 'qw_0.opt.wfout'])
     f=open(outfilename,'r')
     disp=0.00
     for line in f:
@@ -199,7 +198,6 @@ trialfunc { include qw_0.enopt.wfin }
 
   def output(self,job_record):
     outfilename="qw_0.enopt.o"
-    self._submitter.output(job_record, [outfilename])
     f=open(outfilename,'r')
     last_energy=1e8
     last_energy_err=1e8
