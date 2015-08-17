@@ -25,6 +25,7 @@ class RunCrystal:
       
     return job_record
 
+
   def check_outputfile(self,outfilename):
     if os.path.isfile(outfilename):
       f=open(outfilename,'r')
@@ -33,6 +34,11 @@ class RunCrystal:
           if "TOO MANY CYCLES" in line:
             print("Crystal failed: too many cycles.")
             return 'not_finished'
+          energy = float(line.split()[8])
+          if energy > 0.0:
+            print("Crystal failed: energy divergence.") 
+            return 'failed'
+        
           return 'ok'
     else:
       return 'not_started'

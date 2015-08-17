@@ -23,7 +23,7 @@ class LocalSubmitter:
     pid=int(handle[0])
     try:
         os.kill(pid, 0)
-    except OSError, e:
+    except OSError:
         return "not_started"
     else:
         return "running"

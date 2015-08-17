@@ -84,7 +84,7 @@ void Average_enmoment::read(vector <string> & words) {
 void Average_enmoment::write_summary(Average_return &avg ,Average_return & err,
     ostream & os) { 
   os << "energy moments" << endl;
-  os << "Avg energy " << avg.vals[0] << " +/- " << err.vals[0] << endl;
+  os << "Avg energy " << avg.vals[1] << " +/- " << err.vals[1] << endl;
   int navg=(avg.vals.GetDim(0)-nmoment)/nmoment;
   Average_return tmpavg, tmperr;
   tmpavg.vals.Resize(navg);

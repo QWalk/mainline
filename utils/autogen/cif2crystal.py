@@ -3,7 +3,7 @@ from xml.etree.ElementTree import ElementTree
 from pymatgen.io.cifio import CifParser
 from pymatgen.core.periodic_table import Element
 import os
-import cStringIO 
+from io import StringIO 
 import sys
 import shutil
 
@@ -191,7 +191,7 @@ class Cif2Crystal:
       print("ERROR: only support BFD pseudoptentials for now")
       quit()
 
-    geomlines,primstruct=cif2geom(cStringIO.StringIO(job_record['cif']))
+    geomlines,primstruct=cif2geom(StringIO(job_record['cif']))
     basislines=basis_section(primstruct,job_record['dft']['basis'],
                               job_record['dft']['initial_charges'])
     supercell=["SUPERCEL"]

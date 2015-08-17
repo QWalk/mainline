@@ -94,8 +94,8 @@ def execute(job_list, element_list):
         break
       record=element.output(record)
 
-    f=open(jsonfile,'w')
-    json.dump(record,f)
+    with open(jsonfile,'w') as f:
+      json.dump(record,f)
     os.chdir(currwd)
     updated_job_list.append(record)
   return updated_job_list

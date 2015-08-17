@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -68,13 +69,12 @@ def read_dm(inpf):
   nmo=0
   while True:
     line=inpf.readline()
-    if line.find("tbdm")!=-1:
+    if "tbdm" in line:
       spl=line.split()
       nmo=int(spl[2])
       break
     if line=="":
       return None
-  #print "nmo ",nmo
   data={}
   #one-body up, one-body up err,   two-body-uu, two-body-uu err
   for nm in ['ou','oue','od','ode','tuu','tuue','tud','tude','tdu','tdue','tdd','tdde']:
@@ -82,10 +82,10 @@ def read_dm(inpf):
   
   while True:
     line=inpf.readline()
-    if line=="":
+    if line=="" or "Trace" in line:
       break;
     if line.find("tbdm: states") != -1:
-      data['states']=np.array(map(int,line.split()[3:-2]))
+      data['states']=np.array(list(map(int,line.split()[3:-1])))
       #print data['states']
     if line.find("One-body density") != -1:
       line=inpf.readline()
@@ -117,11 +117,10 @@ def read_dm(inpf):
 ################################################################
 
 
-def read_dm_offdiag(filename):
+def read_dm_offdiag(f):
   """Read in the 1-RDM and 2-RDM, if the off-diagonal elements were calculated
     for the 2-RDM"""
 
-  f=open(filename,'r')
   nmo=0
   while True:
     line=f.readline()
@@ -137,8 +136,10 @@ def read_dm_offdiag(filename):
     data[nm]=np.zeros((nmo*nmo,nmo*nmo))
   while True:
     line=f.readline()
-    if line=="":
+    if line=="" or "Trace" in line:
       break;
+    if line.find("tbdm: states") != -1:
+      data['states']=np.array(list(map(int,line.split()[3:-1])))
     if line.find("One-body density") != -1:
       line=f.readline()
       for i in range(0,nmo):
@@ -197,51 +198,6 @@ def gen_excitation(exc,occ):
 
 ################################################################
 
-def analyze_excitations(d):
-  occ_up=[]
-  occ_down=[]
-  unocc_up=[]
-  unocc_down=[]
-  for i,x in enumerate(d['ou'].diagonal()):
-    if abs(x-1.0) < 0.2:
-      occ_up.append(i)
-    else:
-      unocc_up.append(i)
-  for i,x in enumerate(d['od'].diagonal()):
-    if abs(x-1.0) < 0.2:
-      occ_down.append(i)
-    else:
-      unocc_down.append(i)
-  #print "occ_up",occ_up
-  #print "occ_down",occ_down
-  
-  threshold=0.001
-  nup=0
-  for i in occ_up:
-    for j in unocc_up:
-      if abs(d['ou'][i,j]) > threshold:
-        #print 'up ',i,'->',j,d['ou'][i,j]
-        #print "exc ", gen_excitation([(i,j)],occ_up), d['ou'][i,j]
-        nup+=1
-  for i in occ_down:
-    for j in unocc_down:
-      if abs(d['od'][i,j]) > threshold:
-        #print "exc down ", gen_excitation([(i,j)],occ_down), d['od'][i,j]
-        print " "
-
-  print "found ",nup, "potential singles excitations in the up channel"
-
-  ij_source=[] # where excitations can come from
-  ij_sink=[]  # where excitations can go
-  tb_thresh=0.03
-  for i in occ_up:
-    for j in occ_down:
-      if abs(d['tud'][i,j]-1.0) > tb_thresh:
-        print "i,j ",i,j, d['tud'][i,j]
-        ij_source.append((i,j))
-
-
-################################################################
 
 def _blob(x,y,area,colour):
     """
