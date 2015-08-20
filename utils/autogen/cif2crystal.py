@@ -191,7 +191,7 @@ class Cif2Crystal:
       print("ERROR: only support BFD pseudoptentials for now")
       quit()
 
-    geomlines,primstruct=cif2geom(StringIO(job_record['cif']))
+    geomlines,primstruct=cif2geom(StringIO(unicode(job_record['cif'],"utf-8")))
     basislines=basis_section(primstruct,job_record['dft']['basis'],
                               job_record['dft']['initial_charges'])
     supercell=["SUPERCEL"]

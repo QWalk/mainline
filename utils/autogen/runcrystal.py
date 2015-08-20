@@ -12,7 +12,7 @@ class RunCrystal:
     self._submitter = submitter
 
   def run(self, job_record):
-    job_record['control'][self._name_+'_jobid'] = self._submitter.execute(job_record, ['autogen.d12'], 'autogen.d12', 'autogen.d12.o')
+    job_record['control'][self._name_+'_jobid'] = [self._submitter.execute(job_record, ['autogen.d12'], 'autogen.d12', 'autogen.d12.o', )]
     return 'running'
 
   def output(self,job_record):
@@ -25,7 +25,6 @@ class RunCrystal:
       
     return job_record
 
-
   def check_outputfile(self,outfilename):
     if os.path.isfile(outfilename):
       f=open(outfilename,'r')
@@ -34,18 +33,13 @@ class RunCrystal:
           if "TOO MANY CYCLES" in line:
             print("Crystal failed: too many cycles.")
             return 'not_finished'
-          energy = float(line.split()[8])
-          if energy > 0.0:
-            print("Crystal failed: energy divergence.") 
-            return 'failed'
-        
           return 'ok'
     else:
       return 'not_started'
 
   def check_status(self,job_record):
     outfilename="autogen.d12.o"
-    self._submitter.output(job_record, ['autogen.d12.o', 'fort.9', 'fort.98'])
+    self._submitter.output(job_record, ['autogen.d12.o', 'fort.9'])
 
     status=self.check_outputfile(outfilename)
     if status=='failed':
@@ -138,10 +132,10 @@ class RunProperties:
       return status
 
     if self._submitter!=None:
-      status=self._submitter.status(job_record,[outfilename,'fort.9'])
+      status=self._submitter.status(job_record)
       if status=='running':
         return status
-      self._submitter.output(job_record, [outfilename])
+      self._submitter.output(job_record, [outfilename, 'fort.9'])
       status=self.check_outputfile(outfilename)
       if status=='ok':
         self._submitter.cancel(job_record['control'][self._name_+'_jobid'])

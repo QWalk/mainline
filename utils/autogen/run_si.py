@@ -13,8 +13,8 @@ import submission_tools
 
 #An example to submit to the Taub campus cluster.
 #Change these 
-directory="/home/lkwagner/project/tmp/" #the trailing slash is important!
-username="lkwagner"
+directory="/projects/erg/jaschil2/QMCDB/" #the trailing slash is important!
+username="jaschil2"
 
 
 job_record=job_control.default_job_record("si.cif")
