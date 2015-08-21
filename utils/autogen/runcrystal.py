@@ -12,7 +12,7 @@ class RunCrystal:
     self._submitter = submitter
 
   def run(self, job_record):
-    job_record['control'][self._name_+'_jobid'] = [self._submitter.execute(job_record, ['autogen.d12'], 'autogen.d12', 'autogen.d12.o', )]
+    job_record['control'][self._name_+'_jobid'] = [self._submitter.execute(job_record, ['autogen.d12'], 'autogen.d12', 'autogen.d12.o')]
     return 'running'
 
   def output(self,job_record):
