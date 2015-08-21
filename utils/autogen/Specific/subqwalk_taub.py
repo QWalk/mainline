@@ -1,7 +1,7 @@
 # RunVarianceOptimization for Taub
 
 def execute(px_ssh, infile, outfile, job_name):
-	qscript = """#PBS -l nodes=1:ppn=12
+	qscript = """#PBS -l nodes=1:ppn=16
 #PBS -l walltime=04:00:00
 #PBS -j oe
 #PBS -q secondary
@@ -9,9 +9,8 @@ def execute(px_ssh, infile, outfile, job_name):
 #PBS -N %s
 
 cd ${PBS_O_WORKDIR}
-module unload openmpi/1.6.4-intel-13.1
-module load openmpi/1.4-intel
-mpirun -np 12 ~/bin/qwalk %s >& %s"""%(job_name, infile, outfile)
+module load openmpi/1.6.5-gcc-4.7.1 intel/14.0
+mpirun -np 16 ~/bin/qwalk %s >& %s"""%(job_name, infile, outfile)
 	
 	px_ssh.sendline("echo '" + qscript + "' > batch_script")
 	px_ssh.prompt()
