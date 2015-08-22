@@ -78,11 +78,11 @@ wf2 { include qw.jast2 }
 }
 """)
     f.close()
-    job_record['control'][self._name_+'_jobid'] = self._submitter.execute(
+    job_record['control'][self._name_+'_jobid'] = [self._submitter.execute(
       job_record, 
       ['qw_0.opt','qw_0.sys','qw_0.slater','qw_0.orb','qw.basis','qw.jast2'], 
       'qw_0.opt',
-      'qw_0.opt.stdout')
+      'qw_0.opt.stdout')]
     
     return 'running'
 
@@ -152,11 +152,11 @@ include qw_0.sys
 trialfunc { include qw_0.enopt.wfin }
 """%enopt_options['vmc_nstep'])
     f.close()
-    job_record['control'][self._name_+'_jobid'] = self._submitter.execute(
+    job_record['control'][self._name_+'_jobid'] = [self._submitter.execute(
       job_record, 
       ['qw_0.enopt','qw_0.enopt.wfin','qw_0.sys','qw_0.slater','qw_0.orb','qw.basis'],
       'qw_0.enopt',
-      'qw_0.enopt.stdout')
+      'qw_0.enopt.stdout')]
     
     return 'running'
 
@@ -226,6 +226,9 @@ class QWalkRunDMC:
   def run(self,job_record,restart=False):
     qmc_options=job_record['qmc']
     kpts=self.get_kpts(job_record)
+    if self._name_+'_jobid' not in job_record['control'].keys():
+      job_record['control'][self._name_+'_jobid'] = []
+      job_record['control']['queue_id'] = []
     
     #choose which wave function to use
     if not restart:
@@ -248,12 +251,14 @@ class QWalkRunDMC:
               kname+'.orb','qw.basis']
           if restart:
             infiles.extend([basename+'.dmc.config',basename+'.dmc.log'])
-          job_record['control'][self._name_+'_jobid'] = self._submitter.execute(
+          job_id = self._submitter.execute(
             job_record,
             infiles,
             basename+".dmc",
             basename+".dmc.stdout")
+          job_record['control'][self._name_+'_jobid'].append(job_id)
 
+    job_record['control']['queue_id'] = job_record['control'][self._name_+'_jobid']
     return 'running'
 
 

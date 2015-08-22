@@ -13,8 +13,9 @@ import submission_tools
 
 #An example to submit to the Taub campus cluster.
 #Change these 
-directory="/home/lkwagner/project/tmp/" #the trailing slash is important!
-username="lkwagner"
+directory="this/is/the/remote/directory/" #the trailing slash is important!
+username="johndoe3"
+host = 'taub.campuscluster.illinois.edu'
 
 
 job_record=job_control.default_job_record("si.cif")
@@ -40,8 +41,8 @@ for alpha in [0.1]:
 
 # PX Tools #
 ssh_taub = pxssh.pxssh()
-ssh_taub.login('taub.campuscluster.illinois.edu', username)
-ftp_taub = pexpect.spawn('sftp '+ username+'@taub.campuscluster.illinois.edu')
+ssh_taub.login(host, username)
+ftp_taub = pexpect.spawn('sftp '+ username + '@' + host)
 
 ssh_taub.setecho(True)
 ftp_taub.setecho(True)

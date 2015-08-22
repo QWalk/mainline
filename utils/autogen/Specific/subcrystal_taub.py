@@ -1,6 +1,6 @@
 # RunCrystal for Taub
 
-def execute(px_ssh, infile, outfile):
+def execute(px_ssh, infile, outfile, job_name):
   px_ssh.prompt()
 
   qscript = """#PBS -l nodes=1:ppn=16
@@ -8,13 +8,14 @@ def execute(px_ssh, infile, outfile):
 #PBS -j oe
 #PBS -q secondary
 #PBS -o QSUB.stdout
+#PBS -N %s
 
 cd ${PBS_O_WORKDIR}
 cp %s INPUT
 module load openmpi/1.4-gcc+ifort
 mpirun -np 16 ~/bin/Pcrystal >& %s
 rm fort.*.pe*
-"""%(infile,outfile)
+"""%(job_name, infile,outfile)
   
   px_ssh.sendline("echo '" + qscript + "' > batch_script")
   px_ssh.prompt()
