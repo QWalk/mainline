@@ -118,7 +118,7 @@ class RunProperties:
       os.system("properties < prop.in > prop.in.o")
       return 'ok'
     else:
-      job_record['control'][self._name_+'_jobid'] = self._submitter.execute(job_record,["prop.in"])
+      job_record['control'][self._name_+'_jobid'] = self._submitter.execute(job_record,["prop.in"], 'prop.in', 'prop.in.o')
       return 'running'
 
   def check_outputfile(self,outfilename):
