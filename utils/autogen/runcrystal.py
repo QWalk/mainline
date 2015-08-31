@@ -45,7 +45,6 @@ class RunCrystal:
 
   def check_status(self,job_record):
     outfilename="autogen.d12.o"
-    self._submitter.output(job_record, ['autogen.d12.o', 'fort.9'])
 
     status=self.check_outputfile(outfilename)
     if status=='failed':
@@ -54,6 +53,7 @@ class RunCrystal:
       self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
       return status
 
+    self._submitter.output(job_record, ['autogen.d12.o', 'fort.9'])
     status=self._submitter.status(job_record)
     if status=='running':
       return status
