@@ -43,6 +43,7 @@ for alpha in [0.1]:
 ssh_taub = pxssh.pxssh()
 ssh_taub.login(host, username)
 ftp_taub = pexpect.spawn('sftp '+ username + '@' + host)
+ftp_taub.delaybeforesend = 0.5
 
 ssh_taub.setecho(True)
 ftp_taub.setecho(True)

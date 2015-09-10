@@ -22,10 +22,12 @@ class RemoteSubmitter:
     self.px_ssh.prompt()
 
     for dep in infiles:  
-      # print('Transferring file _to_ remote cluster:   ' + dep)     
+      print('Transferring file _to_ remote cluster:   ' + dep)     
+      self.px_ftp.expect('sftp>', timeout=None)
       self.px_ftp.sendline('put ' + os.getcwd() + '/' + dep + ' ' + self.remotePath + job_id)
-      self.px_ftp.expect('sftp>')
+      
 
+    print('Submitting to queue...')
     job_record['control']['queue_id'] = [self.module.execute(self.px_ssh, runfile, outfile, str(job_record['control']['id']))]
     return job_record['control']['queue_id'][0]
 
@@ -51,9 +53,12 @@ class RemoteSubmitter:
     
     for cop in outfiles:
       if cop in remote_files:
-        # print('Transferring file _from_ remote cluster:   ' + cop)
+        print('Transferring file _from_ remote cluster:   ' + cop)
+        self.px_ftp.expect('sftp>', timeout=None)
         self.px_ftp.sendline('get ' + self.remotePath + job_id + '/' + cop + ' ' + os.getcwd())
-        self.px_ftp.expect('sftp>')
+       
+    self.px_ftp.expect('sftp>', timeout=None)
+    self.px_ftp.sendline('pwd')
       
   def cancel(self, queue_id):
     output = []
