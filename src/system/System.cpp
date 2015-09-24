@@ -98,37 +98,34 @@ void System::calcKinetic(Wavefunction_data * wfdata,
 }
 
 /*
-  Added by Huihuo, calculating the kinetic energy for all electrons
-  into an array, --- this is particular for single-body term
- */
+   Added by Huihuo, calculating the kinetic energy for all electrons
+   into an array, --- this is particular for single-body term
+   */
 void System::calcKineticSeparated(Wavefunction_data * wfdata,
-				  Sample_point * sample,
-				  Wavefunction * wf)
+    Sample_point * sample,
+    Wavefunction * wf)
 {
   //cout << "Calculating kinetic energy \n";
 
   //  assert(lap.GetDim(0)>= wf->nfunc());
   int nelectrons=sample->electronSize();
   int nwf=wf->nfunc();
-  // lap=0;
+  wf->updateLap(wfdata,sample);
   Wf_return temp(nwf,5);
   Kin.Resize(nelectrons, nwf);
 
-  for(int w=0; w< nwf; w++)
-  {
-    for(int e=0; e< nelectrons; e++)
-    {
-
+  for(int w=0; w< nwf; w++) {
+    for(int e=0; e< nelectrons; e++) {
       wf->getLap(wfdata, e, temp);
       //  lap(e, w)+=temp.amp(w,4);
       Kin(e, w) = temp.amp(w, 4); 
       if ( temp.is_complex==1 ) {
-	// lap(e, w)-=(  temp.phase(w,1)*temp.phase(w,1)
-	//   +temp.phase(w,2)*temp.phase(w,2)
-	//   +temp.phase(w,3)*temp.phase(w,3) );
-	Kin(e, w)-=(  temp.phase(w,1)*temp.phase(w,1)
-		      +temp.phase(w,2)*temp.phase(w,2)
-		      +temp.phase(w,3)*temp.phase(w,3) );
+        // lap(e, w)-=(  temp.phase(w,1)*temp.phase(w,1)
+        //   +temp.phase(w,2)*temp.phase(w,2)
+        //   +temp.phase(w,3)*temp.phase(w,3) );
+        Kin(e, w)-=(  temp.phase(w,1)*temp.phase(w,1)
+            +temp.phase(w,2)*temp.phase(w,2)
+            +temp.phase(w,3)*temp.phase(w,3) );
       }
       //cout << "total laplacian: " << lap(0) <<  " amp  " 
       //  << temp.amp(w,4) << endl;
