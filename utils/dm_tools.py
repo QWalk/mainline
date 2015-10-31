@@ -162,6 +162,55 @@ def read_dm_offdiag(f):
                 data[n][i*nmo+j,k*nmo+l]=convert(a[index])
       break
   return data
+################################################################
+
+def read_ekt(f):
+  data={}
+  while True:
+    line=f.readline()
+    if 'EKT' in line:
+      data['nmo']=int(line.split()[2])
+      break
+
+  line=f.readline()
+  data['states']=np.array(list(map(int,line.split()[3:-1])))
+  print(data['states'],data['nmo'])
+  nmo=data['nmo']
+  for el in ['ou','oue','od','ode','vu','vue','vd','vde','cu','cue','cd','cde']:
+    data[el]=np.zeros((data['nmo'],data['nmo']))
+  while True:
+    line=f.readline()
+    if 'One-body density matrix' in line:
+      f.readline()
+      for i in range(0,nmo):
+        for j in range(0,nmo):
+          a=f.readline().split()
+          data['ou'][i,j]=convert(a[2])
+          data['oue'][i,j]=convert(a[3])
+          data['od'][i,j]=convert(a[4])
+          data['ode'][i,j]=convert(a[5])
+      
+    if 'Valence band matrix' in line:
+      f.readline()
+      for i in range(0,nmo):
+        for j in range(0,nmo):
+          a=f.readline().split()
+          data['vu'][i,j]=convert(a[2])
+          data['vue'][i,j]=convert(a[3])
+          data['vd'][i,j]=convert(a[4])
+          data['vde'][i,j]=convert(a[5])
+    if 'Conduction band matrix' in line:
+      f.readline()
+      for i in range(0,nmo):
+        for j in range(0,nmo):
+          a=f.readline().split()
+          data['cu'][i,j]=convert(a[2])
+          data['cue'][i,j]=convert(a[3])
+          data['cd'][i,j]=convert(a[4])
+          data['cde'][i,j]=convert(a[5])
+    if line=="" or "Trace" in line:
+      break
+  return data
 
 
 ################################################################
