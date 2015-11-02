@@ -58,7 +58,7 @@ def default_job_record(ciffile):
   job_record['control']['id']=1
   job_record['control']['elements']=[]
   job_record['control']['pretty_formula']=''
-  job_record['control']['queue_id']=[]
+  job_record['control']['queue_id']=[None,None]
   return job_record
 
 def execute(job_list, element_list):

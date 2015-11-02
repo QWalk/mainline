@@ -98,16 +98,16 @@ wf2 { include qw.jast2 }
 
   def check_status(self,job_record):
     outfilename="qw_0.opt.o"
-    self._submitter.output(job_record, ['qw_0.opt.o', 'qw_0.opt.wfout'])
+    self._submitter.transfer_output(job_record, ['qw_0.opt.o', 'qw_0.opt.wfout'])
       
     if self.check_outputfile(outfilename)=='ok':
-      self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
+      #self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
       return 'ok'
     status=self._submitter.status(job_record)
     if status=='running':
       return status
     if self.check_outputfile(outfilename)=='ok':
-      self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
+      #self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
       return 'ok'
       
   
@@ -184,7 +184,7 @@ trialfunc { include qw_0.enopt.wfin }
     self._submitter.output(job_record, [outfilename, 'qw_0.enopt.wfout'])
       
     if self.check_outputfile(outfilename)=='ok':
-      self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
+      #self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
       return 'ok'
     
     status=self._submitter.status(job_record)
@@ -339,7 +339,7 @@ wf2 { include opt.jast }
         status='not_finished'
     print("initial status",status)
     if status=='ok':
-      self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
+      #self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
       return status
 
 
@@ -352,7 +352,7 @@ wf2 { include opt.jast }
                          basename+'.dmc.config',
                          basename+'.dmc.o'])
     print(outfiles)
-    self._submitter.output(job_record, outfiles)
+    self._submitter.transfer_output(job_record, outfiles)
     status=self._submitter.status(job_record)
     print("status",status)
     if status=='running':
@@ -367,8 +367,8 @@ wf2 { include opt.jast }
     for e in results:
       if e['energy'][1] >  job_record['qmc']['dmc']['target_error']:
         status='not_finished'
-    if status == 'ok':
-      self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
+    #if status == 'ok':
+      #self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
     return status
   
 #-----------------------------------------------

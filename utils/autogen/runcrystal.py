@@ -5,14 +5,14 @@ import shutil
 ####################################################
 
 class RunCrystal:
-  _name_="RunCrystal"
-  _submitter=job_submission.TorqueCrystalSubmitter()
-
-  def __init__(self, submitter=job_submission.TorqueCrystalSubmitter()):
+  _name_ = "RunCrystal"
+  def __init__(self, submitter):
     self._submitter = submitter
 
   def run(self, job_record):
-    job_record['control'][self._name_+'_jobid'] = [self._submitter.execute(job_record, ['autogen.d12'], 'autogen.d12', 'autogen.d12.o')]
+    job_record['control'][self._name_+'_jobid'] = \
+        [self._submitter.execute(job_record, ['autogen.d12'],
+          'autogen.d12', 'autogen.d12.o')]
     return 'running'
 
   def output(self,job_record):
@@ -24,7 +24,6 @@ class RunCrystal:
           job_record['dft']['total_energy']=float(l.split()[8])    
       
     return job_record
-
 
   def check_outputfile(self,outfilename):
     if os.path.isfile(outfilename):
@@ -49,17 +48,17 @@ class RunCrystal:
     status=self.check_outputfile(outfilename)
     if status=='failed':
       return status
-    elif status=='ok':
-      self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
-      return status
+    #elif status=='ok':
+    #  self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
+    #  return status
 
-    self._submitter.output(job_record, ['autogen.d12.o', 'fort.9'])
+    self._submitter.transfer_output(job_record, ['autogen.d12.o', 'fort.9'])
     status=self._submitter.status(job_record)
     if status=='running':
       return status
     status=self.check_outputfile(outfilename)
     if status=='ok':
-      self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
+      #self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
       return status
     elif status=='not_finished' or status=='failed':
       return status
@@ -88,7 +87,6 @@ class RunCrystal:
 
 class RunProperties:
   _name_="RunProperties"
-  #_submitter=job_submission.TorquePropertiesSubmitter()
   def __init__(self,submitter=None):
     # 'None' implies to run in command line.
     self._submitter=submitter
@@ -118,7 +116,8 @@ class RunProperties:
       os.system("properties < prop.in > prop.in.o")
       return 'ok'
     else:
-      job_record['control'][self._name_+'_jobid'] = [self._submitter.execute(job_record,["prop.in"], 'prop.in', 'prop.in.o')]
+      job_record['control'][self._name_+'_jobid'] = \
+          [self._submitter.execute(job_record,["prop.in"], 'prop.in', 'prop.in.o')]
       return 'running'
 
   def check_outputfile(self,outfilename):
@@ -141,7 +140,7 @@ class RunProperties:
       status=self._submitter.status(job_record)
       if status=='running':
         return status
-      self._submitter.output(job_record, [outfilename, 'fort.9'])
+      self._submitter.transfer_output(job_record, [outfilename, 'fort.9'])
       status=self.check_outputfile(outfilename)
       if status=='ok':
         self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
