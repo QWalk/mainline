@@ -78,8 +78,11 @@ wf2 { include qw.jast2 }
 }
 """)
     f.close()
-    self._submitter.execute(job_record,
-            ['qw_0.opt','qw_0.sys','qw_0.slater','qw_0.orb','qw.basis','qw.jast2'])
+    job_record['control'][self._name_+'_jobid'] = [self._submitter.execute(
+      job_record, 
+      ['qw_0.opt','qw_0.sys','qw_0.slater','qw_0.orb','qw.basis','qw.jast2'], 
+      'qw_0.opt',
+      'qw_0.opt.stdout')]
     
     return 'running'
 
@@ -95,13 +98,16 @@ wf2 { include qw.jast2 }
 
   def check_status(self,job_record):
     outfilename="qw_0.opt.o"
+    self._submitter.output(job_record, ['qw_0.opt.o', 'qw_0.opt.wfout'])
       
     if self.check_outputfile(outfilename)=='ok':
+      self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
       return 'ok'
-    status=self._submitter.status(job_record,[outfilename,'qw_0.opt.wfout'])
+    status=self._submitter.status(job_record)
     if status=='running':
       return status
     if self.check_outputfile(outfilename)=='ok':
+      self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
       return 'ok'
       
   
@@ -146,8 +152,11 @@ include qw_0.sys
 trialfunc { include qw_0.enopt.wfin }
 """%enopt_options['vmc_nstep'])
     f.close()
-    self._submitter.execute(job_record,
-            ['qw_0.enopt','qw_0.enopt.wfin','qw_0.sys','qw_0.slater','qw_0.orb','qw.basis'])
+    job_record['control'][self._name_+'_jobid'] = [self._submitter.execute(
+      job_record, 
+      ['qw_0.enopt','qw_0.enopt.wfin','qw_0.sys','qw_0.slater','qw_0.orb','qw.basis'],
+      'qw_0.enopt',
+      'qw_0.enopt.stdout')]
     
     return 'running'
 
@@ -172,11 +181,13 @@ trialfunc { include qw_0.enopt.wfin }
 
   def check_status(self,job_record):
     outfilename="qw_0.enopt.o"
+    self._submitter.output(job_record, [outfilename, 'qw_0.enopt.wfout'])
       
     if self.check_outputfile(outfilename)=='ok':
+      self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
       return 'ok'
     
-    status=self._submitter.status(job_record,[outfilename,'qw_0.enopt.wfout'])
+    status=self._submitter.status(job_record)
     if status=='running':
       return status
     return self.check_outputfile(outfilename,
@@ -208,12 +219,16 @@ trialfunc { include qw_0.enopt.wfin }
 class QWalkRunDMC:
   _name_="QwalkRunDMC"
   _submitter=job_submission.TorqueQWalkSubmitter()
+  
   def __init__(self,submitter=job_submission.TorqueQWalkSubmitter()):
     self._submitter=submitter
 #-----------------------------------------------
   def run(self,job_record,restart=False):
     qmc_options=job_record['qmc']
     kpts=self.get_kpts(job_record)
+    if self._name_+'_jobid' not in job_record['control'].keys():
+      job_record['control'][self._name_+'_jobid'] = []
+      job_record['control']['queue_id'] = []
     
     #choose which wave function to use
     if not restart:
@@ -236,8 +251,14 @@ class QWalkRunDMC:
               kname+'.orb','qw.basis']
           if restart:
             infiles.extend([basename+'.dmc.config',basename+'.dmc.log'])
-          self._submitter.execute(job_record,infiles)
+          job_id = self._submitter.execute(
+            job_record,
+            infiles,
+            basename+".dmc",
+            basename+".dmc.stdout")
+          job_record['control'][self._name_+'_jobid'].append(job_id)
 
+    job_record['control']['queue_id'] = job_record['control'][self._name_+'_jobid']
     return 'running'
 
 
@@ -318,6 +339,7 @@ wf2 { include opt.jast }
         status='not_finished'
     print("initial status",status)
     if status=='ok':
+      self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
       return status
 
 
@@ -330,7 +352,8 @@ wf2 { include opt.jast }
                          basename+'.dmc.config',
                          basename+'.dmc.o'])
     print(outfiles)
-    status=self._submitter.status(job_record,outfiles)
+    self._submitter.output(job_record, outfiles)
+    status=self._submitter.status(job_record)
     print("status",status)
     if status=='running':
       return status
@@ -344,6 +367,8 @@ wf2 { include opt.jast }
     for e in results:
       if e['energy'][1] >  job_record['qmc']['dmc']['target_error']:
         status='not_finished'
+    if status == 'ok':
+      self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
     return status
   
 #-----------------------------------------------

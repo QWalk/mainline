@@ -3,8 +3,9 @@ from xml.etree.ElementTree import ElementTree
 from pymatgen.io.cifio import CifParser
 from pymatgen.core.periodic_table import Element
 import os
-import cStringIO 
+from io import StringIO 
 import sys
+import shutil
 
 library_directory="/projects/wagner/apps/qwalk_src/utils/autogen/" 
 
@@ -180,13 +181,16 @@ def cif2geom(ciffile):
 
 class Cif2Crystal:
   _name_="Cif2Crystal"
-  def run(self,job_record):
+  # Currently, check_status() and runcrystal requires user not to modify outfn. 
+  # In the future, we should probably store name of d12 in record, 
+  # so this is not needed.
+  def run(self,job_record,outfn="autogen.d12"):
     #TODO: support  kmesh,charge
     if job_record['pseudopotential']!='BFD':
       print("ERROR: only support BFD pseudoptentials for now")
       quit()
 
-    geomlines,primstruct=cif2geom(cStringIO.StringIO(job_record['cif']))
+    geomlines,primstruct=cif2geom(StringIO(str(job_record['cif'])))
     basislines=basis_section(primstruct,job_record['dft']['basis'],
                               job_record['dft']['initial_charges'])
     supercell=["SUPERCEL"]
@@ -229,6 +233,8 @@ class Cif2Crystal:
       "100000000",
       "EXCHSIZE",
       "10000000",
+      "TOLDEE",
+      str(job_record['dft']['edifftol']),
       "FMIXING",
       str(job_record['dft']['fmixing']),
       "BROYDEN",
@@ -251,16 +257,31 @@ class Cif2Crystal:
         ]
         for i,s in enumerate(job_record['dft']['initial_spin']):
           outlines += [str(i+1)+" "+str(s)+" "]
+    if job_record['dft']['restart_from'] != None:
+      try: 
+        shutil.copy(job_record['dft']['restart_from'],'fort.20')
+        outlines += ["GUESSP"]
+      except IOError:
+        print("Error: couldn't find restart file")
+        return 'failed'
     outlines += ["END"]
-    with open("autogen.d12",'w') as outf:
+    with open(outfn,'w') as outf:
       outf.write('\n'.join(outlines))
       outf.close()
     return 'ok'
+
   def check_status(self,job_record):
-    if os.path.isfile("autogen.d12"):
+    if not os.path.isfile("autogen.d12"):
+      return 'not_started'
+    status = self.run(job_record,outfn="new.autogen.d12")
+    new = open("new.autogen.d12",'r').read()
+    old = open("autogen.d12",'r').read()
+    if new.split() != old.split():
+      print("Warning: job record inconsistent with past input")
       return 'ok'
     else:
-      return 'not_started'
+      return 'ok'
+
   def retry(self,job_record):
     return self.run(job_record)
   def output(self,job_record):

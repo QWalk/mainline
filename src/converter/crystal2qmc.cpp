@@ -1184,7 +1184,7 @@ int readMO(istream & is, long int start,
       if(words[0]=="BETA") break;
       if (words[1]=="NEWK") break; 
 
-      if(words.size()!= nmo_this+1) {
+      if(words.size()!= 2*nmo_this+1) {
         cerr << "Problem reading in MOs: expected " << nmo_this << " orbitals, got " << words.size()-1 << endl;
         cerr << "Line:" << line << endl;
         exit(1);
