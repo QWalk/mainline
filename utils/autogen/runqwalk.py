@@ -70,7 +70,11 @@ class QWalkVarianceOptimize:
   
   def run(self,job_record):
     f=open("qw_0.opt",'w')
-    f.write("""method { optimize } 
+    nit=job_record['qmc']['variance_optimize']['niterations']
+    nruns=job_record['qmc']['variance_optimize']['nruns']
+    for i in range(0,nruns):
+        f.write("method { optimize iterations %i } "%nit)
+    f.write("""
 include qw_0.sys
 trialfunc { slater-jastrow
 wf1 { include qw_0.slater } 

@@ -115,7 +115,7 @@
              "type":"object",
              "properties":{
                 "niterations":{"type":"integer","default":10},
-                "nruns":{"type":"integer","default":2}
+                "nruns":{"type":"integer","default":3}
               }
            }, 
 

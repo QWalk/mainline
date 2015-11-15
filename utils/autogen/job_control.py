@@ -46,7 +46,7 @@ def default_job_record(ciffile):
 
   job_record['qmc']['variance_optimize']={}
   job_record['qmc']['variance_optimize']['niterations']=10
-  job_record['qmc']['variance_optimize']['nruns']=2
+  job_record['qmc']['variance_optimize']['nruns']=3
 
 
   job_record['qmc']['energy_optimize']={}
