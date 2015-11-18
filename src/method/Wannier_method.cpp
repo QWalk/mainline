@@ -41,7 +41,10 @@ void Wannier_method::read(vector <string> words,
   allocate(options.systemtext[0],  sys);
 
   if(! readvalue(words,pos=0,resolution,"RESOLUTION"))
-    resolution=.2;
+    resolution=.1;
+  if(! readvalue(words,pos=0,max_opt_steps,"MAX_OPT_STEPS"))
+    max_opt_steps=80000;
+
   if(!readvalue(words,pos=0, out_orbs, "OUT_ORB"))
     out_orbs=options.runid+".orb";
   if(!readvalue(words,pos=0, shake,"SHAKE"))
@@ -498,7 +501,7 @@ void Wannier_method::optimize_rotation(Array3 <dcomplex> &  eikr,
       Rgen(ii,jj)=rng.gasdev()*pi*shake;
     }
   }
-  for(int step=0; step < 800; step++) { 
+  for(int step=0; step < max_opt_steps; step++) { 
     doublevar fbase=evaluate_local(eikr,Rgen,R);
     for(int ii=0; ii <norb; ii++) { 
       cout << "deriv ";

@@ -66,6 +66,7 @@ private:
   
   Array1 < Array1  <int> > orbital_groups;	//groups of orbitals to localize together
   doublevar resolution;	//grid coarsness: 10=coarser 0.1=finer
+  int max_opt_steps; // Maximum number of optimization steps
   MO_matrix * mymomat; //will hold MO information
   Sample_point * mywalker; //a single configuration/walker
   System * sys;
