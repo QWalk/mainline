@@ -1,20 +1,18 @@
 
 MY_SOURCES:= \
-        Determinant_select_method.cpp \
-	Dmc_method.cpp \
+          Determinant_select_method.cpp \
+  Dmc_method.cpp \
         Generate_sample.cpp \
         Rmc_corr_method.cpp \
 	Rndmc_method.cpp \
         Energy_slice.cpp \
 	Force_fitter.cpp \
-	Levenberg_Marquardt.cpp \
         Linear_optimization.cpp \
         Localize_method.cpp \
 	Lowdin_method.cpp \
 	Maximize_method.cpp \
 	Nodes_method.cpp \
         Shdmc_method.cpp \
-	Optimize_method2.cpp \
 	Optimize_method.cpp \
 	Plot_method.cpp \
         Plot1d_method.cpp \
