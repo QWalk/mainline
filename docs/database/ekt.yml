@@ -1,0 +1,78 @@
+type: Entry
+name: EKT
+keyword: EKT
+is_a: Average generator
+title: Extended Koopmans theorem matrix elements.
+description: > 
+   This is to calculate the ionization energy and electron affinity using the extended Koopmans' theorem (EKT). The EKT module compute the following matrix element,
+
+
+   (1) One-body reduced density matrix. \( \rho_{ij}=\langle \Psi^N |c_i^\dagger c_j|\Psi^N\rangle \), where \( \Psi^N \) is the wave function of the N-electron system, and \( c_i \) is the annihilation operator in second quantization. This matrix elements of \( \rho \) is evaluated as
+   \[
+   \rho_{ij} =\sum_{n=1}^N \int d\vec r'\left\langle \phi_i(\vec r_n)\phi_j^*(\vec r')\frac{\psi(\vec r_1,\cdots,\vec r',\cdots,\vec r_N)}{\psi(\vec r_1, \cdots, \vec r_n,\cdots,\vec r_N)}\right\rangle_{|\psi|^2} 
+   \]
+   while \$\phi_i\$ is the orbitals by which the density matrix is represented with.
+
+
+   (2) Electron ionization matrix. \(V_{ij}^v = \langle \Psi^{N}|c_i^\dagger c_j H -c_i^\dagger H c_j  |\Psi^{N}\rangle\)
+   \[
+   V_{ij}^v
+    =\sum_{n=1}^N\int d\vec r_n'\Big\langle \phi_i(\vec r_n')\phi_j^*(\vec r_n)\frac{\psi^*(\vec r_1, \cdots, \vec r_n', \cdots, \vec r_N)}{\psi^*(\vec r_1, \cdots, \vec r_n, \cdots, \vec r_N)}\frac{H_n \psi(\vec r_1, \cdots, \vec r_n \cdots, \vec r_N)}{ \psi(\vec r_1, \cdots, \vec r_n \cdots, \vec r_N)}\Big\rangle_{|\psi|^2}\,,
+   \]
+   where \(H_n\) is the hamiltonian corresponds to the n-th particle (including kinetic energy, external potential energy, and coloumb energy from other electrons). 
+
+
+    (3) Electron affinity matrix. \(V_{ij}^c = \langle \psi^N|c_i [\hat H, c_j^\dagger]|\psi^N\rangle\), which is evaluated as
+   \[
+   \int \phi_i^*(r_0) \hat h_0\phi_j(r_0)dr_0 + \sum_{n=1}^N \int dr_0 \Bigg[\langle\phi_i^*(\vec r_0)\phi_j(\vec r_0)v(\vec r_0, \vec r_n)\rangle_{|\psi(\vec r_1\cdots r_N)|^2} \nonumber\\
+   \quad - \left\langle\frac{\psi^*(\vec r_1,\cdots,\vec r_0,\cdots, \vec r_N)}{\psi^*(\vec r_1,\cdots, \vec r_n, \cdots \vec r_N)}\phi_i^*(\vec r_n)\Big(\phi_j(\vec r_0)\sum_{m=1}^Nv(\vec r_0, \vec r_m)+\hat{h}_0\phi_j(\vec r_0)\Big)\right\rangle_{|\psi(\vec r_1\cdots\vec r_N)|^2}\Bigg]\,,
+   \]
+   where \( \hat h_0 \) is the kinetic term, and \( v(\vec r_i, \vec r_j)\) is the Coulomb interacting term. 
+
+   The ionization spectrum is obtained by solving the following generalized eigenvalue problem, 
+   \[
+   [\vec V^v - \epsilon \mathbf{\rho} ]\mathbf{\alpha}  = 0\,.
+   \]
+   Suppose the number of electron in the system is N. The inonization spectrum corresponds to the lowest N eigenvalues of the equation.
+
+   The electron affinity spectrum is obtained by 
+   \[
+   (\vec V^c - \epsilon_c \vec S^c)\vec \alpha_c = 0, \quad \vec S = 1 -\vec \rho\,,
+   \]
+   The electron affinity spectrum corresponds to the eigenvalues start from N+1. 
+  
+   The EKT should converge as the number of states included increases. However, the stochastic uncertainty also increases with more states. It is often useful to try a few different cutoffs on the number of states in order to converge the results.
+
+   Therefore, in solving the generalized eigenvalue problem, we might include only {1 2 3 ... Ns'}, we increase Ns' before the stochastic error goes up. 
+
+
+   The output of the EKT can be read in using functions from utils/read_dm.py.
+example_input: >
+  method { VMC
+  average { 
+     EKT
+     STATES { 1 2 3 4 5 6 7 8 }
+     ORBITALS {
+         CUTOFF_MO
+         MAGNIFY 1
+         NMO 8
+         ORBFILE qwalk.orb
+         INCLUDE qwalk.basis
+         CENTERS { USEATOMS }
+     } 
+  }
+  }
+  include qwalk.sys
+  trialfunc {  include qwalk.slater }
+required: 
+  - keyword: ORBITALS/CORBITALS
+    type: section
+    description: >
+       Input for a set of orbitals. When ORBITALS section is used,
+       a real-valued wave function is constructed.  When a CORBITALS section is used,
+       the orbitals will be complex-valued.
+optional:
+  - keyword: STATES
+    type: section
+    default: All the orbitals in the ORBITALS section.
+    description: A list of the orbitals on which you'd like to evaluate the density matrices.<

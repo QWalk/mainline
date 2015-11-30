@@ -1,0 +1,32 @@
+type: Entry
+name: Poly_pade
+keyword: POLYPADE
+title: Polynomial Pade function
+is_a: Basis function
+description: >
+  Set of functions of the form
+  \[
+  a_n(r) = \frac{1-z(r/b_0)}{1+\beta_n z(r/b_0)}
+  \]
+  where
+  \[
+  z(x)=x^2(6-8x+3x^2)
+  \]
+  and
+  \[
+   \beta_n=\exp(\beta_0+1.6*n)-1
+  \]
+  
+   This creates a set of monotonically functions that have zero derivative and value equal to 1 at r=0, as well as zero derivative and zero value at \( r= b_0 \).
+   \( \beta_0 \) can be optimized and sets the longest distance function.
+required:
+  - keyword: NFUNC
+    type: integer
+    description: The number of functions.
+  - keyword: BETA
+    type: float
+    description: The value of \( \beta_0 \)
+  - keyword: RCUT 
+    type: float
+    description: The value of \( b_0 \)
+optional: []

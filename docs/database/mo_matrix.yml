@@ -1,0 +1,50 @@
+type: Entry
+name: orbital3d
+keyword: CUTOFF_MO, STANDARD_MO, or BLAS_MO
+is_a: Orbital
+title: Molecular orbital evaluator
+description: >
+  This is a collection of objects that evaluates orbitals as a linear combination of basis functions, as
+  \( \phi_i({\mathbf r})=\sum_j c_{ij} b_j({\mathbf r}) \).
+  All of these take the same input; they only differ in how they evaluate the sum.
+  Typically BLAS_MO is the fastest implemenation if QWalk was compiled with USE_BLAS, followed by CUTOFF_MO.
+
+
+
+  Since there are often many \( c_{ij} \) coefficients, these are stored in a .orb file. Its format is as follows.
+  First there is a table with headers MO,AO(on a center),Center, Coefficient number.
+  AO is corresponds to the basis label on a given center, that is, \( b_j \).
+  Then the keyword COEFFICIENTS, followed by the \( c_{ij} \) in the order given in the table.
+  For a complex orbital, the coefficients are in the format (real,imaginary).
+
+  For example, a simple .orb file for H\(_2\) in a minimal basis would be
+
+      1 1 1 1
+      1 1 2 2
+      2 1 1 3
+      2 1 2 4
+      COEFFICIENTS
+      0.5 0.5 0.5 -0.5
+
+  This defines two molecular orbitals, with orbital 1 bonding and orbital 2 antibonding.
+
+related: []
+required: 
+  - keyword: ORBFILE
+    type: string
+    description: Name of a file containing the orbital coefficients \( c_{ij} \).
+  - keyword: NMO
+    type: integer
+    description: Number of molecular orbitals to read from the .orb file.
+  - keyword: BASIS
+    type: section
+    description: Input for a [Basis function](Basis function). There can be several of these sections in a row (the order matters!)
+optional: 
+  - keyword: CENTERS
+    type: section
+    default: CENTERS { USEATOMS } 
+    description: Input for a Centers object. Possibilities include USEATOMS, USEGLOBAL (to use a set provided by the Hamiltonian), and READ to read in a centers file.
+  - keyword: MAGNIFY
+    type: float
+    default: 1.0
+    description: Multiply all \( c_{ij} )\ by this factor. 

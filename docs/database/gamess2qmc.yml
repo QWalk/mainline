@@ -1,0 +1,35 @@
+type: Entry
+name: GAMESS2qmc
+keyword: gamess2qmc
+is_a: Converter
+title: GAMESS to QWalk
+description: > 
+  Basic usage:  
+
+
+      gamess2qmc -o (outputroot)  (gamess output root)
+  
+  By default, gamess2qmc will take the last geometry in the .out file and the last set of
+  molecular orbitals in the .dat file.  This is usually the right
+  behavior.  GVB wavefunctions are automatically read in. 
+
+
+required: []
+optional:
+  - keyword: -o
+    type: filename
+    default: GAMESS root
+    description: QWalk filenames will start with the value of this option
+  - keyword: -virtual
+    type: integer
+    default: 10
+    description: Include this number of virtual orbitals into the orb file. 
+  - keyword: -compare_punch
+    type: filename
+    default: do nothing
+    description:  >
+      Compares the orbitals in the current punch file to the one specified
+      here.  Will print what orbitals have changed/rotated, and if any cannot be 
+      mapped between the two wavefunctions.
+
+

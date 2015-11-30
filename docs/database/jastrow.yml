@@ -1,0 +1,64 @@
+type: Entry
+name: Jastrow
+keyword: JASTROW
+is_a: Wavefunction
+title: Jastrow correlation factor
+description: > 
+  This wave function's job is to represent the electron-electron correlations. It is a symmetric function with explicit electron-electron distances.
+   There are three main terms in this function; electron-ion, electron-electron, and electron-electron-ion.
+   In all that follows, the index \( \alpha \) stands for the ion (nucleus) coordinate, the indices \( i,j \) stand for electron-electron distances, and \( k,l,m \) are expansion indices.
+
+   Electron-ion. \( \sum_{i\alpha} \sum_k c_k a_k (r_{i\alpha}) \)
+
+   Electron-electron. \( \sum_{ij} \sum_k c_k b_k (r_{ij}) \)
+
+   Electron-electron-ion. \( \sum_{\alpha ij} \sum_{klm} c_{klm} (a_k(r_{i\alpha})a_l(r_{j\alpha}) + a_k(r_{j\alpha})a_l(r_{i\alpha})  ) b_k (r_{ij}) \)
+
+   For efficiency reasons, the Jastrow factor is organized into GROUP sections. Each GROUP can take one of the options listed below.
+
+required: []
+optional: 
+  - keyword: EIBASIS
+    type: section
+    default: empty
+    description: > 
+      A section for a [Basis function](Basis function) object. This will represent the \( a_k \) functions.
+  - keyword: EEBASIS
+    type: section
+    default: empty
+    description: > 
+      A section for a [Basis function](Basis function) object. This will represent the \( b_k \) functions.
+  - keyword: ONEBODY
+    type: section
+    default: empty
+    description: > 
+      List of expansion coefficients(floats) for the electron-ion terms.  There must be one section 
+         for each atom type, each beginning with the name of the atom.
+          (for example, COEFFICIENTS { Li 3.4 2.3 }
+  - keyword: TWOBODY
+    type: section
+    default: empty
+    description: > 
+      List of expansion coefficients for the electron-electron terms. For example, COEFFICIENTS { 0.1 0.2 0.3 }.
+  - keyword: TWOBODY_SPIN
+    type: section
+    default: empty
+    description: > 
+      List of expansion coefficients for the electron-electron terms with different spin-dependent terms. For example, LIKE_COEFFICIENTS { 0.1 0.2 0.3 } UNLIKE_COEFFICIENTS { 0.05 0.2 0.3 }.
+  - keyword: THREEBODY
+    type: section
+    default: empty
+    description: > 
+      List of expansion coefficients(floats) for the electron-electron-ion terms.  There must be one section 
+         for each atom type, each beginning with the name of the atom.
+        (for example, COEFFICIENTS { Li 3.4 2.3 }
+        With the defaults, there are a maximum
+       of 12 parameters they have requirements on the number of basis functions.
+          3 parms: 1 EE and 1 EI function<
+        5 parms: 1 EE and 2 EI 
+        7 parms: 2 EE and 2 EI 
+        12 parms: 2 EE and 3 EI 
+
+     
+      
+     
