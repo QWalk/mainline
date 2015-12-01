@@ -50,7 +50,7 @@ The main components of a QMC (or just quantum!) calculation are:
 The input of QWalk is set up to provide those four components of a calculation in a modular way. To assist with this, there are several important helper components:
 
 1. Simple [Basis function](Basis function)s to represent 3-dimensional functions in real space.
-2. [One-particle orbitals](Orbitals) made up of linear combinations of basis functions.
+2. [One-particle orbitals](Orbital) made up of linear combinations of basis functions.
 3. [Converter](Converter) programs to translate wave functions from DFT and quantum chemistry codes to QWalk format.
 
 ## Input rules
