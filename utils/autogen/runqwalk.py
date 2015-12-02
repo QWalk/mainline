@@ -87,13 +87,29 @@ wf2 { include qw.jast2 }
     return 'running'
 
 
-  def check_outputfile(self,outfilename):
+  def check_outputfile(self,outfilename,reltol = 0.1,abstol=10.):
+    status = 'unknown'
     if os.path.isfile(outfilename):
-      f=open(outfilename,'r')
-      for line in f:
-        if 'Wall' in line:
+      outf = open(outfilename,'r')
+      outlines = outf.read().split('\n')
+      disps = [float(l.split()[4]) in outlines if "dispersion" in l]
+      if len(disps) > 1:
+        dispdiff = abs(disps[-1] - disps[0])
+        if (dispdiff < disps[-1]*reltol) and disps[-1] < abstol:
           return 'ok'
-      return 'running'
+        else:
+          return 'not_finished'
+      else:
+        return 'failed'
+    else:
+      return 'not_started'
+  #def check_outputfile(self,outfilename):
+  #  if os.path.isfile(outfilename):
+  #    f=open(outfilename,'r')
+  #    for line in f:
+  #      if 'Wall' in line:
+  #        return 'ok'
+  #    return 'running'
 
 
   def check_status(self,job_record):
