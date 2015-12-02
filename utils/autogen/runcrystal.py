@@ -155,6 +155,7 @@ class RunProperties:
       
   def retry(self,job_record):
     return self.run(job_record)
+
   def output(self,job_record):
     return job_record
 

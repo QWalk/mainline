@@ -81,7 +81,10 @@ class LocalSubmitter:
     job_record['control']['queue_id'] = [qid, job_record['control']['id']]
 
   def status(self,job_record):
-    status = self._job_status(job_record['control']['queue_id'][0])
+    if len(job_record['control']['queue_id']) == 0:
+      status = "unknown"
+    else:
+      status = self._job_status(job_record['control']['queue_id'][0])
     return status
 
   def transfer_output(self,job_record,outfiles):

@@ -279,7 +279,7 @@ class Cif2Crystal:
     old = open("autogen.d12",'r').read()
     if new.split() != old.split():
       print("Warning: job record inconsistent with past input")
-      return 'ok'
+      return 'failed'
     else:
       return 'ok'
 
