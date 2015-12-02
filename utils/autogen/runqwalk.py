@@ -87,17 +87,20 @@ wf2 { include qw.jast2 }
     return 'running'
 
 
-  def check_outputfile(self,outfilename,reltol = 0.1,abstol=10.):
+  def check_outputfile(self,outfilename,reltol=0.1,abstol=10.):
     status = 'unknown'
     if os.path.isfile(outfilename):
       outf = open(outfilename,'r')
       outlines = outf.read().split('\n')
-      disps = [float(l.split()[4]) in outlines if "dispersion" in l]
+      disps = [float(l.split()[4]) for l in outlines if "dispersion" in l]
       if len(disps) > 1:
         dispdiff = abs(disps[-1] - disps[0])
         if (dispdiff < disps[-1]*reltol) and disps[-1] < abstol:
           return 'ok'
         else:
+          print("Variance optimization dispersion not converged:")
+          print("rel_change(%.3f>%.3f) or abs(%.0f>%.0f)"\
+              %(dispdiff,reltol,disps[-1],abstol))
           return 'not_finished'
       else:
         return 'failed'
@@ -122,15 +125,35 @@ wf2 { include qw.jast2 }
     status=self._submitter.status(job_record)
     if status=='running':
       return status
-    if self.check_outputfile(outfilename)=='ok':
+    status = self.check_outputfile(outfilename)
+    if status == 'ok':
       #self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
       return 'ok'
-      
-  
+    if status == 'not_finished':
+      return 'not_finished'
+
     return 'not_started'
       
   def retry(self,job_record):
-    return self.run(job_record)
+    if not os.path.isfile("qw_0.opt.wfout"):
+      return self.run(job_record)
+
+    inplines = [
+        "method { optimize }",
+        "include qw_0.sys",
+        "trialfunc { include qw_0.opt.wfout }"
+      ]
+    with open("qw_0.opt",'w') as inpf:
+      inpf.write('\n'.join(inplines))
+
+    job_record['control'][self._name_+'_jobid'] = [self._submitter.execute(
+      job_record, 
+      ['qw_0.opt','qw_0.sys','qw_0.slater','qw_0.orb','qw.basis','qw.jast2'], 
+      'qw_0.opt',
+      'qw_0.opt.stdout')]
+    
+    return 'running'
+
   def output(self,job_record):
     outfilename="qw_0.opt.o"
     f=open(outfilename,'r')
@@ -197,7 +220,7 @@ trialfunc { include qw_0.enopt.wfin }
 
   def check_status(self,job_record):
     outfilename="qw_0.enopt.o"
-    self._submitter.output(job_record, [outfilename, 'qw_0.enopt.wfout'])
+    self._submitter.transfer_output(job_record, [outfilename, 'qw_0.enopt.wfout'])
       
     if self.check_outputfile(outfilename)=='ok':
       #self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
