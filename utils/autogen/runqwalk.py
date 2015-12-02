@@ -181,7 +181,7 @@ trialfunc { include qw_0.enopt.wfin }
 
   def check_status(self,job_record):
     outfilename="qw_0.enopt.o"
-    self._submitter.output(job_record, [outfilename, 'qw_0.enopt.wfout'])
+    self._submitter.transfer_output(job_record, [outfilename, 'qw_0.enopt.wfout'])
       
     if self.check_outputfile(outfilename)=='ok':
       #self._submitter.cancel(job_record['control'][self._name_+'_jobid'])

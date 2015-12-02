@@ -16,16 +16,25 @@ class RunCrystal:
     return 'running'
 
   def output(self,job_record):
+    """ Collect results from output."""
     if os.path.isfile('autogen.d12.o'):
       f = open('autogen.d12.o', 'r')
       lines = f.readlines()
-      for l in lines:
-        if 'SCF ENDED' in l:
-          job_record['dft']['total_energy']=float(l.split()[8])    
+      for li,line in enumerate(lines):
+        if 'SCF ENDED' in line:
+          job_record['dft']['total_energy']=float(line.split()[8])    
+        elif 'TOTAL ATOMIC SPINS' in line:
+          moms = []
+          shift = 1
+          while "TTT" not in lines[li+shift]:
+            moms += map(float,lines[li+shift].split())
+            shift += 1
+          job_record['dft']['mag_moments']=moms
       
     return job_record
 
   def check_outputfile(self,outfilename):
+    """ Check if outputfile reports sucess. """
     if os.path.isfile(outfilename):
       f=open(outfilename,'r')
       for line in f:
@@ -43,6 +52,7 @@ class RunCrystal:
       return 'not_started'
 
   def check_status(self,job_record):
+    """ Decide status of job (in queue or otherwise). """
     outfilename="autogen.d12.o"
 
     status=self.check_outputfile(outfilename)
