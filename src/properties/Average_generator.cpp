@@ -74,97 +74,6 @@ int allocate(vector<string> & words, Average_generator * & avg) {
   avg->read(words);
   return 1;
 }
-/*
-void Average_dipole::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-
-void Average_structure_factor::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-
-void Average_twobody_correlation::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-void Average_manybody_polarization::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-
-
-void Average_obdm::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-
-void Average_tbdm::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-
-void Average_local_moments::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-
-void Average_density_moments::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-
-void Average_linear_derivative::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-
-void Average_linear_delta_derivative::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-
-
-void Average_spherical_density::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-
-void Average_spherical_density_grid::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-
-void Average_line_density::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-
-
-void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-void Average_region_fluctuation::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-void Average_region_density_matrix::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-
-void Average_wf_parmderivs::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-
-void Average_enmoment::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Psueopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-*/
 //############################################################################
 //Average_dipole
 
@@ -559,17 +468,6 @@ void Average_twobody_correlation::write_summary(Average_return & avg, Average_re
   os << "    r  g(r) sigma(g(r))   g(r)  sigma(g(r))" << endl;
   assert(avg.vals.GetDim(0) >=2*npoints);
   assert(err.vals.GetDim(0) >=2*npoints);
-
-  if(direction==0) { 
-    for(int i=0; i< npoints; i++) { 
-      double r=resolution*i;
-      double renorm=1.0/(4*pi*r*r*resolution);
-      avg.vals(i)*=renorm;
-      avg.vals(npoints+i)*=renorm;
-      err.vals(i)*=renorm;
-      err.vals(npoints+i)*=renorm;
-    }
-  }
   
   
   for(int i=0; i< npoints; i++) {
