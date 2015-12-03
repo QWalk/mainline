@@ -69,22 +69,24 @@ class LocalSubmitter:
   """Abstract submission class. Child classes must define initialization and
   internal functions like _submit_job"""
   
-  def execute(self,job_record,dependencies,inpfn,outfn):
+  def execute(self,job_record,dependencies,inpfns,outfn):
     """Generate qsub file for this job, run it, and return qid from qsub
     transaction."""
     qid = job_record['control']['queue_id'] = self._submit_job(
-        inpfn = inpfn,
+        inpfns,
         outfn = outfn,
         jobname = job_record['control']['id'],
         loc = os.getcwd()
       )
-    job_record['control']['queue_id'] = [qid, job_record['control']['id']]
+    job_record['control']['queue_id'] = qid
+    #job_record['control']['queue_id'] = [qid, job_record['control']['id']]
+    return qid
 
   def status(self,job_record):
-    if len(job_record['control']['queue_id']) == 0:
+    try:
+      status = self._job_status(job_record['control']['queue_id'])
+    except KeyError:
       status = "unknown"
-    else:
-      status = self._job_status(job_record['control']['queue_id'][0])
     return status
 
   def transfer_output(self,job_record,outfiles):
