@@ -58,9 +58,9 @@ class RunCrystal:
     status=self.check_outputfile(outfilename)
     if status=='failed':
       return status
-    #elif status=='ok':
+    elif status=='ok':
     #  self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
-    #  return status
+      return status
 
     self._submitter.transfer_output(job_record, ['autogen.d12.o', 'fort.9'])
     status=self._submitter.status(job_record)

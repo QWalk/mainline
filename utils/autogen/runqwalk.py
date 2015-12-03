@@ -276,8 +276,30 @@ class QWalkRunDMC:
       elif qmc_options['dmc']['optimizer']=='energy':
         os.system("separate_jastrow qw_0.enopt.wfout > opt.jast")
 
-    #make and submit the runs.
-    #this could be extended to bundle jobs
+    ##make and submit the runs.
+    ##this could be extended to bundle jobs
+    #for k in kpts:
+    #  for t in qmc_options['dmc']['timestep']:
+    #    for loc in qmc_options['dmc']['localization']:
+    #      kname="qw_%i"%k
+    #      basename="qwt%g%s_%i"%(t,loc,k)
+    #      f=open(basename+".dmc",'w')
+    #      f.write(self.dmcinput(t,loc,k,qmc_options['dmc']['nblock']))
+    #      f.close()
+    #      infiles=[basename+".dmc","opt.jast",kname+'.sys',kname+'.slater',
+    #          kname+'.orb','qw.basis']
+    #      if restart:
+    #        infiles.extend([basename+'.dmc.config',basename+'.dmc.log'])
+    #      job_id = self._submitter.execute(
+    #        job_record,
+    #        infiles,
+    #        basename+".dmc",
+    #        basename+".dmc.stdout")
+    #      job_record['control'][self._name_+'_jobid'].append(job_id)
+
+    # Make and submit the runs: bundle all jobs.
+    infiles = []
+    inpfns = []
     for k in kpts:
       for t in qmc_options['dmc']['timestep']:
         for loc in qmc_options['dmc']['localization']:
@@ -286,18 +308,17 @@ class QWalkRunDMC:
           f=open(basename+".dmc",'w')
           f.write(self.dmcinput(t,loc,k,qmc_options['dmc']['nblock']))
           f.close()
-          infiles=[basename+".dmc","opt.jast",kname+'.sys',kname+'.slater',
-              kname+'.orb','qw.basis']
+          infiles.extend([basename+".dmc","opt.jast",kname+'.sys',kname+'.slater',
+              kname+'.orb','qw.basis'])
           if restart:
             infiles.extend([basename+'.dmc.config',basename+'.dmc.log'])
-          job_id = self._submitter.execute(
-            job_record,
-            infiles,
-            basename+".dmc",
-            basename+".dmc.stdout")
-          job_record['control'][self._name_+'_jobid'].append(job_id)
+          inpfns.append(basename+".dmc")
 
-    job_record['control']['queue_id'] = job_record['control'][self._name_+'_jobid']
+    qid = self._submitter.execute(
+      job_record,
+      infiles, # Dependencies. This naming needs to be less redundant.
+      inpfns,  # Actual DMC inputs.
+      "qw.dmc.stdout")
     return 'running'
 
 
