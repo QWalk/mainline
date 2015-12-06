@@ -49,6 +49,6 @@ optional:
     type: integer
     default: 200
     description: > 
-        How far to search to generate the k-mesh for the EWald summation. Only the vectors with significant weights are kept. If you have a cell with a lattice vector larger than around 300 Bohr, this may need to be increased.
+        How far to search to generate the k-mesh for the Ewald summation. Only the vectors with significant weights are kept. If you have a cell with a lattice vector larger than around 300 Bohr, this may need to be increased.
 
 
