@@ -94,8 +94,8 @@ wf2 { include qw.jast2 }
       outlines = outf.read().split('\n')
       disps = [float(l.split()[4]) for l in outlines if "dispersion" in l]
       if len(disps) > 1:
-        dispdiff = abs(disps[-1] - disps[0])
-        if (dispdiff < disps[-1]*reltol) and disps[-1] < abstol:
+        dispdiff = abs(disps[-1] - disps[0])/disps[-1]
+        if (dispdiff < reltol) and disps[-1] < abstol:
           return 'ok'
         else:
           print("Variance optimization dispersion not converged:")
