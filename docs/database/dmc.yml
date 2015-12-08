@@ -49,4 +49,53 @@ optional:
       Use Michele Casula's T-moves, which
       makes DMC rigorously variational when there are non-local pseudopotentials
       at the cost of increasing the timestep error slightly
-     
+  - keyword: TARGET_CONFIG
+    type: integer
+    default: 2048
+    description: The desired number of total walkers across all processes. The actual number will be selected to evenly distribute the walkers.
+  - keyword: NBLOCK
+    type: integer
+    default: 100
+    description: Number of blocks.
+  - keyword: LABEL
+    type: string
+    default: dmc
+    description: Label in the .log file
+advanced:
+  - keyword: NSTEP
+    type: integer
+    default: special
+    description: Number of DMC steps to take in a block. The default is set such that NSTEP*TIMESTEP is approximately 1.
+  - keyword: LOW_IO
+    type: flag
+    default: off
+    description: >
+      Do not write to the .config file every block; only at the end of the run.
+  - keyword: FEEDBACK
+    type: float  
+    default: 1.0 
+    description: > 
+      The strength of the population control.  Set it to roughly 1/n, 
+      where n is the number of steps that it should take to return the population
+      to the average value.
+  - keyword: START_FEEDBACK  
+    type: float  
+    default: 1.0
+    description: >
+      The strength of the population control when reading in from 
+      a checkpoint file.  This is mostly useful for CDMC, where it should
+      be set to 10.
+  - keyword: FEEDBACK_INTERVAL  
+    type: integer  
+    default: 5
+    description: Number of steps to wait before doing population control.
+  - keyword: BRANCH_START_CUTOFF  
+    type: float  
+    default: 10
+    description: > 
+        When a walker's energy is very low, we slow down the accumulation 
+        of weights, eventually cutting it off.  The cutoff starts at 
+        BRANCH_START_CUTOFF*sigma, where sigma is the standard deviation
+        of the local energy.  When doing highly accurate calculations, it's 
+        sometimes the case that eref is biased.  One can increase
+        this value, which should alleviate the problem.

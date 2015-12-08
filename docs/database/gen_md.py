@@ -35,6 +35,15 @@ def print_entry_md(f,en):
          print(kw,'|',i['type'],'|',i['default'],'|',i['description'].replace('\n',' '),file=f)
     else:
       print("None",file=f)
+    print("\n\n",file=f)
+    if 'advanced' in en.keys():
+      print("*Advanced keywords*\n\n",file=f)
+      print("Keyword|Type|Default|Description",file=f)
+      print("------------ | ------------- | ------------- | ------------",file=f)
+      for i in en['advanced']:
+         kw=i['keyword']
+         print(kw,'|',i['type'],'|',i['default'],'|',i['description'].replace('\n',' '),file=f)
+
     print("\n",file=f)
 
 
