@@ -61,41 +61,100 @@ def default_job_record(ciffile):
   job_record['control']['queue_id']=[None,None]
   return job_record
 
-def execute(job_list, element_list):
-  updated_job_list=[]
-  for record in job_list:
-    currwd=os.getcwd()
-    d=str(record['control']['id'])
-    try:
-      os.mkdir(d)
-    except:
-      pass
-    os.chdir(d)
-    jsonfile="record.json"
-    if os.path.isfile(jsonfile):
-      #We could do checking to make sure the 
-      #definition hasn't changed.
-      f=open('record.json','r')
-      record_read=json.load(f)
-      record['control']=record_read['control']
-      f.close()
-    print("#######################ID",record['control']['id'])
+def execute(record, element_list):
+  """
+  Run element_list tasks on this job record
+  """
+  currwd=os.getcwd()
+  d=str(record['control']['id'])
+  try:
+    os.mkdir(d)
+  except:
+    pass
+  os.chdir(d)
+  jsonfile="record.json"
+  if os.path.isfile(jsonfile):
+    #We could do checking to make sure the 
+    #definition hasn't changed.
+    f=open('record.json','r')
+    record_read=json.load(f)
+    record['control']=record_read['control']
+    f.close()
+  print("#######################ID",record['control']['id'])
 
-    for element in element_list:
-      status=element.check_status(record)
+  for element in element_list:
+    status=element.check_status(record)
+    print(element._name_,"status",status)
+    if status=='not_started':
+      status=element.run(record)
       print(element._name_,"status",status)
-      if status=='not_started':
-        status=element.run(record)
-        print(element._name_,"status",status)
-      if status=='not_finished':
-        status=element.retry(record)
-        print(element._name_,"status",status)
-      if status != 'ok':
-        break
-      record=element.output(record)
+    if status=='not_finished':
+      status=element.retry(record)
+      print(element._name_,"status",status)
+    if status != 'ok':
+      break
+    record=element.output(record)
 
-    with open(jsonfile,'w') as f:
-      json.dump(record,f)
-    os.chdir(currwd)
-    updated_job_list.append(record)
-  return updated_job_list
+  with open(jsonfile,'w') as f:
+    json.dump(record,f)
+  os.chdir(currwd)
+  return record
+
+def restart_job(jobname):
+  do_it = raw_input("Restart %s? (y/n)"%jobname)
+  if do_it == 'y':
+    try:
+      os.remove(jobname + "/autogen.d12")
+    except OSError:
+      pass
+    try:
+      os.remove(jobname + "/autogen.d12.o")
+    except OSError:
+      pass
+  else:
+    print("Didn't do it")
+
+# Currently only defined for CRYSTAL runs.
+def check_continue(jobname,qchecker,reasonable_lastSCF=50.0):
+  jobrecord = json.load(open(jobname+"/record.json",'r'))
+  qstatus = qchecker.status(jobrecord)
+  if qstatus == 'running': 
+    print("Shouldn't continue %s because still running"%jobname)
+    return "running"
+  try:
+    outf = open(jobname+"/autogen.d12.o",'r')
+  except IOError:
+    print("Can't continue %s because no output"%jobname)
+    return False
+  outlines = outf.read().split('\n')
+  reslines = [line for line in outlines if "ENDED" in line]
+  if len(reslines) > 0:
+    print("Shouldn't continue %s because finished."%jobname)
+    return "finished"
+  detots = [float(line.split()[5]) for line in outlines if "DETOT" in line]
+  if len(detots) == 0:
+    print("Shouldn't continue %s because no SCF last time."%jobname)
+    return False
+  detots_net = sum(detots[1:])
+  if detots_net > reasonable_lastSCF:
+    print("Shouldn't continue %s because unreasonable last try (%.2f>%.2f)."%\
+        (jobname,detots_net,reasonable_lastSCF))
+    return "unreasonable"
+  etots = [float(line.split()[3]) for line in outlines if "DETOT" in line]
+  if etots[-1] > 0:
+    # This case probably won't happen if this works as expected.
+    print("Shouldn't continue %s because divergence (%.2f)."%\
+        (jobname,etots[-1]))
+    return "divergence"
+  print("Should continue %s."%jobname)
+  return "continue"
+
+# Currently only defined for CRYSTAL runs. Returns name of restart file.
+def continue_job(jobname):
+  jobrecord = json.load(open(jobname+"/record.json",'r'))
+  trynum = 0
+  while os.path.isfile(jobname+"/"+str(trynum)+".autogen.d12.o"):
+    trynum += 1
+  for filename in ["autogen.d12","autogen.d12.o","fort.79"]:
+    shutil.move(jobname+"/"+filename,jobname+"/"+str(trynum)+"."+filename)
+  return jobname+"/"+str(trynum)+".fort.79"
