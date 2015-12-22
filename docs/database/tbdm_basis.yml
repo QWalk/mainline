@@ -40,7 +40,11 @@ optional:
   - keyword: STATES
     type: section
     default: All the orbitals in the ORBITALS section.
-    description: A list of the orbitals on which you'd like to evaluate the density matrices.<
+    description: A list of the orbitals on which you'd like to evaluate the density matrices.
+  - keyword: MODE
+    type: string
+    default: Evaluate all two-particle density matrix elements.
+    description: Possible values are: OBDM and TBDM_DIAGONAL. 
 experimental:
   - keyword: NPOINTS
     type: integer
