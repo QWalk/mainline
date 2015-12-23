@@ -332,23 +332,33 @@ class QWalkRunDMC:
 
 
 #-----------------------------------------------
-  def dmcinput(self,timestep,localization,kpt_num=0,nblock=16):
-    return """method { DMC timestep %g nblock %i %s  } 
-include qw_%i.sys
-trialfunc { slater-jastrow
-wf1 { include qw_%i.slater } 
-wf2 { include opt.jast } 
-}
-"""%(timestep,nblock,localization,kpt_num,kpt_num)
-  def dmcinput(self,timestep,localization,kpt_num=0,nblock=16):
-    outstr = [
-        "method { DMC timestep %g nblock %i %s }"%(timestep,nblock,localization),
+#  def dmcinput(self,timestep,localization,kpt_num=0,nblock=16):
+#    return """method { DMC timestep %g nblock %i %s  } 
+#include qw_%i.sys
+#trialfunc { slater-jastrow
+#wf1 { include qw_%i.slater } 
+#wf2 { include opt.jast } 
+#}
+#"""%(timestep,nblock,localization,kpt_num,kpt_num)
+
+  def dmcinput(self,timestep,localization,kpt_num=0,nblock=16,save_trace=False):
+    outlist = [
+        "method { DMC ",
+        "timestep %g"%timestep,
+        "nblock %i"%nblock,
+        localization,
+      ]
+    if save_trace:
+      outlist += ["save_trace qw_%i.dmc.trace"%kpt_num]
+    outlist += [
+        "}",
         "include qw_%i.sys"%kpt_num,
         "trialfunc { slater-jastrow",
         "wf1 { include qw_%i.slater } "%kpt_num,
         "wf2 { include opt.jast }",
         "}"
-      ].join('\n')
+      ]
+    outstr = '\n'.join(outlist)
     return outstr
 
 #-----------------------------------------------
