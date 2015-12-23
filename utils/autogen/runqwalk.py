@@ -306,7 +306,7 @@ class QWalkRunDMC:
           kname="qw_%i"%k
           basename="qwt%g%s_%i"%(t,loc,k)
           f=open(basename+".dmc",'w')
-          f.write(self.dmcinput(t,loc,k,qmc_options['dmc']['nblock']))
+          f.write(self.dmcinput(t,loc,k,qmc_options['dmc']['nblock'],qmc_options['dmc']['save_trace']))
           f.close()
           infiles.extend([basename+".dmc","opt.jast",kname+'.sys',kname+'.slater',
               kname+'.orb','qw.basis'])
@@ -332,14 +332,34 @@ class QWalkRunDMC:
 
 
 #-----------------------------------------------
-  def dmcinput(self,timestep,localization,kpt_num=0,nblock=16):
-    return """method { DMC timestep %g nblock %i %s  } 
-include qw_%i.sys
-trialfunc { slater-jastrow
-wf1 { include qw_%i.slater } 
-wf2 { include opt.jast } 
-}
-"""%(timestep,nblock,localization,kpt_num,kpt_num)
+#  def dmcinput(self,timestep,localization,kpt_num=0,nblock=16):
+#    return """method { DMC timestep %g nblock %i %s  } 
+#include qw_%i.sys
+#trialfunc { slater-jastrow
+#wf1 { include qw_%i.slater } 
+#wf2 { include opt.jast } 
+#}
+#"""%(timestep,nblock,localization,kpt_num,kpt_num)
+
+  def dmcinput(self,timestep,localization,kpt_num=0,nblock=16,save_trace=False):
+    outlist = [
+        "method { DMC ",
+        "timestep %g"%timestep,
+        "nblock %i"%nblock,
+        localization,
+      ]
+    if save_trace:
+      outlist += ["save_trace qw_%i.dmc.trace"%kpt_num]
+    outlist += [
+        "}",
+        "include qw_%i.sys"%kpt_num,
+        "trialfunc { slater-jastrow",
+        "wf1 { include qw_%i.slater } "%kpt_num,
+        "wf2 { include opt.jast }",
+        "}"
+      ]
+    outstr = '\n'.join(outlist)
+    return outstr
 
 #-----------------------------------------------
   def check_outputfile(self,outfilename):
@@ -411,7 +431,7 @@ wf2 { include opt.jast }
           outfiles.extend([basename+'.dmc.log',
                          basename+'.dmc.config',
                          basename+'.dmc.o'])
-    print(outfiles)
+    #print(outfiles)
     self._submitter.transfer_output(job_record, outfiles)
     status=self._submitter.status(job_record)
     print("status",status)
