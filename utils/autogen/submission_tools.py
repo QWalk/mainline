@@ -71,12 +71,12 @@ class LocalSubmitter:
     self.module = importlib.import_module(module)
 
   def execute(self,job_record,infiles,runfile, outfile):
-    job_record['control']['queue_id'] = self.module.execute(runfile, outfile,str(job_record['control']['id']))
+    job_record['control']['queue_id'] = [self.module.execute(runfile, outfile,str(job_record['control']['id'])),str(job_record['control']['id'])]
 
   def status(self,job_record):
     statuses = []
     for q_id in job_record['control']['queue_id']:
-      statuses.append(self.module.status(self.px_ssh, q_id))
+      statuses.append(self.module.status(q_id))
     if 'running' in statuses:
       return 'running'
     else:
