@@ -343,7 +343,6 @@ wf2 { include opt.jast }
         status='not_finished'
     print("initial status",status)
     if status=='ok':
-      self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
       return status
 
 
@@ -371,8 +370,6 @@ wf2 { include opt.jast }
     for e in results:
       if e['energy'][1] >  job_record['qmc']['dmc']['target_error']:
         status='not_finished'
-    if status == 'ok':
-      self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
     return status
   
 #-----------------------------------------------
