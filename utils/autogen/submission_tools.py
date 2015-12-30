@@ -71,7 +71,7 @@ class LocalSubmitter:
     self.module = importlib.import_module(module)
 
   def execute(self,job_record,infiles,runfile, outfile):
-    job_record['control']['queue_id'] = self.module.execute(runfile, outfile)
+    job_record['control']['queue_id'] = self.module.execute(runfile, outfile,str(job_record['control']['id']))
 
   def status(self,job_record):
     statuses = []
