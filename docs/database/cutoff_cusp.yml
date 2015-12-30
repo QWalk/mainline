@@ -1,0 +1,20 @@
+type: Entry
+name: Cutoff_cusp
+keyword: CUTOFF_CUSP
+title: Cutoff cusp function
+is_a: Basis function
+description: >
+  The function \( f(r)=c*p/(1+\gamma*p) \), where 
+  \( p=z-z^2+z^3/3 \), \( z=r/{rcut} \), \( \gamma \) is the
+  curvature, and c is the cusp. \( \gamma \) can be optimized.
+required:
+  - keyword: CUSP
+    type: float
+    description: The value of c
+  - keyword: GAMMA
+    type: float
+    description: The value of \( \gamma \)
+  - keyword: RCUT
+    type: float
+    description: The value of \( rcut \)
+optional: []

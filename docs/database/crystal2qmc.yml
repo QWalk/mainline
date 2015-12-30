@@ -1,0 +1,72 @@
+type: Entry
+name: Crystal2qmc
+keyword: crystal2qmc
+is_a: Converter
+title: Crystal to QWalk
+description: > 
+  Basic usage:  
+
+
+      crystal2qmc -o (outputroot)  (crystal output file)
+  
+
+  Note that the current version of crystal2qmc is not tested with versions previous to Crystal2009.  It may or may not work properly. There are two main paths to getting CRYSTAL to output the orbitals for crystal2qmc to read.
+
+  
+  First option, output by the main crystal program.
+
+      PRINTOUT
+      EIGENVAL
+      -1
+      EIGENVEC
+      -999
+      END
+
+  in the third section.
+  CRYSTAL2009 has a bug when run in parallel, in which the eigenvec printout is sometimes corrupted, so this option may not work.
+  
+
+  Second option, output the orbitals using properties.
+
+  1. Make sure that you did <b> not</b> run CRYSTAL with the PRINTOUT section above.
+
+  2. Run properties with the following input 
+
+
+      NEWK 
+      4 4 
+      1 1
+      67 999
+      END
+
+
+  Use the Python script utils/crystal_patch_output.py as follows.
+
+
+      python crystal_patch_output.py crystal.d12.o properties.d3.o patched.o
+
+       
+   where crystal.d12.o is the output of the crystal run, properties.d3.o is the output of the properties run, and patched.o will be the file you use with crystal2qmc.
+  
+
+required: []
+optional:
+  - keyword: -c
+    type: flag
+    default: off
+    description: Read in the complex k-point from CRYSTAL.
+  - keyword: -o
+    type: filename
+    default: Name of CRYSTAL file
+    description: QWalk filenames will start with the value of this option
+  - keyword: -fort10file
+    type: filename
+    default: none
+    description: >
+       (depreciated) Read from the output created by the readcrys10.f utility and match the orbitals to the one
+       in the crystal output file. These are more accurate than the
+       ones in the text output file. To use the fort10file option with Crystal98
+       or Crystal2003, one must use NOSYMADA in the last section of the
+       Crystal's input file. 
+
+

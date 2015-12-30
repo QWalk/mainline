@@ -1,0 +1,28 @@
+type: Entry
+name: Pseudopotential
+keyword: PSEUDO
+is_a: Hamiltonian
+title: Pseudopotential
+description: > 
+  Use an effective nonlocal potential to remove the core electrons from
+  the system.  This is handled more or less as described in 
+  Mitas, Shirley, Ceperly, J. Chem. Phys. 95, 3467 (1991).
+  The first word in the pseudopotential section must be
+  the label of the atom to which is corresponds.  
+required:
+  - keyword: BASIS
+    type: section
+    description: Input for a Basis function for the radial part of the pseudopotential.
+optional: 
+  - keyword: AIP
+    type: integer
+    default: 6
+    description: >
+       Number of atomic integration
+       points. Available are Gaussian rules with 4, 6, 12, 18, 26 and 32
+       points.
+  - keyword: ADD_ZEFF
+    type: Flag
+    default: off
+    description: Add the effective charge while in range of the pseudopotential, for soft psp's that have the effective charge included.
+

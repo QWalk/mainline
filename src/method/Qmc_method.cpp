@@ -20,7 +20,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Qmc_method.h"
 #include "Vmc_method.h"
 #include "Optimize_method.h"
-#include "Optimize_method2.h"
 #include "Shdmc_method.h"
 #include "Dmc_method.h"
 #include "Rndmc_method.h"
@@ -51,9 +50,6 @@ int allocate(vector <string> & words,
   
   else if(caseless_eq(words[0],"OPTIMIZE"))
     methptr=new Optimize_method;
-
-  else if(caseless_eq(words[0],"OPTIMIZE2"))
-    methptr=new Optimize_method2;
   
   else if(caseless_eq(words[0],"SHDMC"))
     methptr=new Shdmc_method;

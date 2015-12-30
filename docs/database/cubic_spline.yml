@@ -1,0 +1,84 @@
+type: Entry
+name: Cubic spline
+keyword: AOSPLINE
+is_a: Basis function
+title: Cubic spline representation of an atomic orbital
+description: >
+  This function represents \( f({\mathbf r}) = f(r) Y_{lm}(\theta,\phi) \)    Several different representations of the \( Y_{lm} \) spherical harmonics are available.
+
+
+  | Keyword | \( Y_{lm} \) | 
+
+  |---------|-----------|
+
+  |S|1|
+
+  |P|\(x,y,z\)|
+
+  |5D|\(3z^2-r^2,xz,yz,x^2-y^2,xy\)|
+
+  |6D|\(xx,yy,zz,xy,xz,yz\)|
+
+  |7F_crystal|\(F0,Fp1,Fm1,Fp2,Fxyz,Fp3mod,Fm3\)|
+
+  |7F|\(F0,Fm3,Fp3mod,Fp2,Fxyz,Fm1,Fp1\)|
+
+  |10F|\(xxx,yyy,zzz,xxy,xxz,yyx,yyz,zzx,zzy,xyz\)|
+
+  |9G|\(G0-9\)|
+
+  |15G|\(xxxx,yyyy,zzzz,xxxy,xxxz,yyyx,yyyz,zzzx,zzzy,xxyy,xxzz,yyzz,xxyz,yyxz,zzxy\)|
+ 
+
+  One of GAMESS or SPLINE is required. 
+
+required: 
+  - keyword: GAMESS
+    type: section
+    description: >
+      A Gaussian basis set in roughly GAMESS format, although any of the spherical harmonic keywords from the description can be used.
+  - keyword: SPLINE
+    type: section
+    description: >
+      Fit to a 1-D spline multiplied by spherical harmonics. The first value in the section should be one of the spherical harmonics, followed by x,y pairs in atomic units.
+
+optional:
+  - keyword: CUSP
+    type: float
+    default: none
+    description: >
+      For a SPLINE input, enforce a
+      cusp at r=0 with the derivative given.  For example, for H, CUSP
+      should be -1, for Ne -10, etc.
+  - keyword: ZERO_DERIVATIVE
+    type: flag
+    default: off
+    description: >
+      For a GAMESS
+      input, strictly enforces derivative at r=0 (i.e. cusp) to be
+      zero. To be used when electron-nucleus cusp conditions on
+      all-electron atoms are treated in the Jastrow factor
+  - keyword: SPACING
+    type: float
+    default: 0.02
+    description: >
+      For GAMESS input. Spacing with which the
+      independent variable is discretized. The default value is a safe
+      choice for pseudoatoms, heavier all-electron atoms might require
+      reduced value corresponding to a finer grid.
+  - keyword: NORENORMALIZE
+    type: flag
+    default: off
+    description: Do not renormalize the basis functions 
+  - keyword: CUTOFF
+    type: float
+    default: infinity
+    description: >
+      Forces a smooth cutoff at a specified distance.
+      Otherwise, a safe cutoff is calculated automatically.
+  - keyword: NORMTYPE
+    type: string
+    default: GAMESSNORM
+    description: Specify the normalization type. GAMESSNORM or CRYSTAL
+
+

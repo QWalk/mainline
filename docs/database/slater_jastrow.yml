@@ -1,0 +1,18 @@
+type: Entry
+name: Slater-Jastrow
+keyword: SLATER-JASTROW
+is_a: Wavefunction
+title: Slater-Jastrow (multiply two wave functions)
+description: > 
+  Multiply two wave functions; that is \( \Psi = \Psi_1 \Psi_2 \).
+required: 
+  - keyword: WF1
+    type: section
+    description: > 
+      A section for a Wave function object. Will represent \( \Psi_1 \)
+  - keyword: WF2
+    type: section
+    description: > 
+      A section for a Wave function object. Will represent \( \Psi_2 \)
+  
+optional: []
