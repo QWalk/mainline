@@ -44,7 +44,8 @@ optional:
   - keyword: MODE
     type: string
     default: Evaluate all two-particle density matrix elements.
-    description: Possible values are: OBDM and TBDM_DIAGONAL. 
+    description: > 
+      Possible values are OBDM and TBDM_DIAGONAL. 
 experimental:
   - keyword: NPOINTS
     type: integer

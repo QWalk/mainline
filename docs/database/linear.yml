@@ -1,34 +1,61 @@
-{
-  "type":"Entry",
-  "name":"Linear",
-  "keyword":"LINEAR",
-  "is_a":"Method",
-  "title":"Linear energy optimization",
-  "related":[],
-  "description":"Perform energy optimization using the method very similar to the one described by Umrigar and coworkers in Phys. Rev. Lett. 98, 110201 (2007).",
-  "required":[],
-  "optional":[
-    {"keyword":"TOTAL_NSTEP","type":"Integer","default":"16384","description":"Total number of VMC steps to perform when calculating the Hamiltonian matrix. This is the most important variable to increase when improving the accuracy."},
-    {"keyword":"TOTAL_FIT","type":"Integer","default":"1024",
-     "description":"Number of configurations to use when calculating the step size using correlated sampling."},
-     {"keyword":"WFOUTPUT","type":"String", "default":"runid.wfout",
-      "description":"Choose the filename to place an input deck for the final wavefunction and intermediate ones as the optimization continues."},
-      {"keyword":"ITERATIONS","type":"Integer","default":"30",
-       "description":"Number of optimization iterations."},
-       {"keyword":"EN_CONVERGENCE","type":"Float","default":"0.001",
-        "description":"Stop run when changes in energy are less than this value (in Hartrees)."}
-  ],
-  "experimental":[
-    {"keyword":"VMC_NSTEP","type":"Integer","default":"TOTALNSTEP/nprocs",
-     "description":"Number of VMC steps to perform per processor to collect statistics on the Hamiltonian matrix."},
-     {"keyword":"MINIMUM_PSI0","type":"Float","default":"0.95",
-       "description":"Fraction of the original wave function to keep per step.  This is a stabilization parameter."},
-       {"keyword":"MAX_VMC_NSTEP","type":"Integer","default":"8*VMCNSTEP",
-        "description":"The optimization method will increase VMCNSTEP automatically if certain significance requirements are not met in the Hamiltonian matrix.  This variable limits how much VMCNSTEP can be increased."},
-        {"keyword":"FIT_NCONFIG","type":"Integer","default":"TOTALFIT/nprocs",
-     "description":"The number of configurations per processor used to evaluate the step size.  This is adjusted automatically to ensure statistical significance."},
-     {"keyword":"MAX_FIT_NCONFIG","type":"Integer","default":"8*FITNCONFIG",
-     "description":"Maximum number of configurations per processor to use to evaluate the step size."}
-  ]    
-}
-
+is_a: Method
+keyword: LINEAR
+name: Linear
+title: Linear energy optimization
+type: Entry
+description: Perform energy optimization using the method very similar to the one
+  described by Umrigar and coworkers in Phys. Rev. Lett. 98, 110201 (2007).
+required: []
+optional:
+- default: '16384'
+  description: Total number of VMC steps to perform when calculating the Hamiltonian
+    matrix. This is the most important variable to increase when improving the accuracy.
+  keyword: TOTAL_NSTEP
+  type: Integer
+- default: '1024'
+  description: Number of configurations to use when calculating the step size using
+    correlated sampling.
+  keyword: TOTAL_FIT
+  type: Integer
+- default: runid.wfout
+  description: Choose the filename to place an input deck for the final wavefunction
+    and intermediate ones as the optimization continues.
+  keyword: WFOUTPUT
+  type: String
+- default: '30'
+  description: Number of optimization iterations.
+  keyword: ITERATIONS
+  type: Integer
+- default: '0.001'
+  description: Stop run when changes in energy are less than this value (in Hartrees).
+  keyword: EN_CONVERGENCE
+  type: Float
+related: []
+advanced:
+- default: TOTALNSTEP/nprocs
+  description: Number of VMC steps to perform per processor to collect statistics
+    on the Hamiltonian matrix.
+  keyword: VMC_NSTEP
+  type: Integer
+- default: '0.95'
+  description: Fraction of the original wave function to keep per step.  This is a
+    stabilization parameter.
+  keyword: MINIMUM_PSI0
+  type: Float
+- default: 8*VMCNSTEP
+  description: The optimization method will increase VMCNSTEP automatically if certain
+    significance requirements are not met in the Hamiltonian matrix.  This variable
+    limits how much VMCNSTEP can be increased.
+  keyword: MAX_VMC_NSTEP
+  type: Integer
+- default: TOTALFIT/nprocs
+  description: The number of configurations per processor used to evaluate the step
+    size.  This is adjusted automatically to ensure statistical significance.
+  keyword: FIT_NCONFIG
+  type: Integer
+- default: 8*FITNCONFIG
+  description: Maximum number of configurations per processor to use to evaluate the
+    step size.
+  keyword: MAX_FIT_NCONFIG
+  type: Integer
+  

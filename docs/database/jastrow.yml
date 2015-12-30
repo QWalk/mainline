@@ -16,8 +16,13 @@ description: >
 
    For efficiency reasons, the Jastrow factor is organized into GROUP sections. Each GROUP can take one of the options listed below.
 
+   The ONEBODY, TWOBODY, and THREEBODY sections all accept the FREEZE keyword, in which the ocefficients are held constant during an optimization.
 required: []
 optional: 
+  - keyword: OPTIMIZEBASIS
+    type: flag
+    default: off
+    description: Optimize any basis functions present in the expansion.
   - keyword: EIBASIS
     type: section
     default: empty

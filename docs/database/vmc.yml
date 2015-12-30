@@ -60,4 +60,13 @@ optional:
     type: section
     default: empty
     description: Section for the evaluation of a density object
+advanced:
+  - keyword: GUIDETYPE
+    type: string
+    default: SUMSQUARES
+    description: Possible options include SUMSQUARES, FIRST. This only does anything if multiple wave functions are defined in the TRIALFUNC section.
+  - keyword: DYNAMICS
+    type: section
+    default: SPLIT
+    description: Choose a sampling strategy. Use UNR for all-electron calculations.
 
