@@ -175,6 +175,7 @@ public:
   int do_cdmc;
   int low_io; //!< write out configs and densities only at the end.
   int tmoves; //!< whether to do Casula's t-moves
+  int tmoves_sizeconsistent;
   string save_trace; //!<whether to make a binary file at the end of each block with all the coordinates.
 
   int nblock, nstep;

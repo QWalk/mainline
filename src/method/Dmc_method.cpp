@@ -76,6 +76,9 @@ void Dmc_method::read(vector <string> words,
   else do_cdmc=0;
   if(haskeyword(words, pos=0, "TMOVES")) tmoves=1; 
   else tmoves=0;
+  if(haskeyword(words, pos=0, "TMOVESSC")) tmoves_sizeconsistent=1;
+  else tmoves_sizeconsistent=0;
+
 
   readvalue(words,pos=0,save_trace,"SAVE_TRACE");
 
@@ -242,6 +245,9 @@ int Dmc_method::showinfo(ostream & os)
   os << "Timestep: " <<                      timestep  << endl;
   if(tmoves) 
     os << "T-moves turned on" << endl;
+  if(tmoves_sizeconsistent)
+    os << "Size-consistent T-moves turned on" << endl;
+
   string indent="  ";
 
   if(max_fw_length){
@@ -413,7 +419,7 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
           Properties_point pt;
           vector <Tmove> tmov;
           doublevar subtract_out_enwt=0;
-          if(tmoves) {  //------------------T-moves
+          if(tmoves or tmoves_sizeconsistent) {  //------------------T-moves
             pt.setSize(nwf);
             wf->getVal(wfdata,0,pt.wf_val);
             sys->calcKinetic(wfdata,sample,wf,pt.kinetic);
@@ -421,37 +427,52 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
             pt.weight=1.0; //this gets set later anyway
             pt.count=1;
             pseudo->calcNonlocTmove(wfdata,sys,sample,wf,pt.nonlocal,tmov);
-            //cout << "choosing among " <<  tmov.size() << " tmoves " << endl;
-            //Now we do the t-move
-            doublevar sum=1; 
-            for(vector<Tmove>::iterator mov=tmov.begin(); mov!=tmov.end(); mov++) { 
+            doublevar sum=1;
+            for(vector<Tmove>::iterator mov=tmov.begin(); mov!=tmov.end(); mov++) {
               assert(mov->vxx < 0);
-              sum-=timestep*mov->vxx;  
+              sum-=timestep*mov->vxx;
             }
             pt.nonlocal(0)-=(sum-1)/timestep;
             subtract_out_enwt=-(sum-1)/timestep;
-            //cout << "sum " << sum <<  " nonlocal " << pt.nonlocal(0) << " ratio " << sum/pt.nonlocal(0) << endl;
             assert(sum >= 0);
-            doublevar rand=rng.ulec()*sum;
-            sum=1; //reset to choose the move
-            if(rand > sum) { 
-              for(vector<Tmove>::iterator mov=tmov.begin(); mov!=tmov.end(); mov++) { 
-                sum-=timestep*mov->vxx;
-                if(rand < sum) { 
-                  Array1 <doublevar> epos(3);
-                  //sample->getElectronPos(mov->e, epos);
-                  //cout << "moving electron " << mov->e << " from " << epos(0) << " " << epos(1)
-                  //  << " " << epos(2) << " to " << mov->pos(0) << " " << mov->pos(1) 
-                  //  << " " << mov->pos(2) << endl;
-                  //sample->setElectronPos(mov->e,mov->pos);
-                  sample->translateElectron(mov->e,mov->pos);
-                  break;
+            if(tmoves) { ///Non-size consistent
+              doublevar rand=rng.ulec()*sum;
+              sum=1; //reset to choose the move
+              if(rand > sum) {
+                for(vector<Tmove>::iterator mov=tmov.begin(); mov!=tmov.end(); mov++) {
+                  sum-=timestep*mov->vxx;
+                  if(rand < sum) {
+                    sample->translateElectron(mov->e,mov->pos);
+                    break;
+                  }
+                }
+              }
+            }
+            else { // Size-consistent
+              vector < vector<Tmove> > tmv_by_e(nelectrons);
+              for(vector<Tmove>::iterator mov=tmov.begin(); mov!=tmov.end(); mov++) {
+                tmv_by_e[mov->e].push_back(*mov);
+              }
+              for(int e=0; e< nelectrons; e++) {
+                doublevar sum_e=1.0;
+                for(vector<Tmove>::iterator mov=tmv_by_e[e].begin(); mov!=tmv_by_e[e].end(); mov++) {
+                  sum_e-=timestep*mov->vxx;
+                }
+                doublevar rand=rng.ulec()*sum_e;
+                doublevar sel_sum=1;
+                if(rand > sel_sum) {
+                  for(vector<Tmove>::iterator mov=tmv_by_e[e].begin(); mov!=tmv_by_e[e].end(); mov++) {
+                    sel_sum-=timestep*mov->vxx;
+                    if(rand < sel_sum) {
+                      sample->translateElectron(e,mov->pos);
+                    }
+                  }
                 }
               }
             }
             //wf->updateLap(wfdata, sample);
           } ///---------------------------------done with the T-moves
-          else { 
+          else {
             mygather.gatherData(pt, pseudo, sys, wfdata, wf, 
                                 sample, guidingwf);
           }
