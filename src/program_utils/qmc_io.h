@@ -447,7 +447,7 @@ template <class ConfigType> void read_configurations(string & filename,
       error("Non-even number of walkers/node.  Change the number of processors to something that divides ",totconfs);
     }
     int n_per_node=totconfs/mpi_info.nprocs;
-    cout << mpi_info.node << ": n_per_node " << n_per_node << endl;
+    //cout << mpi_info.node << ": n_per_node " << n_per_node << endl;
     //Go ahead and get the slaves to allocate their walkers.
     //(probably should be broadcast())
 #ifdef USE_MPI
@@ -466,8 +466,6 @@ template <class ConfigType> void read_configurations(string & filename,
         tmpconf.read(is);
         //Now decide what to do with this configuration
         int targetnode=currwalker%mpi_info.nprocs;
-        cout << "targetnode " << targetnode << endl;
-        
         if(targetnode==0) configs(currwalker_node0++)=tmpconf;
         else { 
 #ifdef USE_MPI
