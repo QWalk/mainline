@@ -418,7 +418,7 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
           totpoints++;
           Properties_point pt;
           vector <Tmove> tmov;
-          doublevar subtract_out_enwt=0;
+          //doublevar subtract_out_enwt=0;
           if(tmoves or tmoves_sizeconsistent) {  //------------------T-moves
             pt.setSize(nwf);
             wf->getVal(wfdata,0,pt.wf_val);
@@ -433,7 +433,7 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
               sum-=timestep*mov->vxx;
             }
             pt.nonlocal(0)-=(sum-1)/timestep;
-            subtract_out_enwt=-(sum-1)/timestep;
+            //subtract_out_enwt=-(sum-1)/timestep;
             assert(sum >= 0);
             if(tmoves) { ///Non-size consistent
               doublevar rand=rng.ulec()*sum;
@@ -465,6 +465,7 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
                     sel_sum-=timestep*mov->vxx;
                     if(rand < sel_sum) {
                       sample->translateElectron(e,mov->pos);
+                      break;
                     }
                   }
                 }
