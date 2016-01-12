@@ -2,7 +2,6 @@ from __future__ import print_function
 import os
 import glob
 import re
-import job_submission
 ####################################################
 
 def crystal_patch_output(propname,outname,patchname):
@@ -63,9 +62,8 @@ class Crystal2QWalk:
 
 class QWalkVarianceOptimize:
   _name_="QWalkVarianceOptimize"
-  _submitter=job_submission.TorqueQWalkSubmitter()
   
-  def __init__(self,submitter=job_submission.TorqueQWalkSubmitter()):
+  def __init__(self,submitter):
     self._submitter=submitter
   
   def run(self,job_record):
@@ -134,9 +132,8 @@ wf2 { include qw.jast2 }
 ####################################################
 class QWalkEnergyOptimize:
   _name_="QWalkEnergyOptimize"
-  _submitter=job_submission.TorqueQWalkSubmitter()
   
-  def __init__(self,submitter=job_submission.TorqueQWalkSubmitter()):
+  def __init__(self,submitter):
     self._submitter=submitter
   
   def run(self,job_record,restart=False):
@@ -222,9 +219,8 @@ trialfunc { include qw_0.enopt.wfin }
 
 class QWalkRunDMC:
   _name_="QwalkRunDMC"
-  _submitter=job_submission.TorqueQWalkSubmitter()
   
-  def __init__(self,submitter=job_submission.TorqueQWalkSubmitter()):
+  def __init__(self,submitter):
     self._submitter=submitter
 #-----------------------------------------------
   def run(self,job_record,restart=False):
