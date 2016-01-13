@@ -146,17 +146,13 @@ public:
     for(int i=0; i< average_var.GetDim(0); i++) { 
       if(average_var(i)) delete average_var(i);
       average_var(i)=NULL;
-    }    
-
+    }
   }
 
   void savecheckpoint(string & filename, Sample_point *);
   void restorecheckpoint(string & filename, System * sys,
 			 Wavefunction_data * wfdata,Pseudopotential * pseudo);
-  void cdmcReWeight(Array2 <doublevar> & energy_temp, 
-                    Array1 < Wf_return> & value_temp);
-
-  
+  void forwardWalking(int walker, int step, Array1<Properties_manager> & prop_fw);
   doublevar getWeight(Dmc_point & pt,
                       doublevar teff, doublevar etr);
   
