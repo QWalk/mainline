@@ -149,67 +149,63 @@ public:
     }
   }
 
+  //-----------Helper functions
   void savecheckpoint(string & filename, Sample_point *);
   void restorecheckpoint(string & filename, System * sys,
 			 Wavefunction_data * wfdata,Pseudopotential * pseudo);
   void forwardWalking(int walker, int step, Array1<Properties_manager> & prop_fw);
+  void doTmove(Properties_point & pt,Pseudopotential * pseudo, System * sys,
+               Wavefunction_data * wfdata, Wavefunction * wf, Sample_point * sample,
+               Guiding_function * guideingwf);
   doublevar getWeight(Dmc_point & pt,
                       doublevar teff, doublevar etr);
   
   doublevar getWeightPURE_DMC(Dmc_point & pt,
 			   doublevar teff, doublevar etr);
-
-  
   int calcBranch();
   void find_cutoffs();
-  //void loadbalance();
   void updateEtrial(doublevar feedback);
   
-
-  int have_allocated_variables;
-  int have_read_options;
-  int do_cdmc;
+  //-----Options.
+  //int do_cdmc;
   int low_io; //!< write out configs and densities only at the end.
   int tmoves; //!< whether to do Casula's t-moves
-  int tmoves_sizeconsistent;
+  int tmoves_sizeconsistent; //!< Do the size-consistent version of T-moves.
   string save_trace; //!<whether to make a binary file at the end of each block with all the coordinates.
-
   int nblock, nstep;
   doublevar eref; //!< reference energy-best guess at dmc energy
   doublevar etrial; //!< current trial energy
   doublevar timestep;
   string readconfig, storeconfig;
   string log_label;
-
   int nconfig;
-
   int nelectrons;
   int ndim;
   int nwf;
-  
   doublevar feedback;
   int feedback_interval;
   doublevar start_feedback;
-
   int nhist; //!< amount of history to go back when doing correlated sampling
-
-  Dynamics_generator * dyngen;
-
-  Dmc_guiding_function * guidingwf;
-  Array1 <doublevar> sum_proportions;
   string guidetype;
-  
-  
   //If a walker happens to have a very low energy, we will cut
   //it off smoothly with these points
   doublevar branchcut_start, branchcut_stop;
-
   //these times the standard deviation are branchcut_start, branchcut_stop
   doublevar branch_start_cutoff, branch_stop_cutoff;
-
   //A cutoff for the maximum possible weight a walker can carry.
   doublevar max_poss_weight;
+  Array1 <int> fw_length; //!<array of lengths for forward walking times
+  int max_fw_length; //!maximum length for forward walking time
+  int pure_dmc; //turn on SHDMC mode (pure diffusion for the length of nhist)
 
+  //---Control variables and state
+  int have_allocated_variables;
+  int have_read_options;
+
+  //------Data objects
+  Dynamics_generator * dyngen;
+  Dmc_guiding_function * guidingwf;
+  
   System * mysys;
   Pseudopotential * mypseudo;
   Sample_point * sample;
@@ -225,10 +221,6 @@ public:
   Array1 < Average_generator * > average_var;
   vector <vector <string> > avg_words;
 
-  Array1 <int> fw_length; //!<array of lengths for forward walking times 
-  int max_fw_length; //!maximum length for forward walking time
- 
-  int pure_dmc; //turn on SHDMC mode (pure diffusion for the length of nhist)
 };
 
 

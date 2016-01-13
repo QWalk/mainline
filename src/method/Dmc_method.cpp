@@ -71,10 +71,7 @@ void Dmc_method::read(vector <string> words,
 
   if(!readvalue(words,pos=0, max_poss_weight, "MAX_POSS_WEIGHT")) 
     max_poss_weight=7.0;
-
-  if(haskeyword(words, pos=0, "CDMC")) do_cdmc=1;
-  else do_cdmc=0;
-  if(haskeyword(words, pos=0, "TMOVES")) tmoves=1; 
+  if(haskeyword(words, pos=0, "TMOVES")) tmoves=1;
   else tmoves=0;
   if(haskeyword(words, pos=0, "TMOVESSC")) tmoves_sizeconsistent=1;
   else tmoves_sizeconsistent=0;
@@ -415,60 +412,9 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
           }
           totpoints++;
           Properties_point pt;
-          vector <Tmove> tmov;
           //doublevar subtract_out_enwt=0;
           if(tmoves or tmoves_sizeconsistent) {  //------------------T-moves
-            pt.setSize(nwf);
-            wf->getVal(wfdata,0,pt.wf_val);
-            sys->calcKinetic(wfdata,sample,wf,pt.kinetic);
-            pt.potential=sys->calcLoc(sample);
-            pt.weight=1.0; //this gets set later anyway
-            pt.count=1;
-            pseudo->calcNonlocTmove(wfdata,sys,sample,wf,pt.nonlocal,tmov);
-            doublevar sum=1;
-            for(vector<Tmove>::iterator mov=tmov.begin(); mov!=tmov.end(); mov++) {
-              assert(mov->vxx < 0);
-              sum-=timestep*mov->vxx;
-            }
-            pt.nonlocal(0)-=(sum-1)/timestep;
-            //subtract_out_enwt=-(sum-1)/timestep;
-            assert(sum >= 0);
-            if(tmoves) { ///Non-size consistent
-              doublevar rand=rng.ulec()*sum;
-              sum=1; //reset to choose the move
-              if(rand > sum) {
-                for(vector<Tmove>::iterator mov=tmov.begin(); mov!=tmov.end(); mov++) {
-                  sum-=timestep*mov->vxx;
-                  if(rand < sum) {
-                    sample->translateElectron(mov->e,mov->pos);
-                    break;
-                  }
-                }
-              }
-            }
-            else { // Size-consistent
-              vector < vector<Tmove> > tmv_by_e(nelectrons);
-              for(vector<Tmove>::iterator mov=tmov.begin(); mov!=tmov.end(); mov++) {
-                tmv_by_e[mov->e].push_back(*mov);
-              }
-              for(int e=0; e< nelectrons; e++) {
-                doublevar sum_e=1.0;
-                for(vector<Tmove>::iterator mov=tmv_by_e[e].begin(); mov!=tmv_by_e[e].end(); mov++) {
-                  sum_e-=timestep*mov->vxx;
-                }
-                doublevar rand=rng.ulec()*sum_e;
-                doublevar sel_sum=1;
-                if(rand > sel_sum) {
-                  for(vector<Tmove>::iterator mov=tmv_by_e[e].begin(); mov!=tmv_by_e[e].end(); mov++) {
-                    sel_sum-=timestep*mov->vxx;
-                    if(rand < sel_sum) {
-                      sample->translateElectron(e,mov->pos);
-                      break;
-                    }
-                  }
-                }
-              }
-            }
+            doTmove(pt,pseudo,sys,wfdata,wf,sample,guidingwf);
             //wf->updateLap(wfdata, sample);
           } ///---------------------------------done with the T-moves
           else {
@@ -797,7 +743,67 @@ doublevar Dmc_method::getWeightPURE_DMC(Dmc_point & pt,
   //cout <<"SHDDMC weight "<<return_weight<<" energy average "<<sum<<endl;
   //cout<<"current history size "<<history<<endl;
   return return_weight;
-} 
+}
+
+//----------------------------------------------------------------------
+
+void Dmc_method::doTmove(Properties_point & pt,Pseudopotential * pseudo, System * sys,
+                         Wavefunction_data * wfdata, Wavefunction * wf, Sample_point * sample,
+                         Guiding_function * guideingwf) {
+  vector <Tmove> tmov;
+  pt.setSize(nwf);
+  wf->getVal(wfdata,0,pt.wf_val);
+  sys->calcKinetic(wfdata,sample,wf,pt.kinetic);
+  pt.potential=sys->calcLoc(sample);
+  pt.weight=1.0; //this gets set later anyway
+  pt.count=1;
+  pseudo->calcNonlocTmove(wfdata,sys,sample,wf,pt.nonlocal,tmov);
+  doublevar sum=1;
+  for(vector<Tmove>::iterator mov=tmov.begin(); mov!=tmov.end(); mov++) {
+    assert(mov->vxx < 0);
+    sum-=timestep*mov->vxx;
+  }
+  pt.nonlocal(0)-=(sum-1)/timestep;
+  //subtract_out_enwt=-(sum-1)/timestep;
+  assert(sum >= 0);
+  if(tmoves) { ///Non-size consistent
+    doublevar rand=rng.ulec()*sum;
+    sum=1; //reset to choose the move
+    if(rand > sum) {
+      for(vector<Tmove>::iterator mov=tmov.begin(); mov!=tmov.end(); mov++) {
+        sum-=timestep*mov->vxx;
+        if(rand < sum) {
+          sample->translateElectron(mov->e,mov->pos);
+          break;
+        }
+      }
+    }
+  }
+  else { // Size-consistent
+    vector < vector<Tmove> > tmv_by_e(nelectrons);
+    for(vector<Tmove>::iterator mov=tmov.begin(); mov!=tmov.end(); mov++) {
+      tmv_by_e[mov->e].push_back(*mov);
+    }
+    for(int e=0; e< nelectrons; e++) {
+      doublevar sum_e=1.0;
+      for(vector<Tmove>::iterator mov=tmv_by_e[e].begin(); mov!=tmv_by_e[e].end(); mov++) {
+        sum_e-=timestep*mov->vxx;
+      }
+      doublevar rand=rng.ulec()*sum_e;
+      doublevar sel_sum=1;
+      if(rand > sel_sum) {
+        for(vector<Tmove>::iterator mov=tmv_by_e[e].begin(); mov!=tmv_by_e[e].end(); mov++) {
+          sel_sum-=timestep*mov->vxx;
+          if(rand < sel_sum) {
+            sample->translateElectron(e,mov->pos);
+            break;
+          }
+        }
+      }
+    }
+  }
+
+}
 //----------------------------------------------------------------------
 void Dmc_method::forwardWalking(int walker, int step, Array1<Properties_manager> & prop_fw) {
   
