@@ -38,14 +38,13 @@ void Dmc_method::read(vector <string> words,
 
   have_read_options=1;
 
-  vector <string> offsetwords;
+  //vector <string> offsetwords;
 
   //required options
-
-  
-
   if(!readvalue(words, pos=0, timestep, "TIMESTEP"))
     error("Need TIMESTEP in METHOD section");
+
+  //optional options
 
   if(!readvalue(words, pos=0, nblock, "NBLOCK"))
     nblock=100;
@@ -62,9 +61,6 @@ void Dmc_method::read(vector <string> words,
   
   if(!readvalue(words, pos=0, readconfig, "READCONFIG"))
     readconfig=options.runid+".config";
-    //error("Must give READCONFIG for DMC");
-
-  //optional options
 
   if(!readvalue(words, pos=0, eref, "EREF"))
     eref=0.0;
@@ -110,7 +106,6 @@ void Dmc_method::read(vector <string> words,
   if(!readvalue(words, pos=0, branch_start_cutoff, "BRANCH_START_CUTOFF")) 
     branch_start_cutoff=10;
   
-
   branch_stop_cutoff=branch_start_cutoff*1.5;
   
   
@@ -412,10 +407,8 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
           }
           totpoints++;
           Properties_point pt;
-          //doublevar subtract_out_enwt=0;
           if(tmoves or tmoves_sizeconsistent) {  //------------------T-moves
             doTmove(pt,pseudo,sys,wfdata,wf,sample,guidingwf);
-            //wf->updateLap(wfdata, sample);
           } ///---------------------------------done with the T-moves
           else {
             mygather.gatherData(pt, pseudo, sys, wfdata, wf, 

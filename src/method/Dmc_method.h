@@ -167,7 +167,6 @@ public:
   void updateEtrial(doublevar feedback);
   
   //-----Options.
-  //int do_cdmc;
   int low_io; //!< write out configs and densities only at the end.
   int tmoves; //!< whether to do Casula's t-moves
   int tmoves_sizeconsistent; //!< Do the size-consistent version of T-moves.
@@ -194,13 +193,13 @@ public:
   doublevar branch_start_cutoff, branch_stop_cutoff;
   //A cutoff for the maximum possible weight a walker can carry.
   doublevar max_poss_weight;
-  Array1 <int> fw_length; //!<array of lengths for forward walking times
   int max_fw_length; //!maximum length for forward walking time
   int pure_dmc; //turn on SHDMC mode (pure diffusion for the length of nhist)
 
   //---Control variables and state
   int have_allocated_variables;
   int have_read_options;
+  Array1 <int> fw_length; //!<array of lengths for forward walking times
 
   //------Data objects
   Dynamics_generator * dyngen;
