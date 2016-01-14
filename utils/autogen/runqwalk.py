@@ -277,7 +277,9 @@ class QWalkRunDMC:
 
 #-----------------------------------------------
   def dmcinput(self,timestep,localization,kpt_num=0,nblock=16):
-    return """method { DMC timestep %g nblock %i %s  } 
+    return """method { DMC timestep %g nblock %i %s 
+    average { SK } 
+} 
 include qw_%i.sys
 trialfunc { slater-jastrow
 wf1 { include qw_%i.slater } 
@@ -306,7 +308,19 @@ wf2 { include opt.jast }
         err=float(spl[3])
         return (energy,err)
     return (energy,err)
-
+#-----------------------------------------------
+  def sk(self,logfilename):
+    os.system("gosling %s | grep 'sk_out' | sed 's/sk_out//g' > %s_sk.out"%(logfilename,logfilename))
+    SK=[]
+    f=open("%s_sk.out" %logfilename)
+    line=f.readline()
+    while len(line)>0:
+      SK.append([float(d) for d in line.split()[1:]])
+      line = f.readline()
+    f.close()
+    return SK
+#  def finitesize_correction(SK):
+    
 #-----------------------------------------------
 
   def collect_runs(self,job_record):
@@ -323,6 +337,7 @@ wf2 { include opt.jast }
           entry['energy']=self.energy(basename+".dmc.log")
           entry['timestep']=t
           entry['localization']=loc
+          entry['sk']=self.sk(basename+".dmc.log")
           ret.append(entry)
     return ret
           
