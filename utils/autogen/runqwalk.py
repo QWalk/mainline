@@ -102,14 +102,12 @@ wf2 { include qw.jast2 }
     outfilename="qw_0.opt.o"
       
     if self.check_outputfile(outfilename)=='ok':
-      #self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
       return 'ok'
     status=self._submitter.status(job_record)
     self._submitter.output(job_record, ['qw_0.opt.o', 'qw_0.opt.wfout'])  
     if status=='running':
       return status
     if self.check_outputfile(outfilename)=='ok':
-      #self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
       return 'ok'
       
   
@@ -185,7 +183,6 @@ trialfunc { include qw_0.enopt.wfin }
     self._submitter.output(job_record, [outfilename, 'qw_0.enopt.wfout'])
       
     if self.check_outputfile(outfilename)=='ok':
-      self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
       return 'ok'
     
     status=self._submitter.status(job_record)

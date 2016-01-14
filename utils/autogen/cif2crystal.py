@@ -184,10 +184,10 @@ def cif2geom(ciffile):
   return geomlines,primstruct
 
 ######################################################################
-def cif2geom_sym(ciffile):
+def cif2geom_sym(cif):
   def parse(s):
     return str(s).split('(')[0]
-  parser=CifParser(ciffile)
+  parser=CifParser.from_string(cif)
   struct=parser.get_structures()[0]
   primstruct=struct.get_primitive_structure()  
   cifdict=parser.as_dict().popitem()[1]
@@ -240,7 +240,7 @@ class Cif2Crystal:
       print("ERROR: only support BFD pseudoptentials for now")
       quit()
 
-    geomlines,primstruct=cif2geom_sym(StringIO(job_record['cif']))
+    geomlines,primstruct=cif2geom_sym(job_record['cif'])
     basislines=basis_section(primstruct,job_record['dft']['basis'],
                               job_record['dft']['initial_charges'])
     supercell=["SUPERCEL"]
