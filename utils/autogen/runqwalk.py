@@ -2,7 +2,6 @@ from __future__ import print_function
 import os
 import glob
 import re
-import job_submission
 ####################################################
 
 def crystal_patch_output(propname,outname,patchname):
@@ -63,9 +62,8 @@ class Crystal2QWalk:
 
 class QWalkVarianceOptimize:
   _name_="QWalkVarianceOptimize"
-  _submitter=job_submission.TorqueQWalkSubmitter()
   
-  def __init__(self,submitter=job_submission.TorqueQWalkSubmitter()):
+  def __init__(self,submitter):
     self._submitter=submitter
   
   def run(self,job_record):
@@ -104,14 +102,12 @@ wf2 { include qw.jast2 }
     outfilename="qw_0.opt.o"
       
     if self.check_outputfile(outfilename)=='ok':
-      #self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
       return 'ok'
     status=self._submitter.status(job_record)
     self._submitter.output(job_record, ['qw_0.opt.o', 'qw_0.opt.wfout'])  
     if status=='running':
       return status
     if self.check_outputfile(outfilename)=='ok':
-      #self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
       return 'ok'
       
   
@@ -134,9 +130,8 @@ wf2 { include qw.jast2 }
 ####################################################
 class QWalkEnergyOptimize:
   _name_="QWalkEnergyOptimize"
-  _submitter=job_submission.TorqueQWalkSubmitter()
   
-  def __init__(self,submitter=job_submission.TorqueQWalkSubmitter()):
+  def __init__(self,submitter):
     self._submitter=submitter
   
   def run(self,job_record,restart=False):
@@ -188,7 +183,6 @@ trialfunc { include qw_0.enopt.wfin }
     self._submitter.output(job_record, [outfilename, 'qw_0.enopt.wfout'])
       
     if self.check_outputfile(outfilename)=='ok':
-      self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
       return 'ok'
     
     status=self._submitter.status(job_record)
@@ -222,9 +216,8 @@ trialfunc { include qw_0.enopt.wfin }
 
 class QWalkRunDMC:
   _name_="QwalkRunDMC"
-  _submitter=job_submission.TorqueQWalkSubmitter()
   
-  def __init__(self,submitter=job_submission.TorqueQWalkSubmitter()):
+  def __init__(self,submitter):
     self._submitter=submitter
 #-----------------------------------------------
   def run(self,job_record,restart=False):

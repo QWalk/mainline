@@ -5,6 +5,8 @@ import shutil
 import sys
 import time
 
+#####################################################################################
+
 class RemoteSubmitter:
   def __init__(self, px_ssh, px_ftp, module, remotePath):
     sys.path.append(os.getcwd() + '/Specific/')
@@ -64,6 +66,8 @@ class RemoteSubmitter:
     output = []
     for q_id in queue_id:
       output.append(self.module.cancel(self.px_ssh, q_id))
+
+#####################################################################################
 
 class LocalSubmitter:
   def __init__(self, module):

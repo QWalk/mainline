@@ -1,14 +1,11 @@
 from __future__ import print_function
 import os
-import job_submission
 import shutil
 ####################################################
 
 class RunCrystal:
   _name_="RunCrystal"
-  _submitter=job_submission.TorqueCrystalSubmitter()
-
-  def __init__(self, submitter=job_submission.TorqueCrystalSubmitter()):
+  def __init__(self, submitter):
     self._submitter = submitter
 
   def run(self, job_record):
@@ -86,7 +83,6 @@ class RunCrystal:
 
 class RunProperties:
   _name_="RunProperties"
-  #_submitter=job_submission.TorquePropertiesSubmitter()
   def __init__(self,submitter=None):
     # 'None' implies to run in command line.
     self._submitter=submitter
