@@ -182,6 +182,10 @@ trialfunc { include qw_0.enopt.wfin }
     outfilename="qw_0.enopt.o"
     self._submitter.output(job_record, [outfilename, 'qw_0.enopt.wfout'])
       
+    status=self._submitter.status(job_record)
+    if status=='running':
+      return status
+
     if self.check_outputfile(outfilename)=='ok':
       return 'ok'
     
