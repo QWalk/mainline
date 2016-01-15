@@ -446,7 +446,8 @@ void Properties_final_average::showSummary(ostream & os, Array2 <Average_generat
 
 //###############################################################
 
-void Properties_final_average::JsonOutput(ostream & os, Array1 <Average_generator*> avg_gen) {
+void Properties_final_average::JsonOutput(ostream & os,
+                                          Array1 <Average_generator*> avg_gen) {
   int nwf=avg.GetDim(1);
   int naux=aux_energy.GetDim(0);
   int autocorr_depth=autocorr.GetDim(1);
@@ -497,17 +498,18 @@ void Properties_final_average::JsonOutput(ostream & os, Array1 <Average_generato
       }
       os << "]" << endl;
     
-      os << "}," << endl;
+      os << "}";
+      if(i!=NUM_QUANTITIES-1) os << ",";
+      os << endl;
     }
  
     
         //assert(avg_gen.GetDim(1)==avgavg.GetDim(1) && avgavg.GetDim(1)==avgerr.GetDim(1));
     
-    for(int i=0; i< avg_gen.GetDim(1); i++) {
+    for(int i=0; i< avg_gen.GetDim(0); i++) {
       //  if(avg_gen(i)== "Average_manybody_polarization") avg_gen(i)->jsonOutput(avgavg(0,i),avgerr(0,i), os);
-        avg_gen(i)->jsonOutput(avgavg(0,i),avgerr(0,i), os);
-        
-        
+      os << "," << endl;
+      avg_gen(i)->jsonOutput(avgavg(0,i),avgerr(0,i), os);
     }
       
     os <<"},"<< endl;

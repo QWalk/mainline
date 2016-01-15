@@ -750,14 +750,14 @@ void Average_ekt::jsonOutput(Average_return &avg,Average_return &err, ostream & 
          vlnc_up_err(nmo, nmo), vlnc_down_err(nmo, nmo);
     
   os <<"\""<< avg.type << "\":{" << endl;
-  os << "\"EKT nmo\":" << nmo <<","<< endl;
-  os << "\"EKT states\":[";
+  os << "\"nmo\":" << nmo <<","<< endl;
+  os << "\"states\":[";
   for(int i=0; i< nmo; i++) {
     if(i==nmo-1) os << occupations[0][i]+1 ;
     else os << occupations[0][i]+1 << "," ;
   }
   os << "]," << endl;
-  os << "\"Orbital normalization\":{" << endl;
+  os << "\"normalization\":{" << endl;
   os << "\"value\":[";
   for(int i=0; i< nmo; i++) {
     if(i< nmo-1) os << avg.vals(i) << ",";
@@ -788,7 +788,7 @@ void Average_ekt::jsonOutput(Average_return &avg,Average_return &err, ostream & 
         place+=2;
         }
     }
-    os << "\"One-body density matrix\":{" << endl;
+    os << "\"obdm\":{" << endl;
     int colwidth=40;
     if(!complex_orbitals) colwidth=20;
     os << "\"up\":["<< endl;
@@ -809,7 +809,7 @@ void Average_ekt::jsonOutput(Average_return &avg,Average_return &err, ostream & 
     }
     os << "]," << endl;
     
-    os << "\"up err\":["<< endl;
+    os << "\"up_err\":["<< endl;
     for(int i=0; i< nmo ; i++) {
       os << "[";
       for(int j=0; j<nmo; j++) {
@@ -845,7 +845,7 @@ void Average_ekt::jsonOutput(Average_return &avg,Average_return &err, ostream & 
     }
     os << "]," << endl;
     
-    os << "\"down err\":["<< endl;
+    os << "\"down_err\":["<< endl;
     for(int i=0; i< nmo ; i++) {
       os << "[";
       for(int j=0; j<nmo; j++) {
@@ -882,7 +882,7 @@ void Average_ekt::jsonOutput(Average_return &avg,Average_return &err, ostream & 
         }
     }
         
-    os << "\"Valence band matrix\":{" << endl;
+    os << "\"valence\":{" << endl;
     int colwidth=40;
     if(!complex_orbitals) colwidth=20;
     
@@ -904,7 +904,7 @@ void Average_ekt::jsonOutput(Average_return &avg,Average_return &err, ostream & 
     }
     os << "]," << endl;
     
-    os << "\"up err\":["<< endl;
+    os << "\"up_err\":["<< endl;
     for(int i=0; i< nmo ; i++) {
       os << "[";
       for(int j=0; j<nmo; j++) {
@@ -940,7 +940,7 @@ void Average_ekt::jsonOutput(Average_return &avg,Average_return &err, ostream & 
     }
     os << "]," << endl;
         
-    os << "\"down err\":["<< endl;
+    os << "\"down_err\":["<< endl;
     for(int i=0; i< nmo ; i++) {
       os << "[";
       for(int j=0; j<nmo; j++) {
@@ -977,7 +977,7 @@ void Average_ekt::jsonOutput(Average_return &avg,Average_return &err, ostream & 
         }
     }
         
-    os << "\"Conduction band matrix\":{" << endl;
+    os << "\"conduction\":{" << endl;
     int colwidth=40;
     if(!complex_orbitals) colwidth=20;
        
@@ -999,7 +999,7 @@ void Average_ekt::jsonOutput(Average_return &avg,Average_return &err, ostream & 
     }
     os << "]," << endl;
         
-    os << "\"up err\":["<< endl;
+    os << "\"up_err\":["<< endl;
     for(int i=0; i< nmo ; i++) {
       os << "[";
       for(int j=0; j<nmo; j++) {
@@ -1036,7 +1036,7 @@ void Average_ekt::jsonOutput(Average_return &avg,Average_return &err, ostream & 
     }
     os << "]," << endl;
     
-    os << "\"down err\":["<< endl;        
+    os << "\"down_err\":["<< endl;
     for(int i=0; i< nmo ; i++) {
       os << "[";
       for(int j=0; j<nmo; j++) {
@@ -1053,17 +1053,17 @@ void Average_ekt::jsonOutput(Average_return &avg,Average_return &err, ostream & 
       else os <<"]," << endl;
     }
     os << "]" << endl;
-    os << "}," << endl;
+    os << "}" << endl;
   }
  
-  dcomplex trace=0;
-  for(int i=0;i< nmo; i++) trace+=obdm_up(i,i);
-  os << "\"Trace of the obdm\":{" << endl;
-  os << "\"up\":[" << trace.real()<< "," << trace.imag()<<"]" << "," << endl;
-  trace=0;
-  for(int i=0; i< nmo; i++) trace+=obdm_down(i,i);
-  os << "\"down\":[" << trace.real()<< "," << trace.imag()<<"]" << endl;
-  os << "}" << endl;
+  //dcomplex trace=0;
+  //for(int i=0;i< nmo; i++) trace+=obdm_up(i,i);
+  //os << "\"Trace of the obdm\":{" << endl;
+  //os << "\"up\":[" << trace.real()<< "," << trace.imag()<<"]" << "," << endl;
+  //trace=0;
+  //for(int i=0; i< nmo; i++) trace+=obdm_down(i,i);
+  //os << "\"down\":[" << trace.real()<< "," << trace.imag()<<"]" << endl;
+  //os << "}" << endl;
   os << "}" << endl;
 }
 

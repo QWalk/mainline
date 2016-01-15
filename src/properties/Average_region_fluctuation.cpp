@@ -171,7 +171,7 @@ void Average_region_fluctuation::jsonOutput(Average_return &avg,Average_return &
     }
   }
   os << "]" << endl;
-  os << "}," << endl;
+  os << "}" << endl;
   
 }
 

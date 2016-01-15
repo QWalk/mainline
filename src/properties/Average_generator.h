@@ -77,7 +77,7 @@ public:
   virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
 			System * sys, Pseudopotential * psp, Sample_point * sample, Average_return &avg ) {
     evaluate(wfdata,wf,sys,sample,avg);//In most of the case, just let it be the same; 
-  }; 
+  }
   
   virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
                         System * sys, Pseudopotential *psp, Sample_point * sample, Properties_point & pt,Average_return &avg) { 
@@ -100,7 +100,9 @@ public:
   //to write_summary, which will give a nice interpretation of the data.
   virtual void read(vector <string> & words)=0;
   virtual void write_summary(Average_return &,Average_return &, ostream & os)=0;
-  virtual void jsonOutput(Average_return &,Average_return &, ostream & os)=0;
+  virtual void jsonOutput(Average_return &,Average_return &, ostream & os) {
+    error("jsonOutput not implemented for this Average_generator");
+  }
     
 };
 
@@ -118,7 +120,6 @@ public:
   virtual void write_init(string & indent, ostream & os);
   virtual void read(vector <string> & words);
   virtual void write_summary(Average_return &,Average_return &, ostream & os);
-  virtual void jsonOutput(Average_return &,Average_return &, ostream & os);
  private:
   Wavefunction_data * parent;
 };
@@ -152,7 +153,6 @@ public:
   virtual void write_init(string & indent, ostream & os);
   virtual void read(vector <string> & words);
   virtual void write_summary(Average_return &,Average_return &, ostream & os);
-  virtual void jsonOutput(Average_return &,Average_return &, ostream & os);
 private:
   int npoints;
   Array2 <doublevar> kpts;
@@ -170,7 +170,6 @@ public:
   virtual void write_init(string & indent, ostream & os);
   virtual void read(vector <string> & words);
   virtual void write_summary(Average_return &,Average_return &, ostream & os);
-  virtual void jsonOutput(Average_return &,Average_return &, ostream & os);
 private:
   double resolution;
   int npoints;
@@ -209,7 +208,6 @@ public:
   virtual void write_init(string & indent, ostream & os);
   virtual void read(vector <string> & words);
   virtual void write_summary(Average_return &,Average_return &, ostream & os);
-  virtual void jsonOutput(Average_return &,Average_return &, ostream & os);
 private:
   int npoints;            //!< number of points in the plotting grid
   doublevar dR;           //!< grid spacing 
@@ -232,7 +230,6 @@ public:
   virtual void write_init(string & indent, ostream & os);
   virtual void read(vector <string> & words);
   virtual void write_summary(Average_return &,Average_return &, ostream & os);
-  virtual void jsonOutput(Average_return &,Average_return &, ostream & os);
 private:
   int nelectrons;
   int npoints;            //!< number of points in the plotting grid
@@ -257,7 +254,6 @@ public:
   virtual void write_init(string & indent, ostream & os);
   virtual void read(vector <string> & words);
   virtual void write_summary(Average_return &,Average_return &, ostream & os);
-  virtual void jsonOutput(Average_return &,Average_return &, ostream & os);
 private:
   int nelectrons;            //!< number of electrons
   int nup;                   //!< number of spin-up electrons
@@ -279,7 +275,6 @@ public:
   virtual void write_init(string & indent, ostream & os);
   virtual void read(vector <string> & words);
   virtual void write_summary(Average_return &,Average_return &, ostream & os);
-  virtual void jsonOutput(Average_return &,Average_return &, ostream & os);
 };
 
 
@@ -295,7 +290,6 @@ public:
   virtual void write_init(string & indent, ostream & os);
   virtual void read(vector <string> & words);
   virtual void write_summary(Average_return &,Average_return &, ostream & os);
-  virtual void jsonOutput(Average_return &,Average_return &, ostream & os);
 private:  
   doublevar tau;
   int unr;
@@ -313,7 +307,6 @@ public:
   virtual void write_init(string & indent, ostream & os);
   virtual void read(vector <string> & words);
   virtual void write_summary(Average_return &,Average_return &, ostream & os);
-  virtual void jsonOutput(Average_return &,Average_return &, ostream & os);
 private:
   doublevar tau;
   int unr;
@@ -333,7 +326,6 @@ public:
   virtual void write_init(string & indent, ostream & os);
   virtual void read(vector <string> & words);
   virtual void write_summary(Average_return &,Average_return &, ostream & os);
-  virtual void jsonOutput(Average_return &,Average_return &, ostream & os);
 private:
   int npoints;            //!< number of points in the plotting grid
   doublevar dR;           //!< grid spacing 
@@ -365,7 +357,6 @@ public:
   virtual void write_init(string & indent, ostream & os);
   virtual void read(vector <string> & words);
   virtual void write_summary(Average_return &,Average_return &, ostream & os);
-  virtual void jsonOutput(Average_return &,Average_return &, ostream & os);
 private:
   int npoints;            //!< number of points in the plotting grid
   doublevar dR;           //!< grid spacing 
@@ -386,7 +377,6 @@ public:
   virtual void write_init(string & indent, ostream & os);
   virtual void read(vector <string> & words);
   virtual void write_summary(Average_return &,Average_return &, ostream & os);
-  virtual void jsonOutput(Average_return &,Average_return &, ostream & os);
  private:
    Array1 <doublevar> vec;     //!< Line goes in this direction
    Array1 <doublevar> origin;  //!< Line starts here
@@ -408,7 +398,6 @@ public:
   virtual void write_init(string & indent, ostream & os);
   virtual void read(vector <string> & words);
   virtual void write_summary(Average_return &,Average_return &, ostream & os);
-  virtual void jsonOutput(Average_return &,Average_return &, ostream & os);
 private:
   
 };
