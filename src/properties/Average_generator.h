@@ -77,7 +77,7 @@ public:
   virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
 			System * sys, Pseudopotential * psp, Sample_point * sample, Average_return &avg ) {
     evaluate(wfdata,wf,sys,sample,avg);//In most of the case, just let it be the same; 
-  }; 
+  }
   
   virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
                         System * sys, Pseudopotential *psp, Sample_point * sample, Properties_point & pt,Average_return &avg) { 
@@ -100,6 +100,10 @@ public:
   //to write_summary, which will give a nice interpretation of the data.
   virtual void read(vector <string> & words)=0;
   virtual void write_summary(Average_return &,Average_return &, ostream & os)=0;
+  virtual void jsonOutput(Average_return &,Average_return &, ostream & os) {
+    error("jsonOutput not implemented for this Average_generator");
+  }
+    
 };
 
 int allocate(vector<string> & words, System * sys, Wavefunction_data * wfdata, Average_generator *& avg);
@@ -132,6 +136,7 @@ public:
   virtual void write_init(string & indent, ostream & os);
   virtual void read(vector <string> & words);
   virtual void write_summary(Average_return &,Average_return &, ostream & os);
+  virtual void jsonOutput(Average_return &,Average_return &, ostream & os);
 private:
   int npoints;
   Array2 <doublevar> kpts;
@@ -182,6 +187,8 @@ public:
   virtual void write_init(string & indent, ostream & os);
   virtual void read(vector <string> & words);
   virtual void write_summary(Average_return &,Average_return &, ostream & os);
+  virtual void jsonOutput(Average_return &,Average_return &, ostream & os);
+
 private:
     Array2 <doublevar> gvec;
 };  

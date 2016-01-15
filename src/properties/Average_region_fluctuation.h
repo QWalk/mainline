@@ -36,6 +36,7 @@ class Average_region_fluctuation:public Average_generator {
                         System * sys, Sample_point * sample);
   virtual void read(vector <string> & words);
   virtual void write_summary(Average_return &,Average_return &, ostream & os);
+  virtual void jsonOutput(Average_return &,Average_return &, ostream & os);
   virtual ~Average_region_fluctuation() { 
   }
   Average_region_fluctuation() { 
