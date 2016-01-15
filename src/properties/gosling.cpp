@@ -107,14 +107,7 @@ void getBlocks(vector <string> & words, vector <string> & labels,
     else lab_nb[belong_to[b]]++;
   }
   
-  
-  
-  
   int nlabels=labels.size();
-  //cout << nlabels << " labels" << endl;
-  //for(int i=0; i< nlabels; i++) {
-  //  cout << labels[i] << "  " << lab_nb[i] << "  " << lab_ninit[i] << endl;
-  //}
 
   allblocks.Resize(nlabels);
   for(int i=0; i< nlabels; i++) {
