@@ -41,6 +41,9 @@ void Maximize_method::read(vector <string> words,
   wfdata=NULL;
   if(options.twftext.size() < 1) error("Need TRIALFUNC section for OPTIMIZE");
   allocate(options.twftext[0], sys, wfdata);
+
+  if(!readvalue(words,pos=0,nconfig,"NCONFIG"))
+    nconfig=100;
   
 }
 
@@ -52,8 +55,9 @@ void Maximize_method::run(Program_options & options, ostream & output) {
   sys->generateSample(sample);
   wfdata->generateWavefunction(wf);
   sample->attachObserver(wf);
+  
+  Wf_return wfret(1,2);
 
-  int nconfig=100;
   Array1 <Config_save_point> config_pos(nconfig);
   Array1 <doublevar> epos(3);
   
@@ -71,7 +75,8 @@ void Maximize_method::run(Program_options & options, ostream & output) {
       tableout << "e" << e << "_"<< d << " ";
     }
   }
-  tableout << "elocal" << endl;
+  tableout << "elocal" << " ";
+  tableout << "logpsi" << endl;
   
   for(int i=0; i < nconfig; i++) { 
     maximize(sample,wf,config_pos(i));
@@ -85,7 +90,9 @@ void Maximize_method::run(Program_options & options, ostream & output) {
     mygather.gatherData(pt, pseudo, sys, wfdata, wf, 
                             sample, &guidewf);
     
-    tableout << pt.energy(0) << endl;
+    tableout << pt.energy(0) << " ";
+    wf->getVal(wfdata,0,wfret);
+    tableout << wfret.amp(0,0) << endl;
      
     config_pos(i).write(cout);
   }
