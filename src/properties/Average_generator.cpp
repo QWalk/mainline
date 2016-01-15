@@ -22,7 +22,7 @@ int decide_averager(string & label, Average_generator *& avg) {
   else if(caseless_eq(label, "OBDM"))
     avg=new Average_obdm;
   else if(caseless_eq(label, "EKT"))
-    avg=new Average_ekt; 
+    avg=new Average_ekt;
   else if(caseless_eq(label, "TBDM"))
     avg=new Average_tbdm;
   else if(caseless_eq(label, "LM"))
@@ -39,16 +39,16 @@ int decide_averager(string & label, Average_generator *& avg) {
     avg=new Average_spherical_density_grid;
   else if(caseless_eq(label, "LINE_DENSITY"))
     avg=new Average_line_density;
-  else if(caseless_eq(label, "TBDM_BASIS")) 
+  else if(caseless_eq(label, "TBDM_BASIS"))
     avg=new Average_tbdm_basis;
   else if(caseless_eq(label,"REGION_FLUCTUATION"))
     avg=new Average_region_fluctuation;
-  else if(caseless_eq(label,"REGION_DENSITY_MATRIX"))
-    avg=new Average_region_density_matrix;
+ // else if(caseless_eq(label,"REGION_DENSITY_MATRIX"))
+  //  avg=new Average_region_density_matrix;
   else if(caseless_eq(label,"WF_PARMDERIV")) 
     avg=new Average_wf_parmderivs;
-  else if(caseless_eq(label,"ENMOMENT"))
-    avg=new Average_enmoment;
+//  else if(caseless_eq(label,"ENMOMENT"))
+//    avg=new Average_enmoment;
   else if(caseless_eq(label,"FOURIER_DENSITY"))
     avg=new Average_fourier_density;
   else 
@@ -248,6 +248,70 @@ void Average_structure_factor::write_summary(Average_return & avg, Average_retur
   }
   
 }
+
+//--------------------------------------------------------------------------------
+void Average_structure_factor::jsonOutput(Average_return & avg, Average_return & err, ostream & os) {
+    
+  assert(avg.vals.GetDim(0) >=npoints);
+  assert(err.vals.GetDim(0) >=npoints);
+    
+  os << "\"" << avg.type << "\":{" << endl;
+  os << "\"k\":[" << endl;
+  for(int i=0; i< npoints; i++) {
+    doublevar r=0;
+    for(int d=0; d< 3; d++) r+=kpts(i,d)*kpts(i,d);
+    r=sqrt(r);
+    os << r;
+    if(i<npoints-1) os << ",";
+  }
+  os << endl;
+  os << "]," << endl;
+    
+  os << "\"s(k)\":[" << endl;
+  for(int i=0; i< npoints; i++) {
+    doublevar sk=avg.vals(i);
+    os << sk;
+    if( i<npoints-1) os << ",";
+  }
+  os << endl;
+  os << "]," << endl;
+    
+  os << "\"s(k)err\":[" << endl;
+  for(int i=0; i< npoints; i++) {
+    doublevar skerr=err.vals(i);
+    os << skerr;
+    if(i< npoints-1) os << ",";
+  }
+  os << endl;
+  os << "]," << endl;
+    
+  os << "\"kx\":[" << endl;
+  for(int i=0; i< npoints; i++) {
+    os << kpts(i,0);
+    if(i< npoints-1) os << ",";
+  }
+  os << endl;
+  os << "]," << endl;
+    
+  os << "\"ky\":[" << endl;
+  for(int i=0; i< npoints; i++) {
+    os << kpts(i,1);
+    if(i< npoints-1) os << ",";
+  }
+  os << endl;
+  os << "]," << endl;
+    
+  os << "\"kz\":[" << endl;
+  for(int i=0; i< npoints; i++) {
+    os << kpts(i,2);
+    if(i< npoints-1) os << ",";
+  }
+  os << endl;
+  os << "]" << endl;
+    
+  os << "}" << endl;
+}
+
 //############################################################################
 
 void Average_fourier_density::read(System * sys, Wavefunction_data * wfdata, vector <string> & words) {
@@ -539,6 +603,24 @@ void Average_manybody_polarization::write_summary(Average_return & avg, Average_
   }
 }
 
+//--------------------------------------------------------------------------------
+void Average_manybody_polarization::jsonOutput(Average_return & avg, Average_return & err, ostream & os) {
+  os << "\"" << avg.type << "\":{" << endl;
+  os <<"\"value\":[";
+  for(int i=0; i< 3; i++) {
+    os << "[" << avg.vals(2*i) << "," << avg.vals(2*i+1) <<"]";
+    if(i<2) os <<",";
+  }
+  os <<"]," << endl;
+    
+  os <<"\"error\":[";
+  for(int i=0; i< 3; i++) {
+    os << "[" << err.vals(2*i) << "," << err.vals(2*i+1) <<"]";
+    if(i<2) os <<",";
+  }
+  os <<"]" << endl;
+  os << "}," << endl;
+}
 
 //############################################################################
 
@@ -1898,3 +1980,410 @@ void Average_wf_parmderivs::write_summary(Average_return &avg ,Average_return & 
    
 }
 //-----------------------------------------------------------------------------
+
+
+//########################################Json Output ######################################
+void Average_dipole::jsonOutput(Average_return & avg, Average_return & err, ostream & os) {
+    int ndim=avg.vals.GetDim(0);
+    assert(ndim <= err.vals.GetDim(0));
+    //Could put this in Debye if we want to be nice.
+    os << "\"Dipole moment (a.u.)\":{" << endl;
+    for(int d=0; d< ndim; d++) {
+        if(d==0) os << "\"x\":";
+        else if(d==1) os << "\"y\":";
+        else if(d==2) os << "\"z\":";
+        os << avg.vals(d) << "," << endl;
+        os <<"\"error\":" << err.vals(d) << "," << endl;
+    }
+    os << "},"  << endl;
+    
+}
+
+
+
+
+void Average_fourier_density::jsonOutput(Average_return & avg, Average_return & err, ostream & os) {
+    //To get an output in table form, do
+    //gosling log  | grep fourier_out | awk '{$1=""; print $0}'
+    int stride=avg.vals.GetDim(0)/npoints;
+    os << "\"fourier_out\":{" << endl;
+    os << "\"name\":" << "\"kx ky kz upcos upcoserr upsin upsinerr downcos downcoserr downsin downsinerr uucos uucoserr uusin uusinerr udcos udcoserr udsin udsinerr  ddcos ddcoserr ddsin ddsinerr\"," << endl;
+    os <<"\"value\":[" << endl;
+    for(int p=0; p < npoints; p++) {
+        // os << "fourier_out ";
+        os << "{";
+        for(int d=0; d< 3; d++) os  << kpts(p,d) << ",";
+        for(int i=0; i< stride; i++){
+            if(i==stride-1) os << avg.vals(stride*p+i) << "," << err.vals(stride*p+i);
+            else os << avg.vals(stride*p+i) << "," << err.vals(stride*p+i) << ",";
+            os << endl;
+        }
+        if(p==npoints-1) os<< "}"<<endl;
+        else os << "}," << endl;
+        
+    }
+    os << "]" << endl;
+    os << "}," << endl;
+}
+
+
+//#########################
+
+
+void Average_twobody_correlation::jsonOutput(Average_return & avg, Average_return & err, ostream & os) {
+    
+    assert(avg.vals.GetDim(0) >=2*npoints);
+    assert(err.vals.GetDim(0) >=2*npoints);
+    os << "\"Electron correlation for like and unlike spins\":{";
+    os << "\"name\":"  << "\"r  g(r) sigma(g(r))   g(r)  sigma(g(r))\"," << endl;
+    os <<"\"value\":[" << endl;
+    
+    for(int i=0; i< npoints; i++) {
+        os << "{";
+        os << i*resolution << "," << avg.vals(i) << "," << err.vals(i)
+        << "," << avg.vals(i+npoints) << "," << err.vals(i+npoints);
+        
+        if(i==npoints-1) os<< "}"<<endl;
+        else os << "}," << endl;
+    }
+    os << "]" << endl;
+    os << "}," << endl;
+}
+
+
+
+
+
+void Average_obdm::jsonOutput(Average_return & avg, Average_return & err,
+                              ostream & os) {
+    assert(avg.vals.GetDim(0) >=npoints);
+    assert(err.vals.GetDim(0) >=npoints);
+    
+    os << "\"One-body density matrix\":{" << endl;
+    os << "\"spherically averaged with AIP\":" << np_aver<<"," << endl;
+    
+    os <<"\"name\":" << "r rho(r) rho(r)err"<< "," << endl;
+    
+    
+    os << "\"value\":[" << endl;
+    for(int i=0; i< npoints; i++) {
+        os << "{";
+        doublevar rho=avg.vals(i);
+        doublevar rhoerr=err.vals(i);
+        doublevar r=(i+1)*dR;
+        os <<  r << "," << rho << "," << rhoerr << "}";
+        if(i==npoints-1)  os << endl;
+        else os <<"," << endl;
+        
+    }
+    os << "]"<< endl;
+    os << "},";
+    
+}
+
+
+
+
+
+void Average_tbdm::jsonOutput(Average_return & avg, Average_return & err,
+                              ostream & os) {
+    assert(avg.vals.GetDim(0) >=npoints);
+    assert(err.vals.GetDim(0) >=npoints);
+    
+    os << "\""<< avg.type << "\":{" << endl;
+    os << "\"spherically averaged with AIP\":" << np_aver<<"," << endl;
+    os << "r rho(r) rho(r)err"<< "," << endl;
+    os << "\"value\":[" << endl;
+
+    
+    for(int i=0; i< npoints; i++) {
+        doublevar rho=avg.vals(i);
+        doublevar rhoerr=err.vals(i);
+        doublevar r=(i+1)*dR;
+        os <<  r << "," << rho << "," << rhoerr << "}";
+        if(i==npoints-1)  os << endl;
+        else os <<"," << endl;
+    }
+    os << "]"<< endl;
+    os << "},";
+    
+}
+
+
+void Average_local_moments::jsonOutput(Average_return & avg,
+                                       Average_return & err,
+                                       ostream & os) {
+    os << "\"Local spin moments and charges integrated over muffin-tin spheres\":{" << endl;
+    os << "\"name\":" << "\"atom  name    rMT    moment   moment_err  charge  charge_err\"," << endl;
+    
+    ios::fmtflags saved_flags=os.flags(ios::fixed);
+    streamsize saved_precision=os.precision(2);
+    
+    assert(avg.vals.GetDim(0) >=2*natoms+2);
+    assert(err.vals.GetDim(0) >=2*natoms+2);
+    
+    doublevar totm=0.0;
+    doublevar totc=0.0;
+    
+    os << "\"value\":[" << endl;
+    for(int i=0; i< natoms+1; i++) {
+        os << "[";
+        os << "\"lm_out\"," << "\"" << atomnames[i]<<"\",";
+        if ( rMT(i) < 0.0 ) {
+            os << "    ";
+        } else {
+            os << rMT(i) << ",";
+        }
+        os << avg.vals(i) << "," << err.vals(i) << "," << avg.vals(i+natoms+1) << "," << err.vals(i+natoms+1);
+        totm+=avg.vals(i);
+        totc+=avg.vals(i+natoms+1);
+        if(i==natoms) os << "]" << endl;
+        else  os << "]," << endl;
+    }
+    os << "]," << endl;
+    os << "\"total moment in the cell\":" <<  totm << "," << endl;
+    os << "\"total charge in the cell\":" <<  totc << endl;
+    os << "},";
+    // restore output stream formating to default
+    os.flags(saved_flags);
+    os.precision(saved_precision);
+    
+}
+
+
+void Average_density_moments::jsonOutput(Average_return & avg, Average_return & err, ostream & os) {
+    int ndim=avg.vals.GetDim(0);
+    assert(ndim <= err.vals.GetDim(0));
+    //Could put this in Debye if we want to be nice.
+    os << "\"Density moments (a.u.)\":{";
+    for(int d=0; d< ndim; d++) {
+        
+        if(d==0) os << "\"|r|\":{" << endl;
+        else if(d==1) os << "\"|r**2|\":{" << endl;
+        else if(d==2) os << "\"|r**3|\":{" << endl;
+        
+        os <<"\"value\":" << avg.vals(d) << "," << endl;
+        os <<"\"error\":" << err.vals(d) << "," << endl;
+        
+        if(d==2) os << "}" << endl;
+        else os << "}," << endl;
+    }
+}
+
+
+void Average_linear_derivative::jsonOutput(Average_return & avg, Average_return & err, ostream & os) {
+    int ndim=avg.vals.GetDim(0)-1;
+    assert(ndim <= err.vals.GetDim(0));
+    os << "\"Linear derivatives\":{" << endl;
+    os << "\"value\":[";
+    for(int d=0; d< ndim; d++) {
+        if(d==ndim-1) os << avg.vals(d)/avg.vals(ndim) << ",";
+        os << avg.vals(d)/avg.vals(ndim) << ",";
+    }
+    os << "]," << endl;
+    
+    os << "\"error\":[";
+    for(int d=0; d< ndim; d++) {
+        if(d==ndim-1) os << avg.vals(d)/avg.vals(ndim) << ",";
+        os << err.vals(d)/avg.vals(ndim) << ",";
+    }
+    os << "]," << endl;
+    
+    os <<"\"normalization\":{" << endl;
+    os << "\"value\":" << avg.vals(ndim) <<"," << endl;
+    os << "\"error\":" << err.vals(ndim) <<"," << endl;
+    os << "}" << endl;
+    os << "}," << endl;
+    
+}
+
+
+void Average_linear_delta_derivative::jsonOutput(Average_return & avg, Average_return & err, ostream & os) {
+    
+    int ndim=avg.vals.GetDim(0)-1;
+    assert(ndim <= err.vals.GetDim(0));
+    
+    os << "\"Linear derivatives\":{" << endl;
+    os << "\"value\":[";
+    for(int d=0; d< ndim; d++) {
+        if(d==ndim-1) os << avg.vals(d)/avg.vals(ndim) << ",";
+        os << avg.vals(d)/avg.vals(ndim) << ",";
+    }
+    os << "]," << endl;
+    
+    os << "\"error\":[";
+    for(int d=0; d< ndim; d++) {
+        if(d==ndim-1) os << avg.vals(d)/avg.vals(ndim) << ",";
+        os << err.vals(d)/avg.vals(ndim) << ",";
+    }
+    os << "]," << endl;
+    
+    os <<"\"normalization\":{" << endl;
+    os << "\"value\":" << avg.vals(ndim) <<"," << endl;
+    os << "\"error\":" << err.vals(ndim) <<"," << endl;
+    os << "}" << endl;
+    os << "}," << endl;
+    
+}
+
+
+void Average_spherical_density::jsonOutput(Average_return & avg, Average_return & err,
+                                           ostream & os) {
+    os << "\"Spherically averaged density\":"<< endl;
+    
+    
+    os.setf(ios::scientific);
+    os <<"Used basis info :"<<endl;
+    string indent="  ";
+    basis->showinfo(indent, os);
+    os <<"Spin-up and spin-down density in above basis"<<endl;
+    //doublevar summ1=0;
+    //doublevar summ2=0;
+    for(int i=0; i< nfunc; i++) {
+        os << i+1 <<setw(20)<<setprecision(10)<< avg.vals(i) <<setw(20)<<setprecision(10)<<  err.vals(i);
+        os <<setw(20)<<setprecision(10)<< avg.vals(i+nfunc) <<setw(20)<<setprecision(10)<<  err.vals(i+nfunc) << endl;
+    }
+    
+    
+    Array1 <doublevar> R(5);
+    Array1 <doublevar> basisvals(nfunc);
+    os << "densities on the grid"<<endl;
+    os << "r  rho(r) rho(r)err  rho(r) rho(r)err"  << endl;
+    doublevar  norm1=0.0;
+    doublevar  norm2=0.0;
+    //for(int i=0;i<npoints;i++){
+    //R(0)=(i+0.5)*dR;
+    R(0)=1.000000000000e-06;
+    doublevar lastR=0.0;
+    doublevar rf=100.0;
+    doublevar ri=1e-6;
+    int npts=5001;
+    doublevar ratio=exp(log(rf/ri)/(npts-1)); //1.003690930920;
+    
+    while (R(0)<cutoff) {
+        int currfunc=0;
+        basis->calcVal(R, basisvals, currfunc);
+        Array1 <doublevar> sum(6);
+        sum=0;
+        Array1 <doublevar> sum_error(6);
+        sum_error=0;
+        for(int k=0;k<nfunc;k++){
+            sum(0)+=basisvals(k)*avg.vals(k);
+            sum_error(0)+=basisvals(k)*err.vals(k)*basisvals(k)*err.vals(k);
+            
+            sum(3)+=basisvals(k)*avg.vals(k+nfunc);
+            sum_error(3)+=basisvals(k)*err.vals(k+nfunc)*basisvals(k)*err.vals(k+nfunc);
+            
+            
+        }//k
+        
+        norm1+=4.0*pi*R(0)*R(0)*sum(0)*(R(0)-lastR);
+        //norm1+=sum(0)*dR;
+        norm2+=4.0*pi*R(0)*R(0)*sum(3)*(R(0)-lastR);
+        //norm2+=sum(3)*dR;
+        os <<R(0)<<setw(20)<<setprecision(10)<<sum(0)<<setw(20)<<setprecision(10)<<sqrt(sum_error(0))
+        <<setw(20)<<setprecision(10)<<sum(3)<<setw(20)<<setprecision(10)<<sqrt(sum_error(3))
+        <<endl;
+        lastR=R(0);
+        R(0)*=ratio;
+        
+    }//i
+    os <<"integrated  spin-up density "<<norm1<<" and spin-up density "<<norm2<<endl;
+    os << endl;
+    os.unsetf(ios::scientific);
+    os<<setprecision(6);
+}
+
+
+
+void Average_spherical_density_grid::jsonOutput(Average_return & avg, Average_return & err,
+                                                ostream & os) {
+    os << "\"Spherically averaged density on grid\":{"<< endl;
+    
+    
+    assert(avg.vals.GetDim(0) >=2*npoints);
+    assert(err.vals.GetDim(0) >=2*npoints);
+    
+    doublevar integral1=0.0;
+    doublevar integral2=0.0;
+    doublevar alpha=10.0/(npoints*dR*npoints*dR);
+    doublevar check_intg=0.0;
+    doublevar C=sqrt(pi)/(4.0*pow(alpha,1.5));
+    
+    for(int i=0; i< npoints; i++) {
+        doublevar r=(i+0.5)*dR;
+        doublevar rho1=avg.vals(i);
+        doublevar rho2=avg.vals(i+npoints);
+        //integral1+=4*pi*rho1*r*r*dR;
+        integral1+=4*pi*rho1*dR;
+        //integral2+=4*pi*rho2*r*r*dR;
+        integral2+=4*pi*rho2*dR;
+        check_intg+=dR*r*r*exp(-alpha*r*r)/C;
+        
+    }
+    
+    os <<"\"spin-up integtated density\":"<<integral1 << ",\n" <<"\"# electrons\":"<<nup << ",\n" <<"\"spin-down integtated density\":"<<integral2 << ",\n" << "\"# electrons\":"<<ndown << ",\n" <<"\"integration error\":"<< abs(1.0-check_intg) << ",\n"<<endl;
+    
+    os.setf(ios::scientific);
+    for(int i=0; i< npoints; i++) {
+        doublevar r=(i+0.5)*dR; //plot in the middle of the interval
+        //doublevar r2=r*r;
+        doublevar rho1=avg.vals(i);
+        doublevar rhoerr1=err.vals(i);
+        doublevar rho2=avg.vals(i+npoints);
+        doublevar rhoerr2=err.vals(i+npoints);
+        
+        
+        os << "density_out " <<setw(20)<<  r<< setw(20)<<"  "<<setw(20)<< rho1 <<"  "<<setw(20)<<rhoerr1<<setw(20)<< rho2 <<"  "<<setw(20)<<rhoerr2<< endl;
+    }
+    os.unsetf(ios::scientific);
+    os<<setprecision(6);
+    
+    os << "}," << endl;
+}
+
+
+void Average_line_density::jsonOutput(Average_return & avg, Average_return & err, ostream & os) {
+    os << "\"Electron Density along a line\":{" << endl;
+    os <<"\"name\":[ \"r\",\"p(r)\",\"sigma(p(r)) \",\"p(r)\",\"sigma(p(r))\"]," << endl;
+    assert(avg.vals.GetDim(0) >=2*npoints);
+    assert(err.vals.GetDim(0) >=2*npoints);
+    os <<"\"value\":[";
+    for(int i=0; i< npoints; i++) {
+        
+        os << "[" << i*resolution << "," << avg.vals(i) << "," << err.vals(i)
+        << "," << avg.vals(i+npoints) << "," << err.vals(i+npoints);
+        if (i==npoints-1 ) os <<"]" << endl;
+        else os<<"],"<< endl;
+        
+    }
+    
+    os << "]" << endl;
+    os << "}," << endl;
+}
+
+void Average_wf_parmderivs::jsonOutput(Average_return &avg ,Average_return & err, ostream & os) {
+    os << "\"Wavefunction parameter derivatives\":{" << endl;
+    
+    int n=sqrt(1.0+avg.vals.GetDim(0))-1;
+    
+    os << "\"energy\":[" << endl;
+    for(int i=0; i < n; i++) {
+       
+        os <<"\"name\":"  << i << endl;
+        os << "\"valuei\":"<< avg.vals(i) << "," << endl;
+        os << "\"errori\":"<< err.vals(i) << "," << endl;
+        os << "\"valuen+i\":"<< avg.vals(n+i) << "," << endl;
+        os << "\"errorn+i\":"<< err.vals(n+i) << "," << endl;
+        
+    }
+    
+    os <<"|" << endl;
+    os <<"}" << endl;
+}
+
+
+
+
+
+

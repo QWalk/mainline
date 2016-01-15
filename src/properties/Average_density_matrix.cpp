@@ -848,6 +848,188 @@ void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, 
 }
 
 //----------------------------------------------------------------------
+
+void Average_tbdm_basis::jsonOutput(Average_return &avg,Average_return &err, ostream & os) {
+  
+  Array2 <dcomplex> obdm_up(nmo,nmo),obdm_down(nmo,nmo),
+  obdm_up_err(nmo,nmo),obdm_down_err(nmo,nmo);
+  //Array4 <dcomplex>
+  //       tbdm_uu(nmo,nmo),tbdm_uu_err(nmo,nmo),
+  //      tbdm_ud(nmo,nmo),tbdm_ud_err(nmo,nmo),
+  //      tbdm_du(nmo,nmo),tbdm_du_err(nmo,nmo),
+  //      tbdm_dd(nmo,nmo),tbdm_dd_err(nmo,nmo);
+  
+  os << "\"" << avg.type << "\":{" << endl;
+  os << "\"tbdm nmo\":" << nmo << "," << endl;
+  os << "\"tbdm states\":[" << endl;
+  for(int i=0; i< nmo; i++) {
+    os << occupations[0][i]+1 << " " ;
+  }
+  os << " } \n";
+  os << "Orbital normalization " << endl;
+  for(int i=0; i< nmo; i++) {
+    os << avg.vals(i) << " +/- " << err.vals(i) << endl;
+  }
+  
+  // for(int i=0; i < nmo; i++) {
+  //   avg.vals(i)=1.0/nmo; //assume that the orbitals are normalized.
+  // }
+  
+  dcomplex i_c(0.,1.);
+  int place=0;
+  for(int i=0; i < nmo; i++) {
+    for(int j=0; j < nmo; j++)  {
+      doublevar norm=sqrt(avg.vals(i)*avg.vals(j));
+      int index=nmo+place;
+      obdm_up(i,j)=dcomplex(avg.vals(index),avg.vals(index+1))/norm;
+      obdm_up_err(i,j)=dcomplex(err.vals(index),err.vals(index+1))/norm;
+      
+      index+=2*nmo*nmo;
+      obdm_down(i,j)=dcomplex(avg.vals(index),avg.vals(index+1))/norm;
+      obdm_down_err(i,j)=dcomplex(err.vals(index),err.vals(index+1))/norm;
+      place+=2;
+    }
+  }
+  
+  os << "One-body density matrix " << endl;
+  int colwidth=40;
+  if(!complex_orbitals) colwidth=20;
+  os << setw(10) << " " << setw(10) << " "
+  << setw(colwidth) << "up" << setw(colwidth) << "up err"
+  << setw(colwidth) << "down" << setw(colwidth) << "down err"
+  << endl;
+  for(int i=0; i< nmo ; i++) {
+    for(int j=0; j<nmo; j++) {
+      if(complex_orbitals) {
+        os << setw(10) << i << setw(10) << j
+        << setw(colwidth) << obdm_up(i,j) << setw(colwidth) << obdm_up_err(i,j)
+        << setw(colwidth) << obdm_down(i,j) << setw(colwidth) << obdm_down_err(i,j)
+        << endl;
+      }
+      else {
+        os << setw(10) << i << setw(10) << j
+        << setw(colwidth) << obdm_up(i,j).real()
+        << setw(colwidth) << obdm_up_err(i,j).real()
+        << setw(colwidth) << obdm_down(i,j).real()
+        << setw(colwidth) << obdm_down_err(i,j).real()
+        << endl;
+        
+      }
+    }
+    
+  }
+  if(eval_tbdm) {
+    os << "two-body density matrix " << endl;
+    os << setw(10) << " i " << setw(10) << " j " << setw(10) << " k "
+    << " l "
+    << setw(colwidth) << "upup" << setw(colwidth) << "upup err"
+    << setw(colwidth) << "updown" << setw(colwidth) << "updown err"
+    << setw(colwidth) << "downup" << setw(colwidth) << "downup err"
+    << setw(colwidth) << "downdown" << setw(colwidth) << "downdown err"
+    << endl;
+    dcomplex uu,uu_err,ud,ud_err,du,du_err,dd,dd_err;
+    
+    if(tbdm_diagonal) {
+      for(int i=0; i< nmo; i++) {
+        for(int j=0; j< nmo; j++) {
+          doublevar norm=sqrt(avg.vals(i)*avg.vals(i)*avg.vals(j)*avg.vals(j));
+          int induu=nmo+4*nmo*nmo+2*i*nmo+2*j;
+          int indud=induu+2*nmo*nmo;
+          int inddu=indud+2*nmo*nmo;
+          int inddd=inddu+2*nmo*nmo;
+          uu=dcomplex(avg.vals(induu),avg.vals(induu+1))/norm;
+          uu_err=dcomplex(err.vals(induu),err.vals(induu+1))/norm;
+          ud=dcomplex(avg.vals(indud),avg.vals(indud+1))/norm;
+          ud_err=dcomplex(err.vals(indud),err.vals(indud+1))/norm;
+          du=dcomplex(avg.vals(inddu),avg.vals(inddu+1))/norm;
+          du_err=dcomplex(err.vals(inddu),err.vals(inddu+1))/norm;
+          dd=dcomplex(avg.vals(inddd),avg.vals(inddd+1))/norm;
+          dd_err=dcomplex(err.vals(inddd),err.vals(inddd+1))/norm;
+          
+          
+          if(complex_orbitals) {
+            os << setw(10) << i << setw(10) << j << setw(10) << i <<  setw(10) << j
+            << setw(colwidth) << uu << setw(colwidth) << uu_err
+            << setw(colwidth) << ud << setw(colwidth) << ud_err
+            << setw(colwidth) << du << setw(colwidth) << du_err
+            << setw(colwidth) << dd << setw(colwidth) << dd_err
+            << endl;
+          }
+          else {
+            os << setw(10) << i << setw(10) << j << setw(10) << i <<  setw(10) << j
+            << setw(colwidth) << uu.real() << setw(colwidth) << uu_err.real()
+            << setw(colwidth) << ud.real() << setw(colwidth) << ud_err.real()
+            << setw(colwidth) << du.real() << setw(colwidth) << du_err.real()
+            << setw(colwidth) << dd.real() << setw(colwidth) << dd_err.real()
+            << endl;
+            
+          }
+        }
+      }
+      
+    }
+    else {
+      for(int i=0; i< nmo ; i++) {
+        for(int j=0; j<nmo; j++) {
+          for(int k=0; k< nmo; k++) {
+            for(int l=0; l< nmo; l++) {
+              doublevar norm=sqrt(avg.vals(i)*avg.vals(j)*avg.vals(k)*avg.vals(l));
+              int induu=tbdm_index(tbdm_uu,i,j,k,l);
+              int indud=tbdm_index(tbdm_ud,i,j,k,l);
+              int inddu=tbdm_index(tbdm_du,i,j,k,l);
+              int inddd=tbdm_index(tbdm_dd,i,j,k,l);
+              
+              uu=dcomplex(avg.vals(induu),avg.vals(induu+1))/norm;
+              uu_err=dcomplex(err.vals(induu),err.vals(induu+1))/norm;
+              ud=dcomplex(avg.vals(indud),avg.vals(indud+1))/norm;
+              ud_err=dcomplex(err.vals(indud),err.vals(indud+1))/norm;
+              du=dcomplex(avg.vals(inddu),avg.vals(inddu+1))/norm;
+              du_err=dcomplex(err.vals(inddu),err.vals(inddu+1))/norm;
+              dd=dcomplex(avg.vals(inddd),avg.vals(inddd+1))/norm;
+              dd_err=dcomplex(err.vals(inddd),err.vals(inddd+1))/norm;
+              if(complex_orbitals) {
+                os << setw(10) << i << setw(10) << j << setw(10) << k <<  setw(10) << l
+                << setw(colwidth) << uu << setw(colwidth) << uu_err
+                << setw(colwidth) << ud << setw(colwidth) << ud_err
+                << setw(colwidth) << du << setw(colwidth) << du_err
+                << setw(colwidth) << dd << setw(colwidth) << dd_err
+                << endl;
+              }
+              else {
+                os << setw(10) << i << setw(10) << j << setw(10) << k <<  setw(10) << l
+                << setw(colwidth) << uu.real() << setw(colwidth) << uu_err.real()
+                << setw(colwidth) << ud.real() << setw(colwidth) << ud_err.real()
+                << setw(colwidth) << du.real() << setw(colwidth) << du_err.real()
+                << setw(colwidth) << dd.real() << setw(colwidth) << dd_err.real()
+                << endl;
+                
+              }
+              
+              
+              
+            }
+          }
+        }
+        
+      }
+    }
+  }
+  
+  
+  dcomplex trace=0;
+  for(int i=0;i< nmo; i++) trace+=obdm_up(i,i);
+  os << "Trace of the obdm: up: " << trace;
+  trace=0;
+  for(int i=0; i< nmo; i++) trace+=obdm_down(i,i);
+  os << " down: " << trace << endl;
+  
+  
+}
+
+
+
+
+//----------------------------------------------------------------------
 //
 //
 //Note this needs to be changed for non-zero k-points!
@@ -892,6 +1074,7 @@ doublevar Average_tbdm_basis::gen_sample(int nstep, doublevar  tstep,
   return sum;
 
 }
+
 
 //----------------------------------------------------------------------
 void Average_tbdm_basis::calc_mos(Sample_point * sample, int e, Array2 <dcomplex> & movals) { 
