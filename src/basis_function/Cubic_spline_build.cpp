@@ -448,60 +448,60 @@ int Cubic_spline::readbasis(vector <string> & words,unsigned int & pos,
         doublevar fac=sqrt(2.*exponent[funcNum][i]/pi);
         doublevar feg=4.*exponent[funcNum][i];
         doublevar feg2=feg*feg;
-
+        
         switch(symmetry(funcNum))   {
-        case sym_S:
-          norm=sqrt(2.*feg*fac);
-          break;
-        case sym_P:
-          norm=sqrt(2.*feg2*fac/3.);
-          break;
-        case sym_5D:
-        case sym_6D:
-          norm=sqrt(2.*feg*feg2*fac/15.);
-          break;
-        case sym_7F:
-	case sym_7F_crystal://CRYSTAL F orbital
-        case sym_10F:
-          norm=sqrt(2.*feg2*feg2*fac/105.);
-          break;
-        case sym_9G:
-        case sym_15G:
-          norm=sqrt(2.*feg2*feg2*feg*fac/945.); //Lubos-done
-          break;
-          /*  general formula here with n principal quantum numbers
-              norm=sqrt[(2 ((4exponent)**n) sqrt(2exponent/pi))/(2n-1)!!]
-              */
-        default:
-          norm=0;
-          error("Unknown symmetry in Cubic_spline::readbasis! Shouldn't be here!");
+          case sym_S:
+            norm=sqrt(2.*feg*fac);
+            break;
+          case sym_P:
+            norm=sqrt(2.*feg2*fac/3.);
+            break;
+          case sym_5D:
+          case sym_6D:
+            norm=sqrt(2.*feg*feg2*fac/15.);
+            break;
+          case sym_7F:
+          case sym_7F_crystal://CRYSTAL F orbital
+          case sym_10F:
+            norm=sqrt(2.*feg2*feg2*fac/105.);
+            break;
+          case sym_9G:
+          case sym_15G:
+            norm=sqrt(2.*feg2*feg2*feg*fac/945.); //Lubos-done
+            break;
+            /*  general formula here with n principal quantum numbers
+             norm=sqrt[(2 ((4exponent)**n) sqrt(2exponent/pi))/(2n-1)!!]
+             */
+          default:
+            norm=0;
+            error("Unknown symmetry in Cubic_spline::readbasis! Shouldn't be here!");
         }
       }
       else if(norm_type=="CRYSTAL") {
         switch(symmetry(funcNum))
         {
-        case sym_S:
-          norm=1;
-          break;
-        case sym_P:
-          norm=1/sqrt(3.0);
-          break;
-        case sym_5D:
-        case sym_6D:
-          norm=1/sqrt(5.0);
-          break;
-        case sym_7F:
-	case sym_7F_crystal://CRYSTAL F orbital
-        case sym_10F:
-          norm=1/sqrt(7.0);
-          break;
-        case sym_9G:
-        case sym_15G:
-          norm=1/sqrt(9.0);
-          break;
-        default:
-          norm=0;
-          error("unknown symmetry in cubic_spline: ", symmetry(funcNum));
+          case sym_S:
+            norm=1;
+            break;
+          case sym_P:
+            norm=1/sqrt(3.0);
+            break;
+          case sym_5D:
+          case sym_6D:
+            norm=1/sqrt(5.0);
+            break;
+          case sym_7F:
+          case sym_7F_crystal://CRYSTAL F orbital
+          case sym_10F:
+            norm=1/sqrt(7.0);
+            break;
+          case sym_9G:
+          case sym_15G:
+            norm=1/sqrt(9.0);
+            break;
+          default:
+            norm=0;
+            error("unknown symmetry in cubic_spline: ", symmetry(funcNum));
         }
       }
       else if(norm_type=="NONE") {
