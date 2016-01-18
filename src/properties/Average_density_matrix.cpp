@@ -848,6 +848,618 @@ void Average_tbdm_basis::write_summary(Average_return &avg,Average_return &err, 
 }
 
 //----------------------------------------------------------------------
+
+void Average_tbdm_basis::jsonOutput(Average_return &avg,Average_return &err, ostream & os) {
+  
+  Array2 <dcomplex> obdm_up(nmo,nmo),obdm_down(nmo,nmo),
+  obdm_up_err(nmo,nmo),obdm_down_err(nmo,nmo);
+  //Array4 <dcomplex>
+  //       tbdm_uu(nmo,nmo),tbdm_uu_err(nmo,nmo),
+  //      tbdm_ud(nmo,nmo),tbdm_ud_err(nmo,nmo),
+  //      tbdm_du(nmo,nmo),tbdm_du_err(nmo,nmo),
+  //      tbdm_dd(nmo,nmo),tbdm_dd_err(nmo,nmo);
+  
+  os << "\"" << avg.type << "\":{" << endl;
+  os << "\"nmo\":" << nmo << "," << endl;
+  os << "\"states\":[";
+  for(int i=0; i< nmo; i++) {
+    if(i==nmo-1) os << occupations[0][i]+1;
+    else os << occupations[0][i]+1 << "," ;
+  }
+  os << "]," << endl;
+  os << "\"normalization\":{" << endl;
+  os << "\"value\":[";
+  for(int i=0; i< nmo; i++) {
+    if(i< nmo-1) os << avg.vals(i) << ",";
+    else os << avg.vals(i);
+  }
+  os << "],"<< endl;
+  os << "\"error\":[";
+  for(int i=0; i< nmo; i++) {
+    if(i< nmo-1) os << err.vals(i) << ",";
+    else os << err.vals(i);
+  }
+  os << "]"<< endl;
+  os << "}," << endl;
+  
+  // for(int i=0; i < nmo; i++) {
+  //   avg.vals(i)=1.0/nmo; //assume that the orbitals are normalized.
+  // }
+  
+  dcomplex i_c(0.,1.);
+  int place=0;
+  for(int i=0; i < nmo; i++) {
+    for(int j=0; j < nmo; j++)  {
+      doublevar norm=sqrt(avg.vals(i)*avg.vals(j));
+      int index=nmo+place;
+      obdm_up(i,j)=dcomplex(avg.vals(index),avg.vals(index+1))/norm;
+      obdm_up_err(i,j)=dcomplex(err.vals(index),err.vals(index+1))/norm;
+      
+      index+=2*nmo*nmo;
+      obdm_down(i,j)=dcomplex(avg.vals(index),avg.vals(index+1))/norm;
+      obdm_down_err(i,j)=dcomplex(err.vals(index),err.vals(index+1))/norm;
+      place+=2;
+    }
+  }
+  
+  os << "\"obdm\":{" << endl;
+  int colwidth=40;
+  if(!complex_orbitals) colwidth=20;
+
+  os << "\"up\":["<< endl;
+  for(int i=0; i< nmo ; i++) {
+    os << "[";
+    for(int j=0; j<nmo; j++) {
+      if(complex_orbitals) {
+        if(j==nmo-1) os << "["<< obdm_up(i,j).real() <<","<< obdm_up(i,j).imag()<<"]";
+        else  os << "["<< obdm_up(i,j).real() <<","<< obdm_up(i,j).imag()<<"],";
+      }
+      else {
+        if(j==nmo-1) os << obdm_up(i,j).real();
+        else os << obdm_up(i,j).real() << ",";
+      }
+    }
+    if(i==nmo-1) os << "]" << endl;
+    else os <<"]," << endl;
+  }
+  os << "]," << endl;
+  
+  os << "\"up_err\":["<< endl;
+  for(int i=0; i< nmo ; i++) {
+    os << "[";
+    for(int j=0; j<nmo; j++) {
+      if(complex_orbitals) {
+        if(j==nmo-1) os <<"["<<obdm_up_err(i,j).real() <<","<< obdm_up_err(i,j).imag()<<"]";
+        else os <<"["<< obdm_up_err(i,j).real() <<","<< obdm_up_err(i,j).imag()<<"],";
+      }
+      else {
+        if(j==nmo-1) os << obdm_up_err(i,j).real();
+        else os << obdm_up_err(i,j).real() << ",";
+      }
+    }
+    if(i==nmo-1) os << "]" << endl;
+    else os <<"]," << endl;
+  }
+  os << "]," << endl;
+  
+  os << "\"down\":["<< endl;
+  for(int i=0; i< nmo ; i++) {
+    os << "[";
+    for(int j=0; j<nmo; j++) {
+      if(complex_orbitals) {
+        if(j==nmo-1) os << "["<< obdm_down(i,j).real() <<","<< obdm_down(i,j).imag()<<"]";
+        else  os << "["<< obdm_down(i,j).real() <<","<< obdm_down(i,j).imag()<<"],";
+      }
+      else {
+        if(j==nmo-1) os << obdm_down(i,j).real();
+        else os << obdm_down(i,j).real() << ",";
+      }
+    }
+    if(i==nmo-1) os << "]" << endl;
+    else os <<"]," << endl;
+  }
+  os << "]," << endl;
+  
+  os << "\"down_err\":["<< endl;
+  for(int i=0; i< nmo ; i++) {
+    os << "[";
+    for(int j=0; j<nmo; j++) {
+      if(complex_orbitals) {
+        if(j==nmo-1) os <<"["<< obdm_down_err(i,j).real() <<","<< obdm_down_err(i,j).imag()<<"]";
+        else os << "[" << obdm_down_err(i,j).real() <<","<< obdm_down_err(i,j).imag()<<"],";
+      }
+      else {
+        if(j==nmo-1) os << obdm_down_err(i,j).real();
+        else os << obdm_down_err(i,j).real() << ",";
+      }
+    }
+    if(i==nmo-1) os << "]" << endl;
+    else os <<"]," << endl;
+  }
+  os << "]" << endl;
+  os << "}," << endl;
+  
+  if(eval_tbdm) {
+    os << "\"tbdm\":{" << endl;
+    dcomplex uu,uu_err,ud,ud_err,du,du_err,dd,dd_err;
+    
+   
+    if(tbdm_diagonal) {
+      os << "\"diagonal\":\"yes\"," << endl;
+      
+      os << "\"upup\":[" << endl;
+      for(int i=0; i< nmo; i++) {
+        for(int j=0; j< nmo; j++) {
+          doublevar norm=sqrt(avg.vals(i)*avg.vals(i)*avg.vals(j)*avg.vals(j));
+          int induu=nmo+4*nmo*nmo+2*i*nmo+2*j;
+          int indud=induu+2*nmo*nmo;
+          int inddu=indud+2*nmo*nmo;
+          int inddd=inddu+2*nmo*nmo;
+          uu=dcomplex(avg.vals(induu),avg.vals(induu+1))/norm;
+          if(complex_orbitals) {
+            if(j==nmo-1) os << "[" << uu.real() <<","<< uu.imag()<<"]";
+            else os <<"["<< uu.real() <<","<< uu.imag()<<"],";
+          }
+          else {
+            if(j==nmo-1) os << uu.real();
+            else os << uu.real() << ",";
+          }
+        }
+      }
+      os << "]," << endl;
+      
+      os << "\"upup_err\":[" << endl;
+      for(int i=0; i< nmo; i++) {
+        for(int j=0; j< nmo; j++) {
+          doublevar norm=sqrt(avg.vals(i)*avg.vals(i)*avg.vals(j)*avg.vals(j));
+          int induu=nmo+4*nmo*nmo+2*i*nmo+2*j;
+          int indud=induu+2*nmo*nmo;
+          int inddu=indud+2*nmo*nmo;
+          int inddd=inddu+2*nmo*nmo;
+          uu_err=dcomplex(err.vals(induu),err.vals(induu+1))/norm;
+          if(complex_orbitals) {
+            if(j==nmo-1) os << "[" << uu_err.real() <<","<< uu_err.imag()<<"]";
+            else os <<"["<< uu_err.real() <<","<< uu_err.imag()<<"],";
+          }
+          else {
+            if(j==nmo-1) os << uu_err.real();
+            else os << uu_err.real() << ",";
+          }
+        }
+      }
+      os << "]," << endl;
+      
+      
+      os << "\"updown\":[" << endl;
+      for(int i=0; i< nmo; i++) {
+        for(int j=0; j< nmo; j++) {
+          doublevar norm=sqrt(avg.vals(i)*avg.vals(i)*avg.vals(j)*avg.vals(j));
+          int induu=nmo+4*nmo*nmo+2*i*nmo+2*j;
+          int indud=induu+2*nmo*nmo;
+          int inddu=indud+2*nmo*nmo;
+          int inddd=inddu+2*nmo*nmo;
+          ud=dcomplex(avg.vals(indud),avg.vals(indud+1))/norm;
+          if(complex_orbitals) {
+            if(j==nmo-1) os << "[" << ud.real() <<","<< ud.imag()<<"]";
+            else os <<"["<< ud.real() <<","<< ud.imag()<<"],";
+          }
+          else {
+            if(j==nmo-1) os << ud.real();
+            else os << ud.real() << ",";
+          }
+        }
+      }
+      os << "]," << endl;
+      
+      os << "\"updown_err\":[" << endl;
+      for(int i=0; i< nmo; i++) {
+        for(int j=0; j< nmo; j++) {
+          doublevar norm=sqrt(avg.vals(i)*avg.vals(i)*avg.vals(j)*avg.vals(j));
+          int induu=nmo+4*nmo*nmo+2*i*nmo+2*j;
+          int indud=induu+2*nmo*nmo;
+          int inddu=indud+2*nmo*nmo;
+          int inddd=inddu+2*nmo*nmo;
+          ud_err=dcomplex(err.vals(indud),err.vals(indud+1))/norm;
+          if(complex_orbitals) {
+            if(j==nmo-1) os << "[" << ud_err.real() <<","<< ud_err.imag()<<"]";
+            else os <<"["<< ud_err.real() <<","<< ud_err.imag()<<"],";
+          }
+          else {
+            if(j==nmo-1) os << ud_err.real();
+            else os << ud_err.real() << ",";
+          }
+        }
+      }
+      os << "]," << endl;
+      
+      
+      os << "\"downup\":[" << endl;
+      for(int i=0; i< nmo; i++) {
+        for(int j=0; j< nmo; j++) {
+          doublevar norm=sqrt(avg.vals(i)*avg.vals(i)*avg.vals(j)*avg.vals(j));
+          int induu=nmo+4*nmo*nmo+2*i*nmo+2*j;
+          int indud=induu+2*nmo*nmo;
+          int inddu=indud+2*nmo*nmo;
+          int inddd=inddu+2*nmo*nmo;
+          du=dcomplex(avg.vals(inddu),avg.vals(inddu+1))/norm;
+          if(complex_orbitals) {
+            if(j==nmo-1) os << "[" << du.real() <<","<< du.imag()<<"]";
+            else os <<"["<< du.real() <<","<< du.imag()<<"],";
+          }
+          else {
+            if(j==nmo-1) os << du.real();
+            else os << du.real() << ",";
+          }
+        }
+      }
+      os << "]," << endl;
+      
+      os << "\"downup_err\":[" << endl;
+      for(int i=0; i< nmo; i++) {
+        for(int j=0; j< nmo; j++) {
+          doublevar norm=sqrt(avg.vals(i)*avg.vals(i)*avg.vals(j)*avg.vals(j));
+          int induu=nmo+4*nmo*nmo+2*i*nmo+2*j;
+          int indud=induu+2*nmo*nmo;
+          int inddu=indud+2*nmo*nmo;
+          int inddd=inddu+2*nmo*nmo;
+          du_err=dcomplex(err.vals(inddu),err.vals(inddu+1))/norm;
+          if(complex_orbitals) {
+            if(j==nmo-1) os << "[" << du_err.real() <<","<< du_err.imag()<<"]";
+            else os <<"["<< du_err.real() <<","<< du_err.imag()<<"],";
+          }
+          else {
+            if(j==nmo-1) os << du_err.real();
+            else os << du_err.real() << ",";
+          }
+        }
+      }
+      os << "]," << endl;
+      
+      os << "\"downdown\":[" << endl;
+      for(int i=0; i< nmo; i++) {
+        for(int j=0; j< nmo; j++) {
+          doublevar norm=sqrt(avg.vals(i)*avg.vals(i)*avg.vals(j)*avg.vals(j));
+          int induu=nmo+4*nmo*nmo+2*i*nmo+2*j;
+          int indud=induu+2*nmo*nmo;
+          int inddu=indud+2*nmo*nmo;
+          int inddd=inddu+2*nmo*nmo;
+          dd=dcomplex(avg.vals(inddd),avg.vals(inddd+1))/norm;
+          if(complex_orbitals) {
+            if(j==nmo-1) os << "[" << dd.real() <<","<< dd.imag()<<"]";
+            else os <<"["<< dd.real() <<","<< dd.imag()<<"],";
+          }
+          else {
+            if(j==nmo-1) os << dd.real();
+            else os << dd.real() << ",";
+          }
+        }
+      }
+      os << "]," << endl;
+      
+      os << "\"downdown_err\":[" << endl;
+      for(int i=0; i< nmo; i++) {
+        for(int j=0; j< nmo; j++) {
+          doublevar norm=sqrt(avg.vals(i)*avg.vals(i)*avg.vals(j)*avg.vals(j));
+          int induu=nmo+4*nmo*nmo+2*i*nmo+2*j;
+          int indud=induu+2*nmo*nmo;
+          int inddu=indud+2*nmo*nmo;
+          int inddd=inddu+2*nmo*nmo;
+          dd_err=dcomplex(err.vals(inddd),err.vals(inddd+1))/norm;
+          
+          if(complex_orbitals) {
+            if(j==nmo-1) os << "[" << dd_err.real() <<","<< dd_err.imag()<<"]";
+            else os <<"["<< dd_err.real() <<","<< dd_err.imag()<<"],";
+          }
+          else {
+            if(j==nmo-1) os << dd_err.real();
+            else os << dd_err.real() << ",";
+          }
+        }
+      }
+      os << "]" << endl;
+      
+    }
+    else {
+      os << "\"diagonal\":\"no\"," << endl;
+  
+      os << "\"upup\":[" << endl;
+      for(int i=0; i< nmo ; i++) {
+        os << "[";
+        for(int j=0; j<nmo; j++) {
+          os << "[";
+          for(int k=0; k< nmo; k++) {
+            os << "[";
+            for(int l=0; l< nmo; l++) {
+              doublevar norm=sqrt(avg.vals(i)*avg.vals(j)*avg.vals(k)*avg.vals(l));
+              int induu=tbdm_index(tbdm_uu,i,j,k,l);
+              int indud=tbdm_index(tbdm_ud,i,j,k,l);
+              int inddu=tbdm_index(tbdm_du,i,j,k,l);
+              int inddd=tbdm_index(tbdm_dd,i,j,k,l);
+              uu=dcomplex(avg.vals(induu),avg.vals(induu+1))/norm;
+              if(complex_orbitals) {
+                if(l==nmo-1) os << "[" << uu.real() <<","<< uu.imag()<<"]";
+                else os <<"["<< uu.real() <<","<< uu.imag()<<"],";
+              }
+              else {
+                if(j==nmo-1) os << uu.real();
+                else os << uu.real() << ",";
+              }
+            }
+            if(k==nmo-1) os << "]" << endl;
+            else os << "]," << endl;
+          }
+          if(j==nmo-1) os << "]" << endl;
+          else os << "]," << endl;
+        }
+        if(i==nmo-1) os << "]" << endl;
+        else os << "]," << endl;
+      }
+      os << "]," << endl;
+      
+      
+      os << "\"upup_err\":[" << endl;
+      for(int i=0; i< nmo ; i++) {
+        os << "[";
+        for(int j=0; j<nmo; j++) {
+          os << "[";
+          for(int k=0; k< nmo; k++) {
+            os << "[";
+            for(int l=0; l< nmo; l++) {
+              doublevar norm=sqrt(avg.vals(i)*avg.vals(j)*avg.vals(k)*avg.vals(l));
+              int induu=tbdm_index(tbdm_uu,i,j,k,l);
+              int indud=tbdm_index(tbdm_ud,i,j,k,l);
+              int inddu=tbdm_index(tbdm_du,i,j,k,l);
+              int inddd=tbdm_index(tbdm_dd,i,j,k,l);
+              uu_err=dcomplex(err.vals(induu),err.vals(induu+1))/norm;
+              if(complex_orbitals) {
+                if(l==nmo-1) os << "[" << uu_err.real() <<","<< uu_err.imag()<<"]";
+                else os <<"["<< uu_err.real() <<","<< uu_err.imag()<<"],";
+              }
+              else {
+                if(j==nmo-1) os << uu_err.real();
+                else os << uu_err.real() << ",";
+              }
+            }
+            if(k==nmo-1) os << "]" << endl;
+            else os << "]," << endl;
+          }
+          if(j==nmo-1) os << "]" << endl;
+          else os << "]," << endl;
+        }
+        if(i==nmo-1) os << "]" << endl;
+        else os << "]," << endl;
+      }
+      os << "]," << endl;
+      
+      os << "\"updown\":[" << endl;
+      for(int i=0; i< nmo ; i++) {
+        os << "[";
+        for(int j=0; j<nmo; j++) {
+          os << "[";
+          for(int k=0; k< nmo; k++) {
+            os << "[";
+            for(int l=0; l< nmo; l++) {
+              doublevar norm=sqrt(avg.vals(i)*avg.vals(j)*avg.vals(k)*avg.vals(l));
+              int induu=tbdm_index(tbdm_uu,i,j,k,l);
+              int indud=tbdm_index(tbdm_ud,i,j,k,l);
+              int inddu=tbdm_index(tbdm_du,i,j,k,l);
+              int inddd=tbdm_index(tbdm_dd,i,j,k,l);
+              ud=dcomplex(avg.vals(indud),avg.vals(indud+1))/norm;
+              if(complex_orbitals) {
+                if(l==nmo-1) os << "[" << ud.real() <<","<< ud.imag()<<"]";
+                else os <<"["<< ud.real() <<","<< ud.imag()<<"],";
+              }
+              else {
+                if(j==nmo-1) os << ud.real();
+                else os << ud.real() << ",";
+              }
+            }
+            if(k==nmo-1) os << "]" << endl;
+            else os << "]," << endl;
+          }
+          if(j==nmo-1) os << "]" << endl;
+          else os << "]," << endl;
+        }
+        if(i==nmo-1) os << "]" << endl;
+        else os << "]," << endl;
+      }
+      os << "]," << endl;
+      
+      
+      os << "\"updown_err\":[" << endl;
+      for(int i=0; i< nmo ; i++) {
+        os << "[";
+        for(int j=0; j<nmo; j++) {
+          os << "[";
+          for(int k=0; k< nmo; k++) {
+            os << "[";
+            for(int l=0; l< nmo; l++) {
+              doublevar norm=sqrt(avg.vals(i)*avg.vals(j)*avg.vals(k)*avg.vals(l));
+              int induu=tbdm_index(tbdm_uu,i,j,k,l);
+              int indud=tbdm_index(tbdm_ud,i,j,k,l);
+              int inddu=tbdm_index(tbdm_du,i,j,k,l);
+              int inddd=tbdm_index(tbdm_dd,i,j,k,l);
+              ud_err=dcomplex(err.vals(indud),err.vals(indud+1))/norm;
+              if(complex_orbitals) {
+                if(l==nmo-1) os << "[" << ud_err.real() <<","<< ud_err.imag()<<"]";
+                else os <<"["<< ud_err.real() <<","<< ud_err.imag()<<"],";
+              }
+              else {
+                if(j==nmo-1) os << ud_err.real();
+                else os << ud_err.real() << ",";
+              }
+            }
+            if(k==nmo-1) os << "]" << endl;
+            else os << "]," << endl;
+          }
+          if(j==nmo-1) os << "]" << endl;
+          else os << "]," << endl;
+        }
+        if(i==nmo-1) os << "]" << endl;
+        else os << "]," << endl;
+      }
+      os << "]," << endl;
+
+      os << "\"downup\":[" << endl;
+      for(int i=0; i< nmo ; i++) {
+        os << "[";
+        for(int j=0; j<nmo; j++) {
+          os << "[";
+          for(int k=0; k< nmo; k++) {
+            os << "[";
+            for(int l=0; l< nmo; l++) {
+              doublevar norm=sqrt(avg.vals(i)*avg.vals(j)*avg.vals(k)*avg.vals(l));
+              int induu=tbdm_index(tbdm_uu,i,j,k,l);
+              int indud=tbdm_index(tbdm_ud,i,j,k,l);
+              int inddu=tbdm_index(tbdm_du,i,j,k,l);
+              int inddd=tbdm_index(tbdm_dd,i,j,k,l);
+              du=dcomplex(avg.vals(inddu),avg.vals(inddu+1))/norm;
+              if(complex_orbitals) {
+                if(l==nmo-1) os << "[" << du.real() <<","<< du.imag()<<"]";
+                else os <<"["<< du.real() <<","<< du.imag()<<"],";
+              }
+              else {
+                if(j==nmo-1) os << du.real();
+                else os << du.real() << ",";
+              }
+            }
+            if(k==nmo-1) os << "]" << endl;
+            else os << "]," << endl;
+          }
+          if(j==nmo-1) os << "]" << endl;
+          else os << "]," << endl;
+        }
+        if(i==nmo-1) os << "]" << endl;
+        else os << "]," << endl;
+      }
+      os << "]," << endl;
+      
+      
+      os << "\"downup_err\":[" << endl;
+      for(int i=0; i< nmo ; i++) {
+        os << "[";
+        for(int j=0; j<nmo; j++) {
+          os << "[";
+          for(int k=0; k< nmo; k++) {
+            os << "[";
+            for(int l=0; l< nmo; l++) {
+              doublevar norm=sqrt(avg.vals(i)*avg.vals(j)*avg.vals(k)*avg.vals(l));
+              int induu=tbdm_index(tbdm_uu,i,j,k,l);
+              int indud=tbdm_index(tbdm_ud,i,j,k,l);
+              int inddu=tbdm_index(tbdm_du,i,j,k,l);
+              int inddd=tbdm_index(tbdm_dd,i,j,k,l);
+              du_err=dcomplex(err.vals(inddu),err.vals(inddu+1))/norm;
+              if(complex_orbitals) {
+                if(l==nmo-1) os << "[" << du_err.real() <<","<< du_err.imag()<<"]";
+                else os <<"["<< du_err.real() <<","<< du_err.imag()<<"],";
+              }
+              else {
+                if(j==nmo-1) os << du_err.real();
+                else os << du_err.real() << ",";
+              }
+            }
+            if(k==nmo-1) os << "]" << endl;
+            else os << "]," << endl;
+          }
+          if(j==nmo-1) os << "]" << endl;
+          else os << "]," << endl;
+        }
+        if(i==nmo-1) os << "]" << endl;
+        else os << "]," << endl;
+      }
+      os << "]," << endl;
+      
+
+      os << "\"downdown\":[" << endl;
+      for(int i=0; i< nmo ; i++) {
+        os << "[";
+        for(int j=0; j<nmo; j++) {
+          os << "[";
+          for(int k=0; k< nmo; k++) {
+            os << "[";
+            for(int l=0; l< nmo; l++) {
+              doublevar norm=sqrt(avg.vals(i)*avg.vals(j)*avg.vals(k)*avg.vals(l));
+              int induu=tbdm_index(tbdm_uu,i,j,k,l);
+              int indud=tbdm_index(tbdm_ud,i,j,k,l);
+              int inddu=tbdm_index(tbdm_du,i,j,k,l);
+              int inddd=tbdm_index(tbdm_dd,i,j,k,l);
+              dd=dcomplex(avg.vals(inddd),avg.vals(inddd+1))/norm;
+              if(complex_orbitals) {
+                if(l==nmo-1) os << "[" << dd.real() <<","<< dd.imag()<<"]";
+                else os <<"["<< dd.real() <<","<< dd.imag()<<"],";
+              }
+              else {
+                if(j==nmo-1) os << dd.real();
+                else os << dd.real() << ",";
+              }
+            }
+            if(k==nmo-1) os << "]" << endl;
+            else os << "]," << endl;
+          }
+          if(j==nmo-1) os << "]" << endl;
+          else os << "]," << endl;
+        }
+        if(i==nmo-1) os << "]" << endl;
+        else os << "]," << endl;
+      }
+      os << "]," << endl;
+ 
+      
+      os << "\"downdown_err\":[" << endl;
+      for(int i=0; i< nmo ; i++) {
+        os << "[";
+        for(int j=0; j<nmo; j++) {
+          os << "[";
+          for(int k=0; k< nmo; k++) {
+            os << "[";
+            for(int l=0; l< nmo; l++) {
+              doublevar norm=sqrt(avg.vals(i)*avg.vals(j)*avg.vals(k)*avg.vals(l));
+              int induu=tbdm_index(tbdm_uu,i,j,k,l);
+              int indud=tbdm_index(tbdm_ud,i,j,k,l);
+              int inddu=tbdm_index(tbdm_du,i,j,k,l);
+              int inddd=tbdm_index(tbdm_dd,i,j,k,l);
+              dd_err=dcomplex(err.vals(inddd),err.vals(inddd+1))/norm;
+              if(complex_orbitals) {
+                if(l==nmo-1) os << "[" << dd_err.real() <<","<< dd_err.imag()<<"]";
+                else os <<"["<< dd_err.real() <<","<< dd_err.imag()<<"],";
+              }
+              else {
+                if(j==nmo-1) os << dd_err.real();
+                else os << dd_err.real() << ",";
+              }
+            }
+            if(k==nmo-1) os << "]" << endl;
+            else os << "]," << endl;
+          }
+          if(j==nmo-1) os << "]" << endl;
+          else os << "]," << endl;
+        }
+        if(i==nmo-1) os << "]" << endl;
+        else os << "]," << endl;
+      }
+      os << "]" << endl;
+
+    }
+    os << "}" << endl;
+  }
+  
+  
+ // dcomplex trace=0;
+ // for(int i=0;i< nmo; i++) trace+=obdm_up(i,i);
+ // os << "\"Trace of the obdm\":{" << endl;
+ // os << "\"up\":[" << trace.real()<< "," << trace.imag()<<"]" << "," << endl;
+
+  //trace=0;
+  //for(int i=0; i< nmo; i++) trace+=obdm_down(i,i);
+ // os << "\"down\":[" << trace.real()<< "," << trace.imag()<<"]" << endl;
+ // os << "}" << endl;
+  os << "}" << endl;
+  
+}
+
+
+
+//----------------------------------------------------------------------
 //
 //
 //Note this needs to be changed for non-zero k-points!
@@ -892,6 +1504,7 @@ doublevar Average_tbdm_basis::gen_sample(int nstep, doublevar  tstep,
   return sum;
 
 }
+
 
 //----------------------------------------------------------------------
 void Average_tbdm_basis::calc_mos(Sample_point * sample, int e, Array2 <dcomplex> & movals) { 

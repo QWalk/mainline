@@ -361,6 +361,8 @@ void Properties_final_average::showSummary(ostream & os, Array1 <Average_generat
 }
 //----------------------------------------------------------------------
 
+
+
 void Properties_final_average::showSummary(ostream & os, Array2 <Average_generator*>  avg_gen) {
   int nwf=avg.GetDim(1);
   int naux=aux_energy.GetDim(0);
@@ -386,7 +388,7 @@ void Properties_final_average::showSummary(ostream & os, Array2 <Average_generat
     for(int i=0; i < NUM_QUANTITIES; i++) {
       string tmp=names[i];
       append_number(tmp, w);
-      os <<  setw(15)<< left  <<tmp << "    " 
+      os <<  setw(15)<< left  <<tmp << "    "
          << right << setw(field) << avg(i,w)
          << " +/- " << setw(field) << sqrt(err(i,w))  
 	 << " (sigma " << setw(field) << sqrt(avgvar(i,w)) << " ) " << endl;
@@ -400,7 +402,6 @@ void Properties_final_average::showSummary(ostream & os, Array2 <Average_generat
       os << "  diff_" << w << "-0    " << diff_energy(w)
          << "  +/-   " << sqrt(diff_energyerr(w)) << endl;
   }
-  
   
   if(naux > 0) 
     os << endl << endl << "Auxillary differences " << endl;
@@ -441,9 +442,92 @@ void Properties_final_average::showSummary(ostream & os, Array2 <Average_generat
       "probably unreliable!\n";
   }
 
-
 }
 
+//###############################################################
+
+void Properties_final_average::JsonOutput(ostream & os,
+                                          Array1 <Average_generator*> avg_gen) {
+  int nwf=avg.GetDim(1);
+  int naux=aux_energy.GetDim(0);
+  int autocorr_depth=autocorr.GetDim(1);
+  if(nwf>1) os<<"Error: more than one wavefunction is not valid!"<< endl;
+  else {
+    os <<  "\"warmup blocks\":" <<  threw_out <<"," << endl;
+    
+    if(show_autocorr){
+      os <<  "\"energy autocorrelation\":" << "[" << endl;
+      for(int i=0; i< autocorr_depth; i++){
+        os << "{" << endl;
+        os <<  "\"number\":" <<  i << "," << endl;
+        os <<  "\"autocorrrelation\":" <<  autocorr(0,i) << "," << endl;
+        os <<  "\"autocorrrelation error\":" <<  autocorrerr(0,i) << "," << endl;
+        if(i == autocorr_depth-1) os << "}" << endl;
+        else os<< "}," << endl;
+      }
+      os << "]," << endl;
+    }
+    
+    using namespace Properties_types;
+    doublevar indep_points=sqrt(avgvar(0,0))/sqrt(err(0,0));
+    int field=os.precision()+5;
+    
+    os << "\"properties\":{"<< endl;
+ 
+    for(int i=0; i < NUM_QUANTITIES; i++) {
+      string tmp=names[i];
+      os << "\"" << tmp <<"\":{" <<endl;
+      os <<  "\"value\":[";
+      for(int w=0; w< nwf; w++) {
+        if(w==nwf-1) os << avg(i,w) ;
+        else os << avg(i,w) << "," ;
+      }
+      os << "]," << endl;
+      
+      os <<  "\"error\":[";
+      for(int w=0; w< nwf; w++) {
+        if(w==nwf-1) os << sqrt(err(i,w));
+        else os << sqrt(err(i,w)) << "," ;
+      }
+      os << "]," << endl;
+      
+      os <<  "\"sigma\":[";
+      for(int w=0; w< nwf; w++) {
+        if(w==nwf-1) os << sqrt(avgvar(i,w)) ;
+        else os << sqrt(avgvar(i,w)) << "," ;
+      }
+      os << "]" << endl;
+    
+      os << "}";
+      if(i!=NUM_QUANTITIES-1) os << ",";
+      os << endl;
+    }
+ 
+    
+        //assert(avg_gen.GetDim(1)==avgavg.GetDim(1) && avgavg.GetDim(1)==avgerr.GetDim(1));
+    
+    for(int i=0; i< avg_gen.GetDim(0); i++) {
+      //  if(avg_gen(i)== "Average_manybody_polarization") avg_gen(i)->jsonOutput(avgavg(0,i),avgerr(0,i), os);
+      os << "," << endl;
+      avg_gen(i)->jsonOutput(avgavg(0,i),avgerr(0,i), os);
+    }
+      
+    os <<"},"<< endl;
+ 
+    doublevar totpoints=indep_points*indep_points;
+    os << "\"independent points\":" << totpoints <<"," << endl;
+    os << "\"commments\": ["<< endl;
+    
+    if(totpoints> totweight) {
+      os << "\"Warning: The estimated number of independent points is _greater_ that the points in the log file. Error bars are probably unreliable! \"" << endl;
+    }
+    os << "]" << endl;
+      
+    }
+}
+
+
+//####################################################################
 
 
 void Properties_final_average::twoPointForces(Array2 <doublevar> & forces 

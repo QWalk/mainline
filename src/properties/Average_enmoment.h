@@ -44,7 +44,7 @@ class Average_enmoment:public Average_generator {
   } 
   virtual void read(vector <string> & words);
   virtual void write_summary(Average_return &,Average_return &, ostream & os);
-  virtual ~Average_enmoment() { 
+  virtual ~Average_enmoment() {
     delete avg_gen;
   }
   Average_enmoment() { 

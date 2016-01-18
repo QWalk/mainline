@@ -42,8 +42,8 @@ struct Properties_final_average {
 
   void showSummary(ostream & os, Array1 <Average_generator*> avg_gen);
   void showSummary(ostream & os, Array2 <Average_generator*> avg_gen);
-
-  
+  void JsonOutput(ostream & os, Array1 <Average_generator*> avg_gen);
+    
   void showAutocorr(int i) {
     assert(i==0 || i==1);
     show_autocorr=i;

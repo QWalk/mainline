@@ -199,6 +199,7 @@ int reblock_average(Array1 <Properties_block> & orig_block, int reblock, int equ
 struct Gosling_options {
   string label;
   int tot_energy;
+  int json;
   int trace;
   int equil;
   int show_autocorr;
@@ -208,6 +209,7 @@ struct Gosling_options {
   vector<string> filenames;
   Gosling_options() { 
     tot_energy=0;
+    json=0;
     trace=0;
     equil=1;
     show_autocorr=0;
@@ -227,6 +229,8 @@ void get_options(int argc, char ** argv,
     if(!strcmp(argv[i], "-label") && argc > i+1) {
       options.label=argv[++i];
     }
+    else if(!strcmp(argv[i], "-json"))
+      options.json=1;
     else if(!strcmp(argv[i], "-tot_energy"))
       options.tot_energy=1;
     else if(!strcmp(argv[i], "-trace"))
@@ -244,6 +248,7 @@ void get_options(int argc, char ** argv,
     else if(!strcmp(argv[i], "-h")) {
       cout << "usage: gosling <options> <log file>" << endl
            << "-label <label>    : only print information for the given label" << endl
+           << "-json    : print the ouput in Json format" << endl
            << "-trace            : print out energy traces for each label, into files named label.trace" << endl
            << "-trace_force      : print out displacement traces for each label, into files named labelf#.trace" << endl
            << "-reblock <number> : reblock the blocks into groups of <number>.  If they don't evenly divide, gosling" << endl
@@ -319,11 +324,22 @@ int main(int argc, char ** argv) {
         }
         
         if(nfiles < 2) { 
+          if(options.json){
+            cout<< "{" << endl;
+            cout<<  "\"label\":\"" << labels[lab] << "\"," << endl;
+            cout<<  "\"total blocks\":" << allblocks(lab).GetDim(0) <<"," << endl;
+            cout<<  "\"reblocking\":" <<  options.reblock <<"," << endl;
+            avg.JsonOutput(cout, avg_gen(lab));
+            cout << "}" << endl;
+        }
+          else{
           cout << "#####################" << endl;
-          cout << labels[lab] << ":  "<< allblocks(lab).GetDim(0) 
-            << " total blocks reblocked into " << neffblock << endl;
+          cout << labels[lab] << ":  "<< allblocks(lab).GetDim(0)
+          << " total blocks reblocked into " << neffblock << endl;
           cout << "#####################" << endl;
           avg.showSummary(cout,avg_gen(lab));
+          }
+    
         }
         
         int found=0;
