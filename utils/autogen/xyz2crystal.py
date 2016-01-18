@@ -63,7 +63,7 @@ def generate_basis(symbol,xml_name,initial_charges={}):
             basis_part += ['  {} {}'.format(exp, coeff)]
             nterms+=1
         #now write the header 
-        if nterms > 0:
+        if nterms > 0 and angular in basis_index.keys():
           found_orbitals.append(angular)          
           charge=min(atom_charge-totcharge,maxcharge[angular])
           #put in a special case for transition metals:
