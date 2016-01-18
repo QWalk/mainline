@@ -32,14 +32,15 @@ def generate_basis(symbol,xml_name,initial_charges={}):
     
     maxorb=3
     basis_name="vtz"
-    nangular={"s":1,"p":1,"d":1,"f":1,"g":0}
-    maxcharge={"s":2,"p":6,"d":10,"f":15}
+    maxcharge={"s":2,"p":6,"d":10,"f":15} #max charge on a basis function
+    max_tot_charge={"s":2,"p":6,"d":10,"f":15} #max total charge in an angular momentum
+    
     basis_index={"s":0,"p":2,"d":3,"f":4}
     transition_metals=["Sc","Ti","V","Cr","Mn","Fe","Co","Ni","Cu","Zn"]
     if symbol in transition_metals:
       maxorb=4
-      nangular['s']=2
-    
+      max_tot_charge['s']=4
+    charge_sum={"s":0,"p":0,"d":0,"f":0}
     tree = ElementTree()
     tree.parse(xml_name)
     element = tree.find('./Pseudopotential[@symbol="{}"]'.format(symbol))
@@ -66,6 +67,8 @@ def generate_basis(symbol,xml_name,initial_charges={}):
         if nterms > 0 and angular in basis_index.keys():
           found_orbitals.append(angular)          
           charge=min(atom_charge-totcharge,maxcharge[angular])
+          if charge_sum[angular] >= max_tot_charge[angular]:
+            charge=0
           #put in a special case for transition metals:
           #depopulate the 4s if the atom is charged
           if symbol in transition_metals and symbol in initial_charges.keys() \
@@ -73,6 +76,7 @@ def generate_basis(symbol,xml_name,initial_charges={}):
                   and angular=="s":
             charge=0
           totcharge+=charge
+          charge_sum[angular]+=charge
           ret+=["0 %i %i %g 1"%(basis_index[angular],nterms,charge)] + basis_part
           ncontract+=1
 
