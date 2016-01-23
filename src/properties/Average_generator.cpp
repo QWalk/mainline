@@ -540,6 +540,58 @@ void Average_twobody_correlation::write_summary(Average_return & avg, Average_re
   }
   
 }
+//-----------------------------------------------------------------------------
+
+void Average_twobody_correlation::jsonOutput(Average_return & avg,Average_return & err, ostream & os) {
+  assert(avg.vals.GetDim(0) >=2*npoints);
+  assert(err.vals.GetDim(0) >=2*npoints);
+
+  os << "\"" << avg.type << "\":{" << endl;
+  os << "\"r\":[" << endl;
+  for(int i=0; i< npoints; i++) {
+    os << i*resolution;
+    if(i<npoints-1) os << ",";
+  }
+  os << endl;
+  os << "]," << endl;
+  
+  os << "\"like\":[" << endl;
+  for(int i=0; i< npoints; i++) {
+    os << avg.vals(i);
+    if( i<npoints-1) os << ",";
+  }
+  os << endl;
+  os << "]," << endl;
+
+  os << "\"unlike\":[" << endl;
+  for(int i=0; i< npoints; i++) {
+    os << avg.vals(i+npoints);
+    if( i<npoints-1) os << ",";
+  }
+  os << endl;
+  os << "]," << endl;
+
+  
+  os << "\"like_err\":[" << endl;
+  for(int i=0; i< npoints; i++) {
+    os << err.vals(i);
+    if( i<npoints-1) os << ",";
+  }
+  os << endl;
+  os << "]," << endl;
+  
+  os << "\"unlike_err\":[" << endl;
+  for(int i=0; i< npoints; i++) {
+    os << err.vals(i);
+    if( i<npoints-1) os << ",";
+  }
+  os << endl;
+  os << "]" << endl;
+
+  os << "}" << endl;
+
+}
+
 
 
 //############################################################################
