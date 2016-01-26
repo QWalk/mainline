@@ -43,6 +43,7 @@ def default_job_record(ciffile):
   job_record['qmc']['dmc']['target_error']=0.01
   job_record['qmc']['dmc']['kpoints']='real' # or a list of numbers
   job_record['qmc']['dmc']['excitations']='no'#VBM-CBM or other..
+  job_record['qmc']['dmc']['save_trace']=False
 
 
   job_record['qmc']['variance_optimize']={}
