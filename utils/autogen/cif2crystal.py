@@ -230,6 +230,7 @@ class Cif2Crystal:
       "XLGRID",
       "END",
       "SCFDIR",
+      "SAVEWF",
       "BIPOSIZE",
       "100000000",
       "EXCHSIZE",
@@ -245,6 +246,8 @@ class Cif2Crystal:
       "MAXCYCLE",
       str(job_record['dft']['maxcycle'])
     ]
+    if job_record['dft']['smear'] != None:
+      outlines += ["SMEAR",str(job_record['dft']['smear'])]
     if job_record['dft']['spin_polarized']:
       outlines += [
         "SPINLOCK",
@@ -275,9 +278,12 @@ class Cif2Crystal:
     if not os.path.isfile("autogen.d12"):
       return 'not_started'
     status = self.run(job_record,outfn="new.autogen.d12")
-    new = open("new.autogen.d12",'r').read()
-    old = open("autogen.d12",'r').read()
-    if new.split() != old.split():
+    new = open("new.autogen.d12",'r').read().split()
+    old = open("autogen.d12",'r').read().split()
+    for doesntmatter in ["GUESSP"]:
+      if doesntmatter in new: new.remove("GUESSP")
+      if doesntmatter in old: old.remove("GUESSP")
+    if new != old:
       print("Warning: job record inconsistent with past input")
       return 'failed'
     else:
