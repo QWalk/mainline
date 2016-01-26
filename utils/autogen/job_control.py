@@ -31,6 +31,7 @@ def default_job_record(ciffile):
   # None = fresh run, else copy this path to fort.20;
   # e.g. job_record['dft']['restart_from'] = ../successful_run/fort.9
   job_record['dft']['restart_from']=None
+  job_record['dft']['smear']=None
 
   #QMC-specific options
   job_record['qmc']['dmc']={}
@@ -116,37 +117,47 @@ def restart_job(jobname):
 
 # Currently only defined for CRYSTAL runs.
 def check_continue(jobname,qchecker,reasonable_lastSCF=50.0):
-  jobrecord = json.load(open(jobname+"/record.json",'r'))
+  try:
+    jobrecord = json.load(open(jobname+"/record.json",'r'))
+  except IOError:
+    print("JOB CONTROL: Shouldn't continue %s has no record."%jobname)
+    return "no_record"
   qstatus = qchecker.status(jobrecord)
   if qstatus == 'running': 
-    print("Shouldn't continue %s because still running"%jobname)
+    print("JOB CONTROL: Shouldn't continue %s because still running"%jobname)
     return "running"
   try:
     outf = open(jobname+"/autogen.d12.o",'r')
   except IOError:
-    print("Can't continue %s because no output"%jobname)
-    return False
+    print("JOB CONTROL: Can't continue %s because no output"%jobname)
+    return "no_output"
   outlines = outf.read().split('\n')
   reslines = [line for line in outlines if "ENDED" in line]
   if len(reslines) > 0:
-    print("Shouldn't continue %s because finished."%jobname)
-    return "finished"
+    if "CONVERGENCE" in reslines[0]:
+      print("JOB CONTROL: Shouldn't continue %s because successful."%jobname)
+      return "success"
+    elif "TOO MANY CYCLES" in reslines[0]:
+      print("JOB CONTROL: check_continue found %s has 'too many cycles'."%jobname)
+      return "too_many_cycles"
+    else: # What else can happen?
+      return "finished"
   detots = [float(line.split()[5]) for line in outlines if "DETOT" in line]
   if len(detots) == 0:
-    print("Shouldn't continue %s because no SCF last time."%jobname)
-    return False
+    print("JOB CONTROL: Shouldn't continue %s because no SCF last time."%jobname)
+    return "scf_fail"
   detots_net = sum(detots[1:])
   if detots_net > reasonable_lastSCF:
-    print("Shouldn't continue %s because unreasonable last try (%.2f>%.2f)."%\
+    print("JOB CONTROL: Shouldn't continue %s because unreasonable last try (%.2f>%.2f)."%\
         (jobname,detots_net,reasonable_lastSCF))
     return "unreasonable"
   etots = [float(line.split()[3]) for line in outlines if "DETOT" in line]
   if etots[-1] > 0:
     # This case probably won't happen if this works as expected.
-    print("Shouldn't continue %s because divergence (%.2f)."%\
+    print("JOB CONTROL: Shouldn't continue %s because divergence (%.2f)."%\
         (jobname,etots[-1]))
     return "divergence"
-  print("Should continue %s."%jobname)
+  print("JOB CONTROL: Should continue %s."%jobname)
   return "continue"
 
 # Currently only defined for CRYSTAL runs. Returns name of restart file.
@@ -155,6 +166,8 @@ def continue_job(jobname):
   trynum = 0
   while os.path.isfile(jobname+"/"+str(trynum)+".autogen.d12.o"):
     trynum += 1
-  for filename in ["autogen.d12","autogen.d12.o","fort.79"]:
+  for filename in ["autogen.d12","autogen.d12.o"]:
     shutil.move(jobname+"/"+filename,jobname+"/"+str(trynum)+"."+filename)
+  for filename in ["fort.79"]:
+    shutil.copy(jobname+"/"+filename,jobname+"/"+str(trynum)+"."+filename)
   return jobname+"/"+str(trynum)+".fort.79"
