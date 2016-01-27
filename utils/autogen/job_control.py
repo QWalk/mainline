@@ -111,7 +111,13 @@ def execute(record, element_list):
   os.chdir(currwd)
   return record
 
+# This will be moved to RunCrystal after our bigger merge.
 def restart_job(jobname):
+  """
+  Restart a crystal job from scratch. This means deleting all progress. Use it
+  for redoing a job that may have been corrupted or you'd like to change
+  something important.
+  """
   do_it = raw_input("Restart %s? (y/n)"%jobname)
   if do_it == 'y':
     try:
@@ -126,6 +132,7 @@ def restart_job(jobname):
     print("Didn't do it")
 
 # Currently only defined for CRYSTAL runs.
+# This will be moved to RunCrystal after our bigger merge.
 def check_continue(jobname,qchecker,reasonable_lastSCF=50.0):
   try:
     jobrecord = json.load(open(jobname+"/record.json",'r'))
@@ -171,6 +178,7 @@ def check_continue(jobname,qchecker,reasonable_lastSCF=50.0):
   return "continue"
 
 # Currently only defined for CRYSTAL runs. Returns name of restart file.
+# This will be moved to RunCrystal after our bigger merge.
 def continue_job(jobname):
   jobrecord = json.load(open(jobname+"/record.json",'r'))
   trynum = 0
