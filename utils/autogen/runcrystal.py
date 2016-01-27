@@ -1,11 +1,10 @@
 from __future__ import print_function
 import os
-import job_submission
 import shutil
 ####################################################
 
 class RunCrystal:
-  _name_ = "RunCrystal"
+  _name_="RunCrystal"
   def __init__(self, submitter):
     self._submitter = submitter
 
@@ -59,7 +58,6 @@ class RunCrystal:
     if status=='failed':
       return status
     elif status=='ok':
-    #  self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
       return status
 
     self._submitter.transfer_output(job_record, ['autogen.d12.o', 'fort.9'])
@@ -68,7 +66,6 @@ class RunCrystal:
       return status
     status=self.check_outputfile(outfilename)
     if status=='ok':
-      #self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
       return status
     elif status=='not_finished' or status=='failed':
       return status
@@ -77,21 +74,6 @@ class RunCrystal:
       return 'not_started'
 
     return 'failed'
-      
-  def retry(self,job_record):
-    """Copy fort.9 to fort.20 and add GUESSP if it isn't already there."""
-    #Removing this behavior for now as it doesn't seem to help too much.
-    #shutil.copy('fort.9','fort.20')
-    #with open('autogen.d12','r') as d12f:
-    #  lines = d12f.read().split('\n')
-    #if not any(["GUESSP" in line for line in lines]):
-      # Currently autogen doesn't end the file with \n (e.g. "END\n"), 
-      # this will fail if in the future it does.
-    #  lines[-1] = "GUESSP\nEND"
-    #  with open('autogen.d12','w') as d12f:
-    #    d12f.write('\n'.join(lines))
-    #job_record['dft']['nretries'] += 1
-    return "did_not_retry" #self.run(job_record)
 
 ####################################################
 

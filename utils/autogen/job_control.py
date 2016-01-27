@@ -2,15 +2,24 @@ from __future__ import print_function
 import os
 import json
 import shutil
-def default_job_record(ciffile):
+def default_job_record(filename):
   job_record={}
   job_record['dft']={}
   job_record['qmc']={}
   job_record['control']={}
 
   #Set up Hamiltonian
-  with open (ciffile, "r") as f:
-    job_record['cif']=f.read()
+
+  with open (filename, "r") as f:
+    suffix=filename.split('.')[-1]
+    if suffix=='cif':
+      job_record['cif']=f.read()
+    elif suffix=='xyz':
+      job_record['xyz']=f.read()
+    else:
+      print("ERROR: didn't understand file suffix",suffix)
+      quit()
+  
   job_record['supercell']=[[1,0,0],[0,1,0],[0,0,1]]
   job_record['pseudopotential']='BFD'
   job_record['charge']=0
@@ -47,7 +56,7 @@ def default_job_record(ciffile):
 
   job_record['qmc']['variance_optimize']={}
   job_record['qmc']['variance_optimize']['niterations']=10
-  job_record['qmc']['variance_optimize']['nruns']=2
+  job_record['qmc']['variance_optimize']['nruns']=3
 
 
   job_record['qmc']['energy_optimize']={}

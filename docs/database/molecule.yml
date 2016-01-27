@@ -1,0 +1,26 @@
+type: Entry
+title: Molecular Hamiltonian (open boundary conditions)
+name: Molecule
+keyword: MOLECULE
+is_a: Hamiltonian
+description: >
+  A molecule with open boundary conditions. 
+related: []
+required:
+  - keyword: NSPIN
+    type: section
+    description: Two integers, the first the number of spin up electrons and the second the number of spin down.
+  - keyword: ATOM
+    type: section
+    description: >
+       Add an atom to the system.  The format of 
+       the section is label  charge COOR x y z .  For example, a Lithium atom 
+       with atomic charge 3 at (.5, 0, -.5) would be ATOM \{ Li 3 COOR .5 0 -.5 \}.
+optional: []
+experimental:
+  - keyword: BOUNDING_BOX
+    type: section
+    default: None
+    description: >
+         If an electron would leave the box defined here, wrap it back around.
+ 

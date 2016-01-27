@@ -22,7 +22,7 @@ int decide_averager(string & label, Average_generator *& avg) {
   else if(caseless_eq(label, "OBDM"))
     avg=new Average_obdm;
   else if(caseless_eq(label, "EKT"))
-    avg=new Average_ekt; 
+    avg=new Average_ekt;
   else if(caseless_eq(label, "TBDM"))
     avg=new Average_tbdm;
   else if(caseless_eq(label, "LM"))
@@ -39,7 +39,7 @@ int decide_averager(string & label, Average_generator *& avg) {
     avg=new Average_spherical_density_grid;
   else if(caseless_eq(label, "LINE_DENSITY"))
     avg=new Average_line_density;
-  else if(caseless_eq(label, "TBDM_BASIS")) 
+  else if(caseless_eq(label, "TBDM_BASIS"))
     avg=new Average_tbdm_basis;
   else if(caseless_eq(label,"REGION_FLUCTUATION"))
     avg=new Average_region_fluctuation;
@@ -74,97 +74,6 @@ int allocate(vector<string> & words, Average_generator * & avg) {
   avg->read(words);
   return 1;
 }
-/*
-void Average_dipole::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-
-void Average_structure_factor::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-
-void Average_twobody_correlation::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-void Average_manybody_polarization::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-
-
-void Average_obdm::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-
-void Average_tbdm::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-
-void Average_local_moments::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-
-void Average_density_moments::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-
-void Average_linear_derivative::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-
-void Average_linear_delta_derivative::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-
-
-void Average_spherical_density::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-
-void Average_spherical_density_grid::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-
-void Average_line_density::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-
-
-void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-void Average_region_fluctuation::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-void Average_region_density_matrix::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-
-void Average_wf_parmderivs::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,System * sys, Pseudopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-
-void Average_enmoment::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys, Psueopotential *psp, Sample_point * sample, Average_return & )
-{
-  cout << "Not needed! " << endl; 
-}
-*/
 //############################################################################
 //Average_dipole
 
@@ -339,6 +248,70 @@ void Average_structure_factor::write_summary(Average_return & avg, Average_retur
   }
   
 }
+
+//--------------------------------------------------------------------------------
+void Average_structure_factor::jsonOutput(Average_return & avg, Average_return & err, ostream & os) {
+    
+  assert(avg.vals.GetDim(0) >=npoints);
+  assert(err.vals.GetDim(0) >=npoints);
+    
+  os << "\"" << avg.type << "\":{" << endl;
+  os << "\"k\":[" << endl;
+  for(int i=0; i< npoints; i++) {
+    doublevar r=0;
+    for(int d=0; d< 3; d++) r+=kpts(i,d)*kpts(i,d);
+    r=sqrt(r);
+    os << r;
+    if(i<npoints-1) os << ",";
+  }
+  os << endl;
+  os << "]," << endl;
+    
+  os << "\"value\":[" << endl;
+  for(int i=0; i< npoints; i++) {
+    doublevar sk=avg.vals(i);
+    os << sk;
+    if( i<npoints-1) os << ",";
+  }
+  os << endl;
+  os << "]," << endl;
+    
+  os << "\"error\":[" << endl;
+  for(int i=0; i< npoints; i++) {
+    doublevar skerr=err.vals(i);
+    os << skerr;
+    if(i< npoints-1) os << ",";
+  }
+  os << endl;
+  os << "]," << endl;
+    
+  os << "\"kx\":[" << endl;
+  for(int i=0; i< npoints; i++) {
+    os << kpts(i,0);
+    if(i< npoints-1) os << ",";
+  }
+  os << endl;
+  os << "]," << endl;
+    
+  os << "\"ky\":[" << endl;
+  for(int i=0; i< npoints; i++) {
+    os << kpts(i,1);
+    if(i< npoints-1) os << ",";
+  }
+  os << endl;
+  os << "]," << endl;
+    
+  os << "\"kz\":[" << endl;
+  for(int i=0; i< npoints; i++) {
+    os << kpts(i,2);
+    if(i< npoints-1) os << ",";
+  }
+  os << endl;
+  os << "]" << endl;
+    
+  os << "}" << endl;
+}
+
 //############################################################################
 
 void Average_fourier_density::read(System * sys, Wavefunction_data * wfdata, vector <string> & words) {
@@ -559,17 +532,6 @@ void Average_twobody_correlation::write_summary(Average_return & avg, Average_re
   os << "    r  g(r) sigma(g(r))   g(r)  sigma(g(r))" << endl;
   assert(avg.vals.GetDim(0) >=2*npoints);
   assert(err.vals.GetDim(0) >=2*npoints);
-
-  if(direction==0) { 
-    for(int i=0; i< npoints; i++) { 
-      double r=resolution*i;
-      double renorm=1.0/(4*pi*r*r*resolution);
-      avg.vals(i)*=renorm;
-      avg.vals(npoints+i)*=renorm;
-      err.vals(i)*=renorm;
-      err.vals(npoints+i)*=renorm;
-    }
-  }
   
   
   for(int i=0; i< npoints; i++) {
@@ -578,6 +540,58 @@ void Average_twobody_correlation::write_summary(Average_return & avg, Average_re
   }
   
 }
+//-----------------------------------------------------------------------------
+
+void Average_twobody_correlation::jsonOutput(Average_return & avg,Average_return & err, ostream & os) {
+  assert(avg.vals.GetDim(0) >=2*npoints);
+  assert(err.vals.GetDim(0) >=2*npoints);
+
+  os << "\"" << avg.type << "\":{" << endl;
+  os << "\"r\":[" << endl;
+  for(int i=0; i< npoints; i++) {
+    os << i*resolution;
+    if(i<npoints-1) os << ",";
+  }
+  os << endl;
+  os << "]," << endl;
+  
+  os << "\"like\":[" << endl;
+  for(int i=0; i< npoints; i++) {
+    os << avg.vals(i);
+    if( i<npoints-1) os << ",";
+  }
+  os << endl;
+  os << "]," << endl;
+
+  os << "\"unlike\":[" << endl;
+  for(int i=0; i< npoints; i++) {
+    os << avg.vals(i+npoints);
+    if( i<npoints-1) os << ",";
+  }
+  os << endl;
+  os << "]," << endl;
+
+  
+  os << "\"like_err\":[" << endl;
+  for(int i=0; i< npoints; i++) {
+    os << err.vals(i);
+    if( i<npoints-1) os << ",";
+  }
+  os << endl;
+  os << "]," << endl;
+  
+  os << "\"unlike_err\":[" << endl;
+  for(int i=0; i< npoints; i++) {
+    os << err.vals(i);
+    if( i<npoints-1) os << ",";
+  }
+  os << endl;
+  os << "]" << endl;
+
+  os << "}" << endl;
+
+}
+
 
 
 //############################################################################
@@ -641,6 +655,24 @@ void Average_manybody_polarization::write_summary(Average_return & avg, Average_
   }
 }
 
+//--------------------------------------------------------------------------------
+void Average_manybody_polarization::jsonOutput(Average_return & avg, Average_return & err, ostream & os) {
+  os << "\"" << avg.type << "\":{" << endl;
+  os <<"\"value\":[";
+  for(int i=0; i< 3; i++) {
+    os << "[" << avg.vals(2*i) << "," << avg.vals(2*i+1) <<"]";
+    if(i<2) os <<",";
+  }
+  os <<"]," << endl;
+    
+  os <<"\"error\":[";
+  for(int i=0; i< 3; i++) {
+    os << "[" << err.vals(2*i) << "," << err.vals(2*i+1) <<"]";
+    if(i<2) os <<",";
+  }
+  os <<"]" << endl;
+  os << "}" << endl;
+}
 
 //############################################################################
 
@@ -2000,3 +2032,5 @@ void Average_wf_parmderivs::write_summary(Average_return &avg ,Average_return & 
    
 }
 //-----------------------------------------------------------------------------
+
+

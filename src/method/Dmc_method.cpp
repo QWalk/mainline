@@ -38,14 +38,13 @@ void Dmc_method::read(vector <string> words,
 
   have_read_options=1;
 
-  vector <string> offsetwords;
+  //vector <string> offsetwords;
 
   //required options
-
-  
-
   if(!readvalue(words, pos=0, timestep, "TIMESTEP"))
     error("Need TIMESTEP in METHOD section");
+
+  //optional options
 
   if(!readvalue(words, pos=0, nblock, "NBLOCK"))
     nblock=100;
@@ -62,20 +61,17 @@ void Dmc_method::read(vector <string> words,
   
   if(!readvalue(words, pos=0, readconfig, "READCONFIG"))
     readconfig=options.runid+".config";
-    //error("Must give READCONFIG for DMC");
-
-  //optional options
 
   if(!readvalue(words, pos=0, eref, "EREF"))
     eref=0.0;
 
   if(!readvalue(words,pos=0, max_poss_weight, "MAX_POSS_WEIGHT")) 
     max_poss_weight=7.0;
-
-  if(haskeyword(words, pos=0, "CDMC")) do_cdmc=1;
-  else do_cdmc=0;
-  if(haskeyword(words, pos=0, "TMOVES")) tmoves=1; 
+  if(haskeyword(words, pos=0, "TMOVES")) tmoves=1;
   else tmoves=0;
+  if(haskeyword(words, pos=0, "TMOVESSC")) tmoves_sizeconsistent=1;
+  else tmoves_sizeconsistent=0;
+
 
   readvalue(words,pos=0,save_trace,"SAVE_TRACE");
 
@@ -110,7 +106,6 @@ void Dmc_method::read(vector <string> words,
   if(!readvalue(words, pos=0, branch_start_cutoff, "BRANCH_START_CUTOFF")) 
     branch_start_cutoff=10;
   
-
   branch_stop_cutoff=branch_start_cutoff*1.5;
   
   
@@ -242,6 +237,9 @@ int Dmc_method::showinfo(ostream & os)
   os << "Timestep: " <<                      timestep  << endl;
   if(tmoves) 
     os << "T-moves turned on" << endl;
+  if(tmoves_sizeconsistent)
+    os << "Size-consistent T-moves turned on" << endl;
+
   string indent="  ";
 
   if(max_fw_length){
@@ -397,8 +395,6 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
             
             if(dinfo.accepted) 
               deltar2+=dinfo.diffusion_rate/(nconfig*nelectrons*npsteps);
-            
-            
             if(dinfo.accepted) {               
               pts(walker).age(e)=0;
             }
@@ -411,47 +407,10 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
           }
           totpoints++;
           Properties_point pt;
-          vector <Tmove> tmov;
-          doublevar subtract_out_enwt=0;
-          if(tmoves) {  //------------------T-moves
-            pt.setSize(nwf);
-            wf->getVal(wfdata,0,pt.wf_val);
-            sys->calcKinetic(wfdata,sample,wf,pt.kinetic);
-            pt.potential=sys->calcLoc(sample);
-            pt.weight=1.0; //this gets set later anyway
-            pt.count=1;
-            pseudo->calcNonlocTmove(wfdata,sys,sample,wf,pt.nonlocal,tmov);
-            //cout << "choosing among " <<  tmov.size() << " tmoves " << endl;
-            //Now we do the t-move
-            doublevar sum=1; 
-            for(vector<Tmove>::iterator mov=tmov.begin(); mov!=tmov.end(); mov++) { 
-              assert(mov->vxx < 0);
-              sum-=timestep*mov->vxx;  
-            }
-            pt.nonlocal(0)-=(sum-1)/timestep;
-            subtract_out_enwt=-(sum-1)/timestep;
-            //cout << "sum " << sum <<  " nonlocal " << pt.nonlocal(0) << " ratio " << sum/pt.nonlocal(0) << endl;
-            assert(sum >= 0);
-            doublevar rand=rng.ulec()*sum;
-            sum=1; //reset to choose the move
-            if(rand > sum) { 
-              for(vector<Tmove>::iterator mov=tmov.begin(); mov!=tmov.end(); mov++) { 
-                sum-=timestep*mov->vxx;
-                if(rand < sum) { 
-                  Array1 <doublevar> epos(3);
-                  //sample->getElectronPos(mov->e, epos);
-                  //cout << "moving electron " << mov->e << " from " << epos(0) << " " << epos(1)
-                  //  << " " << epos(2) << " to " << mov->pos(0) << " " << mov->pos(1) 
-                  //  << " " << mov->pos(2) << endl;
-                  //sample->setElectronPos(mov->e,mov->pos);
-                  sample->translateElectron(mov->e,mov->pos);
-                  break;
-                }
-              }
-            }
-            //wf->updateLap(wfdata, sample);
+          if(tmoves or tmoves_sizeconsistent) {  //------------------T-moves
+            doTmove(pt,pseudo,sys,wfdata,wf,sample,guidingwf);
           } ///---------------------------------done with the T-moves
-          else { 
+          else {
             mygather.gatherData(pt, pseudo, sys, wfdata, wf, 
                                 sample, guidingwf);
           }
@@ -496,50 +455,11 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
                                      wfdata,wf);
           
           
-	  //MB: making the history of prop.avgrets for forward walking
-	  if(max_fw_length){
-	    //store the obeservables
-	    Dmc_history_avgrets new_avgrets;
-	    new_avgrets.avgrets=pts(walker).prop.avgrets;
-	    new_avgrets.weight=pts(walker).prop.weight(0);
-	    
-	    //for(int i=0; i< new_avgrets.avgrets.GetDim(0); i++)
-	    // for(int j=0; j< new_avgrets.avgrets(i).vals.GetDim(0); j++)
-	    //	new_avgrets.avgrets(i).vals(j)/=pts(walker).prop.weight(0);
-	    
-	    pts(walker).past_properties.push_front(new_avgrets);
-
-	    //tailor the array if larger than max_fw_length
-	    deque<Dmc_history_avgrets> & past_avgrets(pts(walker).past_properties);
-	    if(past_avgrets.size() > max_fw_length) 
-	      past_avgrets.erase(past_avgrets.begin()+max_fw_length, past_avgrets.end());
-
-      int size=pts(walker).past_properties.size();
-      //	    cout <<"size of the queqe "<<size<<endl;
-
-      //find the element from the past
-      doublevar oldweight;
-      for(int s=0;s<fw_length.GetSize();s++){
-        if(fw_length(s)>size){
-          pts(walker).prop.avgrets=pts(walker).past_properties[size-1].avgrets;
-          oldweight=pts(walker).past_properties[size-1].weight;
-        }
-        else{
-          //call the prop.avgrets from fw_length(s) steps a go
-          pts(walker).prop.avgrets=pts(walker).past_properties[fw_length(s)-1].avgrets;
-          oldweight=pts(walker).past_properties[fw_length(s)-1].weight;
-        }
-
-        //for(int i=0; i< pts(walker).prop.avgrets.GetDim(0); i++)
-        //for(int j=0; j< pts(walker).prop.avgrets(i).vals.GetDim(0); j++)
-        //  pts(walker).prop.avgrets(i).vals(j)*=pts(walker).prop.weight(0)/oldweight;
-        //pts(walker).prop.weight(0)/=oldweight;
-
-        //insert it into observables
-        prop_fw(s).insertPoint(step+p, walker, pts(walker).prop);
-      }
-    }//if FW
-
+          //MB: making the history of prop.avgrets for forward walking
+          if(max_fw_length){
+            forwardWalking(walker, step+p,prop_fw);
+          }//if FW
+          
         }
 
         pts(walker).config_pos.savePos(sample);
@@ -609,7 +529,7 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
       //       << " nconfig " << totconfig
       //       << " etrial " << etrial << endl;
       if(global_options::rappture ) { 
-	    ofstream rapout("rappture.log");
+	      ofstream rapout("rappture.log");
         rapout << "=RAPPTURE-PROGRESS=>" << int(100.0*doublevar(block+1)/doublevar(nblock))
                << "  Diffusion Monte Carlo" << endl;
         cout << "=RAPPTURE-PROGRESS=>" << int(100.0*doublevar(block+1)/doublevar(nblock))
@@ -630,9 +550,7 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
 	     << doublevar(totpoints)/doublevar(totbranch)
 	     << " steps " << endl;
     }
-
     dyngen->resetStats();
-
   }
   
   if(output) {
@@ -748,129 +666,6 @@ void Dmc_method::restorecheckpoint(string & filename, System * sys,
 }
 
 
-//----------------------------------------------------------------------
-
-void Dmc_method::cdmcReWeight(Array2 <doublevar> & energy_temp, 
-                              Array1 < Wf_return > & value_temp
-                              ) {
-  //The following is for C-DMC(from Jeff)  It shouldn't
-  //do anything unless the atomic coordinates have moved
-  //It's commented out for the moment from the rewrite.
-  //It's viewed as experimental code, so watch out!
-
-  //Get the energies for the old ionic configurations and 
-  //this configuration
-  /*
-  Array1 <doublevar> effenergy_temp(nconfig, 0.0);
-  Array1 <doublevar> effoldenergy(nconfig,0.0);
-
-  for(int i=0; i< nconfig; i++) {
-    for(int w=0; w< nwf; w++) {
-      effenergy_temp(i)+=(energy_temp(i,w)+offset(w))
-        *guidingwf->getOperatorWeight(value_temp(i),w);
-
-      doublevar olden=trace[0][i].energy(w);
-      effoldenergy(i)+=(olden+offset(w))
-        *guidingwf->getOperatorWeight(trace[0][i].wf_val, w);
-    }
-  }
-
-  
-
-  doublevar average_temp, variance_temp;
-
-  average(0, nconfig, effenergy_temp,
-          dmcweight, average_temp, variance_temp, 1);
-
-  doublevar sigma_temp;
-  if(variance_temp >0) {
-    sigma_temp=sqrt(variance_temp);
-  }
-  else {
-    sigma_temp=0;
-    error("negative variance when reading in weights");
-  }
-
-  debug_write(cout, "average_temp ", average_temp, "\n");
-  debug_write(cout, "sigma_temp ", sigma_temp, "\n");
-
-  //Reweight and check whether we had a sign flip
-  //(overlap will be either positive or negative
-
-  if(do_cdmc) {
-    doublevar norm1=0, norm2=0;
-    for(int i=0; i< nconfig; i++) {
-      //norm1+=exp(prop.trace(0,i).wf_val(0,1)*2.0);
-      norm1+=exp(trace[0][i].wf_val.amp(0,0)*2.0);
-      
-      norm2+=exp(2.0*value_temp(i).amp(0,0));
-    }
-    
-    int totconfig=parallel_sum(nconfig);
-    norm1=parallel_sum(norm1)/totconfig;
-    norm2=parallel_sum(norm2)/totconfig;
-    
-    //Removed the normalization(norm2/norm1), because it causes problems
-    //for bigger systems
-    
-    doublevar overlap=0;
-    for(int i=0; i < nconfig; i++) {
-      doublevar ratio;
-      ratio=guidingwf->getTrialRatio(trace[0][i].wf_val, value_temp(i));
-      overlap+=ratio/nconfig; //check if there's an overall sign change
-      
-      //cout << "walker " << i << " new val " << trace[0][i].wf_val(0,1) 
-      //     << " old one " << value_temp(i)(0,1) << endl;
-
-      dmcweight(i)*= ratio*ratio//  *norm2/norm1
-        *exp(-(effoldenergy(i)-effenergy_temp(i))*timestep/2);
-    }
-    
-    single_write(cout, "overlap between old and new ", overlap);
-    doublevar average_old=0.0, diff_sigma=0.0;
-     
-    for(int w=0; w< nconfig; w++)  {
-       average_old+=effoldenergy(w)/nconfig;
-       diff_sigma+=(effoldenergy(w)-effenergy_temp(w))*(effoldenergy(w)-effenergy_temp(w))/nconfig;
-    }
-    //cout << "difference " << average_temp-average_old <<"  +/-  " << diff_sigma/nconfig << endl;
-
-    //We ignore walkers that either a)cross a node, or 
-    //b) are outside of 10 sigmas(for the first move)
-    //ofstream diffout("diff_en.dat");
-    int ncross=0, nsigma=0;
-    for(int i=0; i< nconfig; i++) {
-      doublevar ratio;
-      ratio=guidingwf->getTrialRatio(trace[0][i].wf_val, value_temp(i));
-      //cout << "ratio " << i << "   " << ratio << endl;
-      if(ratio*overlap < 0) {
-        debug_write(cout, "crossed node ", i , "\n");
-        ncross++;
-        trace[0][i].count=0;
-        dmcweight(i)=1;
-        ignore_walker(i)=1;
-      }
-      else if(fabs(effenergy_temp(i)-average_temp) > 10*sigma_temp) {
-        debug_write(cout, "walker out of 10 sigmas ", i, "\n");
-	
-        nsigma++;
-        trace[0][i].count=0;
-        dmcweight(i)=1;
-        ignore_walker(i)=1;
-      }
-      // diffout << i << "   " << effenergy_temp(i)-effoldenergy(i) << endl;
-    }
-    //diffout.close();
-
-    single_write(cout, "nsigma ", parallel_sum(nsigma));
-    single_write(cout, "  ncross  ", parallel_sum(ncross), "\n");
-
-  }
-
-  */
-  
-
-}
 
 
 //----------------------------------------------------------------------
@@ -941,18 +736,114 @@ doublevar Dmc_method::getWeightPURE_DMC(Dmc_point & pt,
   //cout <<"SHDDMC weight "<<return_weight<<" energy average "<<sum<<endl;
   //cout<<"current history size "<<history<<endl;
   return return_weight;
-} 
+}
+
 //----------------------------------------------------------------------
 
+void Dmc_method::doTmove(Properties_point & pt,Pseudopotential * pseudo, System * sys,
+                         Wavefunction_data * wfdata, Wavefunction * wf, Sample_point * sample,
+                         Guiding_function * guideingwf) {
+  vector <Tmove> tmov;
+  pt.setSize(nwf);
+  wf->getVal(wfdata,0,pt.wf_val);
+  sys->calcKinetic(wfdata,sample,wf,pt.kinetic);
+  pt.potential=sys->calcLoc(sample);
+  pt.weight=1.0; //this gets set later anyway
+  pt.count=1;
+  pseudo->calcNonlocTmove(wfdata,sys,sample,wf,pt.nonlocal,tmov);
+  doublevar sum=1;
+  for(vector<Tmove>::iterator mov=tmov.begin(); mov!=tmov.end(); mov++) {
+    assert(mov->vxx < 0);
+    sum-=timestep*mov->vxx;
+  }
+  pt.nonlocal(0)-=(sum-1)/timestep;
+  //subtract_out_enwt=-(sum-1)/timestep;
+  assert(sum >= 0);
+  if(tmoves) { ///Non-size consistent
+    doublevar rand=rng.ulec()*sum;
+    sum=1; //reset to choose the move
+    if(rand > sum) {
+      for(vector<Tmove>::iterator mov=tmov.begin(); mov!=tmov.end(); mov++) {
+        sum-=timestep*mov->vxx;
+        if(rand < sum) {
+          sample->translateElectron(mov->e,mov->pos);
+          break;
+        }
+      }
+    }
+  }
+  else { // Size-consistent
+    vector < vector<Tmove> > tmv_by_e(nelectrons);
+    for(vector<Tmove>::iterator mov=tmov.begin(); mov!=tmov.end(); mov++) {
+      tmv_by_e[mov->e].push_back(*mov);
+    }
+    for(int e=0; e< nelectrons; e++) {
+      doublevar sum_e=1.0;
+      for(vector<Tmove>::iterator mov=tmv_by_e[e].begin(); mov!=tmv_by_e[e].end(); mov++) {
+        sum_e-=timestep*mov->vxx;
+      }
+      doublevar rand=rng.ulec()*sum_e;
+      doublevar sel_sum=1;
+      if(rand > sel_sum) {
+        for(vector<Tmove>::iterator mov=tmv_by_e[e].begin(); mov!=tmv_by_e[e].end(); mov++) {
+          sel_sum-=timestep*mov->vxx;
+          if(rand < sel_sum) {
+            sample->translateElectron(e,mov->pos);
+            break;
+          }
+        }
+      }
+    }
+  }
 
-struct Queue_element { 
+}
+//----------------------------------------------------------------------
+void Dmc_method::forwardWalking(int walker, int step, Array1<Properties_manager> & prop_fw) {
+  
+  //store the observables
+  Dmc_history_avgrets new_avgrets;
+  new_avgrets.avgrets=pts(walker).prop.avgrets;
+  new_avgrets.weight=pts(walker).prop.weight(0);
+  
+  
+  pts(walker).past_properties.push_front(new_avgrets);
+  
+  //tailor the array if larger than max_fw_length
+  deque<Dmc_history_avgrets> & past_avgrets(pts(walker).past_properties);
+  if(past_avgrets.size() > max_fw_length)
+    past_avgrets.erase(past_avgrets.begin()+max_fw_length, past_avgrets.end());
+  
+  int size=pts(walker).past_properties.size();
+  
+  //find the element from the past
+  doublevar oldweight;
+  for(int s=0;s<fw_length.GetSize();s++){
+    if(fw_length(s)>size){
+      pts(walker).prop.avgrets=pts(walker).past_properties[size-1].avgrets;
+      oldweight=pts(walker).past_properties[size-1].weight;
+    }
+    else{
+      //call the prop.avgrets from fw_length(s) steps a go
+      pts(walker).prop.avgrets=pts(walker).past_properties[fw_length(s)-1].avgrets;
+      oldweight=pts(walker).past_properties[fw_length(s)-1].weight;
+    }
+    
+    //insert it into observables
+    prop_fw(s).insertPoint(step, walker, pts(walker).prop);
+  }
+}
+
+
+//----------------------------------------------------------------------
+//Auxilliary functions for branching
+struct Queue_element {
   int from_node;
   int to_node;
-  Queue_element() { } 
-  Queue_element(int from, int to) { from_node=from; to_node=to; } 
+  Queue_element() { }
+  Queue_element(int from, int to) { from_node=from; to_node=to; }
 };
 
-struct weight_obj { 
+struct weight_obj {
   double w;
   int i;
 };
@@ -960,12 +851,12 @@ struct weight_obj {
 bool operator<(const weight_obj & a,const weight_obj & b) {
   return a.w < b.w;
 }
-void match_walkers(Array1<double> & weights, Array1 <int> & branch) { 
+void match_walkers(Array1<double> & weights, Array1 <int> & branch) {
   const double split_threshold=1.8;
   branch=-1;
   int totwalkers=weights.GetDim(0);
   Array1<weight_obj> walkers(totwalkers);
-  for(int i=0; i< totwalkers; i++) { 
+  for(int i=0; i< totwalkers; i++) {
     walkers(i).w=weights(i);
     walkers(i).i=i;
   }
@@ -996,6 +887,7 @@ void match_walkers(Array1<double> & weights, Array1 <int> & branch) {
 
 }
 
+//----------------------------------------------------------------------
 
 int Dmc_method::calcBranch() { 
   int totwalkers=mpi_info.nprocs*nconfig;
@@ -1022,37 +914,6 @@ int Dmc_method::calcBranch() {
     //this is the core of the branching algorithm..
     //my homegrown algo, based on Umrigar, Nightingale, and Runge
     branch=-1;
-    /*
-    const doublevar split_threshold=1.8;
-    for(int w=0; w< totwalkers; w++) { 
-      if(weights(w) > split_threshold && branch(w)==-1) { 
-        //find branching partner
-        doublevar smallestwt=100;
-        int smallest=-1;
-        for(int w2=0; w2 < totwalkers; w2++) { 
-          if(branch(w2)==-1 && w2!= w && weights(w2) < smallestwt) { 
-            smallest=w2;
-            smallestwt=weights(w2);
-          }
-        }
-        if(smallest != -1) { 
-          doublevar weight1=weights(w)/(weights(w)+weights(smallest));
-          if(weight1+rng.ulec() >= 1.0) { 
-            branch(w)=2;
-            branch(smallest)=0;
-            weights(w)+=weights(smallest);
-            weights(w)/=2.0;
-          }
-          else { 
-            branch(w)=0;
-            branch(smallest)=2;
-            weights(smallest)+=weights(w);
-            weights(smallest)/=2.0;
-          }
-        }
-      }
-    }
-    */
 
     long int time_a=clock();
     match_walkers(weights,branch);

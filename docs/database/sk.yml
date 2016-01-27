@@ -1,0 +1,43 @@
+type: Entry
+name: SK
+is_a: Average generator
+title: Static structure factor
+keyword: SK
+related: []
+description: >
+  Electronic static structure factor given by
+  \( S({\bf k})=\frac1N\,\langle\Psi|\hat\rho_{\bf k}
+  \hat\rho_{-\bf k}|\Psi\rangle \)
+  where \( \hat\rho_{\mathbf{k}} \) is a Fourier component of the
+  electron density. The quantity is evaluated either on a full 3D grid
+  or on a 1D grid along a fixed direction, see keyword DIRECTION.
+
+
+  The structure factor \( S({\bf k}) \) can be used to
+  evaluate finite-size corrections to the Ewald energy, see Chiesa et al. 
+  Phys. Rev. Lett. 97, 076404 (2006). Note that \( S({\bf k}) \)
+  as calculated contains besides the continuous electronic
+  component also sharp Bragg peaks, since electronic wave function
+  follows crystal symmetries.  These are the same peaks that X-ray diffraction uses to determine crystal structure.
+required: []
+optional:
+  - keyword: NGRID
+    type: integer
+    default: 5
+    description: > 
+      Number of grid points in one direction. Structure factor is
+      evaluated on NGRID points if DIRECTION is given and on NGRID\(^3\) points
+      otherwise.
+  - keyword: GVEC
+    type: section
+    default: reciprocal lattice vectors
+    description: > 
+      Basis vectors \( {\bf g}_i\) defining the grid. The
+      section contains a 3x3 matrix of floats.
+
+  - keyword: DIRECTION
+    type: integer
+    default: not set
+    description: > 
+        Selects one of the three basis vectors \( {\bf g}_i \), along
+        which \( S({\bf k}) \) is evaluated.

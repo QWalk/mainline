@@ -1,13 +1,18 @@
 from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+
 from xml.etree.ElementTree import ElementTree
-from pymatgen.io.cifio import CifParser
+from pymatgen.io.cif import CifParser
 from pymatgen.core.periodic_table import Element
 import os
 from io import StringIO 
 import sys
 import shutil
+import string
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
-# this is relative to the run directories. You can also put an absolute position
 library_directory="../"
 
 ######################################################################
@@ -104,7 +109,6 @@ def modify_basis(symbol,xml_name,cutoff=0.2,params=[0.2,2,3],initial_charges={})
         angular = contraction.get('Angular_momentum')
         if found_orbitals.count(angular) >= nangular[angular]:
             continue
-        found_orbitals.append(angular)
 
         #Figure out which coefficients to print out based on the minimal exponent
         nterms = 0
@@ -113,10 +117,11 @@ def modify_basis(symbol,xml_name,cutoff=0.2,params=[0.2,2,3],initial_charges={})
             exp = basis_term.get('Exp')
             coeff = basis_term.get('Coeff')
             if float(exp) > cutoff:
-                basis_part += ['{} {}'.format(exp, coeff)]
+                basis_part += ['  {} {}'.format(exp, coeff)]
                 nterms+=1
         #now write the header 
         if nterms > 0:
+          found_orbitals.append(angular)          
           charge=min(atom_charge-totcharge,maxcharge[angular])
           #put in a special case for transition metals:
           #depopulate the 4s if the atom is charged
@@ -161,8 +166,8 @@ def basis_section(struct,params=[0.2,2,3],initial_charges={}):
 
 ######################################################################
 
-def cif2geom(ciffile):
-  parser=CifParser(ciffile)
+def cif2geom(cif):
+  parser=CifParser.from_string(cif)
   struct=parser.get_structures()[0]
   primstruct=struct.get_primitive_structure()
   lat=primstruct.as_dict()['lattice']
@@ -179,6 +184,50 @@ def cif2geom(ciffile):
   return geomlines,primstruct
 
 ######################################################################
+def cif2geom_sym(cif):
+  def parse(s):
+    return str(s).split('(')[0]
+  parser=CifParser.from_string(cif)
+  struct=parser.get_structures()[0]
+  primstruct=struct.get_primitive_structure()  
+  cifdict=parser.as_dict().popitem()[1]
+  sym_num=int(cifdict['_symmetry_Int_Tables_number'])
+  sg_name=cifdict['_symmetry_space_group_name_H-M']
+  cell_parms=[]
+  if sym_num in range(0,3):# Triclinic
+    cell_parms=['_cell_length_a','_cell_length_b','_cell_length_c',
+                '_cell_angle_alpha', '_cell_angle_beta', '_cell_angle_gamma']
+  elif sym_num in range(3,16): #Monoclinic
+    cell_parms=['_cell_length_a','_cell_length_b','_cell_length_c',
+                '_cell_angle_alpha']
+  elif sym_num in range(16,75): #Orthorhombic
+    cell_parms=['_cell_length_a','_cell_length_b','_cell_length_c']
+  elif sym_num in range(75,143): #Tetragonal
+    cell_parms=['_cell_length_a','_cell_length_c']
+  elif sym_num in range(143,168): #Trigonal
+    cell_parms=['_cell_length_a','_cell_length_c']
+    print("WARNING: Trigonal is untested and may have some bugs.")
+  elif sym_num in range(168,195): #Hexagonal
+    cell_parms=['_cell_length_a','_cell_length_c']
+  elif sym_num in range(195,231): #Cubic
+    cell_parms=['_cell_length_a']
+
+  latconst=""
+  for p in cell_parms:
+    latconst+= parse(cifdict[p])+" "
+  geomlines=["CRYSTAL","0 0 1",str(sym_num),latconst,str(len(cifdict['_atom_site_label']))]
+
+  for nm,x,y,z in zip(cifdict['_atom_site_label'],
+                      cifdict['_atom_site_fract_x'],
+                      cifdict['_atom_site_fract_y'],
+                      cifdict['_atom_site_fract_z'] ):
+    nm=''.join(c for c in nm if not c.isdigit())
+    #print(x,y,z)
+    geomlines.append(str(Element(nm).Z+200)+" "+parse(x) + " " + parse(y) + " " + parse(z))
+  return geomlines,primstruct
+
+
+######################################################################
 
 class Cif2Crystal:
   _name_="Cif2Crystal"
@@ -186,28 +235,41 @@ class Cif2Crystal:
   # In the future, we should probably store name of d12 in record, 
   # so this is not needed.
   def run(self,job_record,outfn="autogen.d12"):
-    #TODO: support  kmesh,charge
     if job_record['pseudopotential']!='BFD':
       print("ERROR: only support BFD pseudoptentials for now")
       quit()
 
-    geomlines,primstruct=cif2geom(StringIO(unicode(job_record['cif'])))
+    #geomlines,primstruct=cif2geom(StringIO(unicode(job_record['cif'])))
+    geomlines,primstruct=cif2geom(job_record['cif'])
     basislines=basis_section(primstruct,job_record['dft']['basis'],
                               job_record['dft']['initial_charges'])
     supercell=["SUPERCEL"]
     for row in job_record['supercell']:
       supercell+=[' '.join(map(str,row))]
 
+    modisym=[]
+    if len(job_record['dft']['initial_spin']) > 0:
+      ninit=len(job_record['dft']['initial_spin'])
+      #modisym += ["MODISYMM",str(ninit)]
+      count=1
+      for i,s in enumerate(job_record['dft']['initial_spin']):
+        if s!=0:
+          modisym += [str(i+1)+" "+str(count)+" "]
+          count+=1
+      if count > 0:
+        modisym.insert(0,str(count-1))
+        modisym.insert(0,"MODISYMM")
+
     # List of lines will be joined by '\n'.
-    outlines = [
-      "Generated by cif2crystal"
-    ] + geomlines + supercell + [
-      "END"
-    ] + basislines + [
-      "99 0",
-      "CHARGED",
-      "END"
-    ]
+    outlines = ["Generated by cif2crystal"] +\
+                geomlines +\
+                supercell + \
+                modisym + \
+                ["END"] +\
+                basislines +\
+                ["99 0"] +\
+                ["CHARGED"] +\
+                ["END"]
     if min(job_record['dft']['kmesh']) != max(job_record['dft']['kmesh']):
       print("Non-cubic meshes not implemented")
       quit()
@@ -252,10 +314,7 @@ class Cif2Crystal:
       ]
       if len(job_record['dft']['initial_spin']) > 0:
         ninit=len(job_record['dft']['initial_spin'])
-        outlines += [
-          "ATOMSPIN",
-          str(ninit)
-        ]
+        outlines += ["ATOMSPIN",str(ninit)]
         for i,s in enumerate(job_record['dft']['initial_spin']):
           outlines += [str(i+1)+" "+str(s)+" "]
     if job_record['dft']['restart_from'] != None:

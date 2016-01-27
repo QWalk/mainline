@@ -121,8 +121,62 @@ void Average_region_fluctuation::write_summary(Average_return &avg,Average_retur
   }
 
 }
+//--------------------------------------------------------------------------
 
-//----------------------------------------------------------------------
+void Average_region_fluctuation::jsonOutput(Average_return &avg,Average_return &err, ostream & os) {
+  int nspin=2;
+  int maxn2=maxn*maxn;
+  int nregion2=nregion*nregion;
+  os << "\""<< avg.type <<"\":{" << endl;
+  os << "\"nspin\":" << nspin << "," << endl;
+  os << "\"maxn\":" << maxn <<"," << endl;
+  os << "\"nregion\":" << nregion << "," << endl;
+  os << "\"fluctuation data\":[" << endl;
+  for(int s1=0; s1 < nspin; s1++) {
+    for(int s2=0; s2< nspin; s2++) {
+      for(int r1=0; r1 < nregion; r1++) {
+        for(int r2=0; r2 < nregion; r2++) {
+          os << "{" << endl;
+          os << "\"spin\":[" << s1 << "," << s2 << "]," << endl;
+          os << "\"region\":[" << r1 << "," << r2 << "]," << endl;
+          os << "\"value\":[" << endl;
+          for(int n1=0; n1 < maxn; n1++) {
+            os << "[";
+            for(int n2=0; n2 < maxn; n2++) {
+              int index=n2+n1*maxn+r2*maxn2+r1*maxn2*nregion+s2*maxn2*nregion2+s1*maxn2*nregion2*nspin;
+              os <<  avg.vals(index);
+              if(n2 < maxn-1) os << ",";
+            }
+            if(n1==maxn-1) os << "]" << endl;
+            else os << "]," << endl;
+          }
+          os << "]," << endl;
+          
+          os << "\"error\":[" << endl;
+          for(int n1=0; n1 < maxn; n1++) {
+            os << "[";
+            for(int n2=0; n2 < maxn; n2++) {
+              int index=n2+n1*maxn+r2*maxn2+r1*maxn2*nregion+s2*maxn2*nregion2+s1*maxn2*nregion2*nspin;
+              os <<  err.vals(index);
+              if(n2 < maxn-1) os << ",";
+            }
+            if(n1==maxn-1) os << "]" << endl;
+            else os << "]," << endl;
+          }
+          os << "]" << endl;
+          if(s1==nspin-1 && s2==nspin-1 && r1==nregion-1 && r2==nregion-1) os<<"}" << endl;
+          else os << "}," << endl;
+        }
+      }
+    }
+  }
+  os << "]" << endl;
+  os << "}" << endl;
+  
+}
+
+
+//--------------------------------------------------------------------------
 //
 void Average_region_fluctuation::count_regions(System * sys, 
     Sample_point * sample, Array2 <int> & n_in_regions) {

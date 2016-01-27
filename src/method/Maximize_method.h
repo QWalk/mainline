@@ -63,7 +63,7 @@ public:
 
 private:
   void maximize(Sample_point * sample,Wavefunction * wf,Config_save_point & pt);
-
+  int nconfig;
   string guidetype;
   Guiding_function * guidewf;
   Pseudopotential * pseudo;

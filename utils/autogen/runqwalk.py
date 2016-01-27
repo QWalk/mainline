@@ -2,7 +2,6 @@ from __future__ import print_function
 import os
 import glob
 import re
-import job_submission
 ####################################################
 
 def crystal_patch_output(propname,outname,patchname):
@@ -63,14 +62,17 @@ class Crystal2QWalk:
 
 class QWalkVarianceOptimize:
   _name_="QWalkVarianceOptimize"
-  _submitter=job_submission.TorqueQWalkSubmitter()
   
-  def __init__(self,submitter=job_submission.TorqueQWalkSubmitter()):
+  def __init__(self,submitter):
     self._submitter=submitter
   
   def run(self,job_record):
     f=open("qw_0.opt",'w')
-    f.write("""method { optimize } 
+    nit=job_record['qmc']['variance_optimize']['niterations']
+    nruns=job_record['qmc']['variance_optimize']['nruns']
+    for i in range(0,nruns):
+        f.write("method { optimize iterations %i } "%nit)
+    f.write("""
 include qw_0.sys
 trialfunc { slater-jastrow
 wf1 { include qw_0.slater } 
@@ -117,17 +119,15 @@ wf2 { include qw.jast2 }
 
   def check_status(self,job_record):
     outfilename="qw_0.opt.o"
-    self._submitter.transfer_output(job_record, ['qw_0.opt.o', 'qw_0.opt.wfout'])
       
     if self.check_outputfile(outfilename)=='ok':
-      #self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
       return 'ok'
     status=self._submitter.status(job_record)
+    self._submitter.output(job_record, ['qw_0.opt.o', 'qw_0.opt.wfout'])  
     if status=='running':
       return status
     status = self.check_outputfile(outfilename)
     if status == 'ok':
-      #self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
       return 'ok'
     if status == 'not_finished':
       return 'not_finished'
@@ -169,9 +169,8 @@ wf2 { include qw.jast2 }
 ####################################################
 class QWalkEnergyOptimize:
   _name_="QWalkEnergyOptimize"
-  _submitter=job_submission.TorqueQWalkSubmitter()
   
-  def __init__(self,submitter=job_submission.TorqueQWalkSubmitter()):
+  def __init__(self,submitter):
     self._submitter=submitter
   
   def run(self,job_record,restart=False):
@@ -222,8 +221,11 @@ trialfunc { include qw_0.enopt.wfin }
     outfilename="qw_0.enopt.o"
     self._submitter.transfer_output(job_record, [outfilename, 'qw_0.enopt.wfout'])
       
+    status=self._submitter.status(job_record)
+    if status=='running':
+      return status
+
     if self.check_outputfile(outfilename)=='ok':
-      #self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
       return 'ok'
     
     status=self._submitter.status(job_record)
@@ -257,9 +259,8 @@ trialfunc { include qw_0.enopt.wfin }
 
 class QWalkRunDMC:
   _name_="QwalkRunDMC"
-  _submitter=job_submission.TorqueQWalkSubmitter()
   
-  def __init__(self,submitter=job_submission.TorqueQWalkSubmitter()):
+  def __init__(self,submitter):
     self._submitter=submitter
 #-----------------------------------------------
   def run(self,job_record,restart=False):
@@ -347,6 +348,7 @@ class QWalkRunDMC:
         "timestep %g"%timestep,
         "nblock %i"%nblock,
         localization,
+        "average { SK }"
       ]
     if save_trace:
       outlist += ["save_trace qw_%i.dmc.trace"%kpt_num]
@@ -382,7 +384,19 @@ class QWalkRunDMC:
         err=float(spl[3])
         return (energy,err)
     return (energy,err)
-
+#-----------------------------------------------
+  def sk(self,logfilename):
+    os.system("gosling %s | grep 'sk_out' | sed 's/sk_out//g' > %s_sk.out"%(logfilename,logfilename))
+    SK=[]
+    f=open("%s_sk.out" %logfilename)
+    line=f.readline()
+    while len(line)>0:
+      SK.append([float(d) for d in line.split()[1:]])
+      line = f.readline()
+    f.close()
+    return SK
+#  def finitesize_correction(SK):
+    
 #-----------------------------------------------
 
   def collect_runs(self,job_record):
@@ -399,6 +413,7 @@ class QWalkRunDMC:
           entry['energy']=self.energy(basename+".dmc.log")
           entry['timestep']=t
           entry['localization']=loc
+          entry['sk']=self.sk(basename+".dmc.log")
           ret.append(entry)
     return ret
           
@@ -419,7 +434,6 @@ class QWalkRunDMC:
         status='not_finished'
     print("initial status",status)
     if status=='ok':
-      #self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
       return status
 
 
@@ -447,8 +461,6 @@ class QWalkRunDMC:
     for e in results:
       if e['energy'][1] >  job_record['qmc']['dmc']['target_error']:
         status='not_finished'
-    #if status == 'ok':
-      #self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
     return status
   
 #-----------------------------------------------
