@@ -75,6 +75,10 @@ class RunCrystal:
 
     return 'failed'
 
+  def retry(self,job_record):
+    print("Did not retry")
+    return 'failed'
+
 ####################################################
 
 class RunProperties:

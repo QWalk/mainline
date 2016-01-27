@@ -123,7 +123,7 @@ wf2 { include qw.jast2 }
     if self.check_outputfile(outfilename)=='ok':
       return 'ok'
     status=self._submitter.status(job_record)
-    self._submitter.output(job_record, ['qw_0.opt.o', 'qw_0.opt.wfout'])  
+    self._submitter.transfer_output(job_record, ['qw_0.opt.o', 'qw_0.opt.wfout'])  
     if status=='running':
       return status
     status = self.check_outputfile(outfilename)
