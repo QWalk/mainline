@@ -179,7 +179,9 @@ def check_continue(jobname,qchecker,reasonable_lastSCF=50.0):
 
 # Currently only defined for CRYSTAL runs. Returns name of restart file.
 # This will be moved to RunCrystal after our bigger merge.
+# TODO: Add max_continues option.
 def continue_job(jobname):
+  """ Continue a job that ran out of time."""
   jobrecord = json.load(open(jobname+"/record.json",'r'))
   trynum = 0
   while os.path.isfile(jobname+"/"+str(trynum)+".autogen.d12.o"):
