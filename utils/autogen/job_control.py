@@ -134,6 +134,16 @@ def restart_job(jobname):
 # Currently only defined for CRYSTAL runs.
 # This will be moved to RunCrystal after our bigger merge.
 def check_continue(jobname,qchecker,reasonable_lastSCF=50.0):
+  """
+  Look at CRYSTAL output, and report results.
+
+  Current return values:
+  no_record, running, no_output, success, too_many_cycles, finished (fall-back),
+  scf_fail, not_enough_decrease, divergence, continue
+
+  "continue" suggests the calculation should call continue_job(), and is only
+  returned when no other condition is found.
+  """
   try:
     jobrecord = json.load(open(jobname+"/record.json",'r'))
   except IOError:
@@ -165,9 +175,9 @@ def check_continue(jobname,qchecker,reasonable_lastSCF=50.0):
     return "scf_fail"
   detots_net = sum(detots[1:])
   if detots_net > reasonable_lastSCF:
-    print("JOB CONTROL: Shouldn't continue %s because unreasonable last try (%.2f>%.2f)."%\
+    print("JOB CONTROL: Shouldn't continue %s because not enough decrease (%.2f>%.2f)."%\
         (jobname,detots_net,reasonable_lastSCF))
-    return "unreasonable"
+    return "not_enough_decrease"
   etots = [float(line.split()[3]) for line in outlines if "DETOT" in line]
   if etots[-1] > 0:
     # This case probably won't happen if this works as expected.
@@ -180,6 +190,8 @@ def check_continue(jobname,qchecker,reasonable_lastSCF=50.0):
 # Currently only defined for CRYSTAL runs. Returns name of restart file.
 # This will be moved to RunCrystal after our bigger merge.
 # TODO: Add max_continues option.
+# TODO: The stdout of this is off because the line between jobs is drawn between
+#       this output and the execute() output.
 def continue_job(jobname):
   """ Continue a job that ran out of time."""
   jobrecord = json.load(open(jobname+"/record.json",'r'))
