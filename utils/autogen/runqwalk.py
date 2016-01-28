@@ -89,13 +89,32 @@ wf2 { include qw.jast2 }
     return 'running'
 
 
-  def check_outputfile(self,outfilename):
+  def check_outputfile(self,outfilename,reltol=0.1,abstol=10.):
+    status = 'unknown'
     if os.path.isfile(outfilename):
-      f=open(outfilename,'r')
-      for line in f:
-        if 'Wall' in line:
+      outf = open(outfilename,'r')
+      outlines = outf.read().split('\n')
+      disps = [float(l.split()[4]) for l in outlines if "dispersion" in l]
+      if len(disps) > 1:
+        dispdiff = abs(disps[-1] - disps[0])/disps[-1]
+        if (dispdiff < reltol) and disps[-1] < abstol:
           return 'ok'
-      return 'running'
+        else:
+          print("Variance optimization dispersion not converged:")
+          print("rel_change(%.3f>%.3f) or abs(%.0f>%.0f)"\
+              %(dispdiff,reltol,disps[-1],abstol))
+          return 'not_finished'
+      else:
+        return 'failed'
+    else:
+      return 'not_started'
+  #def check_outputfile(self,outfilename):
+  #  if os.path.isfile(outfilename):
+  #    f=open(outfilename,'r')
+  #    for line in f:
+  #      if 'Wall' in line:
+  #        return 'ok'
+  #    return 'running'
 
 
   def check_status(self,job_record):
@@ -104,17 +123,37 @@ wf2 { include qw.jast2 }
     if self.check_outputfile(outfilename)=='ok':
       return 'ok'
     status=self._submitter.status(job_record)
-    self._submitter.output(job_record, ['qw_0.opt.o', 'qw_0.opt.wfout'])  
+    self._submitter.transfer_output(job_record, ['qw_0.opt.o', 'qw_0.opt.wfout'])  
     if status=='running':
       return status
-    if self.check_outputfile(outfilename)=='ok':
+    status = self.check_outputfile(outfilename)
+    if status == 'ok':
       return 'ok'
-      
-  
+    if status == 'not_finished':
+      return 'not_finished'
+
     return 'not_started'
       
   def retry(self,job_record):
-    return self.run(job_record)
+    if not os.path.isfile("qw_0.opt.wfout"):
+      return self.run(job_record)
+
+    inplines = [
+        "method { optimize }",
+        "include qw_0.sys",
+        "trialfunc { include qw_0.opt.wfout }"
+      ]
+    with open("qw_0.opt",'w') as inpf:
+      inpf.write('\n'.join(inplines))
+
+    job_record['control'][self._name_+'_jobid'] = [self._submitter.execute(
+      job_record, 
+      ['qw_0.opt','qw_0.sys','qw_0.slater','qw_0.orb','qw.basis','qw.jast2'], 
+      'qw_0.opt',
+      'qw_0.opt.stdout')]
+    
+    return 'running'
+
   def output(self,job_record):
     outfilename="qw_0.opt.o"
     f=open(outfilename,'r')
@@ -180,7 +219,7 @@ trialfunc { include qw_0.enopt.wfin }
 
   def check_status(self,job_record):
     outfilename="qw_0.enopt.o"
-    self._submitter.output(job_record, [outfilename, 'qw_0.enopt.wfout'])
+    self._submitter.transfer_output(job_record, [outfilename, 'qw_0.enopt.wfout'])
       
     status=self._submitter.status(job_record)
     if status=='running':
@@ -238,28 +277,49 @@ class QWalkRunDMC:
       elif qmc_options['dmc']['optimizer']=='energy':
         os.system("separate_jastrow qw_0.enopt.wfout > opt.jast")
 
-    #make and submit the runs.
-    #this could be extended to bundle jobs
+    ##make and submit the runs.
+    ##this could be extended to bundle jobs
+    #for k in kpts:
+    #  for t in qmc_options['dmc']['timestep']:
+    #    for loc in qmc_options['dmc']['localization']:
+    #      kname="qw_%i"%k
+    #      basename="qwt%g%s_%i"%(t,loc,k)
+    #      f=open(basename+".dmc",'w')
+    #      f.write(self.dmcinput(t,loc,k,qmc_options['dmc']['nblock']))
+    #      f.close()
+    #      infiles=[basename+".dmc","opt.jast",kname+'.sys',kname+'.slater',
+    #          kname+'.orb','qw.basis']
+    #      if restart:
+    #        infiles.extend([basename+'.dmc.config',basename+'.dmc.log'])
+    #      job_id = self._submitter.execute(
+    #        job_record,
+    #        infiles,
+    #        basename+".dmc",
+    #        basename+".dmc.stdout")
+    #      job_record['control'][self._name_+'_jobid'].append(job_id)
+
+    # Make and submit the runs: bundle all jobs.
+    infiles = []
+    inpfns = []
     for k in kpts:
       for t in qmc_options['dmc']['timestep']:
         for loc in qmc_options['dmc']['localization']:
           kname="qw_%i"%k
           basename="qwt%g%s_%i"%(t,loc,k)
           f=open(basename+".dmc",'w')
-          f.write(self.dmcinput(t,loc,k,qmc_options['dmc']['nblock']))
+          f.write(self.dmcinput(t,loc,k,qmc_options['dmc']['nblock'],qmc_options['dmc']['save_trace']))
           f.close()
-          infiles=[basename+".dmc","opt.jast",kname+'.sys',kname+'.slater',
-              kname+'.orb','qw.basis']
+          infiles.extend([basename+".dmc","opt.jast",kname+'.sys',kname+'.slater',
+              kname+'.orb','qw.basis'])
           if restart:
             infiles.extend([basename+'.dmc.config',basename+'.dmc.log'])
-          job_id = self._submitter.execute(
-            job_record,
-            infiles,
-            basename+".dmc",
-            basename+".dmc.stdout")
-          job_record['control'][self._name_+'_jobid'].append(job_id)
+          inpfns.append(basename+".dmc")
 
-    job_record['control']['queue_id'] = job_record['control'][self._name_+'_jobid']
+    qid = self._submitter.execute(
+      job_record,
+      infiles, # Dependencies. This naming needs to be less redundant.
+      inpfns,  # Actual DMC inputs.
+      "qw.dmc.stdout")
     return 'running'
 
 
@@ -273,16 +333,35 @@ class QWalkRunDMC:
 
 
 #-----------------------------------------------
-  def dmcinput(self,timestep,localization,kpt_num=0,nblock=16):
-    return """method { DMC timestep %g nblock %i %s 
-    average { SK } 
-} 
-include qw_%i.sys
-trialfunc { slater-jastrow
-wf1 { include qw_%i.slater } 
-wf2 { include opt.jast } 
-}
-"""%(timestep,nblock,localization,kpt_num,kpt_num)
+#  def dmcinput(self,timestep,localization,kpt_num=0,nblock=16):
+#    return """method { DMC timestep %g nblock %i %s  } 
+#include qw_%i.sys
+#trialfunc { slater-jastrow
+#wf1 { include qw_%i.slater } 
+#wf2 { include opt.jast } 
+#}
+#"""%(timestep,nblock,localization,kpt_num,kpt_num)
+
+  def dmcinput(self,timestep,localization,kpt_num=0,nblock=16,save_trace=False):
+    outlist = [
+        "method { DMC ",
+        "timestep %g"%timestep,
+        "nblock %i"%nblock,
+        localization,
+        "average { SK }"
+      ]
+    if save_trace:
+      outlist += ["save_trace qw_%i.dmc.trace"%kpt_num]
+    outlist += [
+        "}",
+        "include qw_%i.sys"%kpt_num,
+        "trialfunc { slater-jastrow",
+        "wf1 { include qw_%i.slater } "%kpt_num,
+        "wf2 { include opt.jast }",
+        "}"
+      ]
+    outstr = '\n'.join(outlist)
+    return outstr
 
 #-----------------------------------------------
   def check_outputfile(self,outfilename):
@@ -366,8 +445,8 @@ wf2 { include opt.jast }
           outfiles.extend([basename+'.dmc.log',
                          basename+'.dmc.config',
                          basename+'.dmc.o'])
-    print(outfiles)
-    self._submitter.output(job_record, outfiles)
+    #print(outfiles)
+    self._submitter.transfer_output(job_record, outfiles)
     status=self._submitter.status(job_record)
     print("status",status)
     if status=='running':

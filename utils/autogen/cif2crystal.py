@@ -235,7 +235,6 @@ class Cif2Crystal:
   # In the future, we should probably store name of d12 in record, 
   # so this is not needed.
   def run(self,job_record,outfn="autogen.d12"):
-    #TODO: support  kmesh,charge
     if job_record['pseudopotential']!='BFD':
       print("ERROR: only support BFD pseudoptentials for now")
       quit()
@@ -292,6 +291,7 @@ class Cif2Crystal:
       "XLGRID",
       "END",
       "SCFDIR",
+      "SAVEWF",
       "BIPOSIZE",
       "100000000",
       "EXCHSIZE",
@@ -307,6 +307,8 @@ class Cif2Crystal:
       "MAXCYCLE",
       str(job_record['dft']['maxcycle'])
     ]
+    if job_record['dft']['smear'] != None:
+      outlines += ["SMEAR",str(job_record['dft']['smear'])]
     if job_record['dft']['spin_polarized']:
       outlines += [
         "SPINLOCK",
@@ -334,11 +336,16 @@ class Cif2Crystal:
     if not os.path.isfile("autogen.d12"):
       return 'not_started'
     status = self.run(job_record,outfn="new.autogen.d12")
-    new = open("new.autogen.d12",'r').read()
-    old = open("autogen.d12",'r').read()
-    if new.split() != old.split():
-      print("Warning: job record inconsistent with past input")
-      return 'ok'
+    new = open("new.autogen.d12",'r').read().split()
+    old = open("autogen.d12",'r').read().split()
+    for doesntmatter in ["GUESSP"]:
+      if doesntmatter in new: new.remove("GUESSP")
+      if doesntmatter in old: old.remove("GUESSP")
+    if new != old:
+      # This functionality has saved me on numerous occasions,
+      # so I'd like to debug it if there are problems.
+      print("Error: job record inconsistent with past input")
+      return 'failed'
     else:
       return 'ok'
 

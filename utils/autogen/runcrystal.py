@@ -9,21 +9,31 @@ class RunCrystal:
     self._submitter = submitter
 
   def run(self, job_record):
-    job_record['control'][self._name_+'_jobid'] = [self._submitter.execute(job_record, ['autogen.d12'], 'autogen.d12', 'autogen.d12.o')]
+    job_record['control'][self._name_+'_jobid'] = \
+        [self._submitter.execute(job_record, ['autogen.d12'],
+          'autogen.d12', 'autogen.d12.o')]
     return 'running'
 
   def output(self,job_record):
+    """ Collect results from output."""
     if os.path.isfile('autogen.d12.o'):
       f = open('autogen.d12.o', 'r')
       lines = f.readlines()
-      for l in lines:
-        if 'SCF ENDED' in l:
-          job_record['dft']['total_energy']=float(l.split()[8])    
+      for li,line in enumerate(lines):
+        if 'SCF ENDED' in line:
+          job_record['dft']['total_energy']=float(line.split()[8])    
+        elif 'TOTAL ATOMIC SPINS' in line:
+          moms = []
+          shift = 1
+          while "TTT" not in lines[li+shift]:
+            moms += map(float,lines[li+shift].split())
+            shift += 1
+          job_record['dft']['mag_moments']=moms
       
     return job_record
 
-
   def check_outputfile(self,outfilename):
+    """ Check if outputfile reports sucess. """
     if os.path.isfile(outfilename):
       f=open(outfilename,'r')
       for line in f:
@@ -41,6 +51,7 @@ class RunCrystal:
       return 'not_started'
 
   def check_status(self,job_record):
+    """ Decide status of job (in queue or otherwise). """
     outfilename="autogen.d12.o"
 
     status=self.check_outputfile(outfilename)
@@ -49,7 +60,7 @@ class RunCrystal:
     elif status=='ok':
       return status
 
-    self._submitter.output(job_record, ['autogen.d12.o', 'fort.9'])
+    self._submitter.transfer_output(job_record, ['autogen.d12.o', 'fort.9'])
     status=self._submitter.status(job_record)
     if status=='running':
       return status
@@ -63,21 +74,10 @@ class RunCrystal:
       return 'not_started'
 
     return 'failed'
-      
+
   def retry(self,job_record):
-    """Copy fort.9 to fort.20 and add GUESSP if it isn't already there."""
-    #Removing this behavior for now as it doesn't seem to help too much.
-    #shutil.copy('fort.9','fort.20')
-    #with open('autogen.d12','r') as d12f:
-    #  lines = d12f.read().split('\n')
-    #if not any(["GUESSP" in line for line in lines]):
-      # Currently autogen doesn't end the file with \n (e.g. "END\n"), 
-      # this will fail if in the future it does.
-    #  lines[-1] = "GUESSP\nEND"
-    #  with open('autogen.d12','w') as d12f:
-    #    d12f.write('\n'.join(lines))
-    #job_record['dft']['nretries'] += 1
-    return "did_not_retry" #self.run(job_record)
+    print("Did not retry")
+    return 'failed'
 
 ####################################################
 
@@ -112,7 +112,8 @@ class RunProperties:
       os.system("properties < prop.in > prop.in.o")
       return 'ok'
     else:
-      job_record['control'][self._name_+'_jobid'] = [self._submitter.execute(job_record,["prop.in"], 'prop.in', 'prop.in.o')]
+      job_record['control'][self._name_+'_jobid'] = \
+          [self._submitter.execute(job_record,["prop.in"], 'prop.in', 'prop.in.o')]
       return 'running'
 
   def check_outputfile(self,outfilename):
@@ -135,7 +136,7 @@ class RunProperties:
       status=self._submitter.status(job_record)
       if status=='running':
         return status
-      self._submitter.output(job_record, [outfilename, 'fort.9'])
+      self._submitter.transfer_output(job_record, [outfilename, 'fort.9'])
       status=self.check_outputfile(outfilename)
       if status=='ok':
         self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
@@ -150,6 +151,7 @@ class RunProperties:
       
   def retry(self,job_record):
     return self.run(job_record)
+
   def output(self,job_record):
     return job_record
 
