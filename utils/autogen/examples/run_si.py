@@ -31,7 +31,7 @@ element_list.append(runqwalk.QWalkRunDMC(
 qchecker = taub.LocalTaubSubmitter()
 
 # Specific defaults for this material.
-default_job=jc.default_job_record("cifs/si.cif")
+default_job=jc.default_job_record("si.cif")
 default_job['dft']['kmesh'] = [2,2,2]
 default_job['dft']['functional']['hybrid'] = 0
 default_job['dft']['tolinteg'] = [6,6,6,6,12]

@@ -175,6 +175,51 @@ class LocalTaubQwalkSubmitter(LocalTaubSubmitter):
     print "Submitted as %s"%qid
     return qid
 
+class LocalTaubBundleQwalkSubmitter(LocalTaubSubmitter):
+  """Fully defined submission class. Defines interaction with specific
+  program to be run."""
+  def _submit_job(self,inpfns,outfn="stdout",jobname="",loc=""):
+    """ Submit a specific job to the queue. 
+    
+    Should not interact with user, and should receive only information specific
+    to instance of a job run."""
+    exe = " ".join(["/home/brian/bin/qwalk"]+inpfns)
+    prep_commands=[]
+    final_commands=[]
+
+    if jobname == "":
+      jobname = outfn
+    if loc == "":
+      loc = os.getcwd()
+
+    header = []
+    header.append('#!/bin/bash')
+    if self.np=='allprocs': 
+      header.append('#PBS -l nodes=%d,flags=allprocs'%self.nn)
+    else:                  
+      header.append('#PBS -l nodes=%d:ppn=%d'%(self.nn,self.np))
+    header.append('#PBS -q %s'%self.queue)
+    header.append('#PBS -l walltime=%s'%self.time)
+    header.append('#PBS -j oe')
+    header.append('#PBS -m n')
+    header.append('#PBS -N %s'%jobname)
+    header.append('#PBS -o {0}'.format(loc+'/qsub.out'))
+    if self.np=='allprocs':
+      exeline = 'mpirun %s &> %s'%(exe, outfn)
+    elif self.nn*self.np > 1:
+      exeline = 'mpirun -n %d %s &> %s'%(self.nn*self.np, exe, outfn)
+    else:
+      exeline = '%s &> %s'%(exe, outfn)
+    commands = header + ['cd %s'%loc] + prep_commands + [exeline] + final_commands
+    qsubstr = '\n'.join(commands)
+
+    with open('qsub.in','w') as qsin:
+      qsin.write(qsubstr)
+    result = sub.check_output("qsub %s"%(loc+"/qsub.in"),shell=True)
+    qid = result.split()[0]
+    print "Submitted as %s"%qid
+    return qid
+
 class LocalNullSubmitter(LocalTaubSubmitter):
   """NullSubmitter will not submit any jobs to the queue."""
   def _submit_job(self,inpfn,outfn="stdout",jobname="",loc=""):
