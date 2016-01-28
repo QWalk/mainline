@@ -75,9 +75,20 @@ class RunCrystal:
 
     return 'failed'
 
-  def retry(self,job_record):
-    print("Did not retry")
-    return 'failed'
+  def continue(self,job_record,maxcontinue=5):
+    """ Continue a crystal run using GUESSP."""
+    jobname = job_record['control']['id']
+    trynum = 0
+    while os.path.isfile(jobname+"/"+str(trynum)+".autogen.d12.o"):
+      trynum += 1
+      if trynum > maxcontinue:
+        print("{} not continuing because max reached ({}>{}).".format(
+          jobname,trynum,maxcontinue))
+    for filename in ["autogen.d12","autogen.d12.o"]:
+      shutil.move(jobname+"/"+filename,jobname+"/"+str(trynum)+"."+filename)
+    for filename in ["fort.79"]:
+      shutil.copy(jobname+"/"+filename,jobname+"/"+str(trynum)+"."+filename)
+    return jobname+"/"+str(trynum)+".fort.79"
 
 ####################################################
 

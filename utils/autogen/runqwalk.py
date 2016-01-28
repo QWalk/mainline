@@ -134,7 +134,7 @@ wf2 { include qw.jast2 }
 
     return 'not_started'
       
-  def retry(self,job_record):
+  def continue(self,job_record):
     if not os.path.isfile("qw_0.opt.wfout"):
       return self.run(job_record)
 
@@ -234,7 +234,7 @@ trialfunc { include qw_0.enopt.wfin }
     return self.check_outputfile(outfilename,
             threshold=job_record['qmc']['energy_optimize']['threshold'])
       
-  def retry(self,job_record):
+  def continue(self,job_record):
     return self.run(job_record,restart=True)
 
   def output(self,job_record):
@@ -466,7 +466,7 @@ class QWalkRunDMC:
 #-----------------------------------------------
     
       
-  def retry(self,job_record):
+  def continue(self,job_record):
     return self.run(job_record,restart=True)
 #-----------------------------------------------
 

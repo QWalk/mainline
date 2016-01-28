@@ -72,6 +72,69 @@ def default_job_record(filename):
   job_record['control']['queue_id']=[None,None]
   return job_record
 
+# Another option is to allow a mode for each element_list.
+# This should easily be replacable by a user-made version.
+# TODO: The stdout of this is off because the line between jobs is drawn between
+#       this output and the execute() output.
+def diagnose(record, element_list, mode="conservative"):
+  """
+  Go through list of elements and check the status of the job.
+  Depending on mode, will call element.continue() on finding certain statuses.
+
+  Modes: 
+  "stubborn"
+    CRYSTAL runs continue if there's a chance that the job will eventually succeed.
+    Monte Carlo reduce errorbars if necessary to meet accuracy goal.
+  "optimistic"
+    CRYSTAL runs continue if job was prematurely killed.
+    Monte Carlo reduce errorbars if necessary to meet accuracy goal.
+  "conservative"
+    CRYSTAL runs always fail out unless successful. 
+    Monte Carlo reduce errorbars if necessary to meet accuracy goal.
+  "unforgiving"
+    All jobs fail unless successful on first try.
+  """
+  status_list = []
+  for element in element_list:
+    if mode == "stubborn":
+      if element._name_ == "RunCrystal":
+        status = element.check_status(record)
+        if status in ['too_many_cycles','continue']:
+          status_list.append(element.continue(record))
+      elif element._name_ in ["QWalkVarianceOptimize",
+                              "QWalkEnergyOptimize",
+                              "QWalkRunDMC"]:
+        if status == "not_finished":
+          status_list.append(element.continue(record))
+      else:
+        status_list.append(status)
+    elif mode == "optimistic":
+      if element._name_ == "RunCrystal":
+        status = element.check_status(record)
+        if status in ['continue']:
+          status_list.append(element.continue(record))
+      elif element._name_ in ["QWalkVarianceOptimize",
+                              "QWalkEnergyOptimize",
+                              "QWalkRunDMC"]:
+        if status == "not_finished":
+          status_list.append(element.continue(record))
+      else:
+        status_list.append(status)
+    elif mode == "conservative":
+      if element._name_ in ["QWalkVarianceOptimize",
+                            "QWalkEnergyOptimize",
+                            "QWalkRunDMC"]:
+        if status == "not_finished":
+          status_list.append(element.continue(record))
+      else:
+        status_list.append(status)
+    elif mode == "unforgiving":
+      status_list.append(status)
+    else:
+      print("Mode not recognized, falling back on 'unforgiving'.")
+      status_list.append(status)
+  return zip(record,status_list)
+
 def execute(record, element_list):
   """
   Run element_list tasks on this job record
@@ -100,7 +163,7 @@ def execute(record, element_list):
       status=element.run(record)
       print(element._name_,"status",status)
     if status=='not_finished':
-      status=element.retry(record)
+      status=element.continue(record)
       print(element._name_,"status",status)
     if status != 'ok':
       break
