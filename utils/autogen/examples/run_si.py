@@ -4,7 +4,6 @@ import runcrystal
 import runqwalk
 import copy
 import job_control as jc
-import data_processing as dp
 import os
 import json
 
