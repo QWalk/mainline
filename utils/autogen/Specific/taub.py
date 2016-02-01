@@ -3,7 +3,7 @@ import subprocess as sub
 from submission_tools import LocalSubmitter
 import os
 
-class LocalVeritasSubmitter(LocalSubmitter):
+class LocalTaubSubmitter(LocalSubmitter):
   """Abstract submission class. Defines interaction with the queuing system."""
   def __init__(self,time='72:00:00',nn=1,np='allprocs', queue='batch'):
     """ Initialize a submitter object. 
@@ -70,7 +70,7 @@ class LocalVeritasSubmitter(LocalSubmitter):
     print("Submitted as %s"%qid)
     return qid
 
-class LocalVeritasCrystalSubmitter(LocalVeritasSubmitter):
+class LocalTaubCrystalSubmitter(LocalTaubSubmitter):
   """Fully defined submission class. Defines interaction with specific
   program to be run."""
   def _submit_job(self,inpfn,outfn="stdout",jobname="",loc=""):
@@ -90,7 +90,7 @@ class LocalVeritasCrystalSubmitter(LocalVeritasSubmitter):
     qid = self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
     return qid
 
-class LocalVeritasPropertiesSubmitter(LocalVeritasSubmitter):
+class LocalTaubPropertiesSubmitter(LocalTaubSubmitter):
   """Fully defined submission class. Defines interaction with specific
   program to be run."""
   def _submit_job(self,inpfn,outfn="stdout",jobname="",loc=""):
@@ -115,7 +115,7 @@ class LocalVeritasPropertiesSubmitter(LocalVeritasSubmitter):
     qid = self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
     return qid
 
-class LocalVeritasQwalkSubmitter(LocalVeritasSubmitter):
+class LocalTaubQwalkSubmitter(LocalTaubSubmitter):
   """Fully defined submission class. Defines interaction with specific
   program to be run."""
   def _submit_job(self,inpfn,outfn="stdout",jobname="",loc=""):
@@ -135,7 +135,7 @@ class LocalVeritasQwalkSubmitter(LocalVeritasSubmitter):
     qid = self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
     return qid
 
-class LocalVeritasBundleQwalkSubmitter(LocalVeritasSubmitter):
+class LocalTaubBundleQwalkSubmitter(LocalTaubSubmitter):
   """Fully defined submission class. Defines interaction with specific
   program to be run."""
   def _submit_job(self,inpfns,outfn="stdout",jobname="",loc=""):
