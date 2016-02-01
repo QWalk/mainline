@@ -3,6 +3,11 @@ import subprocess as sub
 from submission_tools import LocalSubmitter
 import os
 
+# Where are your executibles stored?
+BIN = "/home/busemey2/bin/"
+
+if BIN[-1] != '/': BIN += '/'
+
 class LocalTaubSubmitter(LocalSubmitter):
   """Abstract submission class. Defines interaction with the queuing system."""
   def __init__(self,time='72:00:00',nn=1,np='allprocs', queue='batch'):
@@ -53,7 +58,8 @@ class LocalTaubSubmitter(LocalSubmitter):
       "#PBS -j oe",
       "#PBS -m n",
       "#PBS -N %s"%name,
-      "#PBS -o {0}".format(loc+"/qsub.out")
+      "#PBS -o {0}".format(loc+"/qsub.out"),
+      "module load openmpi/1.4-gcc+ifort",
     ]
     if self.np=="allprocs":
       exeline = "mpirun %s &> %s"%(exe, stdout)
@@ -78,7 +84,7 @@ class LocalTaubCrystalSubmitter(LocalTaubSubmitter):
     
     Should not interact with user, and should receive only information specific
     to instance of a job run."""
-    exe = "/home/brian/bin/Pcrystal"
+    exe = BIN+"Pcrystal"
     prep_commands=["cp %s INPUT"%inpfn]
     final_commands = ["rm *.pe[0-9]","rm *.pe[0-9][0-9]"]
 
@@ -98,7 +104,7 @@ class LocalTaubPropertiesSubmitter(LocalTaubSubmitter):
     
     Should not interact with user, and should receive only information specific
     to instance of a job run."""
-    exe = "/home/brian/bin/properties < %s"%inpfn
+    exe = BIN+"properties < %s"%inpfn
     prep_commands = []
     final_commands = []
 
@@ -123,7 +129,7 @@ class LocalTaubQwalkSubmitter(LocalTaubSubmitter):
     
     Should not interact with user, and should receive only information specific
     to instance of a job run."""
-    exe = "/home/brian/bin/qwalk %s"%inpfn
+    exe = BIN+"qwalk %s"%inpfn
     prep_commands=[]
     final_commands=[]
 
@@ -143,7 +149,7 @@ class LocalTaubBundleQwalkSubmitter(LocalTaubSubmitter):
     
     Should not interact with user, and should receive only information specific
     to instance of a job run."""
-    exe = " ".join(["/home/brian/bin/qwalk"]+inpfns)
+    exe = " ".join([BIN+"qwalk"]+inpfns)
     prep_commands=[]
     final_commands=[]
 
