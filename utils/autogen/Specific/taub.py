@@ -31,7 +31,7 @@ class LocalTaubSubmitter(LocalSubmitter):
     return status
 
   def _job_cancel(self,queue_id):
-    print "Cancel was called, but not implemented"
+    print("Cancel was called, but not implemented")
 
 class LocalTaubCrystalSubmitter(LocalTaubSubmitter):
   """Fully defined submission class. Defines interaction with specific
@@ -76,8 +76,8 @@ class LocalTaubCrystalSubmitter(LocalTaubSubmitter):
     with open('qsub.in','w') as qsin:
       qsin.write(qsubstr)
     result = sub.check_output("qsub %s"%(loc+"/qsub.in"),shell=True)
-    qid = result.split()[0]
-    print "Submitted as %s"%qid
+    qid = result.decode().split()[0]
+    print("Submitted as %s"%qid)
     return qid
 
 class LocalTaubPropertiesSubmitter(LocalTaubSubmitter):
@@ -93,7 +93,7 @@ class LocalTaubPropertiesSubmitter(LocalTaubSubmitter):
     final_commands = []
 
     if self.nn != 1 or self.np != 1:
-      print "Currently refusing to run properties in parallel!"
+      print("Currently refusing to run properties in parallel!")
       self.nn = 1
       self.np = 1
 
@@ -126,8 +126,8 @@ class LocalTaubPropertiesSubmitter(LocalTaubSubmitter):
     with open('qsub.in','w') as qsin:
       qsin.write(qsubstr)
     result = sub.check_output("qsub %s"%(loc+"/qsub.in"),shell=True)
-    qid = result.split()[0]
-    print "Submitted as %s"%qid
+    qid = result.decode().split()[0]
+    print("Submitted as %s"%qid)
     return qid
 
 class LocalTaubQwalkSubmitter(LocalTaubSubmitter):
@@ -171,8 +171,8 @@ class LocalTaubQwalkSubmitter(LocalTaubSubmitter):
     with open('qsub.in','w') as qsin:
       qsin.write(qsubstr)
     result = sub.check_output("qsub %s"%(loc+"/qsub.in"),shell=True)
-    qid = result.split()[0]
-    print "Submitted as %s"%qid
+    qid = result.decode().split()[0]
+    print("Submitted as %s"%qid)
     return qid
 
 class LocalTaubBundleQwalkSubmitter(LocalTaubSubmitter):
@@ -216,8 +216,8 @@ class LocalTaubBundleQwalkSubmitter(LocalTaubSubmitter):
     with open('qsub.in','w') as qsin:
       qsin.write(qsubstr)
     result = sub.check_output("qsub %s"%(loc+"/qsub.in"),shell=True)
-    qid = result.split()[0]
-    print "Submitted as %s"%qid
+    qid = result.decode().split()[0]
+    print("Submitted as %s"%qid)
     return qid
 
 class LocalNullSubmitter(LocalTaubSubmitter):
