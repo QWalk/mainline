@@ -91,16 +91,16 @@ def diagnose(record, element, mode="conservative"):
   "unforgiving"
     All jobs fail unless successful on first try.
 
-  Returns {not_started / running / ok / resume / failed}
+  Returns {no_output / running / ok / resume / failed}
   """
   status = element.check_status(record)
   print(element._name_,"status",status)
-  if status in ["not_started","running","ok"]:
+  if status in ["no_output","running","ok"]:
     return status
 
   if mode == "stubborn":
     if element._name_ == "RunCrystal":
-      if status in ['too_many_cycles','resume']:
+      if status in ['too_many_cycles','not_finished']:
         return "resume"
     elif element._name_ in ["QWalkVarianceOptimize",
                             "QWalkEnergyOptimize",
@@ -111,7 +111,7 @@ def diagnose(record, element, mode="conservative"):
       return "failed"
   elif mode == "optimistic":
     if element._name_ == "RunCrystal":
-      if status in ['resume']:
+      if status in ['not_finished']:
         return "resume"
     elif element._name_ in ["QWalkVarianceOptimize",
                             "QWalkEnergyOptimize",
@@ -162,7 +162,7 @@ def execute(record, element_list, mode="conservative"):
     #status=element.check_status(record)
     status=diagnose(record,element,mode)
     print("Diagnosis:",status)
-    if status=='not_started':
+    if status=='no_output':
       status=element.run(record)
       print(element._name_,"status",status)
     if status=='resume':

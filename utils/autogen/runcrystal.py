@@ -32,48 +32,63 @@ class RunCrystal:
       
     return job_record
 
-  def check_outputfile(self,outfilename):
-    """ Check if outputfile reports sucess. """
-    if os.path.isfile(outfilename):
-      f=open(outfilename,'r')
-      for line in f:
-        if "SCF ENDED" in line:
-          if "TOO MANY CYCLES" in line:
-            print("Crystal failed: too many cycles.")
-            return 'not_finished'
-          energy = float(line.split()[8])
-          if energy > 0.0:
-            print("Crystal failed: energy divergence.") 
-            return 'failed'
-
-          return 'ok'
-    else:
-      return 'not_started'
+  # This can be made more efficient if it's a problem: searches whole file for
+  # each query.
+  def check_outputfile(self,outfilename,acceptable_scf=0.0):
+    """ Check output file. 
+    Current return values:
+    no_record, no_output, success, too_many_cycles, finished (fall-back),
+    scf_fail, not_enough_decrease, divergence, not_finished
+    """
+    try:
+      outf = open("autogen.d12.o",'r')
+    except IOError:
+      return "no_output"
+    outlines = outf.read().split('\n')
+    reslines = [line for line in outlines if "ENDED" in line]
+    if len(reslines) > 0:
+      if "CONVERGENCE" in reslines[0]:
+        return "success"
+      elif "TOO MANY CYCLES" in reslines[0]:
+        return "too_many_cycles"
+      else: # What else can happen?
+        return "finished"
+    detots = [float(line.split()[5]) for line in outlines if "DETOT" in line]
+    if len(detots) == 0:
+      return "scf_fail"
+    detots_net = sum(detots[1:])
+    if detots_net > acceptable_scf:
+      return "not_enough_decrease"
+    etots = [float(line.split()[3]) for line in outlines if "DETOT" in line]
+    if etots[-1] > 0:
+      return "divergence"
+    return "not_finished"
 
   def check_status(self,job_record):
     """ Decide status of job (in queue or otherwise). """
     outfilename="autogen.d12.o"
 
     status=self.check_outputfile(outfilename)
-    if status=='failed':
-      return status
-    elif status=='ok':
-      return status
+    if status=='success':
+      return 'ok'
+    #if status=='failed':
+    #  return status
 
     self._submitter.transfer_output(job_record, ['autogen.d12.o', 'fort.9'])
     status=self._submitter.status(job_record)
     if status=='running':
       return status
     status=self.check_outputfile(outfilename)
-    if status=='ok':
-      return status
-    elif status=='not_finished' or status=='failed':
-      return status
+    return status
+    #if status=='ok':
+    #  return status
+    #elif status=='not_finished' or status=='failed':
+    #  return status
   
-    if not os.path.isfile(outfilename):
-      return 'not_started'
+    #if not os.path.isfile(outfilename):
+    #  return 'not_started'
 
-    return 'failed'
+    #return 'failed'
 
   def resume(self,job_record,maxresume=5):
     """ Continue a crystal run using GUESSP."""
@@ -135,7 +150,7 @@ class RunProperties:
           return 'ok'
       return 'running'
     else:
-      return 'not_started'
+      return 'no_output'
 
   def check_status(self,job_record):
     outfilename="prop.in.o"
@@ -156,7 +171,7 @@ class RunProperties:
         return status
     
     if not os.path.isfile(outfilename):
-      return 'not_started'
+      return 'no_output'
 
     return 'failed'
       

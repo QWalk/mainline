@@ -51,7 +51,7 @@ class Crystal2QWalk:
     outfilename="qw_0.sys"
     if os.path.exists(outfilename):
       return 'ok'
-    return 'not_started'
+    return 'no_output'
       
   def retry(self,job_record):
     return self.run(job_record)
@@ -107,7 +107,7 @@ wf2 { include qw.jast2 }
       else:
         return 'failed'
     else:
-      return 'not_started'
+      return 'no_output'
   #def check_outputfile(self,outfilename):
   #  if os.path.isfile(outfilename):
   #    f=open(outfilename,'r')
@@ -132,7 +132,7 @@ wf2 { include qw.jast2 }
     if status == 'not_finished':
       return 'not_finished'
 
-    return 'not_started'
+    return 'no_output'
       
   def resume(self,job_record):
     if not os.path.isfile("qw_0.opt.wfout"):
@@ -214,7 +214,7 @@ trialfunc { include qw_0.enopt.wfin }
       if abs(last_change) > threshold:
         return 'not_finished'
       return 'ok'
-    return 'not_started'
+    return 'no_output'
 
 
   def check_status(self,job_record):
@@ -454,7 +454,7 @@ class QWalkRunDMC:
 
 
     if not os.path.isfile(outfiles[0]):
-      return 'not_started'
+      return 'no_output'
 
     results=self.collect_runs(job_record)
     status='ok'

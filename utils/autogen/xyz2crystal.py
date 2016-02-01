@@ -205,7 +205,7 @@ class Xyz2Crystal:
 
   def check_status(self,job_record):
     if not os.path.isfile("autogen.d12"):
-      return 'not_started'
+      return 'no_output'
     status = self.run(job_record,outfn="new.autogen.d12")
     new = open("new.autogen.d12",'r').read()
     old = open("autogen.d12",'r').read()
