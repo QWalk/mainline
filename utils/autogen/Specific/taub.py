@@ -3,6 +3,11 @@ import subprocess as sub
 from submission_tools import LocalSubmitter
 import os
 
+# Where are your executibles stored?
+BIN = "/home/busemey2/bin/"
+
+if BIN[-1] != '/': BIN += '/'
+
 class LocalTaubSubmitter(LocalSubmitter):
   """Abstract submission class. Defines interaction with the queuing system."""
   def __init__(self,time='72:00:00',nn=1,np='allprocs', queue='batch'):
@@ -21,7 +26,7 @@ class LocalTaubSubmitter(LocalSubmitter):
     try:
       qstat = sub.check_output(
           "qstat %s"%queue_id, stderr=sub.STDOUT, shell=True
-        ).split('\n')[-2].split()[4]
+        ).decode().split('\n')[-2].split()[4]
     except sub.CalledProcessError:
       return "unknown"
     if qstat == "R" or qstat == "Q":
@@ -31,7 +36,45 @@ class LocalTaubSubmitter(LocalSubmitter):
     return status
 
   def _job_cancel(self,queue_id):
-    print "Cancel was called, but not implemented"
+    print("Cancel was called, but not implemented")
+
+  def _qsub(self,exe,prep_commands=[],final_commands=[],
+      name="",stdout="",loc=""):
+    """ Helper function for executible submitters. 
+    Should work in most cases to simplify code."""
+
+    if stdout=="": stdout="stdout"
+    if loc=="": loc=os.getcwd()
+    if name=="": name=stdout
+    header = []
+    header.append("#!/bin/bash")
+    if self.np=="allprocs": 
+      header.append("#PBS -l nodes=%d,flags=allprocs"%self.nn)
+    else:
+      header.append("#PBS -l nodes=%d:ppn=%d"%(self.nn,self.np))
+    header += [
+      "#PBS -q %s"%self.queue,
+      "#PBS -l walltime=%s"%self.time,
+      "#PBS -j oe",
+      "#PBS -m n",
+      "#PBS -N %s"%name,
+      "#PBS -o {0}".format(loc+"/qsub.out"),
+      "module load openmpi/1.4-gcc+ifort",
+    ]
+    if self.np=="allprocs":
+      exeline = "mpirun %s &> %s"%(exe, stdout)
+    elif self.nn*self.np > 1:
+      exeline = "mpirun -n %d %s &> %s"%(self.nn*self.np, exe, stdout)
+    else:
+      exeline = "%s &> %s"%(exe, stdout)
+    commands = header + ["cd %s"%loc] + prep_commands + [exeline] + final_commands
+    outstr = '\n'.join(commands)
+    with open(loc+"/qsub.in",'w') as qsin:
+      qsin.write(outstr)
+    result = sub.check_output("qsub %s"%(loc+"/qsub.in"),shell=True)
+    qid = result.decode().split()[0]
+    print("Submitted as %s"%qid)
+    return qid
 
 class LocalTaubCrystalSubmitter(LocalTaubSubmitter):
   """Fully defined submission class. Defines interaction with specific
@@ -41,10 +84,8 @@ class LocalTaubCrystalSubmitter(LocalTaubSubmitter):
     
     Should not interact with user, and should receive only information specific
     to instance of a job run."""
-    exe = "/home/busemey2/bin/Pcrystal"
-    prep_commands=[
-        "module load openmpi/1.4-gcc+ifort",
-        "cp %s INPUT"%inpfn]
+    exe = BIN+"Pcrystal"
+    prep_commands=["cp %s INPUT"%inpfn]
     final_commands = ["rm *.pe[0-9]","rm *.pe[0-9][0-9]"]
 
     if jobname == "":
@@ -52,32 +93,7 @@ class LocalTaubCrystalSubmitter(LocalTaubSubmitter):
     if loc == "":
       loc = os.getcwd()
 
-    header = []
-    header.append('#!/bin/bash')
-    if self.np=='allprocs': 
-      header.append('#PBS -l nodes=%d,flags=allprocs'%self.nn)
-    else:                  
-      header.append('#PBS -l nodes=%d:ppn=%d'%(self.nn,self.np))
-    header.append('#PBS -q %s'%self.queue)
-    header.append('#PBS -l walltime=%s'%self.time)
-    header.append('#PBS -j oe')
-    header.append('#PBS -m n')
-    header.append('#PBS -N %s'%jobname)
-    header.append('#PBS -o {0}'.format(loc+'/qsub.out'))
-    if self.np=='allprocs':
-      exeline = 'mpirun %s &> %s'%(exe, outfn)
-    elif self.nn*self.np > 1:
-      exeline = 'mpirun -n %d %s &> %s'%(self.nn*self.np, exe, outfn)
-    else:
-      exeline = '%s &> %s'%(exe, outfn)
-    commands = header + ['cd %s'%loc] + prep_commands + [exeline] + final_commands
-    qsubstr = '\n'.join(commands)
-
-    with open('qsub.in','w') as qsin:
-      qsin.write(qsubstr)
-    result = sub.check_output("qsub %s"%(loc+"/qsub.in"),shell=True)
-    qid = result.split()[0]
-    print "Submitted as %s"%qid
+    qid = self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
     return qid
 
 class LocalTaubPropertiesSubmitter(LocalTaubSubmitter):
@@ -88,12 +104,12 @@ class LocalTaubPropertiesSubmitter(LocalTaubSubmitter):
     
     Should not interact with user, and should receive only information specific
     to instance of a job run."""
-    exe = "/home/busemey2/bin/properties < %s"%inpfn
-    prep_commands = ["module load openmpi/1.4-gcc+ifort"]
+    exe = BIN+"properties < %s"%inpfn
+    prep_commands = []
     final_commands = []
 
     if self.nn != 1 or self.np != 1:
-      print "Currently refusing to run properties in parallel!"
+      print("Refusing to run properties in parallel!")
       self.nn = 1
       self.np = 1
 
@@ -102,32 +118,7 @@ class LocalTaubPropertiesSubmitter(LocalTaubSubmitter):
     if loc == "":
       loc = os.getcwd()
 
-    header = []
-    header.append('#!/bin/bash')
-    if self.np=='allprocs': 
-      header.append('#PBS -l nodes=%d,flags=allprocs'%self.nn)
-    else:                  
-      header.append('#PBS -l nodes=%d:ppn=%d'%(self.nn,self.np))
-    header.append('#PBS -q %s'%self.queue)
-    header.append('#PBS -l walltime=%s'%self.time)
-    header.append('#PBS -j oe')
-    header.append('#PBS -m n')
-    header.append('#PBS -N %s'%jobname)
-    header.append('#PBS -o {0}'.format(loc+'/qsub.out'))
-    #if self.np=='allprocs':
-    #  exeline = 'mpirun %s &> %s'%(exe, outfn)
-    #elif self.nn*self.np > 1:
-    #  exeline = 'mpirun -n %d %s &> %s'%(self.nn*self.np, exe, outfn)
-    #else:
-    exeline = '%s &> %s'%(exe, outfn)
-    commands = header + ['cd %s'%loc] + prep_commands + [exeline] + final_commands
-    qsubstr = '\n'.join(commands)
-
-    with open('qsub.in','w') as qsin:
-      qsin.write(qsubstr)
-    result = sub.check_output("qsub %s"%(loc+"/qsub.in"),shell=True)
-    qid = result.split()[0]
-    print "Submitted as %s"%qid
+    qid = self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
     return qid
 
 class LocalTaubQwalkSubmitter(LocalTaubSubmitter):
@@ -138,8 +129,8 @@ class LocalTaubQwalkSubmitter(LocalTaubSubmitter):
     
     Should not interact with user, and should receive only information specific
     to instance of a job run."""
-    exe = "/home/busemey2/bin/qwalk %s"%inpfn
-    prep_commands = ["module load openmpi/1.4-gcc+ifort"]
+    exe = BIN+"qwalk %s"%inpfn
+    prep_commands=[]
     final_commands=[]
 
     if jobname == "":
@@ -147,32 +138,7 @@ class LocalTaubQwalkSubmitter(LocalTaubSubmitter):
     if loc == "":
       loc = os.getcwd()
 
-    header = []
-    header.append('#!/bin/bash')
-    if self.np=='allprocs': 
-      header.append('#PBS -l nodes=%d,flags=allprocs'%self.nn)
-    else:                  
-      header.append('#PBS -l nodes=%d:ppn=%d'%(self.nn,self.np))
-    header.append('#PBS -q %s'%self.queue)
-    header.append('#PBS -l walltime=%s'%self.time)
-    header.append('#PBS -j oe')
-    header.append('#PBS -m n')
-    header.append('#PBS -N %s'%jobname)
-    header.append('#PBS -o {0}'.format(loc+'/qsub.out'))
-    if self.np=='allprocs':
-      exeline = 'mpirun %s &> %s'%(exe, outfn)
-    elif self.nn*self.np > 1:
-      exeline = 'mpirun -n %d %s &> %s'%(self.nn*self.np, exe, outfn)
-    else:
-      exeline = '%s &> %s'%(exe, outfn)
-    commands = header + ['cd %s'%loc] + prep_commands + [exeline] + final_commands
-    qsubstr = '\n'.join(commands)
-
-    with open('qsub.in','w') as qsin:
-      qsin.write(qsubstr)
-    result = sub.check_output("qsub %s"%(loc+"/qsub.in"),shell=True)
-    qid = result.split()[0]
-    print "Submitted as %s"%qid
+    qid = self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
     return qid
 
 class LocalTaubBundleQwalkSubmitter(LocalTaubSubmitter):
@@ -183,7 +149,7 @@ class LocalTaubBundleQwalkSubmitter(LocalTaubSubmitter):
     
     Should not interact with user, and should receive only information specific
     to instance of a job run."""
-    exe = " ".join(["/home/brian/bin/qwalk"]+inpfns)
+    exe = " ".join([BIN+"qwalk"]+inpfns)
     prep_commands=[]
     final_commands=[]
 
@@ -192,35 +158,5 @@ class LocalTaubBundleQwalkSubmitter(LocalTaubSubmitter):
     if loc == "":
       loc = os.getcwd()
 
-    header = []
-    header.append('#!/bin/bash')
-    if self.np=='allprocs': 
-      header.append('#PBS -l nodes=%d,flags=allprocs'%self.nn)
-    else:                  
-      header.append('#PBS -l nodes=%d:ppn=%d'%(self.nn,self.np))
-    header.append('#PBS -q %s'%self.queue)
-    header.append('#PBS -l walltime=%s'%self.time)
-    header.append('#PBS -j oe')
-    header.append('#PBS -m n')
-    header.append('#PBS -N %s'%jobname)
-    header.append('#PBS -o {0}'.format(loc+'/qsub.out'))
-    if self.np=='allprocs':
-      exeline = 'mpirun %s &> %s'%(exe, outfn)
-    elif self.nn*self.np > 1:
-      exeline = 'mpirun -n %d %s &> %s'%(self.nn*self.np, exe, outfn)
-    else:
-      exeline = '%s &> %s'%(exe, outfn)
-    commands = header + ['cd %s'%loc] + prep_commands + [exeline] + final_commands
-    qsubstr = '\n'.join(commands)
-
-    with open('qsub.in','w') as qsin:
-      qsin.write(qsubstr)
-    result = sub.check_output("qsub %s"%(loc+"/qsub.in"),shell=True)
-    qid = result.split()[0]
-    print "Submitted as %s"%qid
+    qid = self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
     return qid
-
-class LocalNullSubmitter(LocalTaubSubmitter):
-  """NullSubmitter will not submit any jobs to the queue."""
-  def _submit_job(self,inpfn,outfn="stdout",jobname="",loc=""):
-    return None
