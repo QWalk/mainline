@@ -41,6 +41,7 @@ def default_job_record(filename):
   # e.g. job_record['dft']['restart_from'] = ../successful_run/fort.9
   job_record['dft']['restart_from']=None
   job_record['dft']['smear']=None
+  job_record['dft']['retry_mode']='conservative' # See TODO:See what?
 
   #QMC-specific options
   job_record['qmc']['dmc']={}
