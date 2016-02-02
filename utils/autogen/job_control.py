@@ -72,74 +72,9 @@ def default_job_record(filename):
   job_record['control']['queue_id']=[None,None]
   return job_record
 
-def diagnose(record, element, mode="conservative"):
+def execute(record, element_list):
   """
-  Helper function for execute(...) that attempts to interpret the element status,
-  according to the mode.
-  Modes toward the top use more computer time, but are potentially frivolous.
-
-  Modes:
-  "stubborn"
-    CRYSTAL runs resume if there's a chance that the job will eventually succeed.
-    Monte Carlo reduce errorbars if necessary to meet accuracy goal.
-  "optimistic"
-    CRYSTAL runs resume if job was prematurely killed.
-    Monte Carlo reduce errorbars if necessary to meet accuracy goal.
-  "conservative"
-    CRYSTAL runs always fail out unless successful. 
-    Monte Carlo reduce errorbars if necessary to meet accuracy goal.
-  "unforgiving"
-    All jobs fail unless successful on first try.
-
-  Returns {no_output / running / ok / resume / failed}
-  """
-  status = element.check_status(record)
-  print(element._name_,"status",status)
-  if status in ["no_output","running","ok"]:
-    return status
-
-  if mode == "stubborn":
-    if element._name_ == "RunCrystal":
-      if status in ['too_many_cycles','not_finished']:
-        return "resume"
-    elif element._name_ in ["QWalkVarianceOptimize",
-                            "QWalkEnergyOptimize",
-                            "QWalkRunDMC"]:
-      if status == "not_finished":
-        return "resume"
-    else:
-      return "failed"
-  elif mode == "optimistic":
-    if element._name_ == "RunCrystal":
-      if status in ['not_finished']:
-        return "resume"
-    elif element._name_ in ["QWalkVarianceOptimize",
-                            "QWalkEnergyOptimize",
-                            "QWalkRunDMC"]:
-      if status == "not_finished":
-        return "resume"
-    else:
-      return "failed"
-  elif mode == "conservative":
-    if element._name_ in ["QWalkVarianceOptimize",
-                          "QWalkEnergyOptimize",
-                          "QWalkRunDMC"]:
-      if status == "not_finished":
-        return "resume"
-    else:
-      return "failed"
-  elif mode == "unforgiving":
-    return "failed"
-  else:
-    print("Mode not recognized, falling back on 'unforgiving'.")
-    return "failed"
-
-def execute(record, element_list, mode="conservative"):
-  """
-  Go through list of elements and diagnose the job.
-  If not started, run job.
-  Depending on mode, will call element.resume() on finding certain statuses.
-  See diagnose(...) for details on mode.
+  Run element_list tasks on this job record
   """
   currwd=os.getcwd()
   d=str(record['control']['id'])
@@ -159,14 +94,13 @@ def execute(record, element_list, mode="conservative"):
   print("#######################ID",record['control']['id'])
 
   for element in element_list:
-    #status=element.check_status(record)
-    status=diagnose(record,element,mode)
-    print("Diagnosis:",status)
-    if status=='no_output':
+    status=element.check_status(record)
+    print(element._name_,"status",status)
+    if status=='not_started':
       status=element.run(record)
       print(element._name_,"status",status)
-    if status=='resume':
-      status=element.resume(record)
+    if status=='not_finished':
+      status=element.retry(record)
       print(element._name_,"status",status)
     if status != 'ok':
       break
@@ -199,66 +133,66 @@ def restart_job(jobname):
 
 # Currently only defined for CRYSTAL runs.
 # This will be moved to RunCrystal after our bigger merge.
-def check_resume(jobname,qchecker,reasonable_lastSCF=50.0):
+def check_continue(jobname,qchecker,reasonable_lastSCF=50.0):
   """
   Look at CRYSTAL output, and report results.
 
   Current return values:
   no_record, running, no_output, success, too_many_cycles, finished (fall-back),
-  scf_fail, not_enough_decrease, divergence, resume
+  scf_fail, not_enough_decrease, divergence, continue
 
-  "resume" suggests the calculation should call resume_job(), and is only
+  "continue" suggests the calculation should call continue_job(), and is only
   returned when no other condition is found.
   """
   try:
     jobrecord = json.load(open(jobname+"/record.json",'r'))
   except IOError:
-    print("JOB CONTROL: Shouldn't resume %s has no record."%jobname)
+    print("JOB CONTROL: Shouldn't continue %s has no record."%jobname)
     return "no_record"
   qstatus = qchecker.status(jobrecord)
   if qstatus == 'running': 
-    print("JOB CONTROL: Shouldn't resume %s because still running"%jobname)
+    print("JOB CONTROL: Shouldn't continue %s because still running"%jobname)
     return "running"
   try:
     outf = open(jobname+"/autogen.d12.o",'r')
   except IOError:
-    print("JOB CONTROL: Can't resume %s because no output"%jobname)
+    print("JOB CONTROL: Can't continue %s because no output"%jobname)
     return "no_output"
   outlines = outf.read().split('\n')
   reslines = [line for line in outlines if "ENDED" in line]
   if len(reslines) > 0:
     if "CONVERGENCE" in reslines[0]:
-      print("JOB CONTROL: Shouldn't resume %s because successful."%jobname)
+      print("JOB CONTROL: Shouldn't continue %s because successful."%jobname)
       return "success"
     elif "TOO MANY CYCLES" in reslines[0]:
-      print("JOB CONTROL: check_resume found %s has 'too many cycles'."%jobname)
+      print("JOB CONTROL: check_continue found %s has 'too many cycles'."%jobname)
       return "too_many_cycles"
     else: # What else can happen?
       return "finished"
   detots = [float(line.split()[5]) for line in outlines if "DETOT" in line]
   if len(detots) == 0:
-    print("JOB CONTROL: Shouldn't resume %s because no SCF last time."%jobname)
+    print("JOB CONTROL: Shouldn't continue %s because no SCF last time."%jobname)
     return "scf_fail"
   detots_net = sum(detots[1:])
   if detots_net > reasonable_lastSCF:
-    print("JOB CONTROL: Shouldn't resume %s because not enough decrease (%.2f>%.2f)."%\
+    print("JOB CONTROL: Shouldn't continue %s because not enough decrease (%.2f>%.2f)."%\
         (jobname,detots_net,reasonable_lastSCF))
     return "not_enough_decrease"
   etots = [float(line.split()[3]) for line in outlines if "DETOT" in line]
   if etots[-1] > 0:
     # This case probably won't happen if this works as expected.
-    print("JOB CONTROL: Shouldn't resume %s because divergence (%.2f)."%\
+    print("JOB CONTROL: Shouldn't continue %s because divergence (%.2f)."%\
         (jobname,etots[-1]))
     return "divergence"
-  print("JOB CONTROL: Should resume %s."%jobname)
-  return "resume"
+  print("JOB CONTROL: Should continue %s."%jobname)
+  return "continue"
 
 # Currently only defined for CRYSTAL runs. Returns name of restart file.
 # This will be moved to RunCrystal after our bigger merge.
-# TODO: Add max_resumes option.
+# TODO: Add max_continues option.
 # TODO: The stdout of this is off because the line between jobs is drawn between
 #       this output and the execute() output.
-def resume_job(jobname):
+def continue_job(jobname):
   """ Continue a job that ran out of time."""
   jobrecord = json.load(open(jobname+"/record.json",'r'))
   trynum = 0
