@@ -41,7 +41,7 @@ def default_job_record(filename):
   # e.g. job_record['dft']['restart_from'] = ../successful_run/fort.9
   job_record['dft']['restart_from']=None
   job_record['dft']['smear']=None
-  job_record['dft']['retry_mode']='conservative' # See TODO:See what?
+  job_record['dft']['resume_mode']='conservative' # See TODO:See what?
 
   #QMC-specific options
   job_record['qmc']['dmc']={}
@@ -101,7 +101,7 @@ def execute(record, element_list):
       status=element.run(record)
       print(element._name_,"status",status)
     if status=='not_finished':
-      status=element.retry(record)
+      status=element.resume(record)
       print(element._name_,"status",status)
     if status != 'ok':
       break

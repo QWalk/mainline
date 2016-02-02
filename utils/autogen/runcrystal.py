@@ -37,18 +37,18 @@ class RunCrystal:
   def check_outputfile(self,outfilename,acceptable_scf=0.0):
     """ Check output file. 
     Current return values:
-    no_record, no_output, success, too_many_cycles, finished (fall-back),
+    no_record, not_started, ok, too_many_cycles, finished (fall-back),
     scf_fail, not_enough_decrease, divergence, not_finished
     """
     try:
       outf = open("autogen.d12.o",'r')
     except IOError:
-      return "no_output"
+      return "not_started"
     outlines = outf.read().split('\n')
     reslines = [line for line in outlines if "ENDED" in line]
     if len(reslines) > 0:
       if "CONVERGENCE" in reslines[0]:
-        return "success"
+        return "ok"
       elif "TOO MANY CYCLES" in reslines[0]:
         return "too_many_cycles"
       else: # What else can happen?
@@ -64,31 +64,60 @@ class RunCrystal:
       return "divergence"
     return "not_finished"
 
+  # Diagnose routines basically decide 'not_finished' or 'failed'
+  def stubborn_diagnose(self,status):
+    if status in ['too_many_cycles','not_finished']:
+      return 'not_finished'
+    else:
+      return 'failed'
+
+  def optimistic_diagnose(self,status):
+    if status == 'not_finished':
+      return 'not_finished'
+    else:
+      return 'failed'
+
+  def conservative_diagnose(self,status):
+    return 'failed'
+
   def check_status(self,job_record):
     """ Decide status of job (in queue or otherwise). """
     outfilename="autogen.d12.o"
+    diagnose_options = {
+        'stubborn':self.stubborn_diagnose,
+        'optimistic':self.optimistic_diagnose,
+        'conservative':self.conservative_diagnose
+      }
+    if job_record['dft']['resume_mode'] not in diagnose_options.keys():
+      print("RunCrystal: Diagnose option not recognized: falling back on 'conservative'")
+      diagnose = diagnose_options['conservative']
+    else:
+      diagnose = diagnose_options[job_record['dft']['resume_mode']]
 
     status=self.check_outputfile(outfilename)
-    if status=='success':
-      return 'ok'
-    #if status=='failed':
-    #  return status
+    if status in ['ok','failed']:
+      return status
 
     self._submitter.transfer_output(job_record, ['autogen.d12.o', 'fort.9'])
     status=self._submitter.status(job_record)
+    print("Submitter:",status)
     if status=='running':
       return status
     status=self.check_outputfile(outfilename)
-    return status
-    #if status=='ok':
-    #  return status
-    #elif status=='not_finished' or status=='failed':
-    #  return status
-  
-    #if not os.path.isfile(outfilename):
-    #  return 'not_started'
+    if status == 'not_started':
+      return status
+    print("Diagnose before:",status)
+    status=diagnose(status)
+    print("Diagnose after:",status)
+    if status in ['ok','not_finished','failed']:
+      return status
+    # This case shouldn't happen:
+    if not os.path.isfile(outfilename):
+      print("Turns out this case happens!")
+      return 'not_started'
 
-    #return 'failed'
+    return 'failed'
+
 
   def resume(self,job_record,maxresume=5):
     """ Continue a crystal run using GUESSP."""
@@ -150,7 +179,7 @@ class RunProperties:
           return 'ok'
       return 'running'
     else:
-      return 'no_output'
+      return 'not_started'
 
   def check_status(self,job_record):
     outfilename="prop.in.o"
@@ -171,7 +200,7 @@ class RunProperties:
         return status
     
     if not os.path.isfile(outfilename):
-      return 'no_output'
+      return 'not_started'
 
     return 'failed'
       

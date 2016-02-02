@@ -334,7 +334,7 @@ class Cif2Crystal:
 
   def check_status(self,job_record):
     if not os.path.isfile("autogen.d12"):
-      return 'no_output'
+      return 'not_started'
     status = self.run(job_record,outfn="new.autogen.d12")
     new = open("new.autogen.d12",'r').read().split()
     old = open("autogen.d12",'r').read().split()
