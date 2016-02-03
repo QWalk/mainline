@@ -100,7 +100,6 @@ class RunCrystal:
 
     self._submitter.transfer_output(job_record, ['autogen.d12.o', 'fort.9'])
     status=self._submitter.status(job_record)
-    print("Submitter:",status)
     if status=='running':
       return status
     status=self.check_outputfile(outfilename)
