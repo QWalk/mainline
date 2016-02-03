@@ -41,7 +41,11 @@ def default_job_record(filename):
   # e.g. job_record['dft']['restart_from'] = ../successful_run/fort.9
   job_record['dft']['restart_from']=None
   job_record['dft']['smear']=None
-  job_record['dft']['resume_mode']='conservative' # See TODO:See what?
+  # Values:
+  # 'stubborn'     : resume if job is killed or ran our of SCF steps.
+  # 'optimistic'   : resume if job is killed.
+  # 'conservative' : never resume job.
+  job_record['dft']['resume_mode']='conservative'
 
   #QMC-specific options
   job_record['qmc']['dmc']={}
