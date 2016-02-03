@@ -103,7 +103,7 @@ wf2 { include qw.jast2 }
       disps = [float(l.split()[4]) for l in displines]
       if len(disps) > 1:
         dispdiff = abs(disps[-1] - init_disps[-1])/init_disps[-1]
-        if (dispdiff < reltol) and disps[-1] < abstol:
+        if (dispdiff < reltol) and (disps[-1] < abstol):
           return 'ok'
         else:
           print("Variance optimization dispersion not converged:")

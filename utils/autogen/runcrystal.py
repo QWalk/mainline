@@ -123,16 +123,16 @@ class RunCrystal:
     """ Continue a crystal run using GUESSP."""
     jobname = job_record['control']['id']
     trynum = 0
-    while os.path.isfile(jobname+"/"+str(trynum)+".autogen.d12.o"):
+    while os.path.isfile(str(trynum)+".autogen.d12.o"):
       trynum += 1
       if trynum > maxresume:
         print("{} not continuing because max reached ({}>{}).".format(
           jobname,trynum,maxresume))
     for filename in ["autogen.d12","autogen.d12.o"]:
-      shutil.move(jobname+"/"+filename,jobname+"/"+str(trynum)+"."+filename)
+      shutil.move(filename,str(trynum)+"."+filename)
     for filename in ["fort.79"]:
-      shutil.copy(jobname+"/"+filename,jobname+"/"+str(trynum)+"."+filename)
-    return jobname+"/"+str(trynum)+".fort.79"
+      shutil.copy(filename,str(trynum)+"."+filename)
+    return self.run(job_record)
 
 ####################################################
 
