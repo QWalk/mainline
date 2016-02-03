@@ -106,9 +106,7 @@ class RunCrystal:
     status=self.check_outputfile(outfilename)
     if status == 'not_started':
       return status
-    print("Diagnose before:",status)
     status=diagnose(status)
-    print("Diagnose after:",status)
     if status in ['ok','not_finished','failed']:
       return status
     # This case shouldn't happen:
