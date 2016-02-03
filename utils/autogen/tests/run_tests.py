@@ -53,7 +53,11 @@ job_record['control']['id']=name
 jc.execute(job_record,element_list)
 count+=1
 
-# Restart DFT and change something.
+# Restart DFT and change something. Also check redefinition of element_list
+element_list[1] = runcrystal.RunCrystal(
+  submitter=taub.LocalTaubCrystalSubmitter(
+    nn=1,time="0:20:00",queue="secondary"
+  ))
 if os.path.getsize("%s/fort.9"%(idbase+"simple")) > 0:
   name = idbase+"edit"
   job_record = copy.deepcopy(default_job)
@@ -62,6 +66,9 @@ if os.path.getsize("%s/fort.9"%(idbase+"simple")) > 0:
   job_record['control']['id']=name
   jc.execute(job_record,element_list)
   count+=1
+element_list[1] = runcrystal.RunCrystal(
+  submitter=taub.LocalTaubCrystalSubmitter(
+    nn=1,time="0:05:00",queue="test"))
 
 # Too-many cycles case.
 name = idbase+"toomany"
