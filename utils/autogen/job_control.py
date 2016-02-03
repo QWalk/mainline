@@ -42,7 +42,7 @@ def default_job_record(filename):
   job_record['dft']['restart_from']=None
   job_record['dft']['smear']=None
   # Values:
-  # 'stubborn'     : resume if job is killed or ran our of SCF steps.
+  # 'stubborn'     : resume if job is killed or ran out of SCF steps.
   # 'optimistic'   : resume if job is killed.
   # 'conservative' : never resume job.
   job_record['dft']['resume_mode']='conservative'
