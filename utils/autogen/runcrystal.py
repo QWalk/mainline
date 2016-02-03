@@ -126,8 +126,9 @@ class RunCrystal:
     while os.path.isfile(str(trynum)+".autogen.d12.o"):
       trynum += 1
       if trynum > maxresume:
-        print("{} not continuing because max reached ({}>{}).".format(
-          jobname,trynum,maxresume))
+        print("Not resuming because resume limit reached ({}>{}).".format(
+          trynum,maxresume))
+        return 'failed'
     for filename in ["autogen.d12","autogen.d12.o"]:
       shutil.move(filename,str(trynum)+"."+filename)
     for filename in ["fort.79"]:

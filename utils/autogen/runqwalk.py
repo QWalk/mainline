@@ -135,13 +135,17 @@ wf2 { include qw.jast2 }
 
     return 'not_started'
       
-  def resume(self,job_record):
+  def resume(self,job_record,maxresume=5):
     if not os.path.isfile("qw_0.opt.wfout"):
       return self.run(job_record)
     else: # Save previous output.
       trynum=0
       while os.path.isfile("%d.qw_0.opt.o"%trynum):
         trynum += 1
+        if trynum > maxresume:
+          print("Not resuming because resume limit reached ({}>{}).".format(
+            trynum,maxresume))
+          return 'failed'
       shutil.move("qw_0.opt.o","%d.qw_0.opt.o"%trynum)
 
     nit=job_record['qmc']['variance_optimize']['niterations']
