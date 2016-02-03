@@ -90,7 +90,7 @@ wf2 { include qw.jast2 }
     return 'running'
 
 
-  def check_outputfile(self,outfilename,nruns,reltol=0.1,abstol=10.):
+  def check_outputfile(self,outfilename,nruns,reltol=0.1,abstol=1e3):
     status = 'unknown'
     if os.path.isfile(outfilename):
       outf = open(outfilename,'r')
@@ -118,14 +118,16 @@ wf2 { include qw.jast2 }
   def check_status(self,job_record):
     outfilename="qw_0.opt.o"
     nruns=job_record['qmc']['variance_optimize']['nruns']
+    reltol = job_record['qmc']['variance_optimize']['reltol']
+    abstol = job_record['qmc']['variance_optimize']['abstol']
       
-    if self.check_outputfile(outfilename,nruns)=='ok':
+    if self.check_outputfile(outfilename,nruns,reltol,abstol)=='ok':
       return 'ok'
     status=self._submitter.status(job_record)
     self._submitter.transfer_output(job_record, ['qw_0.opt.o', 'qw_0.opt.wfout'])  
     if status=='running':
       return status
-    status = self.check_outputfile(outfilename,nruns)
+    status = self.check_outputfile(outfilename,nruns,reltol,abstol)
     if status == 'ok':
       return 'ok'
     if status == 'not_finished':
