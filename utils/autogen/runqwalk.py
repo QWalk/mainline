@@ -304,6 +304,9 @@ class QWalkRunDMC:
     #        basename+".dmc.stdout")
     #      job_record['control'][self._name_+'_jobid'].append(job_id)
 
+    calc_sk=False
+    if 'cif' in job_record.keys():
+      calc_sk=True
     # Make and submit the runs: bundle all jobs.
     infiles = []
     inpfns = []
@@ -313,7 +316,7 @@ class QWalkRunDMC:
           kname="qw_%i"%k
           basename="qwt%g%s_%i"%(t,loc,k)
           f=open(basename+".dmc",'w')
-          f.write(self.dmcinput(t,loc,k,qmc_options['dmc']['nblock'],qmc_options['dmc']['save_trace']))
+          f.write(self.dmcinput(t,loc,k,qmc_options['dmc']['nblock'],qmc_options['dmc']['save_trace'],calc_sk))
           f.close()
           infiles.extend([basename+".dmc","opt.jast",kname+'.sys',kname+'.slater',
               kname+'.orb','qw.basis'])
@@ -348,14 +351,15 @@ class QWalkRunDMC:
 #}
 #"""%(timestep,nblock,localization,kpt_num,kpt_num)
 
-  def dmcinput(self,timestep,localization,kpt_num=0,nblock=16,save_trace=False):
+  def dmcinput(self,timestep,localization,kpt_num=0,nblock=16,save_trace=False,sk=False):
     outlist = [
         "method { DMC ",
         "timestep %g"%timestep,
         "nblock %i"%nblock,
-        localization,
-        "average { SK }"
+        localization
       ]
+    if sk:
+      outlist.append("average { SK } ")
     if save_trace:
       outlist += ["save_trace qw_%i.dmc.trace"%kpt_num]
     outlist += [
