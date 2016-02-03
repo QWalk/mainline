@@ -6,26 +6,26 @@ import job_control as jc
 import os
 import json
 
-import veritas
+import taub
 
 element_list=[]
 element_list.append(cif2crystal.Cif2Crystal())
 element_list.append(runcrystal.RunCrystal(
-  submitter=veritas.LocalVeritasCrystalSubmitter(
-    nn=1,np=8,time="0:20:00",queue="batch")))
+  submitter=taub.LocalTaubCrystalSubmitter(
+    nn=1,time="0:05:00",queue="test")))
 element_list.append(runcrystal.RunProperties(
-  submitter=veritas.LocalVeritasPropertiesSubmitter(
-    nn=1,np=1,time="1:00:00",queue="batch")))
+  submitter=taub.LocalTaubPropertiesSubmitter(
+    nn=1,np=1,time="0:05:00",queue="test")))
 element_list.append(runqwalk.Crystal2QWalk())
 element_list.append(runqwalk.QWalkVarianceOptimize(
-  submitter=veritas.LocalVeritasQwalkSubmitter(
-    nn=1,np=8,time="0:10:00",queue="batch")))
+  submitter=taub.LocalTaubQwalkSubmitter(
+    nn=1,time="0:05:00",queue="test")))
 #element_list.append(runqwalk.QWalkEnergyOptimize(
-#  submitter=veritas.LocalVeritasQwalkSubmitter(
-#    nn=1,np=8,time="0:10:00",queue="batch")))
+#  submitter=taub.LocalTaubQwalkSubmitter(
+#    nn=1time="0:10:00",queue="test")))
 element_list.append(runqwalk.QWalkRunDMC(
-  submitter=veritas.LocalVeritasBundleQwalkSubmitter(
-    nn=1,np=8,time="0:10:00",queue="batch")))
+  submitter=taub.LocalTaubBundleQwalkSubmitter(
+    nn=1,time="0:10:00",queue="secondary")))
 
 default_job=jc.default_job_record("si.cif")
 default_job['dft']['kmesh'] = [2,2,2]
@@ -44,7 +44,6 @@ default_job['qmc']['dmc']['target_error']=0.1
 default_job['total_spin'] = 0
 idbase = "test_si_"
 
-# A demonstration of varying basis parameters.
 count=1
 
 # Simple run.
@@ -54,14 +53,15 @@ job_record['control']['id']=name
 jc.execute(job_record,element_list)
 count+=1
 
-# Restart and change something.
-name = idbase+"edit"
-job_record = copy.deepcopy(default_job)
-job_record['dft']['functional']['hybrid'] = 25
-job_record['dft']['restart_from'] = "../%s/fort.9"%(idbase+"simple")
-job_record['control']['id']=name
-jc.execute(job_record,element_list)
-count+=1
+# Restart DFT and change something.
+if os.path.getsize("%s/fort.9"%(idbase+"simple")) > 0:
+  name = idbase+"edit"
+  job_record = copy.deepcopy(default_job)
+  job_record['dft']['functional']['hybrid'] = 25
+  job_record['dft']['restart_from'] = "../%s/fort.9"%(idbase+"simple")
+  job_record['control']['id']=name
+  jc.execute(job_record,element_list)
+  count+=1
 
 # Too-many cycles case.
 name = idbase+"toomany"
@@ -83,8 +83,8 @@ count+=1
 
 # Reduce allowed run time.
 element_list[1] = runcrystal.RunCrystal(
-  submitter=veritas.LocalVeritasCrystalSubmitter(
-    nn=1,np=8,time="0:00:30",queue="batch"
+  submitter=taub.LocalTaubCrystalSubmitter(
+    nn=1,time="0:00:30",queue="test"
   ))
 
 # Demonstrate dft killed-job error correction.
@@ -103,14 +103,14 @@ job_record['dft']['edifftol'] = 14
 jc.execute(job_record,element_list)
 count+=1
 
-# Reduce allowed run time.
+# Reset allowed run time.
 element_list[1] = runcrystal.RunCrystal(
-  submitter=veritas.LocalVeritasCrystalSubmitter(
-    nn=1,np=8,time="0:20:00",queue="batch"
+  submitter=taub.LocalTaubCrystalSubmitter(
+    nn=1,time="0:05:00",queue="test"
   ))
 
-# Variance optimize takes two tries.
-name = idbase+"varx2"
+# Variance optimize takes many tries.
+name = idbase+"retryvar"
 job_record = copy.deepcopy(default_job)
 job_record['control']['id']=name
 job_record['qmc']['variance_optimize']['reltol']=0.001
