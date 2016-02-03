@@ -110,7 +110,7 @@ class RunCrystal:
       return status
     # This case shouldn't happen:
     if not os.path.isfile(outfilename):
-      print("Turns out this case happens!")
+      print("Warning: author of this code didn't expect this to occur!")
       return 'not_started'
 
     return 'failed'
