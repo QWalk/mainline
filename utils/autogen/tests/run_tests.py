@@ -25,7 +25,7 @@ element_list.append(runqwalk.QWalkVarianceOptimize(
 #    nn=1time="0:10:00",queue="test")))
 element_list.append(runqwalk.QWalkRunDMC(
   submitter=taub.LocalTaubBundleQwalkSubmitter(
-    nn=1,time="0:10:00",queue="secondary")))
+    nn=2,time="0:10:00",queue="secondary")))
 
 default_job=jc.default_job_record("si.cif")
 default_job['dft']['kmesh'] = [2,2,2]
