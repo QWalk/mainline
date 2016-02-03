@@ -59,6 +59,8 @@ def default_job_record(filename):
   job_record['qmc']['variance_optimize']={}
   job_record['qmc']['variance_optimize']['niterations']=10
   job_record['qmc']['variance_optimize']['nruns']=3
+  job_record['qmc']['variance_optimize']['reltol']=0.1
+  job_record['qmc']['variance_optimize']['abstol']=10. #TODO better default?
 
 
   job_record['qmc']['energy_optimize']={}
