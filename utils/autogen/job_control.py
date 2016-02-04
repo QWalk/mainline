@@ -41,6 +41,11 @@ def default_job_record(filename):
   # e.g. job_record['dft']['restart_from'] = ../successful_run/fort.9
   job_record['dft']['restart_from']=None
   job_record['dft']['smear']=None
+  # Values:
+  # 'stubborn'     : resume if job is killed or ran out of SCF steps.
+  # 'optimistic'   : resume if job is killed.
+  # 'conservative' : never resume job.
+  job_record['dft']['resume_mode']='conservative'
 
   #QMC-specific options
   job_record['qmc']['dmc']={}
@@ -58,6 +63,8 @@ def default_job_record(filename):
   job_record['qmc']['variance_optimize']={}
   job_record['qmc']['variance_optimize']['niterations']=10
   job_record['qmc']['variance_optimize']['nruns']=3
+  job_record['qmc']['variance_optimize']['reltol']=0.1
+  job_record['qmc']['variance_optimize']['abstol']=1e3 # TODO better default.
 
 
   job_record['qmc']['energy_optimize']={}
@@ -100,7 +107,7 @@ def execute(record, element_list):
       status=element.run(record)
       print(element._name_,"status",status)
     if status=='not_finished':
-      status=element.retry(record)
+      status=element.resume(record)
       print(element._name_,"status",status)
     if status != 'ok':
       break

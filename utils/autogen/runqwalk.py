@@ -2,6 +2,7 @@ from __future__ import print_function
 import os
 import glob
 import re
+import shutil
 ####################################################
 
 def crystal_patch_output(propname,outname,patchname):
@@ -89,15 +90,20 @@ wf2 { include qw.jast2 }
     return 'running'
 
 
-  def check_outputfile(self,outfilename,reltol=0.1,abstol=10.):
+  def check_outputfile(self,outfilename,nruns,reltol=0.1,abstol=1e3):
     status = 'unknown'
     if os.path.isfile(outfilename):
       outf = open(outfilename,'r')
       outlines = outf.read().split('\n')
-      disps = [float(l.split()[4]) for l in outlines if "dispersion" in l]
+      finlines = [l for l in outlines if "Optimization finished" in l]
+      if len(finlines) < nruns:
+        return 'failed' # This function unstable if job was killed.
+      displines = [l for l in outlines if "dispersion" in l]
+      init_disps = [float(l.split()[4]) for l in displines if "iteration # 1 " in l]
+      disps = [float(l.split()[4]) for l in displines]
       if len(disps) > 1:
-        dispdiff = abs(disps[-1] - disps[0])/disps[-1]
-        if (dispdiff < reltol) and disps[-1] < abstol:
+        dispdiff = abs(disps[-1] - init_disps[-1])/init_disps[-1]
+        if (dispdiff < reltol) and (disps[-1] < abstol):
           return 'ok'
         else:
           print("Variance optimization dispersion not converged:")
@@ -108,25 +114,20 @@ wf2 { include qw.jast2 }
         return 'failed'
     else:
       return 'not_started'
-  #def check_outputfile(self,outfilename):
-  #  if os.path.isfile(outfilename):
-  #    f=open(outfilename,'r')
-  #    for line in f:
-  #      if 'Wall' in line:
-  #        return 'ok'
-  #    return 'running'
-
 
   def check_status(self,job_record):
     outfilename="qw_0.opt.o"
+    nruns=job_record['qmc']['variance_optimize']['nruns']
+    reltol = job_record['qmc']['variance_optimize']['reltol']
+    abstol = job_record['qmc']['variance_optimize']['abstol']
       
-    if self.check_outputfile(outfilename)=='ok':
+    if self.check_outputfile(outfilename,nruns,reltol,abstol)=='ok':
       return 'ok'
     status=self._submitter.status(job_record)
     self._submitter.transfer_output(job_record, ['qw_0.opt.o', 'qw_0.opt.wfout'])  
     if status=='running':
       return status
-    status = self.check_outputfile(outfilename)
+    status = self.check_outputfile(outfilename,nruns,reltol,abstol)
     if status == 'ok':
       return 'ok'
     if status == 'not_finished':
@@ -134,12 +135,23 @@ wf2 { include qw.jast2 }
 
     return 'not_started'
       
-  def retry(self,job_record):
+  def resume(self,job_record,maxresume=5):
     if not os.path.isfile("qw_0.opt.wfout"):
       return self.run(job_record)
+    else: # Save previous output.
+      trynum=0
+      while os.path.isfile("%d.qw_0.opt.o"%trynum):
+        trynum += 1
+        if trynum > maxresume:
+          print("Not resuming because resume limit reached ({}>{}).".format(
+            trynum,maxresume))
+          return 'failed'
+      shutil.move("qw_0.opt.o","%d.qw_0.opt.o"%trynum)
 
-    inplines = [
-        "method { optimize }",
+    nit=job_record['qmc']['variance_optimize']['niterations']
+    nruns=job_record['qmc']['variance_optimize']['nruns']
+    inplines = ["method { optimize iterations %i } "%nit for i in range(nruns)]
+    inplines += [
         "include qw_0.sys",
         "trialfunc { include qw_0.opt.wfout }"
       ]
@@ -235,7 +247,7 @@ trialfunc { include qw_0.enopt.wfin }
     return 'not_started'
 
       
-  def retry(self,job_record):
+  def resume(self,job_record):
     return self.run(job_record,restart=True)
 
   def output(self,job_record):
@@ -299,6 +311,9 @@ class QWalkRunDMC:
     #        basename+".dmc.stdout")
     #      job_record['control'][self._name_+'_jobid'].append(job_id)
 
+    calc_sk=False
+    if 'cif' in job_record.keys():
+      calc_sk=True
     # Make and submit the runs: bundle all jobs.
     infiles = []
     inpfns = []
@@ -308,7 +323,7 @@ class QWalkRunDMC:
           kname="qw_%i"%k
           basename="qwt%g%s_%i"%(t,loc,k)
           f=open(basename+".dmc",'w')
-          f.write(self.dmcinput(t,loc,k,qmc_options['dmc']['nblock'],qmc_options['dmc']['save_trace']))
+          f.write(self.dmcinput(t,loc,k,qmc_options['dmc']['nblock'],qmc_options['dmc']['save_trace'],calc_sk))
           f.close()
           infiles.extend([basename+".dmc","opt.jast",kname+'.sys',kname+'.slater',
               kname+'.orb','qw.basis'])
@@ -343,14 +358,15 @@ class QWalkRunDMC:
 #}
 #"""%(timestep,nblock,localization,kpt_num,kpt_num)
 
-  def dmcinput(self,timestep,localization,kpt_num=0,nblock=16,save_trace=False):
+  def dmcinput(self,timestep,localization,kpt_num=0,nblock=16,save_trace=False,sk=False):
     outlist = [
         "method { DMC ",
         "timestep %g"%timestep,
         "nblock %i"%nblock,
-        localization,
-        "average { SK }"
+        localization
       ]
+    if sk:
+      outlist.append("average { SK } ")
     if save_trace:
       outlist += ["save_trace qw_%i.dmc.trace"%kpt_num]
     outlist += [
@@ -467,7 +483,7 @@ class QWalkRunDMC:
 #-----------------------------------------------
     
       
-  def retry(self,job_record):
+  def resume(self,job_record):
     return self.run(job_record,restart=True)
 #-----------------------------------------------
 
