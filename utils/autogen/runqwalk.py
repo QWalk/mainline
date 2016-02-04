@@ -90,7 +90,7 @@ wf2 { include qw.jast2 }
     return 'running'
 
 
-  def check_outputfile(self,outfilename,nruns,reltol=0.1,abstol=10.):
+  def check_outputfile(self,outfilename,nruns,reltol=0.1,abstol=1e3):
     status = 'unknown'
     if os.path.isfile(outfilename):
       outf = open(outfilename,'r')
@@ -103,7 +103,7 @@ wf2 { include qw.jast2 }
       disps = [float(l.split()[4]) for l in displines]
       if len(disps) > 1:
         dispdiff = abs(disps[-1] - init_disps[-1])/init_disps[-1]
-        if (dispdiff < reltol) and disps[-1] < abstol:
+        if (dispdiff < reltol) and (disps[-1] < abstol):
           return 'ok'
         else:
           print("Variance optimization dispersion not converged:")
@@ -118,14 +118,16 @@ wf2 { include qw.jast2 }
   def check_status(self,job_record):
     outfilename="qw_0.opt.o"
     nruns=job_record['qmc']['variance_optimize']['nruns']
+    reltol = job_record['qmc']['variance_optimize']['reltol']
+    abstol = job_record['qmc']['variance_optimize']['abstol']
       
-    if self.check_outputfile(outfilename,nruns)=='ok':
+    if self.check_outputfile(outfilename,nruns,reltol,abstol)=='ok':
       return 'ok'
     status=self._submitter.status(job_record)
     self._submitter.transfer_output(job_record, ['qw_0.opt.o', 'qw_0.opt.wfout'])  
     if status=='running':
       return status
-    status = self.check_outputfile(outfilename,nruns)
+    status = self.check_outputfile(outfilename,nruns,reltol,abstol)
     if status == 'ok':
       return 'ok'
     if status == 'not_finished':
@@ -133,13 +135,17 @@ wf2 { include qw.jast2 }
 
     return 'not_started'
       
-  def retry(self,job_record):
+  def resume(self,job_record,maxresume=5):
     if not os.path.isfile("qw_0.opt.wfout"):
       return self.run(job_record)
     else: # Save previous output.
       trynum=0
       while os.path.isfile("%d.qw_0.opt.o"%trynum):
         trynum += 1
+        if trynum > maxresume:
+          print("Not resuming because resume limit reached ({}>{}).".format(
+            trynum,maxresume))
+          return 'failed'
       shutil.move("qw_0.opt.o","%d.qw_0.opt.o"%trynum)
 
     nit=job_record['qmc']['variance_optimize']['niterations']
@@ -240,7 +246,7 @@ trialfunc { include qw_0.enopt.wfin }
     return self.check_outputfile(outfilename,
             threshold=job_record['qmc']['energy_optimize']['threshold'])
       
-  def retry(self,job_record):
+  def resume(self,job_record):
     return self.run(job_record,restart=True)
 
   def output(self,job_record):
@@ -476,7 +482,7 @@ class QWalkRunDMC:
 #-----------------------------------------------
     
       
-  def retry(self,job_record):
+  def resume(self,job_record):
     return self.run(job_record,restart=True)
 #-----------------------------------------------
 
