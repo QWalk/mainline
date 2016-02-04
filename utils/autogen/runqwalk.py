@@ -186,8 +186,8 @@ class QWalkEnergyOptimize:
     self._submitter=submitter
   
   def run(self,job_record,restart=False):
-    if not os.path.isfile("qw_0.opt.wfout"):
-      print("Could not find qw_0.opt.wfout")
+    if not os.path.isfile("qw_0.enopt.wfout"):
+      print("Could not find qw_0.enopt.wfout")
       return "failed"
     if restart:
       os.system("cp qw_0.enopt.wfout qw_0.enopt.wfin")
