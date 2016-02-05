@@ -1,0 +1,76 @@
+type: Entry
+name: RMC
+keyword: REPTATION
+is_a: Method
+title: Reptation Monte Carlo
+related: []
+description: > 
+  This is an implementation of the Reptation Monte Carlo method (Baroni
+  and Moroni,
+  <a href="http://dx.doi.org/10.1103/PhysRevLett.82.4745">Phys.
+  Rev. Lett. <b>82</b>, 4745 (1999)</a>).  There are quite a few
+  modifications to the algorithm as 
+  presented in the above paper.  Some are outlined in
+  Pierleoni and Ceperley,
+  [ChemPhysChem 6 1872 (2005)](http://dx.doi.org/10.1002/cphc.200400587), most
+  importantly the bounce algorithm.  RMC is conceptually similar to DMC,
+  in that we sample the distribution \( Psi_T e^{-H\tau} \Psi_T \),
+  with the projection operator interpreted as a random walk.  At each
+  end of the walk, we have sampled \( \Psi_T \Phi_0 \), the mixed
+  distribution.  In the center, we have \( \Phi_0^2 \), since on either
+  side there are projection operators.  DMC only moves forward, so the
+  center distribution is unavailable, except by forward walking, which
+  simulates the effect of projection operators.  In RMC, the random
+  variable is the path, which, for finite length, can be a probability
+  density.  Therefore, there's no branching and no population control
+  bias.  The biases (and speed) are controlled by the timestep(just like
+  DMC) and the length of the path.  The larger the timestep and shorter
+  the reptile, the more efficient and inaccurate the simulation.  For
+  chemical systems, I've found a good starting point is a reptile about
+  3 au long, and a timestep around .01 au, which corresponds to TIMESTEP
+  .01  and LENGTH 300.  Note that you have to scale the length with the
+  timestep to maintain total projection length.
+
+
+  RMC accumulates two estimators. label and label_cen.  label contains the 
+  mixed estimators, which are useful for the total energy and correlated
+  sampling energy differences.  
+  label_cen contains the pure estimator, which are useful for the local 
+  potential energy and polarization, as well as other properties that 
+  are specified with a DENSITY section(these automatically use the 
+  center estimator). 
+  
+required:
+  - keyword: TIMESTEP
+    type: float
+    description: > 
+      A measure of how large each move 
+      should be.  Adjust such that the acceptance ratio is about .99. Acceptance ratio
+      is just a general guide, however, and it's useful to do several time steps if you
+      need highly accurate results.
+  - keyword: NSTEP
+    type: Integer
+    description: > 
+      Number of average points to take in a block.
+  - keyword: NBLOCK
+    type: Integer
+    description: > 
+      Number of blocks to take
+  - keyword: LENGTH
+    type: Integer
+    description: > 
+      Number of points in the reptile.  Energy will be converged to LENGTH points, 
+      and all other quantities(density, potential, etc) will be converged to LENGTH/2 points.
+optional: 
+  - keyword: AVERAGE
+    type: section
+    default: empty
+    description: Section for an [Average generator](Average generator)
+  - keyword: SAVE_TRACE
+    type: string
+    default: none
+    description: Every block, save the current configurations and their weights (in binary). Note that since this is a binary file, you may need to use the utility swap\_endian (provided in utils) to change architectures.
+  - keyword: LABEL
+    type: string
+    default: dmc
+    description: Label in the .log file

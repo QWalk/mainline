@@ -186,10 +186,11 @@ class QWalkEnergyOptimize:
     self._submitter=submitter
   
   def run(self,job_record,restart=False):
-    if not os.path.isfile("qw_0.opt.wfout"):
-      print("Could not find qw_0.opt.wfout")
-      return "failed"
     if restart:
+      if not os.path.isfile("qw_0.enopt.wfout"):
+        print("Could not find qw_0.enopt.wfout")
+        return "failed"
+
       os.system("cp qw_0.enopt.wfout qw_0.enopt.wfin")
     else:
       os.system("sed s/OPTIMIZEBASIS//g qw_0.opt.wfout > qw_0.enopt.wfin")
@@ -231,20 +232,21 @@ trialfunc { include qw_0.enopt.wfin }
 
   def check_status(self,job_record):
     outfilename="qw_0.enopt.o"
-    self._submitter.transfer_output(job_record, [outfilename, 'qw_0.enopt.wfout'])
-      
-    status=self._submitter.status(job_record)
-    if status=='running':
-      return status
-
-    if self.check_outputfile(outfilename)=='ok':
+    thresh=job_record['qmc']['energy_optimize']['threshold']
+    if self.check_outputfile(outfilename,thresh)=='ok':
       return 'ok'
-    
     status=self._submitter.status(job_record)
+    self._submitter.transfer_output(job_record, ['qw_0.opt.o', 'qw_0.opt.wfout'])
     if status=='running':
       return status
-    return self.check_outputfile(outfilename,
-            threshold=job_record['qmc']['energy_optimize']['threshold'])
+    status = self.check_outputfile(outfilename,thresh)
+    if status == 'ok':
+      return 'ok'
+    if status == 'not_finished':
+      return 'not_finished'
+
+    return 'not_started'
+
       
   def resume(self,job_record):
     return self.run(job_record,restart=True)
