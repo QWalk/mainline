@@ -100,20 +100,17 @@ class RunCrystal:
 
     self._submitter.transfer_output(job_record, ['autogen.d12.o', 'fort.9'])
     status=self._submitter.status(job_record)
-    print("Submitter:",status)
     if status=='running':
       return status
     status=self.check_outputfile(outfilename)
     if status == 'not_started':
       return status
-    print("Diagnose before:",status)
     status=diagnose(status)
-    print("Diagnose after:",status)
     if status in ['ok','not_finished','failed']:
       return status
     # This case shouldn't happen:
     if not os.path.isfile(outfilename):
-      print("Turns out this case happens!")
+      print("Warning: author of this code didn't expect this to occur!")
       return 'not_started'
 
     return 'failed'
