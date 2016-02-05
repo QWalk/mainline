@@ -1,4 +1,6 @@
 from __future__ import print_function
+import sys
+sys.path.append("../")
 import cif2crystal
 import runcrystal
 import runqwalk
