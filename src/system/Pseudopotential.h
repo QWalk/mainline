@@ -196,35 +196,35 @@ public:
     \bief 
     This set of Get... functions are for EKT calculations, for getting value of some private numbers. 
    */
-  int GetNumL(int at) {
+  int getNumL(int at) {
     return numL(at); 
   }
 
-  doublevar GetCutoff(int at) {
+  doublevar getCutoff(int at) {
     return cutoff(at); 
   }
-  int GetDeterministic() {
+  int getDeterministic() {
     return deterministic; 
   }
   
-  int GetAIP(int at) {
+  int getAIP(int at) {
     return aip(at); 
   }
   
-  int GetIntegralWeight(int at, int i) {
+  int getIntegralWeight(int at, int i) {
     return integralweight(at, i); 
   }
 
-  doublevar GetIntegralPt(int at, int i, int d) 
+  doublevar getIntegralPt(int at, int i, int d)
   {
     return integralpt(at, i, d); 
   }
-  int GetMaxAIP() {
+  int getMaxAIP() {
     return maxaip; 
   }
 
 
-  void GetRadialOut(int at, int spin, Sample_point *sample, 
+  void getRadialOut(int at, int spin, Sample_point *sample,
 		    Array1 <doublevar> & r, Array1 <doublevar> & v_l) {
     getRadial(at, spin, sample, r, v_l);//This is completely the same with getRadial. we redefine this so as not to mix with the original private one.
   }

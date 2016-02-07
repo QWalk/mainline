@@ -113,7 +113,8 @@ void Average_ekt::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
      For our first testing case, we implemented the three matrix independently, but in principle they can be grouped 
      together to reduced the computation cost. 
      */
-
+  int psp_curr_deterministic=psp->getDeterministic();
+  psp->setDeterministic(deterministic_psp);
   //int n = eval_conduction + eval_valence + eval_obdm; 
   int nelectrons = sys->nelectrons(0) + sys->nelectrons(1);
   int nup = sys->nelectrons(0); 
@@ -129,6 +130,8 @@ void Average_ekt::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
   //evaluate_conduction(wfdata,wf,sys, psp, sample,avg); 
   evaluate_valence(wfdata,wf,sys, psp, sample,avg);
   //  evaluate_obdm(wfdata,wf,sys, sample, avg);
+  psp->setDeterministic(psp_curr_deterministic);
+
 }
 
 
@@ -427,6 +430,9 @@ void Average_ekt::read(System * sys, Wavefunction_data * wfdata, vector
     }
   }
 
+  deterministic_psp=0;
+  if(haskeyword(words,pos=0,"DETERMINISTIC_PSP"))
+    deterministic_psp=1;
 
 
   if(complex_orbitals) 
@@ -1174,7 +1180,7 @@ void Average_ekt::calcPseudoMo(System * sys,
   //deriv.Resize(natoms, 3);
   //deriv=0;
   dcomplex nonlocal; 
-  Array1 <doublevar> rDotR(psp->GetMaxAIP());
+  Array1 <doublevar> rDotR(psp->getMaxAIP());
   Array2 <dcomplex> movals_t(nmo, 1);
   Array2 <dcomplex> movals(nmo, 1);
   sample->getElectronPos(0, oldpos);
@@ -1184,28 +1190,28 @@ void Average_ekt::calcPseudoMo(System * sys,
     nonlocal=0.0; 
     local = 0.0; 
     for(int at = 0; at< natoms; at++){
-      if(psp->GetNumL(at) != 0) {
-        Array1 <doublevar> v_l(psp->GetNumL(at));
+      if(psp->getNumL(at) != 0) {
+        Array1 <doublevar> v_l(psp->getNumL(at));
         sample->getIonPos(at, ionpos);
         sample->updateEIDist();
         sample->getEIDist(0, at, olddist);
         int spin=1;
         //	if(e < sys->nelectrons(0)) spin=0;
         spin = 0;
-        psp->GetRadialOut(at, spin, sample, olddist, v_l);
+        psp->getRadialOut(at, spin, sample, olddist, v_l);
 
         //----------------------------------------
         //Start integral
 
         int accept;
-        if(psp->GetDeterministic()) {
-          accept= olddist(0) < psp->GetCutoff(at);
+        if(psp->getDeterministic()) {
+          accept= olddist(0) < psp->getCutoff(at);
         }
         else {
           doublevar strength=0;
           const doublevar calculate_threshold=10;
 
-          for(int l=0; l<psp->GetNumL(at)-1; l++) {
+          for(int l=0; l<psp->getNumL(at)-1; l++) {
             strength+=calculate_threshold*(2*l+1)*fabs(v_l(l));
           }
           strength=min((doublevar) 1.0, strength);
@@ -1213,7 +1219,7 @@ void Average_ekt::calcPseudoMo(System * sys,
           //cout << at <<"  random number  " << rand
           //   << "  p_eval  " << strength  << endl;
           if ( strength > 0.0 ) {
-            for(int l=0; l<psp->GetNumL(at)-1; l++)
+            for(int l=0; l<psp->getNumL(at)-1; l++)
               v_l(l)/=strength;
           }
           accept=strength>rand;
@@ -1221,9 +1227,9 @@ void Average_ekt::calcPseudoMo(System * sys,
 
         //bool localonly = true;
         if(accept)  {
-          for(int i=0; i< psp->GetAIP(at); i++) {
+          for(int i=0; i< psp->getAIP(at); i++) {
             for(int d=0; d < 3; d++) 
-              newpos(d)=psp->GetIntegralPt(at,i,d)*olddist(0)-olddist(d+2);
+              newpos(d)=psp->getIntegralPt(at,i,d)*olddist(0)-olddist(d+2);
             sample->translateElectron(0, newpos);
             sample->updateEIDist();
             sample->getEIDist(0,at,newdist);
@@ -1235,13 +1241,13 @@ void Average_ekt::calcPseudoMo(System * sys,
             calc_mos(sample, 0, movals_t);//update value
             //----
             //cout << "signs " << base_sign << "  " << new_sign << endl;;
-            for(int l=0; l< psp->GetNumL(at)-1; l++) {
-              nonlocal+=(2*l+1)*v_l(l)*legendre(rDotR(i), l)*psp->GetIntegralWeight(at, i)*movals_t(jmo, 0);
+            for(int l=0; l< psp->getNumL(at)-1; l++) {
+              nonlocal+=(2*l+1)*v_l(l)*legendre(rDotR(i), l)*psp->getIntegralWeight(at, i)*movals_t(jmo, 0);
             }
             sample->setElectronPos(0, oldpos);
           } 
         }
-        int localL=psp->GetNumL(at)-1; //The l-value of the local part is
+        int localL=psp->getNumL(at)-1; //The l-value of the local part is
         local += v_l(localL); 
       } // if atom has psp
     }  //atom loop
