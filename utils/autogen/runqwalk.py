@@ -3,6 +3,7 @@ import os
 import glob
 import re
 import shutil
+from crystal2qmc import convert_crystal
 ####################################################
 
 def crystal_patch_output(propname,outname,patchname):
@@ -40,7 +41,23 @@ def crystal_patch_output(propname,outname,patchname):
 
 ####################################################
 
+class NewCrystal2QWalk:
+  _name_="NewCrystal2QWalk"
+  def run(self,job_record):
+    convert_crystal(base="qw")
+    return 'ok'
+  def check_status(self,job_record):
+    outfilename="qw_0.sys"
+    if os.path.exists(outfilename):
+      return 'ok'
+    return 'not_started'
+      
+  def retry(self,job_record):
+    return self.run(job_record)
+  def output(self,job_record):
+    return job_record
 
+####################################################
 
 class Crystal2QWalk:
   _name_="Crystal2QWalk"
