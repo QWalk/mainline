@@ -58,7 +58,8 @@ void System::calcKinetic(Wavefunction_data * wfdata,
                          Wavefunction * wf,
                          Array1 <doublevar> & lap)
 {
-  calcKineticSeparated(wfdata, sample, wf); 
+  Array2<doublevar> Kin;
+  calcKineticSeparated(wfdata, sample, wf,Kin);
   int nelectrons = sample->electronSize();
   int nwf = wf->nfunc(); 
   for (int w=0; w<nwf; w++) {
@@ -97,13 +98,16 @@ void System::calcKinetic(Wavefunction_data * wfdata,
   //cout << "Calculating kinetic energy done \n";
 }
 
+
+//----------------------------------------------------------------------
+
 /*
-   Added by Huihuo, calculating the kinetic energy for all electrons
-   into an array, --- this is particular for single-body term
+   Calculate the kinetic energy for all electrons
+   into an array
    */
 void System::calcKineticSeparated(Wavefunction_data * wfdata,
     Sample_point * sample,
-    Wavefunction * wf)
+    Wavefunction * wf, Array2<doublevar> & Kin)
 {
   //cout << "Calculating kinetic energy \n";
 
@@ -138,47 +142,7 @@ void System::calcKineticSeparated(Wavefunction_data * wfdata,
   //cout << "Calculating kinetic energy done \n";
 }
 
-/*!
-void System::calcKineticNoNotify(const int e, Wavefunction_data * wfdata,
-                         Sample_point * sample,
-                         Wavefunction * wf,
-                         Array1 <doublevar> & lap)
 
-  Huihuo
-  This is to calculate the kinetic energy of specific index
-  This is based on the calcKinetic subroutine
-
-{
-  //cout << "Calculating kinetic energy \n";
-  assert(lap.GetDim(0)>= wf->nfunc());
-  int nelectrons=sample->electronSize();
-  assert(e < nelectrons); 
-  int nwf=wf->nfunc();
-  lap=0;
-  Wf_return temp(nwf,5);
-  for(int w=0; w< nwf; w++)
-  {
-    //    for(int e=0; e< nelectrons; e++)
-    //{
-    wf->getLap(wfdata, e, temp);
-    lap(w)+=temp.amp(w,4);
-    if ( temp.is_complex==1 ) {
-      lap(w)-=(  temp.phase(w,1)*temp.phase(w,1)
-		 +temp.phase(w,2)*temp.phase(w,2)
-		 +temp.phase(w,3)*temp.phase(w,3) );
-    }
-    //cout << "total laplacian: " << lap(0) <<  " amp  " 
-    //  << temp.amp(w,4) << endl;
-    
-    //}
-    lap(w)*=-0.5;
-  }
-
-  //cout << "laplacian " << lap(0) << endl;
-  //cout << "Calculating kinetic energy done \n";
-}
-
-*/
 //----------------------------------------------------------------------
 
 void System::generatePseudo(vector <vector <string> > & words,

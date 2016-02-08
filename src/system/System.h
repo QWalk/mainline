@@ -73,8 +73,6 @@ public:
                            Sample_point *,
                            Wavefunction *,
                            Array1 <doublevar> &);
-  Array2 <doublevar> Kin; 
-  Array1 <doublevar> VLoc; 
   /*!
     \brief 
     This is to return the kinetic energy of each electron
@@ -83,18 +81,8 @@ public:
   */
   virtual void calcKineticSeparated(Wavefunction_data *,
 				    Sample_point *,
-				    Wavefunction *); 
+				    Wavefunction *, Array2<doublevar> & Kin);
 
-  /*!
-    \brief -- Huihuo
-    calculate the Kinetic energy of specific electron--e, returned as an array
-    decided not to use this
-  virtual void calcKineticNoNotify(const int e, 
-				   Wavefunction_data *,
-				   Sample_point *,
-				   Wavefunction *,
-  				   Array1 <doublevar> &);
-  */
   /*!
     \brief
      give the reciprocal lattice.  return 1 on success and 0 on error.
