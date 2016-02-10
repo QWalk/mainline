@@ -126,10 +126,18 @@ class RunCrystal:
         print("Not resuming because resume limit reached ({}>{}).".format(
           trynum,maxresume))
         return 'failed'
-    for filename in ["autogen.d12","autogen.d12.o"]:
-      shutil.move(filename,str(trynum)+"."+filename)
-    for filename in ["fort.79"]:
+    for filename in ["autogen.d12","autogen.d12.o","fort.79"]:
       shutil.copy(filename,str(trynum)+"."+filename)
+    shutil.copy("fort.79","fort.20")
+    inplines = open("autogen.d12",'r').read().split('\n')
+    if "GUESSP" not in inplines:
+      pos = -1
+      while inplines[-1] != "END": pos -= 1
+      inplines = inplines[:pos] # Trim extra newlines.
+      inplines.append("GUESSP")
+      inplines.append("END")
+    with open("autogen.d12",'w') as inpf:
+      inpf.write('\n'.join(inplines))
     return self.run(job_record)
 
 ####################################################
