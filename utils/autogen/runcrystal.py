@@ -9,9 +9,10 @@ class RunCrystal:
     self._submitter = submitter
 
   def run(self, job_record):
-    job_record['control'][self._name_+'_jobid'] = \
+    job_record['control']['queue_id'] = \
         [self._submitter.execute(job_record, ['autogen.d12'],
           'autogen.d12', 'autogen.d12.o')]
+    print("run",job_record['control']['queue_id'])
     return 'running'
 
   def output(self,job_record):
@@ -40,9 +41,9 @@ class RunCrystal:
     no_record, not_started, ok, too_many_cycles, finished (fall-back),
     scf_fail, not_enough_decrease, divergence, not_finished
     """
-    try:
+    if os.path.isfile("autogen.d12.o"):
       outf = open("autogen.d12.o",'r')
-    except IOError:
+    else:
       return "not_started"
     outlines = outf.read().split('\n')
     reslines = [line for line in outlines if "ENDED" in line]
@@ -50,18 +51,24 @@ class RunCrystal:
       if "CONVERGENCE" in reslines[0]:
         return "ok"
       elif "TOO MANY CYCLES" in reslines[0]:
+        #print("RunCrystal output: Too many cycles.")
         return "too_many_cycles"
       else: # What else can happen?
+        #print("RunCrystal output: Finished, but unknown state.")
         return "finished"
     detots = [float(line.split()[5]) for line in outlines if "DETOT" in line]
     if len(detots) == 0:
+      #print("RunCrystal output: Last run completed no cycles.")
       return "scf_fail"
     detots_net = sum(detots[1:])
     if detots_net > acceptable_scf:
+      #print("RunCrystal output: Last run performed too poorly.")
       return "not_enough_decrease"
     etots = [float(line.split()[3]) for line in outlines if "DETOT" in line]
     if etots[-1] > 0:
+      #print("RunCrystal output: Energy divergence.")
       return "divergence"
+    #print("RunCrystal output: Mid-run.")
     return "not_finished"
 
   # Diagnose routines basically decide 'not_finished' or 'failed'
@@ -173,7 +180,7 @@ class RunProperties:
       os.system("properties < prop.in > prop.in.o")
       return 'ok'
     else:
-      job_record['control'][self._name_+'_jobid'] = \
+      job_record['control']['queue_id'] = \
           [self._submitter.execute(job_record,["prop.in"], 'prop.in', 'prop.in.o')]
       return 'running'
 
@@ -200,7 +207,7 @@ class RunProperties:
       self._submitter.transfer_output(job_record, [outfilename, 'fort.9'])
       status=self.check_outputfile(outfilename)
       if status=='ok':
-        self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
+        self._submitter.cancel(job_record['control']['queue_id'])
         return status
       elif status=='not_finished' or status=='failed':
         return status
@@ -249,7 +256,7 @@ class NewRunProperties:
       os.system("properties < prop.in > prop.in.o")
       return 'ok'
     else:
-      job_record['control'][self._name_+'_jobid'] = \
+      job_record['control']['queue_id'] = \
           [self._submitter.execute(job_record,["prop.in"], 'prop.in', 'prop.in.o')]
       return 'running'
 
@@ -276,7 +283,7 @@ class NewRunProperties:
       self._submitter.transfer_output(job_record, [outfilename, 'fort.9'])
       status=self.check_outputfile(outfilename)
       if status=='ok':
-        self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
+        self._submitter.cancel(job_record['control']['queue_id'])
         return status
       elif status=='not_finished' or status=='failed':
         return status
