@@ -304,7 +304,7 @@ class QWalkRunVMC:
     if not restart:
       if qmc_options['vmc']['optimizer']=='variance':
         os.system("separate_jastrow qw_0.opt.wfout > opt.jast")
-      elif qmc_options['cmc']['optimizer']=='energy':
+      elif qmc_options['dmc']['optimizer']=='energy':
         os.system("separate_jastrow qw_0.enopt.wfout > opt.jast")
       elif qmc_options['dmc']['optimizer']==None:
         shutil.copy("qw.jast2","opt.jast")
