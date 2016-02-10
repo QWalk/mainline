@@ -306,6 +306,8 @@ class QWalkRunVMC:
         os.system("separate_jastrow qw_0.opt.wfout > opt.jast")
       elif qmc_options['cmc']['optimizer']=='energy':
         os.system("separate_jastrow qw_0.enopt.wfout > opt.jast")
+      elif qmc_options['dmc']['optimizer']==None:
+        shutil.copy("qw.jast2","opt.jast")
 
     # Make and submit the runs: bundle all jobs.
     infiles = []
@@ -451,6 +453,8 @@ class QWalkRunDMC:
         os.system("separate_jastrow qw_0.opt.wfout > opt.jast")
       elif qmc_options['dmc']['optimizer']=='energy':
         os.system("separate_jastrow qw_0.enopt.wfout > opt.jast")
+      elif qmc_options['dmc']['optimizer']==None:
+        shutil.copy("qw.jast2","opt.jast")
 
     calc_sk=False
     if 'cif' in job_record.keys():

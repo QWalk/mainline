@@ -12,7 +12,6 @@ class RunCrystal:
     job_record['control']['queue_id'] = \
         [self._submitter.execute(job_record, ['autogen.d12'],
           'autogen.d12', 'autogen.d12.o')]
-    print("run",job_record['control']['queue_id'])
     return 'running'
 
   def output(self,job_record):
