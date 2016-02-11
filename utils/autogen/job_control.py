@@ -72,6 +72,12 @@ def default_job_record(filename):
   job_record['qmc']['energy_optimize']['vmc_nstep']=1000
 
 
+  job_record['qmc']['maximize'] = {}
+  job_record['qmc']['maximize']['nconfig'] = [100]
+  job_record['qmc']['maximize']['trialwf'] = ["hf","sj2","sj3"]
+  job_record['qmc']['maximize']['system'] = [filename.split('.')[0]]
+i
+
   #Control options
   job_record['control']['id']=1
   job_record['control']['elements']=[]
