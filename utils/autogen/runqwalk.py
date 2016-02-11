@@ -3,6 +3,7 @@ import os
 import glob
 import re
 import shutil
+from crystal2qmc import convert_crystal
 ####################################################
 
 def crystal_patch_output(propname,outname,patchname):
@@ -40,7 +41,23 @@ def crystal_patch_output(propname,outname,patchname):
 
 ####################################################
 
+class NewCrystal2QWalk:
+  _name_="NewCrystal2QWalk"
+  def run(self,job_record):
+    convert_crystal(base="qw")
+    return 'ok'
+  def check_status(self,job_record):
+    outfilename="qw_0.sys"
+    if os.path.exists(outfilename):
+      return 'ok'
+    return 'not_started'
+      
+  def retry(self,job_record):
+    return self.run(job_record)
+  def output(self,job_record):
+    return job_record
 
+####################################################
 
 class Crystal2QWalk:
   _name_="Crystal2QWalk"
@@ -81,10 +98,10 @@ wf2 { include qw.jast2 }
 }
 """)
     f.close()
-    job_record['control'][self._name_+'_jobid'] = [self._submitter.execute(
+    job_record['control']['queue_id'] = [self._submitter.execute(
       job_record, 
       ['qw_0.opt','qw_0.sys','qw_0.slater','qw_0.orb','qw.basis','qw.jast2'], 
-      'qw_0.opt',
+      ['qw_0.opt'],
       'qw_0.opt.stdout')]
     
     return 'running'
@@ -158,7 +175,7 @@ wf2 { include qw.jast2 }
     with open("qw_0.opt",'w') as inpf:
       inpf.write('\n'.join(inplines))
 
-    job_record['control'][self._name_+'_jobid'] = [self._submitter.execute(
+    job_record['control']['queue_id'] = [self._submitter.execute(
       job_record, 
       ['qw_0.opt','qw_0.sys','qw_0.slater','qw_0.orb','qw.basis','qw.jast2'], 
       'qw_0.opt',
@@ -203,7 +220,7 @@ include qw_0.sys
 trialfunc { include qw_0.enopt.wfin }
 """%enopt_options['vmc_nstep'])
     f.close()
-    job_record['control'][self._name_+'_jobid'] = [self._submitter.execute(
+    job_record['control']['queue_id'] = [self._submitter.execute(
       job_record, 
       ['qw_0.enopt','qw_0.enopt.wfin','qw_0.sys','qw_0.slater','qw_0.orb','qw.basis'],
       'qw_0.enopt',
@@ -267,7 +284,154 @@ trialfunc { include qw_0.enopt.wfin }
     job_record['qmc']['energy_optimize']['vmc_energy_err']=last_energy_err
     return job_record
 
+####################################################
 
+class QWalkRunVMC:
+  _name_="QwalkRunVMC"
+  
+  #-----------------------------------------------
+  def __init__(self,submitter):
+    self._submitter=submitter
+  #-----------------------------------------------
+  def run(self,job_record,restart=False):
+    qmc_options=job_record['qmc']
+    kpts=self.get_kpts(job_record)
+    #if self._name_+'_jobid' not in job_record['control'].keys():
+    #  job_record['control'][self._name_+'_jobid'] = []
+    #  job_record['control']['queue_id'] = []
+    
+    #choose which wave function to use
+    if not restart:
+      if qmc_options['vmc']['optimizer']=='variance':
+        os.system("separate_jastrow qw_0.opt.wfout > opt.jast")
+      elif qmc_options['vmc']['optimizer']=='energy':
+        os.system("separate_jastrow qw_0.enopt.wfout > opt.jast")
+      elif qmc_options['vmc']['optimizer']==None:
+        shutil.copy("qw.jast2","opt.jast")
+      else:
+        print("Warning: didn't understand optimizer option!")
+
+    # Make and submit the runs: bundle all jobs.
+    infiles = []
+    inpfns = []
+    for k in kpts:
+      kname="qw_%i"%k
+      basename="qw_%i"%k
+      f=open(basename+".vmc",'w')
+      f.write(self.vmcinput(k,qmc_options['vmc']['nblock']))
+      f.close()
+      infiles.extend([basename+".vmc","opt.jast",kname+'.sys',kname+'.slater',
+          kname+'.orb','qw.basis'])
+      if restart:
+        infiles.extend([basename+'.vmc.config',basename+'.vmc.log'])
+      inpfns.append(basename+".vmc")
+
+    qid = self._submitter.execute(
+      job_record,
+      infiles, # Dependencies. This naming needs to be less redundant.
+      inpfns,  # Actual DMC inputs.
+      "qw.vmc.stdout")
+    return 'running'
+  #-----------------------------------------------
+  def get_kpts(self, job_record):
+    kpts=glob.glob("qw*.sys")
+    kpt_num=[]
+    for kp in kpts:
+      kpt_num.append(int(re.findall(r'\d+',kp)[0]))
+    return kpt_num
+  #-----------------------------------------------
+  def vmcinput(self,kpt_num=0,nblock=16):
+    outlist = [
+        "method { VMC ",
+        "nblock %i"%nblock
+      ]
+    outlist += [
+        "}",
+        "include qw_%i.sys"%kpt_num,
+        "trialfunc { slater-jastrow",
+        "wf1 { include qw_%i.slater } "%kpt_num,
+        "wf2 { include opt.jast }",
+        "}"
+      ]
+    outstr = '\n'.join(outlist)
+    return outstr
+  #-----------------------------------------------
+  def check_outputfile(self,outfilename):
+    if os.path.isfile(outfilename):
+      f=open(outfilename,'r')
+      for line in f:
+        if 'Wall' in line:
+          return 'ok'
+      return 'running'
+  #-----------------------------------------------
+  def energy(self,logfilename):
+    os.system("gosling %s > %s.stdout"%(logfilename,logfilename))
+    f=open(logfilename+".stdout",'r')
+    energy=0
+    err=1e8
+    for line in f:
+      if "total_energy0" in line:
+        spl=line.split()
+        energy=float(spl[1])
+        err=float(spl[3])
+        return (energy,err)
+    return (energy,err)
+  #-----------------------------------------------
+  def collect_runs(self,job_record):
+    ret=[]
+
+    kpts=self.get_kpts(job_record)
+    for k in kpts:
+      kname="qw_%i"%k
+      basename="qw_%i"%k
+      entry={}
+      entry['knum']=k
+      entry['energy']=self.energy(basename+".vmc.log")
+      ret.append(entry)
+    return ret
+  #-----------------------------------------------
+  def check_status(self,job_record):
+    results=self.collect_runs(job_record)
+    
+    status='ok'
+    for e in results:
+      print("energy check",e['knum'],e['energy'])
+        
+      if e['energy'][1] >  job_record['qmc']['vmc']['target_error']:
+        status='not_finished'
+    print("initial status",status)
+    if status=='ok':
+      return status
+
+    outfiles=[]
+    for k in self.get_kpts(job_record):
+      basename="qw_%i"%k
+      outfiles.extend([basename+'.vmc.log',
+                     basename+'.vmc.config',
+                     basename+'.vmc.o'])
+    #print(outfiles)
+    self._submitter.transfer_output(job_record, outfiles)
+    status=self._submitter.status(job_record)
+    print("status",status)
+    if status == 'running':
+      return status
+
+    if not os.path.isfile(outfiles[0]):
+      return 'not_started'
+
+    results=self.collect_runs(job_record)
+    status='ok'
+    for e in results:
+      if e['energy'][1] >  job_record['qmc']['vmc']['target_error']:
+        status='not_finished'
+    return status
+  #-----------------------------------------------
+  def resume(self,job_record):
+    return self.run(job_record,restart=True)
+  #-----------------------------------------------
+  def output(self,job_record):
+    job_record['qmc']['vmc']['results']=self.collect_runs(job_record)
+    return job_record
 
 ####################################################
 
@@ -280,9 +444,10 @@ class QWalkRunDMC:
   def run(self,job_record,restart=False):
     qmc_options=job_record['qmc']
     kpts=self.get_kpts(job_record)
-    if self._name_+'_jobid' not in job_record['control'].keys():
-      job_record['control'][self._name_+'_jobid'] = []
-      job_record['control']['queue_id'] = []
+    # ?????
+    #if self._name_+'_jobid' not in job_record['control'].keys():
+    #  job_record['control'][self._name_+'_jobid'] = []
+    #  job_record['control']['queue_id'] = []
     
     #choose which wave function to use
     if not restart:
@@ -290,27 +455,10 @@ class QWalkRunDMC:
         os.system("separate_jastrow qw_0.opt.wfout > opt.jast")
       elif qmc_options['dmc']['optimizer']=='energy':
         os.system("separate_jastrow qw_0.enopt.wfout > opt.jast")
-
-    ##make and submit the runs.
-    ##this could be extended to bundle jobs
-    #for k in kpts:
-    #  for t in qmc_options['dmc']['timestep']:
-    #    for loc in qmc_options['dmc']['localization']:
-    #      kname="qw_%i"%k
-    #      basename="qwt%g%s_%i"%(t,loc,k)
-    #      f=open(basename+".dmc",'w')
-    #      f.write(self.dmcinput(t,loc,k,qmc_options['dmc']['nblock']))
-    #      f.close()
-    #      infiles=[basename+".dmc","opt.jast",kname+'.sys',kname+'.slater',
-    #          kname+'.orb','qw.basis']
-    #      if restart:
-    #        infiles.extend([basename+'.dmc.config',basename+'.dmc.log'])
-    #      job_id = self._submitter.execute(
-    #        job_record,
-    #        infiles,
-    #        basename+".dmc",
-    #        basename+".dmc.stdout")
-    #      job_record['control'][self._name_+'_jobid'].append(job_id)
+      elif qmc_options['dmc']['optimizer']==None:
+        shutil.copy("qw.jast2","opt.jast")
+      else:
+        print("Warning: didn't understand optimizer option!")
 
     calc_sk=False
     if 'cif' in job_record.keys():
@@ -491,5 +639,6 @@ class QWalkRunDMC:
   def output(self,job_record):
     job_record['qmc']['dmc']['results']=self.collect_runs(job_record)
     return job_record
+
 ####################################################
 
