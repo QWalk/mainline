@@ -239,6 +239,10 @@ void Average_ekt::evaluate_valence(Wavefunction_data * wfdata, Wavefunction * wf
         place += 2;
       }
     }
+    ofstream dump;
+    if(dump_data) {
+      dump.open("EKT_DUMP",ios::app);
+    }
     for(int e=0; e< nelectrons; e++) {
       dcomplex psiratio_1b=conj(exp(dcomplex(wfs(e).amp(0,0)
                                              -wfval_base.amp(0,0),
@@ -251,7 +255,6 @@ void Average_ekt::evaluate_valence(Wavefunction_data * wfdata, Wavefunction * wf
       dcomplex prefactor=psiratio_1b/(dist1*npoints_eval);
       //cout << "Local potential" << "   Kinetic" << "   Pseudo" << endl;
       //      cout << VLoc(e) << "  " << Kin(e, 0) << "  " << totalv(e, 0) << endl;
-      //ofstream dump("EKT_DUMP",ios::app);
       
       for(int orbnum=0; orbnum < nmo; orbnum++) {
         for(int orbnum2=0; orbnum2 < nmo; orbnum2++) {
@@ -260,19 +263,24 @@ void Average_ekt::evaluate_valence(Wavefunction_data * wfdata, Wavefunction * wf
                      + movals1_base(e)(orbnum, 0)*conj(movals_p(orbnum2, 0))*conj(prefactor));
           tmp2 = tmp*(VLoc(e) + Kin(e, 0) + totalv(e, 0));
           //rho_ij part the one body reduced density matrix
+          doublevar tmp2_mag=abs(tmp2);
+          if(tmp2_mag > ekt_cutoff) {
+            tmp2*=ekt_cutoff/tmp2_mag;
+          }
           avg.vals(nmo+2*which_obdm*nmo*nmo+place) += tmp.real();
           avg.vals(nmo+2*which_obdm*nmo*nmo+place+1) += tmp.imag();
           //v_ij^v part
           //tmp3 = 0.0;
           avg.vals(nmo+4*nmo*nmo + 2*which_obdm*nmo*nmo+place)+=tmp2.real();
           avg.vals(nmo+4*nmo*nmo + 2*which_obdm*nmo*nmo+place+1)+=tmp2.imag();
-          //if(orbnum==orbnum2 and orbnum==0) {
-          //  sample->getElectronPos(e,oldpos);
-
-          //  dump << which_obdm << "," << tmp2.real() << "," << tmp.real() << ","
-          //       << VLoc(e) << "," << Kin(e,0) << "," << totalv(e,0) <<
-          //     "," << oldpos(0) << "," << oldpos(1) << "," << oldpos(2) << endl;
-          //}
+          if(dump_data) {
+            if(orbnum==orbnum2 and orbnum==0) {
+              sample->getElectronPos(e,oldpos);
+              dump << which_obdm << "," << tmp2.real() << "," << tmp.real() << ","
+                 << VLoc(e) << "," << Kin(e,0) << "," << totalv(e,0) <<
+               "," << oldpos(0) << "," << oldpos(1) << "," << oldpos(2) << endl;
+            }
+          }
           if (eval_conduction) {
             //tmp3 = -1.0*psiratio_1b*conj(movals1_base(e)(orbnum, 0))*(vtot*movals_lap(orbnum2, 0)
             //						 + pseudo_t(orbnum2) - 0.5*movals_lap(orbnum2, 4) + Vtest(nelectrons)*movals_lap(orbnum2, 0))/(dist1*npoints_eval);
@@ -430,7 +438,13 @@ void Average_ekt::read(System * sys, Wavefunction_data * wfdata, vector
   if(haskeyword(words,pos=0,"DETERMINISTIC_PSP"))
     deterministic_psp=1;
 
-
+  dump_data=false;
+  if(haskeyword(words,pos=0,"DUMP_DATA"))
+    dump_data=true;
+  if(!readvalue(words, pos=0,ekt_cutoff,"EKT_CUTOFF"))
+    ekt_cutoff=1e3;
+  
+  
   if(complex_orbitals) 
     cmomat->buildLists(occupations);
   else 
