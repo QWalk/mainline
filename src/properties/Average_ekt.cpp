@@ -113,7 +113,8 @@ void Average_ekt::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
      For our first testing case, we implemented the three matrix independently, but in principle they can be grouped 
      together to reduced the computation cost. 
      */
-
+  int psp_curr_deterministic=psp->getDeterministic();
+  psp->setDeterministic(deterministic_psp);
   //int n = eval_conduction + eval_valence + eval_obdm; 
   int nelectrons = sys->nelectrons(0) + sys->nelectrons(1);
   int nup = sys->nelectrons(0); 
@@ -129,6 +130,8 @@ void Average_ekt::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
   //evaluate_conduction(wfdata,wf,sys, psp, sample,avg); 
   evaluate_valence(wfdata,wf,sys, psp, sample,avg);
   //  evaluate_obdm(wfdata,wf,sys, sample, avg);
+  psp->setDeterministic(psp_curr_deterministic);
+
 }
 
 
@@ -161,28 +164,22 @@ void Average_ekt::evaluate_valence(Wavefunction_data * wfdata, Wavefunction * wf
   Array1 <doublevar> Vtest(nelectrons+1);
   Array1 <dcomplex> pseudo_t(nmo); 
   /***************************************
-    Rutines to get Kin and Vloc 
+    Routines to get Kin and Vloc
    ****************************************/
   Array2<doublevar> Kin(nelectrons, wf->nfunc());
-  Array2<doublevar> Kin0(nelectrons, wf->nfunc());
+  //Array2<doublevar> Kin0(nelectrons, wf->nfunc());
   Array2<dcomplex> movals_lap(nmo, 5);
   for(int e=0; e< nelectrons; e++) { 
     movals1_base(e).Resize(nmo,1);
     //Kin(e).Resize(1); //The Kinetic energy 
     calc_mos(sample, e, movals1_base(e));
   }
-  //***** calculate kinetic energy and potential energy 
-  //sys->calcKineticSeparated(wfdata, sample, wf, Kin); 
-  sys->calcLocSeparated(sample, VLoc);
-  //
-  //for (int e=0; e<nelectrons; e++) {
-  //  avg.vals(nmo + 12*nmo*nmo + e) = sys->Kin(e, 0); 
-  //  avg.vals(nmo + 12*nmo*nmo + nelectrons + e) = VLoc(e); 
-  //}
+//  sys->calcKineticSeparated(sample,saved_r(i),Kin);
 
-  //  cout << VLoc(0) << endl; 
-  //  avg.vals.Resize(nmo+4*nmo*nmo);
-  //  avg.vals=0;
+  //***** calculate kinetic energy and potential energy
+  sys->calcKineticSeparated(wfdata, sample, wf, Kin); 
+  sys->calcLocSeparated(sample, VLoc);
+
   Array1 <Wf_return> wfs(nelectrons);
 
   Wavefunction_storage * store;
@@ -191,8 +188,6 @@ void Average_ekt::evaluate_valence(Wavefunction_data * wfdata, Wavefunction * wf
     Array1 <doublevar> oldpos(3);
     sample->getElectronPos(0,oldpos);
     sample->setElectronPosNoNotify(0, saved_r(i));
-    //    sys->calcLocSeparated(sample, VLoc0);
-    //sys->calcKineticSeparated(wfdata, sample, wf, Kin0);
     calc_mosLap(sample, 0, movals_lap);
     int nrandvar=psp->nTest();
     Array1 <doublevar> rand_num(nrandvar);
@@ -200,84 +195,88 @@ void Average_ekt::evaluate_valence(Wavefunction_data * wfdata, Wavefunction * wf
       rand_num(l)=rng.ulec();
     calc_mos(sample,0,movals_p);
 
-    //if (eval_conduction) {
     calcPseudoMo(sys, sample, psp, rand_num, pseudo_t);
-    //      cout << "pseudo" << endl; 
-    //cout << pseudo_t(0) << endl; 
-    //      cout << pseudo_t(0) << endl; 
     sample->setElectronPosNoNotify(0,oldpos);
     Array1 <Wf_return> wf_eval;
     wf->evalTestPos(saved_r(i),sample,wfs);
-
     sys->calcLocWithTestPos(sample, saved_r(i), Vtest);
-    //}
 
-    doublevar vtot = 0.0; 
+    doublevar vtot = 0.0;
     for (int e=0; e<nelectrons; e++) {
       vtot += Vtest(e);
     }
     doublevar dist1=0;
-    for(int m=0; m < nmo; m++) 
+    for(int m=0; m < nmo; m++)
       dist1+=norm(movals_p(m,0));
-
-    for(int orbnum=0; orbnum < nmo; orbnum++) { 
+    
+    for(int orbnum=0; orbnum < nmo; orbnum++) {
       avg.vals(orbnum)+=norm(movals_p(orbnum,0))/(dist1*npoints_eval);//this is the normalization
     }
-
-    Array2<doublevar> totalv(nelectrons, wf->nfunc()); 
-
-    //    psp->calcPseudoSeparated(wfdata, sys, sample, wf, totalv); 
-    //psp->calcPseudoSeparated(wfdata, sys, sample, wf, rand_num, totalv); 
-    totalv = 0.0; 
-    psp->calcNonlocSeparated(wfdata, sys, sample, wf, totalv); 
-    int place = 0; 
-    for (int orbnum = 0; orbnum < nmo; orbnum++ ) 
+    
+    Array2<doublevar> totalv(nelectrons, wf->nfunc());
+    totalv = 0.0;
+    psp->calcNonlocSeparated(wfdata, sys, sample, wf, totalv);
+    
+    int place = 0;
+    for (int orbnum = 0; orbnum < nmo; orbnum++ ) {
       for (int orbnum2 = 0; orbnum2 < nmo; orbnum2++ ) {
-        //vtot = 0.0; 
-        //dcomplex tmp3 = 0.0; 
-        dcomplex tmp3=conj(movals_p(orbnum, 0))*(pseudo_t(orbnum2) + Vtest(nelectrons)*movals_p(orbnum2, 0) 
-            -0.5*movals_lap(orbnum2, 4)+movals_p(orbnum2, 0)*vtot)/(dist1*npoints_eval);
-        //	tmp3=conj(movals_p(orbnum, 0))*(movals_p(orbnum2, 0))/(dist1*npoints_eval); 
-        //dcomplex tmp3=conj(movals_p(orbnum, 0))*(pseudo_t(orbnum2))/(dist1*npoints_eval); 
-        int which_obdm = 0; 
+        dcomplex tmp3=conj(movals_p(orbnum, 0))*
+                    (pseudo_t(orbnum2) +
+                     Vtest(nelectrons)*movals_p(orbnum2, 0)
+                      -0.5*movals_lap(orbnum2, 4)
+                     +movals_p(orbnum2, 0)*vtot)
+                /(dist1*npoints_eval);
+        //	tmp3=conj(movals_p(orbnum, 0))*(movals_p(orbnum2, 0))/(dist1*npoints_eval);
+        //dcomplex tmp3=conj(movals_p(orbnum, 0))*(pseudo_t(orbnum2))/(dist1*npoints_eval);
+        int which_obdm = 0;
         avg.vals(nmo+8*nmo*nmo + 2*which_obdm*nmo*nmo+place) += tmp3.real();
         avg.vals(nmo+8*nmo*nmo + 2*which_obdm*nmo*nmo+place+1) += tmp3.imag();
-
-        which_obdm = 1; 
-        //tmp3=conj(movals_p(orbnum, 0))*(-0.5*movals_lap(orbnum2, 4))/(dist1*npoints_eval); 
+        
+        which_obdm = 1;
+        //tmp3=conj(movals_p(orbnum, 0))*(-0.5*movals_lap(orbnum2, 4))/(dist1*npoints_eval);
         avg.vals(nmo+8*nmo*nmo + 2*which_obdm*nmo*nmo+place) += tmp3.real();
         avg.vals(nmo+8*nmo*nmo + 2*which_obdm*nmo*nmo+place+1) += tmp3.imag();
-        place += 2; 
+        place += 2;
       }
-    for(int e=0; e< nelectrons; e++) { 
+    }
+    for(int e=0; e< nelectrons; e++) {
       dcomplex psiratio_1b=conj(exp(dcomplex(wfs(e).amp(0,0)
-              -wfval_base.amp(0,0),
-              wfs(e).phase(0,0)
-              -wfval_base.phase(0,0))));
+                                             -wfval_base.amp(0,0),
+                                             wfs(e).phase(0,0)
+                                             -wfval_base.phase(0,0))));
       int which_obdm=0;
-      if(e >= nup) { which_obdm=1;  } 
+      if(e >= nup) { which_obdm=1;  }
       dcomplex tmp, tmp2, tmp3;
-      int place=0; 
+      int place=0;
       dcomplex prefactor=psiratio_1b/(dist1*npoints_eval);
-      //cout << "Local potential" << "   Kinetic" << "   Pseudo" << endl; 
-      //      cout << VLoc(e) << "  " << Kin(e, 0) << "  " << totalv(e, 0) << endl;  
-      for(int orbnum=0; orbnum < nmo; orbnum++) { 
-        for(int orbnum2=0; orbnum2 < nmo; orbnum2++) { 
+      //cout << "Local potential" << "   Kinetic" << "   Pseudo" << endl;
+      //      cout << VLoc(e) << "  " << Kin(e, 0) << "  " << totalv(e, 0) << endl;
+      //ofstream dump("EKT_DUMP",ios::app);
+      
+      for(int orbnum=0; orbnum < nmo; orbnum++) {
+        for(int orbnum2=0; orbnum2 < nmo; orbnum2++) {
           //	  assert(wf->nfunc()==1);
-          tmp = 0.5*(movals_p(orbnum,0)*conj(movals1_base(e)(orbnum2,0))*prefactor 
-              + movals1_base(e)(orbnum, 0)*conj(movals_p(orbnum2, 0))*conj(prefactor));
-          tmp2 = tmp*(VLoc(e) + sys->Kin(e, 0) + totalv(e, 0)); 
+          tmp = 0.5*(movals_p(orbnum,0)*conj(movals1_base(e)(orbnum2,0))*prefactor
+                     + movals1_base(e)(orbnum, 0)*conj(movals_p(orbnum2, 0))*conj(prefactor));
+          tmp2 = tmp*(VLoc(e) + Kin(e, 0) + totalv(e, 0));
           //rho_ij part the one body reduced density matrix
-          avg.vals(nmo+2*which_obdm*nmo*nmo+place) += tmp.real(); 
-          avg.vals(nmo+2*which_obdm*nmo*nmo+place+1) += tmp.imag(); 
+          avg.vals(nmo+2*which_obdm*nmo*nmo+place) += tmp.real();
+          avg.vals(nmo+2*which_obdm*nmo*nmo+place+1) += tmp.imag();
           //v_ij^v part
-          tmp3 = 0.0; 
+          //tmp3 = 0.0;
           avg.vals(nmo+4*nmo*nmo + 2*which_obdm*nmo*nmo+place)+=tmp2.real();
           avg.vals(nmo+4*nmo*nmo + 2*which_obdm*nmo*nmo+place+1)+=tmp2.imag();
+          //if(orbnum==orbnum2 and orbnum==0) {
+          //  sample->getElectronPos(e,oldpos);
+
+          //  dump << which_obdm << "," << tmp2.real() << "," << tmp.real() << ","
+          //       << VLoc(e) << "," << Kin(e,0) << "," << totalv(e,0) <<
+          //     "," << oldpos(0) << "," << oldpos(1) << "," << oldpos(2) << endl;
+          //}
           if (eval_conduction) {
-            //tmp3 = -1.0*psiratio_1b*conj(movals1_base(e)(orbnum, 0))*(vtot*movals_lap(orbnum2, 0) 
+            //tmp3 = -1.0*psiratio_1b*conj(movals1_base(e)(orbnum, 0))*(vtot*movals_lap(orbnum2, 0)
             //						 + pseudo_t(orbnum2) - 0.5*movals_lap(orbnum2, 4) + Vtest(nelectrons)*movals_lap(orbnum2, 0))/(dist1*npoints_eval);
-            tmp3 += -1.0*conj(movals1_base(e)(orbnum, 0))*movals_p(orbnum2, 0)*prefactor*(VLoc(e) + sys->Kin(e, 0) + totalv(e, 0) + Vtest(e));
+            tmp3 = -1.0*conj(movals1_base(e)(orbnum, 0))*movals_p(orbnum2, 0)*prefactor*(VLoc(e) + Kin(e, 0) + totalv(e, 0) + Vtest(e));
             avg.vals(nmo+8*nmo*nmo + 2*which_obdm*nmo*nmo+place) += tmp3.real();
             avg.vals(nmo+8*nmo*nmo + 2*which_obdm*nmo*nmo+place+1) += tmp3.imag();
           }
@@ -427,6 +426,9 @@ void Average_ekt::read(System * sys, Wavefunction_data * wfdata, vector
     }
   }
 
+  deterministic_psp=0;
+  if(haskeyword(words,pos=0,"DETERMINISTIC_PSP"))
+    deterministic_psp=1;
 
 
   if(complex_orbitals) 
@@ -1174,7 +1176,7 @@ void Average_ekt::calcPseudoMo(System * sys,
   //deriv.Resize(natoms, 3);
   //deriv=0;
   dcomplex nonlocal; 
-  Array1 <doublevar> rDotR(psp->GetMaxAIP());
+  Array1 <doublevar> rDotR(psp->getMaxAIP());
   Array2 <dcomplex> movals_t(nmo, 1);
   Array2 <dcomplex> movals(nmo, 1);
   sample->getElectronPos(0, oldpos);
@@ -1184,28 +1186,28 @@ void Average_ekt::calcPseudoMo(System * sys,
     nonlocal=0.0; 
     local = 0.0; 
     for(int at = 0; at< natoms; at++){
-      if(psp->GetNumL(at) != 0) {
-        Array1 <doublevar> v_l(psp->GetNumL(at));
+      if(psp->getNumL(at) != 0) {
+        Array1 <doublevar> v_l(psp->getNumL(at));
         sample->getIonPos(at, ionpos);
         sample->updateEIDist();
         sample->getEIDist(0, at, olddist);
         int spin=1;
         //	if(e < sys->nelectrons(0)) spin=0;
         spin = 0;
-        psp->GetRadialOut(at, spin, sample, olddist, v_l);
+        psp->getRadialOut(at, spin, sample, olddist, v_l);
 
         //----------------------------------------
         //Start integral
 
         int accept;
-        if(psp->GetDeterministic()) {
-          accept= olddist(0) < psp->GetCutoff(at);
+        if(psp->getDeterministic()) {
+          accept= olddist(0) < psp->getCutoff(at);
         }
         else {
           doublevar strength=0;
           const doublevar calculate_threshold=10;
 
-          for(int l=0; l<psp->GetNumL(at)-1; l++) {
+          for(int l=0; l<psp->getNumL(at)-1; l++) {
             strength+=calculate_threshold*(2*l+1)*fabs(v_l(l));
           }
           strength=min((doublevar) 1.0, strength);
@@ -1213,7 +1215,7 @@ void Average_ekt::calcPseudoMo(System * sys,
           //cout << at <<"  random number  " << rand
           //   << "  p_eval  " << strength  << endl;
           if ( strength > 0.0 ) {
-            for(int l=0; l<psp->GetNumL(at)-1; l++)
+            for(int l=0; l<psp->getNumL(at)-1; l++)
               v_l(l)/=strength;
           }
           accept=strength>rand;
@@ -1221,9 +1223,9 @@ void Average_ekt::calcPseudoMo(System * sys,
 
         //bool localonly = true;
         if(accept)  {
-          for(int i=0; i< psp->GetAIP(at); i++) {
+          for(int i=0; i< psp->getAIP(at); i++) {
             for(int d=0; d < 3; d++) 
-              newpos(d)=psp->GetIntegralPt(at,i,d)*olddist(0)-olddist(d+2);
+              newpos(d)=psp->getIntegralPt(at,i,d)*olddist(0)-olddist(d+2);
             sample->translateElectron(0, newpos);
             sample->updateEIDist();
             sample->getEIDist(0,at,newdist);
@@ -1235,13 +1237,13 @@ void Average_ekt::calcPseudoMo(System * sys,
             calc_mos(sample, 0, movals_t);//update value
             //----
             //cout << "signs " << base_sign << "  " << new_sign << endl;;
-            for(int l=0; l< psp->GetNumL(at)-1; l++) {
-              nonlocal+=(2*l+1)*v_l(l)*legendre(rDotR(i), l)*psp->GetIntegralWeight(at, i)*movals_t(jmo, 0);
+            for(int l=0; l< psp->getNumL(at)-1; l++) {
+              nonlocal+=(2*l+1)*v_l(l)*legendre(rDotR(i), l)*psp->getIntegralWeight(at, i)*movals_t(jmo, 0);
             }
             sample->setElectronPos(0, oldpos);
           } 
         }
-        int localL=psp->GetNumL(at)-1; //The l-value of the local part is
+        int localL=psp->getNumL(at)-1; //The l-value of the local part is
         local += v_l(localL); 
       } // if atom has psp
     }  //atom loop

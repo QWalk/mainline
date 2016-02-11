@@ -163,66 +163,10 @@ void Molecular_system::setIonPos(int ion, Array1 <doublevar> & r)
 //------------------------------------------------------------------------
 
 
-  /*! Huihuo
-doublevar Molecular_system::calcPotNoNotify(const int e, Sample_point * sample)
-{
 
-    \brief
-    This is compute the potential for a single electron, including the potential from the electrons. This is constructed based on calcLoc
-
-  int nions=sample->ionSize();
-  int nelectrons=sample->electronSize();
-
-  //cout << "Calculating local energy\n";
-
-  Array1 <doublevar> R(5);
-  doublevar pot=0;
-
-  doublevar elecIon=0;
-  sample->updateEIDist();
-  sample->updateEEDist();
-
-  for(int i=0; i < nions; i++)  {
-    sample->getEIDist(e,i, R);
-    elecIon+=sample->getIonCharge(i)/R(0);
-  }
-  elecIon*=-1;
-  pot+=elecIon;
-
-
-  doublevar elecElec=0;
-  Array1 <doublevar> R2(5);
-  for(int i=0; i< nelectrons; i++)
-    if (i != e )
-    {
-      sample->getEEDist(e,i,R2);
-      elecElec+= 1/R2(0);
-    }
-  pot+=elecElec;
-  //cout << "elec-elec: " << elecElec << endl;
-  //cout << "pot " << pot << endl;
-
-  doublevar fieldPot=0;
-  Array1 <doublevar> pos(3);
-  sample->getElectronPos(e,pos);
-  for(int d=0; d< 3; d++) 
-    fieldPot-=electric_field(d)*pos(d);
-  
-  for(int i=0; i< nions; i++) {
-    sample->getIonPos(i,pos);
-    for(int d=0; d< 3; d++) 
-      fieldPot+=sample->getIonCharge(i)*electric_field(d)*pos(d);
-  }
-
-  pot+=fieldPot; 
-  return pot;
-}
-
-  */
-
-
-void Molecular_system::calcLocWithTestPos(Sample_point * sample, Array1 <doublevar> & tpos, Array1 <doublevar> & Vtest)
-{
+void Molecular_system::calcLocWithTestPos(Sample_point * sample,
+                                          Array1 <doublevar> & tpos,
+                                          Array1 <doublevar> & Vtest) {
 
   int nions=sample->ionSize();
   int nelectrons=sample->electronSize();
@@ -263,8 +207,10 @@ void Molecular_system::calcLocWithTestPos(Sample_point * sample, Array1 <doublev
     Vtest(nelectrons) -=electric_field(d)*tpos(d);
 }
 
-doublevar Molecular_system::calcLoc(Sample_point * sample)
-{
+
+//------------------------------------------------------------------------
+
+doublevar Molecular_system::calcLoc(Sample_point * sample) {
   int nions=sample->ionSize();
   int nelectrons=sample->electronSize();
 
