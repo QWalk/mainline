@@ -4,7 +4,7 @@ from submission_tools import LocalSubmitter
 import os
 
 # Where are your executibles stored?
-BIN = "/home/busemey2/bin/"
+BIN = "/projects/wagner/apps/"
 
 if BIN[-1] != '/': BIN += '/'
 
