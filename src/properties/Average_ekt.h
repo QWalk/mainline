@@ -86,7 +86,9 @@ class Average_ekt:public Average_generator {
   bool eval_conduction;
   bool eval_valence;
   bool eval_obdm; 
-  int totnelectrons; 
+  int totnelectrons;
+  bool dump_data;
+  doublevar ekt_cutoff; //!< The cutoff for EKT values; if |ekt| > cutoff, value is set to sign(ekt)*cutoff
 };
 
 #endif //AVERAGE_EKT_H_INCLUDED
