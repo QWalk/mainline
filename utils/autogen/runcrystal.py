@@ -9,7 +9,7 @@ class RunCrystal:
     self._submitter = submitter
 
   def run(self, job_record):
-    job_record['control'][self._name_+'_jobid'] = \
+    job_record['control']['queue_id'] = \
         [self._submitter.execute(job_record, ['autogen.d12'],
           'autogen.d12', 'autogen.d12.o')]
     return 'running'
@@ -40,9 +40,9 @@ class RunCrystal:
     no_record, not_started, ok, too_many_cycles, finished (fall-back),
     scf_fail, not_enough_decrease, divergence, not_finished
     """
-    try:
+    if os.path.isfile("autogen.d12.o"):
       outf = open("autogen.d12.o",'r')
-    except IOError:
+    else:
       return "not_started"
     outlines = outf.read().split('\n')
     reslines = [line for line in outlines if "ENDED" in line]
@@ -50,18 +50,24 @@ class RunCrystal:
       if "CONVERGENCE" in reslines[0]:
         return "ok"
       elif "TOO MANY CYCLES" in reslines[0]:
+        #print("RunCrystal output: Too many cycles.")
         return "too_many_cycles"
       else: # What else can happen?
+        #print("RunCrystal output: Finished, but unknown state.")
         return "finished"
     detots = [float(line.split()[5]) for line in outlines if "DETOT" in line]
     if len(detots) == 0:
+      #print("RunCrystal output: Last run completed no cycles.")
       return "scf_fail"
     detots_net = sum(detots[1:])
     if detots_net > acceptable_scf:
+      #print("RunCrystal output: Last run performed too poorly.")
       return "not_enough_decrease"
     etots = [float(line.split()[3]) for line in outlines if "DETOT" in line]
     if etots[-1] > 0:
+      #print("RunCrystal output: Energy divergence.")
       return "divergence"
+    #print("RunCrystal output: Mid-run.")
     return "not_finished"
 
   # Diagnose routines basically decide 'not_finished' or 'failed'
@@ -126,18 +132,10 @@ class RunCrystal:
         print("Not resuming because resume limit reached ({}>{}).".format(
           trynum,maxresume))
         return 'failed'
-    for filename in ["autogen.d12","autogen.d12.o","fort.79"]:
+    for filename in ["autogen.d12","autogen.d12.o"]:
+      shutil.move(filename,str(trynum)+"."+filename)
+    for filename in ["fort.79"]:
       shutil.copy(filename,str(trynum)+"."+filename)
-    shutil.copy("fort.79","fort.20")
-    inplines = open("autogen.d12",'r').read().split('\n')
-    if "GUESSP" not in inplines:
-      pos = -1
-      while inplines[-1] != "END": pos -= 1
-      inplines = inplines[:pos] # Trim extra newlines.
-      inplines.append("GUESSP")
-      inplines.append("END")
-    with open("autogen.d12",'w') as inpf:
-      inpf.write('\n'.join(inplines))
     return self.run(job_record)
 
 ####################################################
@@ -173,7 +171,7 @@ class RunProperties:
       os.system("properties < prop.in > prop.in.o")
       return 'ok'
     else:
-      job_record['control'][self._name_+'_jobid'] = \
+      job_record['control']['queue_id'] = \
           [self._submitter.execute(job_record,["prop.in"], 'prop.in', 'prop.in.o')]
       return 'running'
 
@@ -200,7 +198,83 @@ class RunProperties:
       self._submitter.transfer_output(job_record, [outfilename, 'fort.9'])
       status=self.check_outputfile(outfilename)
       if status=='ok':
-        self._submitter.cancel(job_record['control'][self._name_+'_jobid'])
+        self._submitter.cancel(job_record['control']['queue_id'])
+        return status
+      elif status=='not_finished' or status=='failed':
+        return status
+    
+    if not os.path.isfile(outfilename):
+      return 'not_started'
+
+    return 'failed'
+      
+  def retry(self,job_record):
+    return self.run(job_record)
+
+  def output(self,job_record):
+    return job_record
+
+####################################################
+
+class NewRunProperties:
+  _name_="RunProperties"
+  def __init__(self,submitter=None):
+    # 'None' implies to run in command line.
+    self._submitter=submitter
+  def run(self,job_record):
+    f=open("prop.in",'w')
+    if 'cif' in job_record.keys():
+      kmax = max(job_record['dft']['kmesh'])
+      out = '\n'.join([
+        "NEWK",
+        "%d %d"%(kmax,2*kmax),
+        "1 0",
+        "CRYAPI_OUT",
+        "END"
+      ])
+      f.write(out)
+    else:
+      out = '\n'.join([
+        "NEWK",
+        "1 0",
+        "CRYAPI_OUT",
+        "END"
+      ])
+      f.write(out)
+    f.close()
+
+    if self._submitter==None:
+      os.system("properties < prop.in > prop.in.o")
+      return 'ok'
+    else:
+      job_record['control']['queue_id'] = \
+          [self._submitter.execute(job_record,["prop.in"], 'prop.in', 'prop.in.o')]
+      return 'running'
+
+  def check_outputfile(self,outfilename):
+    if os.path.isfile(outfilename):
+      f=open(outfilename,'r')
+      for line in f:
+        if "ENDPROP" in line:
+          return 'ok'
+      return 'running'
+    else:
+      return 'not_started'
+
+  def check_status(self,job_record):
+    outfilename="prop.in.o"
+    status=self.check_outputfile(outfilename)
+    if status=='ok' or status=='failed':
+      return status
+
+    if self._submitter!=None:
+      status=self._submitter.status(job_record)
+      if status=='running':
+        return status
+      self._submitter.transfer_output(job_record, [outfilename, 'fort.9'])
+      status=self.check_outputfile(outfilename)
+      if status=='ok':
+        self._submitter.cancel(job_record['control']['queue_id'])
         return status
       elif status=='not_finished' or status=='failed':
         return status

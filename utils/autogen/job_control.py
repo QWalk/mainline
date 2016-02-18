@@ -47,7 +47,16 @@ def default_job_record(filename):
   # 'conservative' : never resume job.
   job_record['dft']['resume_mode']='conservative'
 
+
   #QMC-specific options
+  job_record['qmc']['vmc']={}
+  #job_record['qmc']['vmc']['jastrow']='twobody'
+  job_record['qmc']['vmc']['nblock']=100
+  job_record['qmc']['vmc']['optimizer']='variance' #or 'energy' or None
+  job_record['qmc']['vmc']['target_error']=0.01
+  job_record['qmc']['vmc']['kpoints']='real' # or a list of numbers
+
+
   job_record['qmc']['dmc']={}
   job_record['qmc']['dmc']['timestep']=[0.02]
   job_record['qmc']['dmc']['jastrow']='twobody'
@@ -76,7 +85,7 @@ def default_job_record(filename):
   job_record['control']['id']=1
   job_record['control']['elements']=[]
   job_record['control']['pretty_formula']=''
-  job_record['control']['queue_id']=[None,None]
+  job_record['control']['queue_id']=[None]
   return job_record
 
 def execute(record, element_list):

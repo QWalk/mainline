@@ -1,7 +1,6 @@
 from __future__ import print_function
 import sys
 sys.path.append("../")
-sys.path.append("/projects/wagner/apps/qwalk_src/utils/autogen")
 import cif2crystal
 import runcrystal
 import runqwalk
@@ -18,18 +17,18 @@ element_list=[]
 element_list.append(cif2crystal.Cif2Crystal())
 element_list.append(runcrystal.RunCrystal(
   submitter=taub.LocalTaubCrystalSubmitter(
-    nn=1,time="0:20:00",queue="secondary")))
+    nn=1,time="0:05:00",queue="test")))
 element_list.append(runcrystal.RunProperties(
   submitter=taub.LocalTaubPropertiesSubmitter(
-    nn=1,np=1,time="0:20:00",queue="secondary")))
+    nn=1,np=1,time="0:05:00",queue="test")))
 #element_list.append(runcrystal.RunProperties())
 element_list.append(runqwalk.Crystal2QWalk())
 element_list.append(runqwalk.QWalkVarianceOptimize(
   submitter=taub.LocalTaubQwalkSubmitter(
-    nn=1,time="0:20:00",queue="secondary")))
+    nn=1,time="0:05:00",queue="test")))
 element_list.append(runqwalk.QWalkRunDMC(
   submitter=taub.LocalTaubBundleQwalkSubmitter(
-    nn=2,time="1:00:00",queue="secondary")))
+    nn=2,time="0:30:00",queue="secondary")))
 
 qchecker = taub.LocalTaubSubmitter()
 
