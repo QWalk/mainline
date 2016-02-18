@@ -62,28 +62,31 @@ class Crystal2QWalk:
 ####################################################
 
 class QWalkVarianceOptimize:
-  _name_="QWalkVarianceOptimize"
+  _name_ = "QWalkVarianceOptimize"
   
   def __init__(self,submitter):
-    self._submitter=submitter
+    self._submitter = submitter
   
   def run(self,job_record):
-    f=open("qw_0.opt",'w')
-    nit=job_record['qmc']['variance_optimize']['niterations']
-    nruns=job_record['qmc']['variance_optimize']['nruns']
+    jast = 'jast2'
+    if job_record['qmc']['dmc']['jastrow'] == 'threebody':
+      jast = 'jast3'
+    f = open("qw_0.opt",'w')
+    nit = job_record['qmc']['variance_optimize']['niterations']
+    nruns = job_record['qmc']['variance_optimize']['nruns']
     for i in range(0,nruns):
         f.write("method { optimize iterations %i } "%nit)
     f.write("""
 include qw_0.sys
 trialfunc { slater-jastrow
 wf1 { include qw_0.slater } 
-wf2 { include qw.jast2 } 
+wf2 { include qw.%s } 
 }
-""")
+"""%jast)
     f.close()
     job_record['control'][self._name_+'_jobid'] = [self._submitter.execute(
       job_record, 
-      ['qw_0.opt','qw_0.sys','qw_0.slater','qw_0.orb','qw.basis','qw.jast2'], 
+      ['qw_0.opt','qw_0.sys','qw_0.slater','qw_0.orb','qw.basis','qw.%s'%jast], 
       'qw_0.opt',
       'qw_0.opt.stdout')]
     
@@ -136,6 +139,10 @@ wf2 { include qw.jast2 }
     return 'not_started'
       
   def resume(self,job_record,maxresume=5):
+    jast = 'jast2'
+    if job_record['qmc']['dmc']['jastrow'] == 'threebody':
+      jast = 'jast3'
+    
     if not os.path.isfile("qw_0.opt.wfout"):
       return self.run(job_record)
     else: # Save previous output.
@@ -160,7 +167,7 @@ wf2 { include qw.jast2 }
 
     job_record['control'][self._name_+'_jobid'] = [self._submitter.execute(
       job_record, 
-      ['qw_0.opt','qw_0.sys','qw_0.slater','qw_0.orb','qw.basis','qw.jast2'], 
+      ['qw_0.opt','qw_0.sys','qw_0.slater','qw_0.orb','qw.basis','qw.%s'%jast], 
       'qw_0.opt',
       'qw_0.opt.stdout')]
     
@@ -491,5 +498,185 @@ class QWalkRunDMC:
   def output(self,job_record):
     job_record['qmc']['dmc']['results']=self.collect_runs(job_record)
     return job_record
+
+
 ####################################################
 
+class QWalkRunMaximize:
+  _name_ = "QWalkRunMaximize"
+
+  def __init__(self,submitter):
+    self._submitter = submitter
+
+  def make_basename(k, n, w, s):
+    return "qw_%s.k%i.%s.n%i"%(s,k,w,n)
+
+  def make_kname(k, s):
+    return "qw_%s.k%i"%(s,k)
+
+#-----------------------------------------------
+  def run(self, job_record, restart=False):
+    maximize_options = job_record['qmc']['maximize']
+    nconfiglist = maximize_options['nconfig']
+    w = maximize_options['trialwf']
+    s = maximize_options['system']
+    if w == "sj2" or "jast2":
+      job_record['qmc']['dmc']['jastrow'] = 'twobody'
+    elif w == "sj3" or "jast3":
+      job_record['qmc']['dmc']['jastrow'] = 'threebody'
+    if self._name_+'_jobid' not in job_record['control'].keys():
+      job_record['control'][self._name_+'_jobid'] = []
+      job_record['control']['queue_id'] = []
+
+    infiles = []
+    inpfns = []
+    kpts=self.get_kpts(job_record)
+
+    for k in kpts:
+      for n in nconfiglist:
+          kname = self.make_kname(k, s)
+          basename = self.make_basemane(k, n, w, s)
+          f = open(basename+".max",'w')
+          f.write(self.maximizeinput(k, n, w, s))
+          f.close()
+          infiles.extend([basename+".max","opt.jast",kname+'.sys',kname+'.slater',kname+'.orb','qw.basis'])
+          if restart:
+            infiles.extend([basename+".max.config",basename+".max.log"])
+          inpfns.append(basename+".max")
+
+    qid = self._submitter.execute(
+      job_record,
+      infiles, # Dependencies. This naming needs to be less redundant
+      inpfns, # Actual MAXIMIZE inputs
+      "qw.max.sdout")
+
+    return 'running'
+
+#-----------------------------------------------
+  def get_kpts(self, job_record):
+    kpts=glob.glob("qw*.sys")
+    kpt_num=[]
+    for kp in kpts:
+      kpt_num.append(int(re.findall(r'\d+',kp)[0]))
+    return kpt_num
+
+#-----------------------------------------------
+  def maximizeinput(self, k, nconfig, wf, sys):
+    outlist = [
+      "method { MAXIMIZE "+
+      "NCONFIG %i "%nconfig+
+      "}"]
+    outlist.append("include %s.sys"%self.make_kname(k,sys))
+
+    twfname = ''
+    if wf == "hf" or "slater":
+      twfname = self.make_kname(k,sys)+".slater"
+      outlist.append("trialfunc { include %s }"%twfname)
+    else:
+      outlist += [
+        "trialfunc { slater-jastrow",
+        "wf1 { include %s.slater } "%self.make_kname(k,sys),
+        "wf2 { include opt.jast }",
+        "}"
+      ]
+
+    outstr = '\n'.join(outlist)
+    return outstr
+
+#-----------------------------------------------
+  def check_outputfile(self,outfilename):
+    if os.path.isfile(outfilename):
+      f=open(outfilename,'r')
+      for line in f:
+        if 'Wall' in line:
+          return 'ok'
+      return 'running'
+
+#-----------------------------------------------
+  def extract_data(self,logfilename):
+      data = np.loadtxt(logfilename,skiprows=1)
+      amp = data[:,-1]
+      locE = data[:,-2]
+      conf = data[:,:-2]
+    return amp, locE, conf
+
+#-----------------------------------------------
+  def collect_runs(self,job_record):
+    ret=[]
+    w = job_record['qmc']['maximize']['trialwf']
+    s = job_record['qmc']['maximize']['system']
+    kpts=self.get_kpts(job_record)
+
+    for k in kpts:
+      for n in job_record['qmc']['maximize']['nconfig']:
+          logfilename = self.make_kname(k, s)+".table"
+          entry = {}
+          entry['nconfig'] = n
+          entry['system'] = s
+          entry['trialwf'] = w
+          amp, locE, conf = self.extract_data(logfilename)
+          entry['psi'] = amp
+          entry['energies'] = locE
+          entry['configs'] = conf
+          ret.append(entry)
+  return ret
+
+#-----------------------------------------------
+  def check_status(self,job_record):
+    # TODO does this function do what it's supposed to?
+    results=self.collect_runs(job_record)
+
+    status='ok'
+
+    # TODO do we need something here?
+    #for e in results:
+      #print("energy check",e['knum'],e['energy'])
+
+      #if e['energy'][1] >  job_record['qmc']['dmc']['target_error']:
+      #  status='not_finished'
+    print("initial status",status)
+    if status=='ok':
+      return 'ok'
+
+    w = job_record['qmc']['maximize']['trialwf']
+    s = job_record['qmc']['maximize']['system']
+    kpts=self.get_kpts(job_record)
+    outfiles=[]
+    for k in kpts:
+      for n in job_record['qmc']['maximize']['nconfig']:
+          basename = self.make_basename(k, n, w, s)
+          outfiles.extend([basename+".max.log",
+                          basename+".max.config",
+                          basename+".max.o"])
+
+    print(outfiles)
+    self._submitter.output(job_record, outfiles)
+    status=self._submitter.status(job_record)
+    print("status",status)
+    if status=='running':
+      return status
+
+
+    if not os.path.isfile(outfiles[0]):
+      return 'not_started'
+
+    results=self.collect_runs(job_record)
+    status='ok'
+    # TODO do we need something here?
+    #for e in results:
+      #if e['energy'][1] >  job_record['qmc']['dmc']['target_error']:
+      #  status='not_finished'
+    return status
+
+#-----------------------------------------------
+  def retry(self,job_record):
+    return self.run(job_record,restart=True)
+
+
+#-----------------------------------------------
+  def output(self,job_record):
+    job_record['qmc']['maximize']['results']=self.collect_runs(job_record)
+    return job_record
+
+####################################################
+                                                        
