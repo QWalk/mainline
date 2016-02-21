@@ -50,24 +50,24 @@ class RunCrystal:
       if "CONVERGENCE" in reslines[0]:
         return "ok"
       elif "TOO MANY CYCLES" in reslines[0]:
-        #print("RunCrystal output: Too many cycles.")
+        print("RunCrystal output: Too many cycles.")
         return "too_many_cycles"
       else: # What else can happen?
-        #print("RunCrystal output: Finished, but unknown state.")
+        print("RunCrystal output: Finished, but unknown state.")
         return "finished"
     detots = [float(line.split()[5]) for line in outlines if "DETOT" in line]
     if len(detots) == 0:
-      #print("RunCrystal output: Last run completed no cycles.")
+      print("RunCrystal output: Last run completed no cycles.")
       return "scf_fail"
     detots_net = sum(detots[1:])
     if detots_net > acceptable_scf:
-      #print("RunCrystal output: Last run performed too poorly.")
+      print("RunCrystal output: Last run performed poorly.")
       return "not_enough_decrease"
     etots = [float(line.split()[3]) for line in outlines if "DETOT" in line]
     if etots[-1] > 0:
-      #print("RunCrystal output: Energy divergence.")
+      print("RunCrystal output: Energy divergence.")
       return "divergence"
-    #print("RunCrystal output: Mid-run.")
+    print("RunCrystal output: Not finished.")
     return "not_finished"
 
   # Diagnose routines basically decide 'not_finished' or 'failed'
@@ -101,7 +101,7 @@ class RunCrystal:
       diagnose = diagnose_options[job_record['dft']['resume_mode']]
 
     status=self.check_outputfile(outfilename)
-    if status in ['ok','failed']:
+    if status=='ok':
       return status
 
     self._submitter.transfer_output(job_record, ['autogen.d12.o', 'fort.9'])
