@@ -121,21 +121,32 @@ class RunCrystal:
 
     return 'failed'
 
+  def add_guessp(self,inpfn):
+    inplines = open(inpfn,'r').read().split('\n')
+    if "GUESSP" not in inplines:
+      cursor = -1
+      while "END" not in inplines[cursor]:
+        cursor -= 1
+      inplines.insert(cursor,"GUESSP")
+    with open(inpfn,'w') as outf:
+      outf.write('\n'.join(inplines))
+    return None
 
   def resume(self,job_record,maxresume=5):
     """ Continue a crystal run using GUESSP."""
     jobname = job_record['control']['id']
     trynum = 0
-    while os.path.isfile(str(trynum)+".autogen.d12.o"):
+    while os.path.isfile("%d.autogen.d12.o"%trynum):
       trynum += 1
       if trynum > maxresume:
         print("Not resuming because resume limit reached ({}>{}).".format(
           trynum,maxresume))
         return 'failed'
-    for filename in ["autogen.d12","autogen.d12.o"]:
-      shutil.move(filename,str(trynum)+"."+filename)
-    for filename in ["fort.79"]:
-      shutil.copy(filename,str(trynum)+"."+filename)
+    for filename in ["autogen.d12","autogen.d12.o","fort.79"]:
+      shutil.copy(filename,"%d.%s"%(trynum,filename))
+    shutil.copy("fort.79","fort.20")
+    job_record['dft']['restart_from'] = os.getcwd()+"%d.fort.79"%trynum
+    self.add_guessp("autogen.d12")
     return self.run(job_record)
 
 ####################################################
