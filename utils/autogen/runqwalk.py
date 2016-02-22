@@ -98,11 +98,11 @@ wf2 { include qw.jast2 }
 }
 """)
     f.close()
-    job_record['control']['queue_id'] = [self._submitter.execute(
+    job_record['control']['queue_id'] = self._submitter.execute(
       job_record, 
       ['qw_0.opt','qw_0.sys','qw_0.slater','qw_0.orb','qw.basis','qw.jast2'], 
       ['qw_0.opt'],
-      'qw_0.opt.stdout')]
+      'qw_0.opt.stdout')
     
     return 'running'
 
@@ -134,7 +134,7 @@ wf2 { include qw.jast2 }
 
   def check_status(self,job_record):
     outfilename="qw_0.opt.o"
-    nruns=job_record['qmc']['variance_optimize']['nruns']
+    nruns  = job_record['qmc']['variance_optimize']['nruns']
     reltol = job_record['qmc']['variance_optimize']['reltol']
     abstol = job_record['qmc']['variance_optimize']['abstol']
       
@@ -150,7 +150,8 @@ wf2 { include qw.jast2 }
     if status == 'not_finished':
       return 'not_finished'
 
-    return 'not_started'
+    return status
+    #return 'not_started'
       
   def resume(self,job_record,maxresume=5):
     if not os.path.isfile("qw_0.opt.wfout"):
@@ -175,11 +176,11 @@ wf2 { include qw.jast2 }
     with open("qw_0.opt",'w') as inpf:
       inpf.write('\n'.join(inplines))
 
-    job_record['control']['queue_id'] = [self._submitter.execute(
+    job_record['control']['queue_id'] = self._submitter.execute(
       job_record, 
       ['qw_0.opt','qw_0.sys','qw_0.slater','qw_0.orb','qw.basis','qw.jast2'], 
       'qw_0.opt',
-      'qw_0.opt.stdout')]
+      'qw_0.opt.stdout')
     
     return 'running'
 
@@ -220,11 +221,11 @@ include qw_0.sys
 trialfunc { include qw_0.enopt.wfin }
 """%enopt_options['vmc_nstep'])
     f.close()
-    job_record['control']['queue_id'] = [self._submitter.execute(
+    job_record['control']['queue_id'] = self._submitter.execute(
       job_record, 
       ['qw_0.enopt','qw_0.enopt.wfin','qw_0.sys','qw_0.slater','qw_0.orb','qw.basis'],
-      'qw_0.enopt',
-      'qw_0.enopt.stdout')]
+      ['qw_0.enopt'],
+      'qw_0.enopt.stdout')
     
     return 'running'
 
