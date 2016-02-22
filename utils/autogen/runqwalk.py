@@ -179,7 +179,7 @@ wf2 { include qw.jast2 }
     job_record['control']['queue_id'] = self._submitter.execute(
       job_record, 
       ['qw_0.opt','qw_0.sys','qw_0.slater','qw_0.orb','qw.basis','qw.jast2'], 
-      'qw_0.opt',
+      ['qw_0.opt'],
       'qw_0.opt.stdout')
     
     return 'running'
