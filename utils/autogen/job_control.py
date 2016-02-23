@@ -75,8 +75,8 @@ def default_job_record(filename):
   job_record['qmc']['maximize'] = {}
   job_record['qmc']['maximize']['nconfig'] = [100]
   job_record['qmc']['maximize']['trialwf'] = "sj2"
-  job_record['qmc']['maximize']['system'] = [filename.split('.')[0]]
-i
+  job_record['qmc']['maximize']['system'] = filename.split('.')[0]
+
 
   #Control options
   job_record['control']['id']=1

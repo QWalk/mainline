@@ -3,6 +3,7 @@ import os
 import glob
 import re
 import shutil
+import numpy as np
 ####################################################
 
 def crystal_patch_output(propname,outname,patchname):
@@ -508,25 +509,32 @@ class QWalkRunMaximize:
   def __init__(self,submitter):
     self._submitter = submitter
 
-  def make_basename(k, n, w, s):
+  def make_basename(self, k, n, w, s):
     return "qw_%s.k%i.%s.n%i"%(s,k,w,n)
 
-  def make_kname(k, s):
-    return "qw_%s.k%i"%(s,k)
+  def make_kname(self, k, s):
+    return "qw_%i"%(k)
 
 #-----------------------------------------------
   def run(self, job_record, restart=False):
-    maximize_options = job_record['qmc']['maximize']
-    nconfiglist = maximize_options['nconfig']
-    w = maximize_options['trialwf']
-    s = maximize_options['system']
+    qmc_options = job_record['qmc']
+    nconfiglist = qmc_options['maximize']['nconfig']
+    w = qmc_options['maximize']['trialwf']
+    s = qmc_options['maximize']['system']
     if w == "sj2" or "jast2":
-      job_record['qmc']['dmc']['jastrow'] = 'twobody'
+      qmc_options['dmc']['jastrow'] = 'twobody'
     elif w == "sj3" or "jast3":
-      job_record['qmc']['dmc']['jastrow'] = 'threebody'
+      qmc_options['dmc']['jastrow'] = 'threebody'
     if self._name_+'_jobid' not in job_record['control'].keys():
       job_record['control'][self._name_+'_jobid'] = []
       job_record['control']['queue_id'] = []
+
+    #choose which wave function to use
+    if not restart:
+      if qmc_options['dmc']['optimizer']=='variance':
+        os.system("separate_jastrow qw_0.opt.wfout > opt.jast")
+      elif qmc_options['dmc']['optimizer']=='energy':
+        os.system("separate_jastrow qw_0.enopt.wfout > opt.jast")
 
     infiles = []
     inpfns = []
@@ -535,7 +543,7 @@ class QWalkRunMaximize:
     for k in kpts:
       for n in nconfiglist:
           kname = self.make_kname(k, s)
-          basename = self.make_basemane(k, n, w, s)
+          basename = self.make_basename(k, n, w, s)
           f = open(basename+".max",'w')
           f.write(self.maximizeinput(k, n, w, s))
           f.close()
@@ -568,11 +576,10 @@ class QWalkRunMaximize:
       "}"]
     outlist.append("include %s.sys"%self.make_kname(k,sys))
 
-    twfname = ''
-    if wf == "hf" or "slater":
-      twfname = self.make_kname(k,sys)+".slater"
-      outlist.append("trialfunc { include %s }"%twfname)
+    if wf == "hf" or wf == "slater":
+      outlist.append("trialfunc { include %s.slater }"%self.make_kname(k,sys))
     else:
+      #outlist.append("trialfunc { include qw_0.opt.wfout }")
       outlist += [
         "trialfunc { slater-jastrow",
         "wf1 { include %s.slater } "%self.make_kname(k,sys),
@@ -594,10 +601,10 @@ class QWalkRunMaximize:
 
 #-----------------------------------------------
   def extract_data(self,logfilename):
-      data = np.loadtxt(logfilename,skiprows=1)
-      amp = data[:,-1]
-      locE = data[:,-2]
-      conf = data[:,:-2]
+    data = np.loadtxt(logfilename,skiprows=1)
+    amp = data[:,-1]
+    locE = data[:,-2]
+    conf = data[:,:-2]
     return amp, locE, conf
 
 #-----------------------------------------------
@@ -609,7 +616,7 @@ class QWalkRunMaximize:
 
     for k in kpts:
       for n in job_record['qmc']['maximize']['nconfig']:
-          logfilename = self.make_kname(k, s)+".table"
+          logfilename = self.make_basename(k, n, w, s)+".table"
           entry = {}
           entry['nconfig'] = n
           entry['system'] = s
@@ -619,12 +626,12 @@ class QWalkRunMaximize:
           entry['energies'] = locE
           entry['configs'] = conf
           ret.append(entry)
-  return ret
+    return ret
 
 #-----------------------------------------------
   def check_status(self,job_record):
     # TODO does this function do what it's supposed to?
-    results=self.collect_runs(job_record)
+    #results=self.collect_runs(job_record)
 
     status='ok'
 
@@ -634,9 +641,9 @@ class QWalkRunMaximize:
 
       #if e['energy'][1] >  job_record['qmc']['dmc']['target_error']:
       #  status='not_finished'
-    print("initial status",status)
-    if status=='ok':
-      return 'ok'
+    #print("initial status",status)
+    #if status=='ok':
+    #  return 'ok'
 
     w = job_record['qmc']['maximize']['trialwf']
     s = job_record['qmc']['maximize']['system']
@@ -645,12 +652,13 @@ class QWalkRunMaximize:
     for k in kpts:
       for n in job_record['qmc']['maximize']['nconfig']:
           basename = self.make_basename(k, n, w, s)
-          outfiles.extend([basename+".max.log",
+          outfiles.extend([basename+".max.table",
+                          basename+".max.log",
                           basename+".max.config",
                           basename+".max.o"])
 
     print(outfiles)
-    self._submitter.output(job_record, outfiles)
+    self._submitter.transfer_output(job_record, outfiles)
     status=self._submitter.status(job_record)
     print("status",status)
     if status=='running':
