@@ -77,7 +77,6 @@ def default_job_record(filename):
   job_record['qmc']['maximize']['trialwf'] = "sj2"
   job_record['qmc']['maximize']['system'] = filename.split('.')[0]
 
-
   #Control options
   job_record['control']['id']=1
   job_record['control']['elements']=[]
