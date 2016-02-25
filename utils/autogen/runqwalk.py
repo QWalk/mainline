@@ -70,8 +70,6 @@ class QWalkVarianceOptimize:
   
   def run(self,job_record):
     jast = 'jast2'
-    if job_record['qmc']['dmc']['jastrow'] == 'threebody':
-      jast = 'jast3'
     f = open("qw_0.opt",'w')
     nit = job_record['qmc']['variance_optimize']['niterations']
     nruns = job_record['qmc']['variance_optimize']['nruns']
@@ -510,10 +508,10 @@ class QWalkRunMaximize:
     self._submitter = submitter
 
   def make_basename(self, k, n, w, s):
-    return "qw_%s.k%i.%s.n%i"%(s,k,w,n)
+    return "qw_%i.%s.n%i"%(k,w,n)
 
   def make_kname(self, k, s):
-    return "qw_%i"%(k)
+    return "qw_%i"%k
 
 #-----------------------------------------------
   def run(self, job_record, restart=False):
@@ -521,10 +519,6 @@ class QWalkRunMaximize:
     nconfiglist = qmc_options['maximize']['nconfig']
     w = qmc_options['maximize']['trialwf']
     s = qmc_options['maximize']['system']
-    if w == "sj2" or "jast2":
-      qmc_options['dmc']['jastrow'] = 'twobody'
-    elif w == "sj3" or "jast3":
-      qmc_options['dmc']['jastrow'] = 'threebody'
     if self._name_+'_jobid' not in job_record['control'].keys():
       job_record['control'][self._name_+'_jobid'] = []
       job_record['control']['queue_id'] = []
@@ -611,20 +605,17 @@ class QWalkRunMaximize:
   def collect_runs(self,job_record):
     ret=[]
     w = job_record['qmc']['maximize']['trialwf']
-    s = job_record['qmc']['maximize']['system']
     kpts=self.get_kpts(job_record)
 
     for k in kpts:
       for n in job_record['qmc']['maximize']['nconfig']:
-          logfilename = self.make_basename(k, n, w, s)+".table"
+          logfilename = self.make_basename(k, n, w, s)+".max.table"
           entry = {}
           entry['nconfig'] = n
-          entry['system'] = s
-          entry['trialwf'] = w
           amp, locE, conf = self.extract_data(logfilename)
-          entry['psi'] = amp
-          entry['energies'] = locE
-          entry['configs'] = conf
+          entry['psi'] = amp.tolist()
+          entry['energies'] = locE.tolist()
+          entry['configs'] = conf.tolist()
           ret.append(entry)
     return ret
 

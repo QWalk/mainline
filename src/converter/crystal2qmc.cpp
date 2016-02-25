@@ -460,6 +460,7 @@ int main(int argc, char ** argv) {
   print_std_jastrow2(jast2writer, jast2out, basis_cutoff);
   jast2out.close();
 
+  // Jastrow 3 output
   string jast3outname=outputname+".jast3";
   ofstream jast3out(jast3outname.c_str());
   vector<string> unique_atoms;
