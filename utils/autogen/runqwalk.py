@@ -327,7 +327,7 @@ trialfunc { include %s.wfin }
       return 'running'
     
     #If not running, try to transfer files.
-    print(fnames,outfnames,wfoutnames)
+    #print(fnames,outfnames,wfoutnames)
     self._submitter.transfer_output(job_record, fnames+outfnames+wfoutnames)
 
     #Now check on the output files again
@@ -337,7 +337,6 @@ trialfunc { include %s.wfin }
     
     #Finally, decide what to do
     if len(set(statuses))==1:
-      print("all statuses the same")
       return statuses[0]
     if 'not_finished' in statuses:
       return 'not_finished'
@@ -473,12 +472,13 @@ class QWalkRunDMC:
           for jast in options['jastrow']:
             for opt in options['optimizer']:
               basename=self.gen_basename(k,t,loc,jast,opt)
-              print(basename)
               if os.path.isfile("%s.dmc.log"%basename):
                 entry={}
                 entry['knum']=k
                 entry['timestep']=t
                 entry['localization']=loc
+                entry['jastrow']=jast
+                entry['optimizer']=opt
                 os.system("gosling -json %s.dmc.log > %s.json"%(basename,basename))
                 entry['results']=json.load(open("%s.json"%basename))
                 ret.append(entry)
@@ -521,7 +521,6 @@ class QWalkRunDMC:
         status.append("not_finished")
     #Finally, decide what to do
     if len(set(statuses))==1:
-      print("all statuses the same")
       return statuses[0]
     if 'not_finished' in statuses:
       return 'not_finished'
