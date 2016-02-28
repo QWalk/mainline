@@ -52,7 +52,7 @@ def default_job_record(filename):
   job_record['qmc']['dmc']['timestep']=[0.02]
   job_record['qmc']['dmc']['jastrow']=['twobody'] #or 'threebody'
   job_record['qmc']['dmc']['nblock']=16
-  job_record['qmc']['dmc']['optimizer']='variance' #or energy
+  job_record['qmc']['dmc']['optimizer']=['variance'] #or energy
   job_record['qmc']['dmc']['localization']=['tmoves']
   job_record['qmc']['dmc']['target_error']=0.01
   job_record['qmc']['dmc']['kpoints']='real' # or a list of numbers
@@ -83,7 +83,7 @@ def default_job_record(filename):
   job_record['control']['id']=1
   job_record['control']['elements']=[]
   job_record['control']['pretty_formula']=''
-  job_record['control']['queue_id']=[None,None]
+  job_record['control']['queue_id']=[]
   return job_record
 
 def execute(record, element_list):
@@ -109,13 +109,13 @@ def execute(record, element_list):
 
   for element in element_list:
     status=element.check_status(record)
-    print(element._name_,"status",status)
+    print(element._name_,status)
     if status=='not_started':
       status=element.run(record)
-      print(element._name_,"status",status)
+      print(element._name_,status)
     if status=='not_finished':
       status=element.resume(record)
-      print(element._name_,"status",status)
+      print(element._name_,status)
     if status != 'ok':
       break
     record=element.output(record)
