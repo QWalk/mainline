@@ -67,30 +67,46 @@ class QWalkVarianceOptimize:
   
   def __init__(self,submitter):
     self._submitter = submitter
-  
+#------------------------------------------
   def run(self,job_record):
-    jast = 'jast2'
-    f = open("qw_0.opt",'w')
-    nit = job_record['qmc']['variance_optimize']['niterations']
-    nruns = job_record['qmc']['variance_optimize']['nruns']
-    for i in range(0,nruns):
-        f.write("method { optimize iterations %i } "%nit)
-    f.write("""
+    infiles=[]
+    jastfiles=[]
+    for jast in job_record['qmc']['variance_optimize']['jastrow']:
+      jast_suf=""
+      if jast=='twobody':
+        jast_suf = 'jast2'
+      elif jast=='threebody':
+        jast_suf = 'jast3'
+      else:
+        print("Didn't understand Jastrow",jast)
+        quit()
+      fname="qw_0.%s.opt"%jast
+      f = open(fname,'w')
+      nit = job_record['qmc']['variance_optimize']['niterations']
+      nruns = job_record['qmc']['variance_optimize']['nruns']
+      for i in range(0,nruns):
+          f.write("method { optimize iterations %i } "%nit)
+      f.write("""
 include qw_0.sys
 trialfunc { slater-jastrow
 wf1 { include qw_0.slater } 
 wf2 { include qw.%s } 
 }
-"""%jast)
-    f.close()
+"""%jast_suf)
+      infiles.append(fname)
+      jastfiles.append("qw.%s"%jast_suf)
+      f.close()
+    outfiles=[]
+    for fname in infiles:
+      outfiles.append(fname+".stdout")
     job_record['control'][self._name_+'_jobid'] = [self._submitter.execute(
       job_record, 
-      ['qw_0.opt','qw_0.sys','qw_0.slater','qw_0.orb','qw.basis','qw.%s'%jast], 
-      'qw_0.opt',
-      'qw_0.opt.stdout')]
+      infiles+['qw_0.sys','qw_0.slater','qw_0.orb','qw.basis']+jastfiles, 
+      infiles,
+      outfiles[0])]
     
     return 'running'
-
+#-------------------------------------------
 
   def check_outputfile(self,outfilename,nruns,reltol=0.1,abstol=1e3):
     status = 'unknown'
@@ -116,32 +132,31 @@ wf2 { include qw.%s }
         return 'failed'
     else:
       return 'not_started'
-
+#--------------------------------------------------
   def check_status(self,job_record):
-    outfilename="qw_0.opt.o"
+    # TODO check different output files (the ones that are requested)
     nruns=job_record['qmc']['variance_optimize']['nruns']
     reltol = job_record['qmc']['variance_optimize']['reltol']
     abstol = job_record['qmc']['variance_optimize']['abstol']
-      
-    if self.check_outputfile(outfilename,nruns,reltol,abstol)=='ok':
-      return 'ok'
-    status=self._submitter.status(job_record)
-    self._submitter.transfer_output(job_record, ['qw_0.opt.o', 'qw_0.opt.wfout'])  
-    if status=='running':
-      return status
-    status = self.check_outputfile(outfilename,nruns,reltol,abstol)
-    if status == 'ok':
-      return 'ok'
-    if status == 'not_finished':
-      return 'not_finished'
-
-    return 'not_started'
-      
-  def resume(self,job_record,maxresume=5):
-    jast = 'jast2'
-    if job_record['qmc']['dmc']['jastrow'] == 'threebody':
-      jast = 'jast3'
+    outfilename="qw_0.opt.o"
     
+    for jast in job_record['qmc']['variance_optimize']['jastrow']:
+      
+      if self.check_outputfile(outfilename,nruns,reltol,abstol)=='ok':
+        return 'ok'
+      status=self._submitter.status(job_record)
+      self._submitter.transfer_output(job_record, ['qw_0.opt.o', 'qw_0.opt.wfout'])  
+      if status=='running':
+        return status
+      status = self.check_outputfile(outfilename,nruns,reltol,abstol)
+      if status == 'ok':
+        return 'ok'
+      if status == 'not_finished':
+        return 'not_finished'
+
+      return 'not_started'
+#-------------------------------------------------      
+  def resume(self,job_record,maxresume=5):
     if not os.path.isfile("qw_0.opt.wfout"):
       return self.run(job_record)
     else: # Save previous output.
@@ -171,7 +186,7 @@ wf2 { include qw.%s }
       'qw_0.opt.stdout')]
     
     return 'running'
-
+#------------------------------------------------------
   def output(self,job_record):
     outfilename="qw_0.opt.o"
     f=open(outfilename,'r')
@@ -191,33 +206,53 @@ class QWalkEnergyOptimize:
   def __init__(self,submitter):
     self._submitter=submitter
   
+#-------------------------------------------------      
   def run(self,job_record,restart=False):
-    if restart:
-      if not os.path.isfile("qw_0.enopt.wfout"):
-        print("Could not find qw_0.enopt.wfout")
-        return "failed"
+    infiles=[]
+    jastfiles=[]
+    for jast in job_record['qmc']['variance_optimize']['jastrow']:
+      jast_suf=""
+        if jast=='twobody':
+          jast_suf = 'jast2'
+        elif jast=='threebody':
+          jast_suf = 'jast3'
+        else:
+          print("Didn't understand Jastrow",jast)
+          quit()
+    
+      fname="qw_0.%s.enopt"%jast
+      # TODO make restart work with 2 and 3-body jastrow
+      if restart:
+        if not os.path.isfile("qw_0.enopt.wfout"):
+          print("Could not find qw_0.enopt.wfout")
+          return "failed"
 
-      os.system("cp qw_0.enopt.wfout qw_0.enopt.wfin")
-    else:
-      os.system("sed s/OPTIMIZEBASIS//g qw_0.opt.wfout > qw_0.enopt.wfin")
+        os.system("cp qw_0.enopt.wfout qw_0.enopt.wfin")
+      else:
+        os.system("sed s/OPTIMIZEBASIS//g qw_0.%s.opt.wfout > %s.wfin"%(jast,fname))
 
-    enopt_options=job_record['qmc']['energy_optimize']
-
-    f=open("qw_0.enopt",'w')
-    f.write("""method { LINEAR VMC_NSTEP %i } 
+      enopt_options=job_record['qmc']['energy_optimize']
+      f=open(fname,'w')
+      f.write("""method { LINEAR VMC_NSTEP %i } 
 include qw_0.sys
-trialfunc { include qw_0.enopt.wfin }
-"""%enopt_options['vmc_nstep'])
-    f.close()
+trialfunc { include %s.wfin }
+"""%(enopt_options['vmc_nstep'],fname))
+      infiles.append(fname)
+      jastfiles.append("qw.%s"%jast_suf)
+      f.close()
+    outfiles=[]
+    for fname in infiles:
+      outfiles.append(fname+".stdout")
     job_record['control'][self._name_+'_jobid'] = [self._submitter.execute(
       job_record, 
-      ['qw_0.enopt','qw_0.enopt.wfin','qw_0.sys','qw_0.slater','qw_0.orb','qw.basis'],
-      'qw_0.enopt',
-      'qw_0.enopt.stdout')]
+      infiles+['%s.wfin'%f for f in infiles]+['qw_0.sys','qw_0.slater','qw_0.orb','qw.basis'],
+      infiles,
+      outfiles[0])]
     
     return 'running'
 
 
+#-------------------------------------------------      
   def check_outputfile(self,outfilename, threshold=0.001):
     if os.path.isfile(outfilename):
       f=open(outfilename,'r')
@@ -236,6 +271,7 @@ trialfunc { include qw_0.enopt.wfin }
     return 'not_started'
 
 
+#-------------------------------------------------      
   def check_status(self,job_record):
     outfilename="qw_0.enopt.o"
     thresh=job_record['qmc']['energy_optimize']['threshold']
@@ -254,9 +290,11 @@ trialfunc { include qw_0.enopt.wfin }
     return 'not_started'
 
       
+#-------------------------------------------------      
   def resume(self,job_record):
     return self.run(job_record,restart=True)
 
+#-------------------------------------------------      
   def output(self,job_record):
     outfilename="qw_0.enopt.o"
     f=open(outfilename,'r')

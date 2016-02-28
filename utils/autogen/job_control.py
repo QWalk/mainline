@@ -50,7 +50,7 @@ def default_job_record(filename):
   #QMC-specific options
   job_record['qmc']['dmc']={}
   job_record['qmc']['dmc']['timestep']=[0.02]
-  job_record['qmc']['dmc']['jastrow']='twobody'
+  job_record['qmc']['dmc']['jastrow']=['twobody'] #or 'threebody'
   job_record['qmc']['dmc']['nblock']=16
   job_record['qmc']['dmc']['optimizer']='variance' #or energy
   job_record['qmc']['dmc']['localization']=['tmoves']
@@ -65,16 +65,19 @@ def default_job_record(filename):
   job_record['qmc']['variance_optimize']['nruns']=3
   job_record['qmc']['variance_optimize']['reltol']=0.1
   job_record['qmc']['variance_optimize']['abstol']=1e3 # TODO better default.
+  job_record['qmc']['variance_optimize']['jastrow']=['twobody']
 
 
   job_record['qmc']['energy_optimize']={}
   job_record['qmc']['energy_optimize']['threshold']=0.001
   job_record['qmc']['energy_optimize']['vmc_nstep']=1000
+  job_record['qmc']['energy_optimize']['jastrow']=['twobody']
+
 
 
   job_record['qmc']['maximize'] = {}
   job_record['qmc']['maximize']['nconfig'] = [100]
-  job_record['qmc']['maximize']['trialwf'] = "sj2"
+  job_record['qmc']['maximize']['jastrow']=['twobody']
 
   #Control options
   job_record['control']['id']=1
