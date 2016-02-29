@@ -3,13 +3,14 @@ import subprocess as sub
 from submission_tools import LocalSubmitter
 import os
 
-# Where are your executibles stored?
-BIN = "/home/wawheel2/bin/"
+# Where are your executables stored?
+BIN = "/home/lkwagner/autogen_3body/bin/"
 
 if BIN[-1] != '/': BIN += '/'
-
+##########################################################
 class LocalTaubSubmitter(LocalSubmitter):
   """Abstract submission class. Defines interaction with the queuing system."""
+#-------------------------------------------------------  
   def __init__(self,time='72:00:00',nn=1,np='allprocs', queue='batch'):
     """ Initialize a submitter object. 
 
@@ -20,7 +21,7 @@ class LocalTaubSubmitter(LocalSubmitter):
     self.nn    = nn
     self.np    = np
     self.queue = queue
-
+#-------------------------------------------------------
   def _job_status(self,queue_id):
     status = "unknown"
     try:
@@ -34,13 +35,13 @@ class LocalTaubSubmitter(LocalSubmitter):
     if qstat == "C" or qstat == "E":
       return "finished"
     return status
-
+#-------------------------------------------------------
   def _job_cancel(self,queue_id):
     print("Cancel was called, but not implemented")
-
+#-------------------------------------------------------
   def _qsub(self,exe,prep_commands=[],final_commands=[],
       name="",stdout="",loc=""):
-    """ Helper function for executible submitters. 
+    """ Helper function for executable submitters. 
     Should work in most cases to simplify code."""
 
     if stdout=="": stdout="stdout"
@@ -59,7 +60,7 @@ class LocalTaubSubmitter(LocalSubmitter):
       "#PBS -m n",
       "#PBS -N %s"%name,
       "#PBS -o {0}".format(loc+"/qsub.out"),
-      "module load openmpi/1.4-gcc+ifort",
+      "\n#module load openmpi/1.4-gcc+ifort",
     ]
     if self.np=="allprocs":
       exeline = "mpirun %s &> %s"%(exe, stdout)
@@ -74,7 +75,8 @@ class LocalTaubSubmitter(LocalSubmitter):
     result = sub.check_output("qsub %s"%(loc+"/qsub.in"),shell=True)
     qid = result.decode().split()[0]
     print("Submitted as %s"%qid)
-    return qid
+    return [qid]
+###############################################################
 
 class LocalTaubCrystalSubmitter(LocalTaubSubmitter):
   """Fully defined submission class. Defines interaction with specific
@@ -95,7 +97,7 @@ class LocalTaubCrystalSubmitter(LocalTaubSubmitter):
 
     qid = self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
     return qid
-
+###############################################################
 class LocalTaubPropertiesSubmitter(LocalTaubSubmitter):
   """Fully defined submission class. Defines interaction with specific
   program to be run."""
@@ -120,6 +122,7 @@ class LocalTaubPropertiesSubmitter(LocalTaubSubmitter):
 
     qid = self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
     return qid
+###############################################################
 
 class LocalTaubQwalkSubmitter(LocalTaubSubmitter):
   """Fully defined submission class. Defines interaction with specific
@@ -129,17 +132,21 @@ class LocalTaubQwalkSubmitter(LocalTaubSubmitter):
     
     Should not interact with user, and should receive only information specific
     to instance of a job run."""
-    exe = BIN+"qwalk %s"%inpfn
     prep_commands=[]
     final_commands=[]
+    qid=[]
+    
+    for f in inpfn:
+      exe = BIN+"qwalk %s"%f
 
-    if jobname == "":
-      jobname = outfn
-    if loc == "":
-      loc = os.getcwd()
+      if jobname == "":
+        jobname = outfn
+      if loc == "":
+        loc = os.getcwd()
 
-    qid = self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
+      qid+=self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
     return qid
+###############################################################
 
 class LocalTaubBundleQwalkSubmitter(LocalTaubSubmitter):
   """Fully defined submission class. Defines interaction with specific
@@ -160,3 +167,5 @@ class LocalTaubBundleQwalkSubmitter(LocalTaubSubmitter):
 
     qid = self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
     return qid
+###############################################################
+  
