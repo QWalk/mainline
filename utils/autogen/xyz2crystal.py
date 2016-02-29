@@ -110,7 +110,6 @@ def xyz2geom(xyzfile):
   for v in sites:
       nm=v['species'][0]['element']
       nm=str(Element(nm).Z+200)
-      print(v)
       geomlines+=[nm+" %g %g %g"%(v['xyz'][0],v['xyz'][1],v['xyz'][2])]
 
   return geomlines,struct
@@ -165,6 +164,7 @@ class Xyz2Crystal:
       "XLGRID",
       "END",
       "SCFDIR",
+      "SAVEWF",
       "BIPOSIZE",
       "100000000",
       "EXCHSIZE",
