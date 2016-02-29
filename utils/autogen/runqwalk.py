@@ -436,6 +436,168 @@ class QWalkRunVMC:
 
 ####################################################
 
+class QWalkRunPostProcess:
+  _name_="QwalkRunPostProcess"
+  
+  #-----------------------------------------------
+  def __init__(self,submitter):
+    self._submitter=submitter
+  #-----------------------------------------------
+  def run(self,job_record,restart=False):
+    qmc_options=job_record['qmc']
+    kpts=self.get_kpts(job_record)
+    
+    #choose which wave function to use
+    if not restart:
+      if qmc_options['vmc']['optimizer']=='variance':
+        os.system("separate_jastrow qw_0.opt.wfout > opt.jast")
+      elif qmc_options['vmc']['optimizer']=='energy':
+        os.system("separate_jastrow qw_0.enopt.wfout > opt.jast")
+      elif qmc_options['vmc']['optimizer']==None:
+        shutil.copy("qw.jast2","opt.jast")
+      else:
+        print("Warning: didn't understand optimizer option!")
+
+    # Make and submit the runs: bundle all jobs.
+    infiles = []
+    inpfns = []
+    for k in kpts:
+      kname="qw_%i"%k
+      basename="qw_%i"%k
+      f=open(basename+".post",'w')
+      f.write(self.postprocessinput(k,qmc_options['postprocess']))
+      f.close()
+      infiles.extend([basename+".post","opt.jast",kname+'.sys',kname+'.slater',
+          kname+'.orb','qw.basis'])
+      inpfns.append(basename+".post")
+
+    qid = self._submitter.execute(
+      job_record,
+      infiles, # Dependencies. This naming needs to be less redundant.
+      inpfns,  # Actual DMC inputs.
+      "qw.post.stdout")
+    return 'running'
+  #-----------------------------------------------
+  def get_kpts(self, job_record):
+    kpts=glob.glob("qw*.sys")
+    kpt_num=[]
+    for kp in kpts:
+      kpt_num.append(int(re.findall(r'\d+',kp)[0]))
+    return kpt_num
+  #-----------------------------------------------
+  def postprocessinput(self,kpt,ppr_options,nwarmup=0):
+    outlist = [
+        "method { postprocess ",
+        "readconfig qw_%s.dmc.trace"%kpt #TODO generalize non-DMC.
+      ]
+    nskip = nwarmup*2048 # TODO generalize 2048.
+    if ppr_options['number_fluctuation'] == True:
+      outlines += ["average { region_fluctuation }"]
+    if ppr_options['density'] == True:
+      outlines += [
+          "density { density up   outputfile %s.dmc.up.cube }",
+          "density { density down outputfile %s.dmc.dn.cube }"
+        ]
+    if ppr_options['obdm'] == True:
+      if ppr_options['minbasis'] != None:
+        shutil.copy(ppr_options['minbasis'],"qw_%s.minbasis"%kpt)
+        outlines += [
+            "average { tbdm_basis ",
+            "mode obdm",
+            "include qw_%s"%kpt
+            ]
+      else:
+        print("Since min basis wasn't defined, postprocess can't do OBDM.")
+    outlist += [
+        "}",
+        "include qw_%i.sys"%kpt_num,
+        "trialfunc { slater-jastrow",
+        "wf1 { include qw_%i.slater } "%kpt_num,
+        "wf2 { include opt.jast }",
+        "}"
+      ]
+    outstr = '\n'.join(outlist)
+    return outstr
+  #-----------------------------------------------
+  def check_outputfile(self,outfilename):
+    if os.path.isfile(outfilename):
+      f=open(outfilename,'r')
+      for line in f:
+        if 'Wall' in line:
+          return 'ok'
+      return 'running'
+  #-----------------------------------------------
+  def energy(self,logfilename):
+    os.system("gosling %s > %s.stdout"%(logfilename,logfilename))
+    f=open(logfilename+".stdout",'r')
+    energy=0
+    err=1e8
+    for line in f:
+      if "total_energy0" in line:
+        spl=line.split()
+        energy=float(spl[1])
+        err=float(spl[3])
+        return (energy,err)
+    return (energy,err)
+  #-----------------------------------------------
+  def collect_runs(self,job_record):
+    ret=[]
+
+    kpts=self.get_kpts(job_record)
+    for k in kpts:
+      kname="qw_%i"%k
+      basename="qw_%i"%k
+      entry={}
+      entry['knum']=k
+      entry['energy']=self.energy(basename+".vmc.log")
+      ret.append(entry)
+    return ret
+  #-----------------------------------------------
+  def check_status(self,job_record):
+    results=self.collect_runs(job_record)
+    
+    status='ok'
+    for e in results:
+      print("energy check",e['knum'],e['energy'])
+        
+      if e['energy'][1] >  job_record['qmc']['vmc']['target_error']:
+        status='not_finished'
+    print("initial status",status)
+    if status=='ok':
+      return status
+
+    outfiles=[]
+    for k in self.get_kpts(job_record):
+      basename="qw_%i"%k
+      outfiles.extend([basename+'.vmc.log',
+                     basename+'.vmc.config',
+                     basename+'.vmc.o'])
+    #print(outfiles)
+    self._submitter.transfer_output(job_record, outfiles)
+    status=self._submitter.status(job_record)
+    print("status",status)
+    if status == 'running':
+      return status
+
+    if not os.path.isfile(outfiles[0]):
+      return 'not_started'
+
+    results=self.collect_runs(job_record)
+    status='ok'
+    for e in results:
+      if e['energy'][1] >  job_record['qmc']['vmc']['target_error']:
+        status='not_finished'
+    return status
+  #-----------------------------------------------
+  def resume(self,job_record):
+    return self.run(job_record,restart=True)
+  #-----------------------------------------------
+  def output(self,job_record):
+    job_record['qmc']['vmc']['results']=self.collect_runs(job_record)
+    return job_record
+
+####################################################
+
 class QWalkRunDMC:
   _name_="QwalkRunDMC"
   
