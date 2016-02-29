@@ -4,12 +4,14 @@ from submission_tools import LocalSubmitter
 import os
 
 # Where are your executibles stored?
-BIN = "/projects/wagner/apps/"
+BIN = "/home/busemey2/bin/"
 
 if BIN[-1] != '/': BIN += '/'
 
+#####################################################################
 class LocalTaubSubmitter(LocalSubmitter):
   """Abstract submission class. Defines interaction with the queuing system."""
+  # --------------------------------------------------------------
   def __init__(self,time='72:00:00',nn=1,np='allprocs', queue='batch'):
     """ Initialize a submitter object. 
 
@@ -21,23 +23,36 @@ class LocalTaubSubmitter(LocalSubmitter):
     self.np    = np
     self.queue = queue
 
-  def _job_status(self,queue_id):
-    status = "unknown"
-    try:
-      qstat = sub.check_output(
-          "qstat %s"%queue_id, stderr=sub.STDOUT, shell=True
-        ).decode().split('\n')[-2].split()[4]
-    except sub.CalledProcessError:
-      return "unknown"
-    if qstat == "R" or qstat == "Q":
-      return "running"
+  # --------------------------------------------------------------
+  # Finds if any jobs in queue_ids are still in the queue.
+  def _job_status(self,queue_ids):
+    if type(queue_ids) != type([]):
+      # Try to keep a standard data type for the queue_ids.
+      # It's a list of strings, all ids must be done before continuing.
+      print("Warning: queue_ids had to be cast to list!")
+      print("Debug:",queue_ids)
+      qids = [queue_ids]
+    else: qids = queue_ids
+    status = "finished"
+    for qid in qids:
+      try:
+        qstat = sub.check_output(
+            "qstat %s"%qid, stderr=sub.STDOUT, shell=True
+          ).decode().split('\n')[-2].split()[4]
+      except sub.CalledProcessError:
+        # Non-bundled jobs might finish and be removed before others.
+        qstat = "C"
+      if qstat == "R" or qstat == "Q":
+        return "running"
     if qstat == "C" or qstat == "E":
-      return "finished"
+      status = "finished"
     return status
 
+  # --------------------------------------------------------------
   def _job_cancel(self,queue_id):
     print("Cancel was called, but not implemented")
 
+  # --------------------------------------------------------------
   def _qsub(self,exe,prep_commands=[],final_commands=[],
       name="",stdout="",loc=""):
     """ Helper function for executible submitters. 
@@ -59,7 +74,7 @@ class LocalTaubSubmitter(LocalSubmitter):
       "#PBS -m n",
       "#PBS -N %s"%name,
       "#PBS -o {0}".format(loc+"/qsub.out"),
-      "module load openmpi/1.4-gcc+ifort",
+      "module load openmpi/1.4-gcc+ifort"
     ]
     if self.np=="allprocs":
       exeline = "mpirun %s &> %s"%(exe, stdout)
@@ -76,6 +91,7 @@ class LocalTaubSubmitter(LocalSubmitter):
     print("Submitted as %s"%qid)
     return qid
 
+#####################################################################
 class LocalTaubCrystalSubmitter(LocalTaubSubmitter):
   """Fully defined submission class. Defines interaction with specific
   program to be run."""
@@ -96,6 +112,7 @@ class LocalTaubCrystalSubmitter(LocalTaubSubmitter):
     qid = self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
     return qid
 
+#####################################################################
 class LocalTaubPropertiesSubmitter(LocalTaubSubmitter):
   """Fully defined submission class. Defines interaction with specific
   program to be run."""
@@ -121,26 +138,30 @@ class LocalTaubPropertiesSubmitter(LocalTaubSubmitter):
     qid = self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
     return qid
 
+#####################################################################
 class LocalTaubQwalkSubmitter(LocalTaubSubmitter):
   """Fully defined submission class. Defines interaction with specific
   program to be run."""
-  def _submit_job(self,inpfn,outfn="stdout",jobname="",loc=""):
+  def _submit_job(self,inpfns,outfn="stdout",jobname="",loc=""):
     """ Submit a specific job to the queue. 
     
     Should not interact with user, and should receive only information specific
     to instance of a job run."""
-    exe = BIN+"qwalk %s"%inpfn
-    prep_commands=[]
-    final_commands=[]
+    qids = []
+    for inpfn in inpfns:
+      exe = BIN+"qwalk %s"%inpfn
+      prep_commands=[]
+      final_commands=[]
 
-    if jobname == "":
-      jobname = outfn
-    if loc == "":
-      loc = os.getcwd()
+      if jobname == "":
+        jobname = outfn
+      if loc == "":
+        loc = os.getcwd()
 
-    qid = self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
-    return qid
+      qids.append(self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc))
+    return qids
 
+#####################################################################
 class LocalTaubBundleQwalkSubmitter(LocalTaubSubmitter):
   """Fully defined submission class. Defines interaction with specific
   program to be run."""
@@ -149,7 +170,7 @@ class LocalTaubBundleQwalkSubmitter(LocalTaubSubmitter):
     
     Should not interact with user, and should receive only information specific
     to instance of a job run."""
-    exe = " ".join([BIN+"qwalk"]+inpfns)
+    exe = " ".join([BIN+"bin/qwalk"]+inpfns)
     prep_commands=[]
     final_commands=[]
 
@@ -158,5 +179,5 @@ class LocalTaubBundleQwalkSubmitter(LocalTaubSubmitter):
     if loc == "":
       loc = os.getcwd()
 
-    qid = self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
+    qid = [self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)]
     return qid
