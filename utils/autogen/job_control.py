@@ -68,6 +68,7 @@ def default_job_record(filename):
   job_record['qmc']['dmc']['excitations']='no'#VBM-CBM or other..
   job_record['qmc']['dmc']['save_trace']=True
 
+  job_record['qmc']['postprocess'] = {}
   job_record['qmc']['postprocess']['region_fluctuation'] = True
   job_record['qmc']['postprocess']['density'] = True
   job_record['qmc']['postprocess']['obdm'] = False
