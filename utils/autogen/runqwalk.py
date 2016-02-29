@@ -44,7 +44,7 @@ def crystal_patch_output(propname,outname,patchname):
 class NewCrystal2QWalk:
   _name_="NewCrystal2QWalk"
   def run(self,job_record):
-    convert_crystal(base="qw")
+    job_record['qmc']['kpoint_weights'] = convert_crystal(base="qw",kfmt='old')
     return 'ok'
   def check_status(self,job_record):
     outfilename="qw_0.sys"
@@ -63,7 +63,10 @@ class Crystal2QWalk:
   _name_="Crystal2QWalk"
   def run(self,job_record):
     crystal_patch_output("prop.in.o","autogen.d12.o","patched.o")
-    os.system("crystal2qmc -o qw patched.o > crystal2qmc.stdout")
+    if job_record['qmc']['kpoints'] == "complex":
+      os.system("crystal2qmc -c -o qw patched.o > crystal2qmc.stdout")
+    else:
+      os.system("crystal2qmc -o qw patched.o > crystal2qmc.stdout")
     return 'ok'
   def check_status(self,job_record):
     outfilename="qw_0.sys"
