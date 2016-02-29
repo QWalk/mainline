@@ -545,10 +545,10 @@ class QWalkRunMaximize:
   def __init__(self,submitter):
     self._submitter = submitter
 
-  def make_basename(self, k, n, w, s):
+  def make_basename(self, k, n, w):
     return "qw_%i.%s.n%i"%(k,w,n)
 
-  def make_kname(self, k, s):
+  def make_kname(self, k):
     return "qw_%i"%k
 
 #-----------------------------------------------
@@ -556,7 +556,6 @@ class QWalkRunMaximize:
     qmc_options = job_record['qmc']
     nconfiglist = qmc_options['maximize']['nconfig']
     w = qmc_options['maximize']['trialwf']
-    s = qmc_options['maximize']['system']
     if self._name_+'_jobid' not in job_record['control'].keys():
       job_record['control'][self._name_+'_jobid'] = []
       job_record['control']['queue_id'] = []
@@ -574,10 +573,10 @@ class QWalkRunMaximize:
 
     for k in kpts:
       for n in nconfiglist:
-          kname = self.make_kname(k, s)
-          basename = self.make_basename(k, n, w, s)
+          kname = self.make_kname(k)
+          basename = self.make_basename(k, n, w)
           f = open(basename+".max",'w')
-          f.write(self.maximizeinput(k, n, w, s))
+          f.write(self.maximizeinput(k, n, w))
           f.close()
           infiles.extend([basename+".max","opt.jast",kname+'.sys',kname+'.slater',kname+'.orb','qw.basis'])
           if restart:
@@ -601,20 +600,20 @@ class QWalkRunMaximize:
     return kpt_num
 
 #-----------------------------------------------
-  def maximizeinput(self, k, nconfig, wf, sys):
+  def maximizeinput(self, k, nconfig, wf):
     outlist = [
       "method { MAXIMIZE "+
       "NCONFIG %i "%nconfig+
       "}"]
-    outlist.append("include %s.sys"%self.make_kname(k,sys))
+    outlist.append("include %s.sys"%self.make_kname(k))
 
     if wf == "hf" or wf == "slater":
-      outlist.append("trialfunc { include %s.slater }"%self.make_kname(k,sys))
+      outlist.append("trialfunc { include %s.slater }"%self.make_kname(k))
     else:
       #outlist.append("trialfunc { include qw_0.opt.wfout }")
       outlist += [
         "trialfunc { slater-jastrow",
-        "wf1 { include %s.slater } "%self.make_kname(k,sys),
+        "wf1 { include %s.slater } "%self.make_kname(k),
         "wf2 { include opt.jast }",
         "}"
       ]
@@ -647,7 +646,7 @@ class QWalkRunMaximize:
 
     for k in kpts:
       for n in job_record['qmc']['maximize']['nconfig']:
-          logfilename = self.make_basename(k, n, w, s)+".max.table"
+          logfilename = self.make_basename(k, n, w)+".max.table"
           entry = {}
           entry['nconfig'] = n
           amp, locE, conf = self.extract_data(logfilename)
@@ -680,7 +679,7 @@ class QWalkRunMaximize:
     outfiles=[]
     for k in kpts:
       for n in job_record['qmc']['maximize']['nconfig']:
-          basename = self.make_basename(k, n, w, s)
+          basename = self.make_basename(k, n, w)
           outfiles.extend([basename+".max.table",
                           basename+".max.log",
                           basename+".max.config",
