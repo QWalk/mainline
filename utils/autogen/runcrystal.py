@@ -95,8 +95,8 @@ class RunCrystal:
       diagnose = diagnose_options[job_record['dft']['resume_mode']]
 
     status=self._submitter.status(job_record,self._name_)
-    if status=='running':
-      return status
+    if 'running' in status:
+      return 'running'
 
     self._submitter.transfer_output(job_record, ['autogen.d12.o', 'fort.9'])
     status=self.check_outputfile(outfilename)
