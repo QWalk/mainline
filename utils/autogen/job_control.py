@@ -59,9 +59,9 @@ def default_job_record(filename):
 
   job_record['qmc']['dmc']={}
   job_record['qmc']['dmc']['timestep']=[0.02]
-  job_record['qmc']['dmc']['jastrow']='twobody'
+  job_record['qmc']['dmc']['jastrow']=['twobody'] #or 'threebody'
   job_record['qmc']['dmc']['nblock']=16
-  job_record['qmc']['dmc']['optimizer']='variance' #or energy
+  job_record['qmc']['dmc']['optimizer']=['variance'] #or energy
   job_record['qmc']['dmc']['localization']=['tmoves']
   job_record['qmc']['dmc']['target_error']=0.01
   job_record['qmc']['dmc']['kpoints']='real' # or a list of numbers
@@ -79,18 +79,25 @@ def default_job_record(filename):
   job_record['qmc']['variance_optimize']['nruns']=3
   job_record['qmc']['variance_optimize']['reltol']=0.1
   job_record['qmc']['variance_optimize']['abstol']=1e3 # TODO better default.
+  job_record['qmc']['variance_optimize']['jastrow']=['twobody']
 
 
   job_record['qmc']['energy_optimize']={}
   job_record['qmc']['energy_optimize']['threshold']=0.001
   job_record['qmc']['energy_optimize']['vmc_nstep']=1000
+  job_record['qmc']['energy_optimize']['jastrow']=['twobody']
 
+
+
+  job_record['qmc']['maximize'] = {}
+  job_record['qmc']['maximize']['nconfig'] = [100]
+  job_record['qmc']['maximize']['jastrow']=['twobody']
 
   #Control options
   job_record['control']['id']=1
   job_record['control']['elements']=[]
   job_record['control']['pretty_formula']=''
-  job_record['control']['queue_id']=[None]
+  job_record['control']['queue_id']=[]
   return job_record
 
 def execute(record, element_list):
@@ -116,13 +123,13 @@ def execute(record, element_list):
 
   for element in element_list:
     status=element.check_status(record)
-    print(element._name_,"status",status)
+    print(element._name_,status)
     if status=='not_started':
       status=element.run(record)
-      print(element._name_,"status",status)
+      print(element._name_,status)
     if status=='not_finished':
       status=element.resume(record)
-      print(element._name_,"status",status)
+      print(element._name_,status)
     if status != 'ok':
       break
     record=element.output(record)

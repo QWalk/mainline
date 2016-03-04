@@ -14,7 +14,7 @@ class RemoteSubmitter:
     self.px_ftp = px_ftp
     self.remotePath = remotePath
     self.module = importlib.import_module(module)
-
+#---------------------------------------------------
   def execute(self, job_record, infiles, runfile, outfile):
     print("remotepath",self.remotePath)
     job_id = str(job_record['control']['id'])
@@ -32,7 +32,7 @@ class RemoteSubmitter:
     print('Submitting to queue...')
     job_record['control']['queue_id'] = [self.module.execute(self.px_ssh, runfile, outfile, str(job_record['control']['id']))]
     return job_record['control']['queue_id'][0]
-
+#---------------------------------------------------
   def status(self, job_record):
     job_id = str(job_record['control']['id'])
     self.px_ssh.sendline('cd ' + self.remotePath + job_id)
@@ -44,7 +44,7 @@ class RemoteSubmitter:
       return 'running'
     else:
       return 'not_running'
-
+#---------------------------------------------------
   def transfer_output(self, job_record, outfiles):
     job_id = str(job_record['control']['id'])
     self.px_ssh.sendline('cd ' + self.remotePath + job_id)
@@ -61,7 +61,7 @@ class RemoteSubmitter:
        
     self.px_ftp.expect('sftp>', timeout=None)
     self.px_ftp.sendline('pwd')
-      
+#---------------------------------------------------      
   def cancel(self, queue_id):
     output = []
     for q_id in queue_id:
@@ -70,33 +70,56 @@ class RemoteSubmitter:
 #####################################################################################
 
 class LocalSubmitter:
-  """Abstract submission class. Child classes must define initialization and
-  internal functions like _submit_job"""
-  
-  def execute(self,job_record,dependencies,inpfns,outfn):
+  """Abstract submission class. Child classes must define:
+  __init__: 
+     can have any parameters, but should set up any variables like queue time and number of
+     processor cores
+  _job_status(self,
+              queue_id : a string that identifies the queue id of the job
+              )
+  _submit_job(self,
+              inpfns : list of input filenames (list of strings)
+              outfn  : where stdout should be sent (string)
+              jobname : job name for the queue (string)
+              loc :  directory where job should be run (string)
+            )
+            returns a list of queue ids (list of strings)
+  """
+#---------------------------------------------------  
+  def execute(self,job_record,dependencies,inpfns,outfn,name):
     """Generate qsub file for this job, run it, and return qid from qsub
-    transaction."""
-    qid = job_record['control']['queue_id'] = self._submit_job(
+    transaction. 
+    Adds a an element in job_record['control']['queue_id'] with the queue id
+    qid: is a list
+    """
+    qid = self._submit_job(
         inpfns,
         outfn = outfn,
         jobname = job_record['control']['id'],
         loc = os.getcwd()
       )
-    job_record['control']['queue_id'] = qid
-    #job_record['control']['queue_id'] = [qid, job_record['control']['id']]
+    if not 'queue_id' in job_record['control'].keys():
+      job_record['control']['queue_id']=[]
+    for q in qid:
+      job_record['control']['queue_id'].append([name,q])
     return qid
-
-  def status(self,job_record):
-    try:
-      status = self._job_status(job_record['control']['queue_id'])
-    except KeyError:
-      status = "unknown"
+#---------------------------------------------------
+  def status(self,job_record,name):
+    """ Returns a list of job status elements """
+    if not 'queue_id' in job_record['control']:
+      return ['unknown']
+    status=[]
+    for q in job_record['control']['queue_id']:
+      if q[0]==name:
+        status.append(self._job_status(q[1]))
     return status
-
+#---------------------------------------------------
   def transfer_output(self,job_record,outfiles):
     pass # Files should be already available locally.
-
+#---------------------------------------------------
   def cancel(self, queue_id):
     output = []
     for q_id in queue_id:
       output.append(self._job_cancel(q_id))
+#####################################################################################
+      

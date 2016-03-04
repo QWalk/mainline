@@ -7,12 +7,12 @@ class RunCrystal:
   _name_="RunCrystal"
   def __init__(self, submitter):
     self._submitter = submitter
-
+#-------------------------------------------------      
   def run(self, job_record):
-    job_record['control']['queue_id'] = \
-        [self._submitter.execute(job_record, ['autogen.d12'],
-          'autogen.d12', 'autogen.d12.o')]
+    self._submitter.execute(job_record, ['autogen.d12'],
+          'autogen.d12', 'autogen.d12.o',self._name_)
     return 'running'
+#-------------------------------------------------      
 
   def output(self,job_record):
     """ Collect results from output."""
@@ -31,7 +31,7 @@ class RunCrystal:
           job_record['dft']['mag_moments']=moms
       
     return job_record
-
+#-------------------------------------------------      
   # This can be made more efficient if it's a problem: searches whole file for
   # each query.
   def check_outputfile(self,outfilename,acceptable_scf=0.0):
@@ -69,23 +69,23 @@ class RunCrystal:
       return "divergence"
     print("RunCrystal output: Not finished.")
     return "not_finished"
-
+#-------------------------------------------------      
   # Diagnose routines basically decide 'not_finished' or 'failed'
   def stubborn_diagnose(self,status):
     if status in ['too_many_cycles','not_finished']:
       return 'not_finished'
     else:
       return 'failed'
-
+#-------------------------------------------------      
   def optimistic_diagnose(self,status):
     if status == 'not_finished':
       return 'not_finished'
     else:
       return 'failed'
-
+#-------------------------------------------------      
   def conservative_diagnose(self,status):
     return 'failed'
-
+#-------------------------------------------------      
   def check_status(self,job_record):
     """ Decide status of job (in queue or otherwise). """
     outfilename="autogen.d12.o"
@@ -100,16 +100,14 @@ class RunCrystal:
     else:
       diagnose = diagnose_options[job_record['dft']['resume_mode']]
 
-    status=self.check_outputfile(outfilename)
-    if status=='ok':
-      return status
+    status=self._submitter.status(job_record,self._name_)
+    if 'running' in status:
+      return 'running'
 
     self._submitter.transfer_output(job_record, ['autogen.d12.o', 'fort.9'])
-    status=self._submitter.status(job_record)
-    if status=='running':
-      return status
     status=self.check_outputfile(outfilename)
-    if status == 'not_started':
+    print("status",status)
+    if status in ['not_started','ok']:
       return status
     status=diagnose(status)
     if status in ['ok','not_finished','failed']:
@@ -120,7 +118,7 @@ class RunCrystal:
       return 'not_started'
 
     return 'failed'
-
+#-------------------------------------------------      
   def add_guessp(self,inpfn):
     inplines = open(inpfn,'r').read().split('\n')
     if "GUESSP" not in inplines:
@@ -131,7 +129,7 @@ class RunCrystal:
     with open(inpfn,'w') as outf:
       outf.write('\n'.join(inplines))
     return None
-
+#-------------------------------------------------      
   def resume(self,job_record,maxresume=5):
     """ Continue a crystal run using GUESSP."""
     jobname = job_record['control']['id']
@@ -182,8 +180,7 @@ class RunProperties:
       os.system("properties < prop.in > prop.in.o")
       return 'ok'
     else:
-      job_record['control']['queue_id'] = \
-          [self._submitter.execute(job_record,["prop.in"], 'prop.in', 'prop.in.o')]
+      self._submitter.execute(job_record,["prop.in"], 'prop.in', 'prop.in.o',self._name_)
       return 'running'
 
   def check_outputfile(self,outfilename):
@@ -258,8 +255,7 @@ class NewRunProperties:
       os.system("properties < prop.in > prop.in.o")
       return 'ok'
     else:
-      job_record['control']['queue_id'] = \
-          [self._submitter.execute(job_record,["prop.in"], 'prop.in', 'prop.in.o')]
+      self._submitter.execute(job_record,["prop.in"], 'prop.in', 'prop.in.o',self._name_)
       return 'running'
 
   def check_outputfile(self,outfilename):
@@ -279,15 +275,12 @@ class NewRunProperties:
       return status
 
     if self._submitter!=None:
-      status=self._submitter.status(job_record)
+      status=self._submitter.status(job_record,self._name_)
       if status=='running':
         return status
       self._submitter.transfer_output(job_record, [outfilename, 'fort.9'])
       status=self.check_outputfile(outfilename)
-      if status=='ok':
-        self._submitter.cancel(job_record['control']['queue_id'])
-        return status
-      elif status=='not_finished' or status=='failed':
+      if status=='not_finished' or status=='failed':
         return status
     
     if not os.path.isfile(outfilename):

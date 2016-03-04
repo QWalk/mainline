@@ -17,15 +17,15 @@ element_list=[]
 element_list.append(cif2crystal.Cif2Crystal())
 element_list.append(runcrystal.RunCrystal(
   submitter=taub.LocalTaubCrystalSubmitter(
-    nn=1,time="0:05:00",queue="test")))
+    nn=1,time="0:05:00",queue="secondary")))
 element_list.append(runcrystal.RunProperties(
   submitter=taub.LocalTaubPropertiesSubmitter(
-    nn=1,np=1,time="0:05:00",queue="test")))
+    nn=1,np=1,time="0:05:00",queue="secondary")))
 #element_list.append(runcrystal.RunProperties())
 element_list.append(runqwalk.Crystal2QWalk())
 element_list.append(runqwalk.QWalkVarianceOptimize(
   submitter=taub.LocalTaubQwalkSubmitter(
-    nn=1,time="0:05:00",queue="test")))
+    nn=1,time="0:05:00",queue="secondary")))
 element_list.append(runqwalk.QWalkRunDMC(
   submitter=taub.LocalTaubBundleQwalkSubmitter(
     nn=2,time="0:30:00",queue="secondary")))
