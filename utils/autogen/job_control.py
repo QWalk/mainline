@@ -49,12 +49,13 @@ def default_job_record(filename):
 
 
   #QMC-specific options
+  job_record['qmc']['kpoints']='real' # or a list of numbers
   job_record['qmc']['vmc']={}
   #job_record['qmc']['vmc']['jastrow']='twobody'
   job_record['qmc']['vmc']['nblock']=100
   job_record['qmc']['vmc']['optimizer']='variance' #or 'energy' or None
   job_record['qmc']['vmc']['target_error']=0.01
-  job_record['qmc']['vmc']['kpoints']='real' # or a list of numbers
+  #job_record['qmc']['vmc']['kpoints']='real' # or a list of numbers
 
 
   job_record['qmc']['dmc']={}
@@ -64,7 +65,7 @@ def default_job_record(filename):
   job_record['qmc']['dmc']['optimizer']='variance' #or energy
   job_record['qmc']['dmc']['localization']=['tmoves']
   job_record['qmc']['dmc']['target_error']=0.01
-  job_record['qmc']['dmc']['kpoints']='real' # or a list of numbers
+  #job_record['qmc']['dmc']['kpoints']='real' # or a list of numbers
   job_record['qmc']['dmc']['excitations']='no'#VBM-CBM or other..
   job_record['qmc']['dmc']['save_trace']=True
 
