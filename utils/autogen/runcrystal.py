@@ -200,8 +200,8 @@ class RunProperties:
       return status
 
     if self._submitter!=None:
-      status=self._submitter.status(job_record)
-      if status=='running':
+      status=self._submitter.status(job_record,self._name_)
+      if 'running' in status:
         return status
       self._submitter.transfer_output(job_record, [outfilename, 'fort.9'])
       status=self.check_outputfile(outfilename)

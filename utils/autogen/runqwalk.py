@@ -239,7 +239,7 @@ wf2 { include qw.%s }
       job_record, 
       ['qw_0.opt','qw_0.sys','qw_0.slater','qw_0.orb','qw.basis','qw.%s'%jast], 
       'qw_0.opt',
-      'qw_0.opt.stdout',self._name_)]
+      'qw_0.opt.stdout',self._name_)
     
     return 'running'
 #------------------------------------------------------
@@ -677,6 +677,7 @@ class QWalkRunDMC:
 
     #Now check on the runs
     ret=self.collect_runs(job_record)
+    print("Debug:",ret)
     if len(ret)==0:
       return "not_started"
     if len(ret) != len(infns):
