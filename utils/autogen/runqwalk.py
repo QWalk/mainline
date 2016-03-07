@@ -617,7 +617,7 @@ class QWalkRunDMC:
     outlist += [
         "}",
         "include qw_%i.sys"%k,
-        "trialfunc { include qw_%i.%s.%s.wfout"%(k,jast,opt_trans[opt]),
+        "trialfunc { include qw_0.%s.%s.wfout"%(jast,opt_trans[opt]),
         "}"
       ]
     outstr = '\n'.join(outlist)
@@ -643,7 +643,9 @@ class QWalkRunDMC:
           for jast in options['jastrow']:
             for opt in options['optimizer']:
               basename=self.gen_basename(k,t,loc,jast,opt)
+              print("Debug basename",basename)
               if os.path.isfile("%s.dmc.log"%basename):
+                print("Debug base check")
                 entry={}
                 entry['knum']=k
                 entry['timestep']=t
@@ -677,7 +679,7 @@ class QWalkRunDMC:
 
     #Now check on the runs
     ret=self.collect_runs(job_record)
-    print("Debug:",ret)
+    print("Debug:",len(ret))
     if len(ret)==0:
       return "not_started"
     if len(ret) != len(infns):
@@ -711,7 +713,6 @@ class QWalkRunDMC:
   def output(self,job_record):
     job_record['qmc']['dmc']['results']=self.collect_runs(job_record)
     return job_record
-
 
 ####################################################
 
