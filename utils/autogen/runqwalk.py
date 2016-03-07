@@ -556,7 +556,7 @@ class QWalkRunDMC:
     if 'cif' in job_record.keys():
       calc_sk=True
     # Make and submit the runs: bundle all jobs.
-    infiles = []# Dependencies. 
+    depfns = []# Dependencies. 
     inpfns = [] #DMC inputs
     for k in kpts:
       for t in options['timestep']:
@@ -572,19 +572,20 @@ class QWalkRunDMC:
               f.close()
 
 #Warning: remote may not be working with this..
-              infiles.extend([basename+".dmc",
+              depfns.extend([basename+".dmc",
                              "opt.jast",
                              kname+'.sys',
                              kname+'.slater',
                              kname+'.orb',
                              'qw.basis'])
               if restart:
-                infiles.extend([basename+'.dmc.config',basename+'.dmc.log'])
+                depfns.extend([basename+'.dmc.config',basename+'.dmc.log'])
               inpfns.append(basename+".dmc")
 
     self._submitter.execute(
       job_record,
-      infiles,       inpfns,  # Actual DMC inputs.
+      depfns,
+      inpfns,  # Actual DMC inputs.
       "qw.dmc.stdout",
       self._name_)
     return 'running'
@@ -600,6 +601,7 @@ class QWalkRunDMC:
     for kp in kpts:
       kpt_num.append(int(re.findall(r'\d+',kp)[0]))
     return kpt_num
+
 #-----------------------------------------------
   def dmcinput(self,k,t,loc,jast,opt,nblock=16,save_trace=False,sk=False):
     basename=self.gen_basename(k,t,loc,jast,opt)
@@ -631,8 +633,8 @@ class QWalkRunDMC:
         if 'Wall' in line:
           return 'ok'
       return 'running'
-#-----------------------------------------------
 
+#-----------------------------------------------
   def collect_runs(self,job_record):
     ret=[]
     options=job_record['qmc']['dmc']
@@ -643,9 +645,7 @@ class QWalkRunDMC:
           for jast in options['jastrow']:
             for opt in options['optimizer']:
               basename=self.gen_basename(k,t,loc,jast,opt)
-              print("Debug basename",basename)
               if os.path.isfile("%s.dmc.log"%basename):
-                print("Debug base check")
                 entry={}
                 entry['knum']=k
                 entry['timestep']=t
@@ -656,6 +656,7 @@ class QWalkRunDMC:
                 entry['results']=json.load(open("%s.json"%basename))
                 ret.append(entry)
     return ret
+
 #-----------------------------------------------
   def check_status(self,job_record):
     
@@ -679,7 +680,6 @@ class QWalkRunDMC:
 
     #Now check on the runs
     ret=self.collect_runs(job_record)
-    print("Debug:",len(ret))
     if len(ret)==0:
       return "not_started"
     if len(ret) != len(infns):
@@ -742,7 +742,7 @@ class QWalkRunMaximize:
       elif qmc_options['dmc']['optimizer']=='energy':
         os.system("separate_jastrow qw_0.enopt.wfout > opt.jast")
 
-    infiles = []
+    depfns = []
     inpfns = []
     kpts=self.get_kpts(job_record)
 
@@ -753,14 +753,14 @@ class QWalkRunMaximize:
           f = open(basename+".max",'w')
           f.write(self.maximizeinput(k, n, w, s))
           f.close()
-          infiles.extend([basename+".max","opt.jast",kname+'.sys',kname+'.slater',kname+'.orb','qw.basis'])
+          depfns.extend([basename+".max","opt.jast",kname+'.sys',kname+'.slater',kname+'.orb','qw.basis'])
           if restart:
-            infiles.extend([basename+".max.config",basename+".max.log"])
+            depfns.extend([basename+".max.config",basename+".max.log"])
           inpfns.append(basename+".max")
 
     qid = self._submitter.execute(
       job_record,
-      infiles, # Dependencies. This naming needs to be less redundant
+      depfns, # Dependencies. This naming needs to be less redundant
       inpfns, # Actual MAXIMIZE inputs
       "qw.max.sdout")
 
@@ -896,45 +896,50 @@ class QWalkRunPostProcess:
   #-----------------------------------------------
   def __init__(self,submitter):
     self._submitter=submitter
+
   #-----------------------------------------------
   def run(self,job_record,restart=False):
-    qmc_options=job_record['qmc']
+    options=job_record['qmc']['dmc']
     kpts=self.get_kpts(job_record)
     
-    #choose which wave function to use
-    if not restart:
-      if qmc_options['vmc']['optimizer']=='variance':
-        os.system("separate_jastrow qw_0.opt.wfout > opt.jast")
-      elif qmc_options['vmc']['optimizer']=='energy':
-        os.system("separate_jastrow qw_0.enopt.wfout > opt.jast")
-      elif qmc_options['vmc']['optimizer']==None:
-        shutil.copy("qw.jast2","opt.jast")
-      else:
-        print("Warning: didn't understand optimizer option!")
-
+    calc_sk=False
+    if 'cif' in job_record.keys():
+      calc_sk=True
     # Make and submit the runs: bundle all jobs.
-    infiles = []
-    inpfns = []
+    depfns = [] # Dependencies. 
+    inpfns = [] # DMC inputs
     for k in kpts:
-      for t in qmc_options['dmc']['timestep']:
-        for loc in qmc_options['dmc']['localization']:
-          kname="qw_%i"%k
-          basename="qwt%g%s_%i"%(t,loc,k)
-          f=open(basename+".post",'w')
-          f.write(self.postprocessinput(t,loc,k,qmc_options['postprocess']))
-          f.close()
-          infiles.extend([basename+".post","opt.jast",kname+'.sys',kname+'.slater',
-              kname+'.orb','qw.basis'])
-          if restart:
-            infiles.extend([basename+'.post.config',basename+'.post.log'])
-          inpfns.append(basename+".post")
+      for t in options['timestep']:
+        for loc in options['localization']:
+          for jast in options['jastrow']:
+            for opt in options['optimizer']:
+              kname="qw_%i"%k
+              basename=self.gen_basename(k,t,loc,jast,opt)
+              f=open(basename+".post",'w')
+              f.write(self.postprocessinput(k,t,loc,jast,opt,
+                job_record['qmc']['postprocess']))
+              f.close()
 
-    qid = self._submitter.execute(
+#Warning: remote may not be working with this..
+              depfns.extend([basename+".post",
+                             "opt.jast",
+                             kname+'.sys',
+                             kname+'.slater',
+                             kname+'.orb',
+                             'qw.basis'])
+              inpfns.append(basename+".post")
+
+    self._submitter.execute(
       job_record,
-      infiles, # Dependencies. This naming needs to be less redundant.
-      inpfns,  # Actual DMC inputs.
-      "qw.post.stdout")
+      depfns, inpfns,
+      "qw.post.stdout",
+      self._name_)
     return 'running'
+
+  #-----------------------------------------------
+  def gen_basename(self,k,t,loc,jast,opt):
+    return "qw_%i_%s_%g_%s_%s"%(k,jast,t,opt,loc)
+
   #-----------------------------------------------
   def get_kpts(self, job_record):
     kpts=glob.glob("qw*.sys")
@@ -942,6 +947,7 @@ class QWalkRunPostProcess:
     for kp in kpts:
       kpt_num.append(int(re.findall(r'\d+',kp)[0]))
     return kpt_num
+
   #-----------------------------------------------
   def check_outputfile(self,outfilename):
     if os.path.isfile(outfilename):
@@ -950,6 +956,7 @@ class QWalkRunPostProcess:
         if 'Wall' in line:
           return 'ok'
       return 'running'
+
   #-----------------------------------------------
   def get_warmup(self,logfilename):
     os.system("gosling %s > %s.stdout"%(logfilename,logfilename))
@@ -961,14 +968,15 @@ class QWalkRunPostProcess:
         nwarm=int(spl[4])
         return nwarm
     return nwarm
+
   #-----------------------------------------------
-  def postprocessinput(self,ts,loc,kpt,ppr_options):
-    basename="qwt%g%s_%i"%(ts,loc,kpt)
+  def postprocessinput(self,k,t,loc,jast,opt,ppr_options):
+    basename=self.gen_basename(k,t,loc,jast,opt)
     nwarmup = self.get_warmup("%s.dmc.log"%basename)
     print("nwarmup:",nwarmup)
     outlist = [
         "method { postprocess ",
-        "readconfig %s.dmc.trace"%basename, #TODO generalize non-DMC.
+        "readconfig %s.trace"%basename,
         "noenergy",
         "average { region_fluctuation }"
       ]
@@ -989,80 +997,92 @@ class QWalkRunPostProcess:
             "mode obdm",
             "include qw_%s"%kpt,
             "}"
-            ]
+          ]
       else:
         print("Since min basis wasn't defined, postprocess can't do OBDM.")
+    opt_trans={"energy":"enopt","variance":"opt"}
     outlist += [
         "}",
-        "include qw_%i.sys"%kpt,
-        "trialfunc { slater-jastrow",
-        "wf1 { include qw_%i.slater } "%kpt,
-        "wf2 { include opt.jast }",
+        "include qw_%i.sys"%k,
+        "trialfunc { include qw_0.%s.%s.wfout"%(jast,opt_trans[opt]),
         "}"
       ]
     outstr = '\n'.join(outlist)
     return outstr
+
   #-----------------------------------------------
   def collect_runs(self,job_record):
     ret=[]
+    options=job_record['qmc']['dmc']
     kpts=self.get_kpts(job_record)
     for k in kpts:
-      for t in job_record['qmc']['dmc']['timestep']:
-        for loc in job_record['qmc']['dmc']['localization']:
-          kname="qw_%i"%k
-          basename="qwt%g%s_%i"%(t,loc,k)
-          entry={}
-          entry['knum']=k
-          if os.path.isfile(basename+".post.o"):
-            nfres = map(lambda x:x.tolist(),
-                nf.read_number_dens(open(basename+".post.o")))
-            entry['number_fluctuation']=nfres
-          else:
-            entry['number_fluctuation']=(None,None)
-          #entry['density']=...
-          #entry['obdm']=...
-          #entry['tbdm']=...
-          entry['timestep']=t
-          entry['localization']=loc
-          ret.append(entry)
+      for t in options['timestep']:
+        for loc in options['localization']:
+          for jast in options['jastrow']:
+            for opt in options['optimizer']:
+              basename=self.gen_basename(k,t,loc,jast,opt)
+              print("Debug basename",basename)
+              if os.path.isfile("%s.post.o"%basename):
+                nfres = map(lambda x:x.tolist(),
+                    nf.read_number_dens(open(basename+".post.o")))
+                entry['number_fluctuation']=nfres
+                #entry['density']=...
+                #entry['obdm']=...
+                #entry['tbdm']=...
+                entry['timestep']=t
+                entry['localization']=loc
+                ret.append(entry)
     return ret
+
   #-----------------------------------------------
   def check_status(self,job_record):
-    results=self.collect_runs(job_record)
+    options=job_record['qmc']['dmc']
+    kpts=self.get_kpts(job_record)
+    infns = [] #DMC inputs
+    for k in kpts:
+      for t in options['timestep']:
+        for loc in options['localization']:
+          for jast in options['jastrow']:
+            for opt in options['optimizer']:
+              infns.append(self.gen_basename(k,t,loc,jast,opt))
     
-    status='ok'
-    for e in results:
-      print("Postprocess",e['knum'],e['number_fluctuation'] != (None,None))
-      if e['number_fluctuation'][0] is None:
-        status='failed'
-    print("initial status",status)
-    if status=='ok':
-      return status
+    #Check on the submitter. If still running report that.
+    status=self._submitter.status(job_record,self._name_)
+    if 'running' in status:
+      return 'running'
+    
+    #If not running, try to transfer files.
+    self._submitter.transfer_output(job_record, infns)
 
-    outfiles=[]
-    for k in self.get_kpts(job_record):
-      for t in job_record['qmc']['dmc']['timestep']:
-        for local in job_record['qmc']['dmc']['localization']:
-          basename="qwt%g%s_%i"%(t,local,k)
-          outfiles.extend([basename+'.post.o'])
-    self._submitter.transfer_output(job_record, outfiles)
-    status=self._submitter.status(job_record)
-    print("status",status)
-    if status=='running':
-      return status
+    #Now check on the runs
+    ret=self.collect_runs(job_record)
+    if len(ret)==0:
+      return "not_started"
+    if len(ret) != len(infns):
+      print("There are no jobs running and not enough .log files. Not sure what's going on.")
+      quit()
+    
+    statuses=[]
+    thresh=options['target_error']
+    for r in ret:
+      if 'number_fluctuation' in r.keys():
+        statuses.append("ok")
+      else:
+        status.append("not_finished")
+    #Finally, decide what to do
+    if len(set(statuses))==1:
+      return statuses[0]
+    if 'not_finished' in statuses:
+      return 'not_finished'
+    #We may have some failed and some not..
+    print("Not sure what to do right now..")
+    print(statuses)
+    quit()
 
-    if not os.path.isfile(outfiles[0]):
-      return 'not_started'
-
-    results=self.collect_runs(job_record)
-    status='ok'
-    for e in results:
-      if e['number_fluctuation'][0] is None:
-        status='failed'
-    return status
   #-----------------------------------------------
   def resume(self,job_record):
     return self.run(job_record,restart=True)
+
   #-----------------------------------------------
   def output(self,job_record):
     job_record['qmc']['postprocess']['results']=self.collect_runs(job_record)
