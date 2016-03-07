@@ -285,6 +285,10 @@ void Average_ekt::evaluate_valence(Wavefunction_data * wfdata, Wavefunction * wf
             //tmp3 = -1.0*psiratio_1b*conj(movals1_base(e)(orbnum, 0))*(vtot*movals_lap(orbnum2, 0)
             //						 + pseudo_t(orbnum2) - 0.5*movals_lap(orbnum2, 4) + Vtest(nelectrons)*movals_lap(orbnum2, 0))/(dist1*npoints_eval);
             tmp3 = -1.0*conj(movals1_base(e)(orbnum, 0))*movals_p(orbnum2, 0)*prefactor*(VLoc(e) + Kin(e, 0) + totalv(e, 0) + Vtest(e));
+            doublevar tmp3_mag=abs(tmp3);
+            if(tmp3_mag > ekt_cutoff) {
+              tmp3*=ekt_cutoff/tmp3_mag;
+            }
             avg.vals(nmo+8*nmo*nmo + 2*which_obdm*nmo*nmo+place) += tmp3.real();
             avg.vals(nmo+8*nmo*nmo + 2*which_obdm*nmo*nmo+place+1) += tmp3.imag();
           }
