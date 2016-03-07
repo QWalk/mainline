@@ -1,12 +1,16 @@
-# RunCrystal for Taub
+# RunCrystal for Veritas
 import subprocess as sub
 from submission_tools import LocalSubmitter
 import os
 
-#####################################################################
+# Where are your executables stored?
+BIN = "/home/brian/bin/"
+
+if BIN[-1] != '/': BIN += '/'
+##########################################################
 class LocalVeritasSubmitter(LocalSubmitter):
   """Abstract submission class. Defines interaction with the queuing system."""
-  # --------------------------------------------------------------
+#-------------------------------------------------------  
   def __init__(self,time='72:00:00',nn=1,np='allprocs', queue='batch'):
     """ Initialize a submitter object. 
 
@@ -17,40 +21,27 @@ class LocalVeritasSubmitter(LocalSubmitter):
     self.nn    = nn
     self.np    = np
     self.queue = queue
-
-  # --------------------------------------------------------------
-  # Finds if any jobs in queue_ids are still in the queue.
-  def _job_status(self,queue_ids):
-    if type(queue_ids) != type([]):
-      # Try to keep a standard data type for the queue_ids.
-      # It's a list of strings, all ids must be done before continuing.
-      print("Warning: queue_ids had to be cast to list!")
-      print("Debug:",queue_ids)
-      qids = [queue_ids]
-    else: qids = queue_ids
-    status = "finished"
-    for qid in qids:
-      try:
-        qstat = sub.check_output(
-            "qstat %s"%qid, stderr=sub.STDOUT, shell=True
-          ).decode().split('\n')[-2].split()[4]
-      except sub.CalledProcessError:
-        # Non-bundled jobs might finish and be removed before others.
-        qstat = "C"
-      if qstat == "R" or qstat == "Q":
-        return "running"
+#-------------------------------------------------------
+  def _job_status(self,queue_id):
+    status = "unknown"
+    try:
+      qstat = sub.check_output(
+          "qstat %s"%queue_id, stderr=sub.STDOUT, shell=True
+        ).decode().split('\n')[-2].split()[4]
+    except sub.CalledProcessError:
+      return "unknown"
+    if qstat == "R" or qstat == "Q":
+      return "running"
     if qstat == "C" or qstat == "E":
       status = "finished"
     return status
-
-  # --------------------------------------------------------------
+#-------------------------------------------------------
   def _job_cancel(self,queue_id):
     print("Cancel was called, but not implemented")
-
-  # --------------------------------------------------------------
+#-------------------------------------------------------
   def _qsub(self,exe,prep_commands=[],final_commands=[],
       name="",stdout="",loc=""):
-    """ Helper function for executible submitters. 
+    """ Helper function for executable submitters. 
     Should work in most cases to simplify code."""
 
     if stdout=="": stdout="stdout"
@@ -68,7 +59,7 @@ class LocalVeritasSubmitter(LocalSubmitter):
       "#PBS -j oe",
       "#PBS -m n",
       "#PBS -N %s"%name,
-      "#PBS -o {0}".format(loc+"/qsub.out")
+      "#PBS -o {0}".format(loc+"/qsub.out"),
     ]
     if self.np=="allprocs":
       exeline = "mpirun %s &> %s"%(exe, stdout)
@@ -83,7 +74,8 @@ class LocalVeritasSubmitter(LocalSubmitter):
     result = sub.check_output("qsub %s"%(loc+"/qsub.in"),shell=True)
     qid = result.decode().split()[0]
     print("Submitted as %s"%qid)
-    return qid
+    return [qid]
+###############################################################
 
 #####################################################################
 class LocalVeritasCrystalSubmitter(LocalVeritasSubmitter):
@@ -94,7 +86,7 @@ class LocalVeritasCrystalSubmitter(LocalVeritasSubmitter):
     
     Should not interact with user, and should receive only information specific
     to instance of a job run."""
-    exe = "/home/brian/bin/Pcrystal"
+    exe = BIN+"Pcrystal"
     prep_commands=["cp %s INPUT"%inpfn]
     final_commands = ["rm *.pe[0-9]","rm *.pe[0-9][0-9]"]
 
@@ -105,8 +97,7 @@ class LocalVeritasCrystalSubmitter(LocalVeritasSubmitter):
 
     qid = self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
     return qid
-
-#####################################################################
+###############################################################
 class LocalVeritasPropertiesSubmitter(LocalVeritasSubmitter):
   """Fully defined submission class. Defines interaction with specific
   program to be run."""
@@ -115,7 +106,7 @@ class LocalVeritasPropertiesSubmitter(LocalVeritasSubmitter):
     
     Should not interact with user, and should receive only information specific
     to instance of a job run."""
-    exe = "/home/brian/bin/properties < %s"%inpfn
+    exe = BIN+"properties < %s"%inpfn
     prep_commands = []
     final_commands = []
 
@@ -131,6 +122,7 @@ class LocalVeritasPropertiesSubmitter(LocalVeritasSubmitter):
 
     qid = self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
     return qid
+###############################################################
 
 #####################################################################
 class LocalVeritasQwalkSubmitter(LocalVeritasSubmitter):
@@ -141,19 +133,21 @@ class LocalVeritasQwalkSubmitter(LocalVeritasSubmitter):
     
     Should not interact with user, and should receive only information specific
     to instance of a job run."""
-    qids = []
-    for inpfn in inpfns:
-      exe = "/home/brian/bin/qwalk %s"%inpfn
-      prep_commands=[]
-      final_commands=[]
+    prep_commands=[]
+    final_commands=[]
+    qid=[]
+    
+    for f in inpfns:
+      exe = BIN+"qwalk %s"%f
 
       if jobname == "":
         jobname = outfn
       if loc == "":
         loc = os.getcwd()
 
-      qids.append(self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc))
-    return qids
+      qid+=self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
+    return qid
+###############################################################
 
 #####################################################################
 class LocalVeritasBundleQwalkSubmitter(LocalVeritasSubmitter):
@@ -164,7 +158,7 @@ class LocalVeritasBundleQwalkSubmitter(LocalVeritasSubmitter):
     
     Should not interact with user, and should receive only information specific
     to instance of a job run."""
-    exe = " ".join(["/home/brian/bin/qwalk"]+inpfns)
+    exe = " ".join([BIN+"bin/qwalk"]+inpfns)
     prep_commands=[]
     final_commands=[]
 
@@ -175,3 +169,5 @@ class LocalVeritasBundleQwalkSubmitter(LocalVeritasSubmitter):
 
     qid = [self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)]
     return qid
+###############################################################
+  

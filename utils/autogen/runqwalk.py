@@ -859,7 +859,6 @@ class QWalkRunMaximize:
                           basename+".max.config",
                           basename+".max.o"])
 
-    print(outfiles)
     self._submitter.transfer_output(job_record, outfiles)
     status=self._submitter.status(job_record)
     print("status",status)
