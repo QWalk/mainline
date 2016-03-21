@@ -55,7 +55,10 @@ void Postprocess_method::read(vector <string> words,
     avg_words.push_back(tmp_dens);
   }
 
+  json_output=true;
+  if(haskeyword(words,pos=0,"NO_JSON")) json_output=false;
   
+  json_file=options.runid+".json";
   sys=NULL;
   allocate(options.systemtext[0],  sys);
   sys->generatePseudo(options.pseudotext, pseudo);
@@ -141,6 +144,10 @@ void Postprocess_method::run(Program_options & options, ostream & output) {
     
   }
   postavg.print(average_var,output);
+  if(json_output) {
+    ofstream json_out(json_file.c_str());
+    postavg.JsonOutput(average_var,json_out);
+  }
 #endif //USE_MPI
   for(int i=0; i< densplt.GetDim(0); i++) densplt(i)->write();
 
