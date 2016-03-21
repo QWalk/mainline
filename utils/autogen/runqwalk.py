@@ -50,10 +50,18 @@ class Crystal2QWalk:
       os.system("crystal2qmc -o qw patched.o > crystal2qmc.stdout")
     elif job_record['qmc']['dmc']['kpoints']=='all':
       os.system("crystal2qmc -c -o qw patched.o > crystal2qmc.stdout")
-    else:
+    elif type(job_record['qmc']['dmc']['kpoints']) == list and all([i.isdigit() for i in job_record['qmc']['dmc']['kpoints']]):
       os.system("crystal2qmc -c -o qw patched.o > crystal2qmc.stdout")
-      for k in job_record['qmc']['dmc']['kpoints']:
-        os.system("rm qw_%s.*" %(k))
+      kpts=glob.glob("qw*.sys")
+      kpt_num=[]
+      for kp in kpts:
+        kpt_num.append(int(re.findall(r'\d+',kp)[0]))
+      for k in kpt_num:
+        if k not in job_record['qmc']['dmc']['kpoints']:
+          os.system("rm qw_%s.*" %(k))
+    else:
+      print('Error in kpoints input.')
+      quit()
 
     return 'ok'
   def check_status(self,job_record):
