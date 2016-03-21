@@ -40,48 +40,48 @@ for alpha in [0.1]:
 
 
 # PX Tools #
-ssh_taub = pxssh.pxssh()
-ssh_taub.login(host, username)
-ftp_taub = pexpect.spawn('sftp '+ username + '@' + host)
-ftp_taub.delaybeforesend = 0.5
+#ssh_taub = pxssh.pxssh()
+#ssh_taub.login(host, username)
+#ftp_taub = pexpect.spawn('sftp '+ username + '@' + host)
+#ftp_taub.delaybeforesend = 0.5
 
-ssh_taub.setecho(True)
-ftp_taub.setecho(True)
+#ssh_taub.setecho(True)
+#ftp_taub.setecho(True)
 
 # Submitters #
-sub_crystal = submission_tools.RemoteSubmitter(
-  ssh_taub, 
-  ftp_taub, 
-  'subcrystal_taub', 
-  directory)
+#sub_crystal = submission_tools.RemoteSubmitter(
+#  ssh_taub, 
+#  ftp_taub, 
+#  'subcrystal_taub', 
+#  directory)
 
-sub_qmc_var = submission_tools.RemoteSubmitter(
-  ssh_taub,
-  ftp_taub,
-  'subqwalk_taub',
-  directory)
+#sub_qmc_var = submission_tools.RemoteSubmitter(
+#  ssh_taub,
+#  ftp_taub,
+#  'subqwalk_taub',
+#  directory)
 
-sub_qmc_en = submission_tools.RemoteSubmitter(
-  ssh_taub,
-  ftp_taub,
-  'subqwalk_taub',
-  directory)
+#sub_qmc_en = submission_tools.RemoteSubmitter(
+#  ssh_taub,
+#  ftp_taub,
+#  'subqwalk_taub',
+#  directory)
 
-sub_dmc = submission_tools.RemoteSubmitter(
-  ssh_taub,
-  ftp_taub,
-  'subqwalk_taub',
-  directory)
+#sub_dmc = submission_tools.RemoteSubmitter(
+#  ssh_taub,
+#  ftp_taub,
+#  'subqwalk_taub',
+#  directory)
 
 #now we define the job sequence
 element_list=[]
 element_list.append(cif2crystal.Cif2Crystal())
-element_list.append(runcrystal.RunCrystal(sub_crystal))
-element_list.append(runcrystal.RunProperties())
-element_list.append(runqwalk.Crystal2QWalk())
-element_list.append(runqwalk.QWalkVarianceOptimize(sub_qmc_var))
-element_list.append(runqwalk.QWalkEnergyOptimize(sub_qmc_en))
-element_list.append(runqwalk.QWalkRunDMC(sub_dmc))
+#element_list.append(runcrystal.RunCrystal(sub_crystal))
+#element_list.append(runcrystal.RunProperties())
+#element_list.append(runqwalk.Crystal2QWalk())
+#element_list.append(runqwalk.QWalkVarianceOptimize(sub_qmc_var))
+#element_list.append(runqwalk.QWalkEnergyOptimize(sub_qmc_en))
+#element_list.append(runqwalk.QWalkRunDMC(sub_dmc))
 
 job_list = job_control.execute(job_list,element_list)
 

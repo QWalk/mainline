@@ -33,6 +33,7 @@ def default_job_record(ciffile):
   job_record['dft']['restart_from']=None
 
   #QMC-specific options
+
   job_record['qmc']['dmc']={}
   job_record['qmc']['dmc']['timestep']=[0.02]
   job_record['qmc']['dmc']['jastrow']='twobody'
@@ -42,7 +43,6 @@ def default_job_record(ciffile):
   job_record['qmc']['dmc']['target_error']=0.01
   job_record['qmc']['dmc']['kpoints']='real' # or a list of numbers
   job_record['qmc']['dmc']['excitations']='no'#VBM-CBM or other..
-
 
   job_record['qmc']['variance_optimize']={}
   job_record['qmc']['variance_optimize']['niterations']=10

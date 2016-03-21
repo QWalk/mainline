@@ -2,6 +2,7 @@ from __future__ import print_function
 from xml.etree.ElementTree import ElementTree
 from pymatgen.io.cifio import CifParser
 from pymatgen.core.periodic_table import Element
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 import os
 from io import StringIO 
 import sys
@@ -177,6 +178,45 @@ def cif2geom(ciffile):
       geomlines+=[nm+" %g %g %g"%(v['abc'][0],v['abc'][1],v['abc'][2])]
 
   return geomlines,primstruct
+
+######################################################################
+
+def cif2geom_sym(ciffile):
+  parser=CifParser(ciffile)
+  struct=parser.get_structures()[0]
+  sg = SpacegroupAnalyzer(struct)
+  struc = sg.get_conventional_standard_structure()
+  sg = SpacegroupAnalyzer(struct)
+
+  geomlines=["CRYSTAL"]
+  geomlines += ["0 %s 0" %(int(sg.get_lattice_type()=='rhombohedral'))]
+  geomlines += [str(sg.get_spacegroup_number())]
+  cry_sys = sg.get_crystal_system()
+  sym_str = sg.get_symmetrized_structure()
+  lattice = sym_str.lattice
+
+  if cry_sys == 'trigonal' or cry_sys == 'hexagonal' or cry_sys == 'tetragonal':
+    geomlines += ["%s %s" %(lattice.a,lattice.c)]
+  elif cry_sys == 'cubic':
+    geomlines += ["%s" %(lattice.a)]
+  elif cry_sys == 'triclinic':
+    geomlines += ["%s %s %s %s %s %s" %(lattice.a,lattice.b,lattice.c,lattice.alpha,lattice.beta,lattice.gamma)]
+  elif cry_sys == 'monoclinic':
+    geomlines += ["%s %s %s %s" %(lattice.a,lattice.b,lattice.c,lattice.beta)]
+  elif cry_sys == 'orthorhombic':
+    geomlines += ["%s %s %s" %(lattice.a,lattice.b,lattice.c)]
+  else:
+    print('Error printing symmetrized structure.')
+    quit()
+  
+  geomlines += [str(len(sym_str.equivalent_sites))]
+  for eq_site in sym_str.equivalent_sites:
+    site = eq_site[0]
+    geomlines += ["%s %s %s %s" %(site.specie.Z+200,site.a,site.b,site.c)]
+
+  return geomlines,struct
+
+
 
 ######################################################################
 
