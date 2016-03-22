@@ -26,6 +26,7 @@ def default_job_record(filename):
   job_record['total_spin']=0
 
   #DFT-specific options
+  job_record['dft']['symmetrized'] = False # True to use spacegroup symmetry, False for primitive symmetry
   job_record['dft']['functional']={'exchange':'PBE','correlation':'PBE','hybrid':25}
   job_record['dft']['basis']=[0.2,3,3]
   job_record['dft']['kmesh']=[8,8,8]
@@ -49,7 +50,7 @@ def default_job_record(filename):
 
   #QMC-specific options
   job_record['qmc']['kpoints']='real' # or 'all' for both real and complex valued k-points
-  
+
   job_record['qmc']['dmc']={}
   job_record['qmc']['dmc']['timestep']=[0.02]
   job_record['qmc']['dmc']['jastrow']=['twobody'] #or 'threebody'

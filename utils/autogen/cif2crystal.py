@@ -278,7 +278,13 @@ class Cif2Crystal:
       print("ERROR: only support BFD pseudoptentials for now")
       quit()
 
-    geomlines,primstruct=cif2geom_sym2(job_record['cif'])
+    if job_record['dft']['symmetrized'] == False:
+      geomlines,primstruct=cif2geom(job_record['cif'])
+    elif job_record['dft']['symmetrized'] == True:
+      geomlines,primstruct=cif2geom_sym2(job_record['cif'])
+    else:
+      print('Improper input for "symmetrized" keyword. Value must be True or False.')
+      quit()
     basislines=basis_section(primstruct,job_record['dft']['basis'],
                               job_record['dft']['initial_charges'])
     supercell=["SUPERCEL"]
