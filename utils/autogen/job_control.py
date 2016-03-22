@@ -48,6 +48,8 @@ def default_job_record(filename):
   job_record['dft']['resume_mode']='conservative'
 
   #QMC-specific options
+  job_record['qmc']['kpoints']='real' # or 'all' for both real and complex valued k-points
+  
   job_record['qmc']['dmc']={}
   job_record['qmc']['dmc']['timestep']=[0.02]
   job_record['qmc']['dmc']['jastrow']=['twobody'] #or 'threebody'
@@ -55,7 +57,6 @@ def default_job_record(filename):
   job_record['qmc']['dmc']['optimizer']=['variance'] #or energy
   job_record['qmc']['dmc']['localization']=['tmoves']
   job_record['qmc']['dmc']['target_error']=0.01
-  job_record['qmc']['dmc']['kpoints']='real' # or a list of numbers
   job_record['qmc']['dmc']['excitations']='no'#VBM-CBM or other..
   job_record['qmc']['dmc']['save_trace']=True
 
