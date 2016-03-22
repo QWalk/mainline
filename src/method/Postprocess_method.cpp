@@ -275,6 +275,11 @@ int Postprocess_method::master(Wavefunction * wf, Sample_point * sample,FILE * f
     postavg.update_average(pt);
   }
   postavg.print(average_var,os);
+  if(json_output) {
+    ofstream json_out(json_file.c_str());
+    postavg.JsonOutput(average_var,json_out);
+  }
+  
   
 #endif //USE_MPI
 }
