@@ -1,0 +1,6630 @@
+- charge: 0
+  cif: '
+
+    #(C) 2015 by Fachinformationszentrum Karlsruhe.  All rights reserved.
+
+    data_74348-ICSD
+
+    _database_code_ICSD 74348
+
+    _audit_creation_date 1995-10-17
+
+    _audit_update_record 2012-08-01
+
+    _chemical_name_systematic ''Bismuth telluride''
+
+    _chemical_formula_structural ''Bi2 Te3''
+
+    _chemical_formula_sum ''Bi2 Te3''
+
+    _chemical_name_structure_type Bi2Te3
+
+    _chemical_name_mineral Tellurobismuthite
+
+    _exptl_crystal_density_diffrn 7.83
+
+    _publ_section_title ''A study of the phases in the bismuth - tellurium system''
+
+    loop_
+
+    _citation_id
+
+    _citation_journal_full
+
+    _citation_year
+
+    _citation_journal_volume
+
+    _citation_page_first
+
+    _citation_page_last
+
+    _citation_journal_id_ASTM
+
+    primary ''Materials Research Bulletin'' 1993 28 591 596 MRBUAC
+
+    loop_
+
+    _publ_author_name
+
+    ''Feutelais, Y.''
+
+    ''Legendre, B.''
+
+    ''Rodier, N.''
+
+    ''Agafonov, V.''
+
+    _cell_length_a 4.395(3)
+
+    _cell_length_b 4.395(3)
+
+    _cell_length_c 30.440(10)
+
+    _cell_angle_alpha 90.
+
+    _cell_angle_beta 90.
+
+    _cell_angle_gamma 120.
+
+    _cell_volume 509.21
+
+    _cell_formula_units_Z 3
+
+    _symmetry_space_group_name_H-M ''R -3 m H''
+
+    _symmetry_Int_Tables_number 166
+
+    _refine_ls_R_factor_all 0.037
+
+    loop_
+
+    _symmetry_equiv_pos_site_id
+
+    _symmetry_equiv_pos_as_xyz
+
+    1 ''x-y, -y, -z''
+
+    2 ''-x, -x+y, -z''
+
+    3 ''y, x, -z''
+
+    4 ''x-y, x, -z''
+
+    5 ''y, -x+y, -z''
+
+    6 ''-x, -y, -z''
+
+    7 ''-x+y, y, z''
+
+    8 ''x, x-y, z''
+
+    9 ''-y, -x, z''
+
+    10 ''-x+y, -x, z''
+
+    11 ''-y, x-y, z''
+
+    12 ''x, y, z''
+
+    13 ''x-y+2/3, -y+1/3, -z+1/3''
+
+    14 ''-x+2/3, -x+y+1/3, -z+1/3''
+
+    15 ''y+2/3, x+1/3, -z+1/3''
+
+    16 ''x-y+2/3, x+1/3, -z+1/3''
+
+    17 ''y+2/3, -x+y+1/3, -z+1/3''
+
+    18 ''-x+2/3, -y+1/3, -z+1/3''
+
+    19 ''-x+y+2/3, y+1/3, z+1/3''
+
+    20 ''x+2/3, x-y+1/3, z+1/3''
+
+    21 ''-y+2/3, -x+1/3, z+1/3''
+
+    22 ''-x+y+2/3, -x+1/3, z+1/3''
+
+    23 ''-y+2/3, x-y+1/3, z+1/3''
+
+    24 ''x+2/3, y+1/3, z+1/3''
+
+    25 ''x-y+1/3, -y+2/3, -z+2/3''
+
+    26 ''-x+1/3, -x+y+2/3, -z+2/3''
+
+    27 ''y+1/3, x+2/3, -z+2/3''
+
+    28 ''x-y+1/3, x+2/3, -z+2/3''
+
+    29 ''y+1/3, -x+y+2/3, -z+2/3''
+
+    30 ''-x+1/3, -y+2/3, -z+2/3''
+
+    31 ''-x+y+1/3, y+2/3, z+2/3''
+
+    32 ''x+1/3, x-y+2/3, z+2/3''
+
+    33 ''-y+1/3, -x+2/3, z+2/3''
+
+    34 ''-x+y+1/3, -x+2/3, z+2/3''
+
+    35 ''-y+1/3, x-y+2/3, z+2/3''
+
+    36 ''x+1/3, y+2/3, z+2/3''
+
+    loop_
+
+    _atom_type_symbol
+
+    _atom_type_oxidation_number
+
+    Te2- -2
+
+    Bi3+ 3
+
+    loop_
+
+    _atom_site_label
+
+    _atom_site_type_symbol
+
+    _atom_site_symmetry_multiplicity
+
+    _atom_site_Wyckoff_symbol
+
+    _atom_site_fract_x
+
+    _atom_site_fract_y
+
+    _atom_site_fract_z
+
+    _atom_site_B_iso_or_equiv
+
+    _atom_site_occupancy
+
+    _atom_site_attached_hydrogens
+
+    Te1 Te2- 3 a 0 0 0 . 1. 0
+
+    Te2 Te2- 6 c 0 0 0.79030(5) . 1. 0
+
+    Bi1 Bi3+ 6 c 0 0 0.40046(4) . 1. 0
+
+    loop_
+
+    _atom_site_aniso_label
+
+    _atom_site_aniso_type_symbol
+
+    _atom_site_aniso_beta_11
+
+    _atom_site_aniso_beta_22
+
+    _atom_site_aniso_beta_33
+
+    _atom_site_aniso_beta_12
+
+    _atom_site_aniso_beta_13
+
+    _atom_site_aniso_beta_23
+
+    Te1 Te2- 0.0261(8) 0.0261(8) 0.00030(2) 0.0131(4) 0 0
+
+    Te2 Te2- 0.0285(8) 0.0285(8) 0.00033(1) 0.0143(4) 0 0
+
+    Bi1 Bi3+ 0.0308(4) 0.0308(4) 0.00052(1) 0.0154(2) 0 0
+
+    #End of TTdata_74348-ICSD'
+  control:
+    elements: []
+    id: Bi2Te3
+    pretty_formula: ''
+    queue_id: []
+  dft:
+    basis:
+    - 0.2
+    - 3
+    - 3
+    broyden:
+    - 0.01
+    - 60
+    - 8
+    edifftol: 10
+    fmixing: 99
+    functional:
+      correlation: PBE
+      exchange: PBE
+      hybrid: 25
+    initial_charges: {}
+    initial_spin: []
+    kmesh:
+    - 8
+    - 8
+    - 8
+    maxcycle: 200
+    restart_from: null
+    resume_mode: conservative
+    smear: null
+    spin_polarized: true
+    tolinteg:
+    - 12
+    - 12
+    - 12
+    - 12
+    - 20
+  pseudopotential: BFD
+  qmc:
+    dmc:
+      excitations: 'no'
+      jastrow:
+      - twobody
+      kpoints: real
+      localization:
+      - tmoves
+      nblock: 16
+      optimizer:
+      - variance
+      save_trace: true
+      target_error: 0.01
+      timestep:
+      - 0.02
+    energy_optimize:
+      jastrow:
+      - twobody
+      threshold: 0.001
+      vmc_nstep: 1000
+    maximize:
+      jastrow:
+      - twobody
+      nconfig:
+      - 100
+    variance_optimize:
+      abstol: 1000.0
+      jastrow:
+      - twobody
+      niterations: 10
+      nruns: 3
+      reltol: 0.1
+  supercell:
+  - - 1
+    - 0
+    - 0
+  - - 0
+    - 1
+    - 0
+  - - 0
+    - 0
+    - 1
+  total_spin: 0
+- charge: 0
+  cif: '
+
+    #(C) 2015 by Fachinformationszentrum Karlsruhe.  All rights reserved.
+
+    data_28857-ICSD
+
+    _database_code_ICSD 28857
+
+    _audit_creation_date 1980-01-01
+
+    _audit_update_record 2006-04-01
+
+    _chemical_name_systematic Carbon
+
+    _chemical_formula_structural C
+
+    _chemical_formula_sum C1
+
+    _chemical_name_structure_type C(cF8)
+
+    _chemical_name_mineral Diamond
+
+    _exptl_crystal_density_diffrn 3.52
+
+    _cell_measurement_temperature 283.
+
+    _publ_section_title
+
+
+    ;
+
+    Precision determination of lattice parameter, coefficient of thermal expansion
+
+    and atomic weight of carbon in diamond
+
+    ;
+
+    loop_
+
+    _citation_id
+
+    _citation_journal_full
+
+    _citation_year
+
+    _citation_journal_volume
+
+    _citation_page_first
+
+    _citation_page_last
+
+    _citation_journal_id_ASTM
+
+    primary ''Journal of the American Chemical Society'' 1951 73 5643 5646 JACSAT
+
+    loop_
+
+    _publ_author_name
+
+    ''Straumanis, M.E.''
+
+    ''Aka, E.Z.''
+
+    _cell_length_a 3.56669(5)
+
+    _cell_length_b 3.56669
+
+    _cell_length_c 3.56669
+
+    _cell_angle_alpha 90.
+
+    _cell_angle_beta 90.
+
+    _cell_angle_gamma 90.
+
+    _cell_volume 45.37
+
+    _cell_formula_units_Z 8
+
+    _symmetry_space_group_name_H-M ''F d -3 m S''
+
+    _symmetry_Int_Tables_number 227
+
+    loop_
+
+    _symmetry_equiv_pos_site_id
+
+    _symmetry_equiv_pos_as_xyz
+
+    1 ''z+1/4, y+1/4, -x+1/4''
+
+    2 ''y+1/4, x+1/4, -z+1/4''
+
+    3 ''x+1/4, z+1/4, -y+1/4''
+
+    4 ''z+1/4, x+1/4, -y+1/4''
+
+    5 ''y+1/4, z+1/4, -x+1/4''
+
+    6 ''x+1/4, y+1/4, -z+1/4''
+
+    7 ''z+1/4, -y+1/4, x+1/4''
+
+    8 ''y+1/4, -x+1/4, z+1/4''
+
+    9 ''x+1/4, -z+1/4, y+1/4''
+
+    10 ''z+1/4, -x+1/4, y+1/4''
+
+    11 ''y+1/4, -z+1/4, x+1/4''
+
+    12 ''x+1/4, -y+1/4, z+1/4''
+
+    13 ''-z+1/4, y+1/4, x+1/4''
+
+    14 ''-y+1/4, x+1/4, z+1/4''
+
+    15 ''-x+1/4, z+1/4, y+1/4''
+
+    16 ''-z+1/4, x+1/4, y+1/4''
+
+    17 ''-y+1/4, z+1/4, x+1/4''
+
+    18 ''-x+1/4, y+1/4, z+1/4''
+
+    19 ''-z+1/4, -y+1/4, -x+1/4''
+
+    20 ''-y+1/4, -x+1/4, -z+1/4''
+
+    21 ''-x+1/4, -z+1/4, -y+1/4''
+
+    22 ''-z+1/4, -x+1/4, -y+1/4''
+
+    23 ''-y+1/4, -z+1/4, -x+1/4''
+
+    24 ''-x+1/4, -y+1/4, -z+1/4''
+
+    25 ''-z, -y, x''
+
+    26 ''-y, -x, z''
+
+    27 ''-x, -z, y''
+
+    28 ''-z, -x, y''
+
+    29 ''-y, -z, x''
+
+    30 ''-x, -y, z''
+
+    31 ''-z, y, -x''
+
+    32 ''-y, x, -z''
+
+    33 ''-x, z, -y''
+
+    34 ''-z, x, -y''
+
+    35 ''-y, z, -x''
+
+    36 ''-x, y, -z''
+
+    37 ''z, -y, -x''
+
+    38 ''y, -x, -z''
+
+    39 ''x, -z, -y''
+
+    40 ''z, -x, -y''
+
+    41 ''y, -z, -x''
+
+    42 ''x, -y, -z''
+
+    43 ''z, y, x''
+
+    44 ''y, x, z''
+
+    45 ''x, z, y''
+
+    46 ''z, x, y''
+
+    47 ''y, z, x''
+
+    48 ''x, y, z''
+
+    49 ''z+1/4, y+3/4, -x+3/4''
+
+    50 ''y+1/4, x+3/4, -z+3/4''
+
+    51 ''x+1/4, z+3/4, -y+3/4''
+
+    52 ''z+1/4, x+3/4, -y+3/4''
+
+    53 ''y+1/4, z+3/4, -x+3/4''
+
+    54 ''x+1/4, y+3/4, -z+3/4''
+
+    55 ''z+1/4, -y+3/4, x+3/4''
+
+    56 ''y+1/4, -x+3/4, z+3/4''
+
+    57 ''x+1/4, -z+3/4, y+3/4''
+
+    58 ''z+1/4, -x+3/4, y+3/4''
+
+    59 ''y+1/4, -z+3/4, x+3/4''
+
+    60 ''x+1/4, -y+3/4, z+3/4''
+
+    61 ''-z+1/4, y+3/4, x+3/4''
+
+    62 ''-y+1/4, x+3/4, z+3/4''
+
+    63 ''-x+1/4, z+3/4, y+3/4''
+
+    64 ''-z+1/4, x+3/4, y+3/4''
+
+    65 ''-y+1/4, z+3/4, x+3/4''
+
+    66 ''-x+1/4, y+3/4, z+3/4''
+
+    67 ''-z+1/4, -y+3/4, -x+3/4''
+
+    68 ''-y+1/4, -x+3/4, -z+3/4''
+
+    69 ''-x+1/4, -z+3/4, -y+3/4''
+
+    70 ''-z+1/4, -x+3/4, -y+3/4''
+
+    71 ''-y+1/4, -z+3/4, -x+3/4''
+
+    72 ''-x+1/4, -y+3/4, -z+3/4''
+
+    73 ''-z, -y+1/2, x+1/2''
+
+    74 ''-y, -x+1/2, z+1/2''
+
+    75 ''-x, -z+1/2, y+1/2''
+
+    76 ''-z, -x+1/2, y+1/2''
+
+    77 ''-y, -z+1/2, x+1/2''
+
+    78 ''-x, -y+1/2, z+1/2''
+
+    79 ''-z, y+1/2, -x+1/2''
+
+    80 ''-y, x+1/2, -z+1/2''
+
+    81 ''-x, z+1/2, -y+1/2''
+
+    82 ''-z, x+1/2, -y+1/2''
+
+    83 ''-y, z+1/2, -x+1/2''
+
+    84 ''-x, y+1/2, -z+1/2''
+
+    85 ''z, -y+1/2, -x+1/2''
+
+    86 ''y, -x+1/2, -z+1/2''
+
+    87 ''x, -z+1/2, -y+1/2''
+
+    88 ''z, -x+1/2, -y+1/2''
+
+    89 ''y, -z+1/2, -x+1/2''
+
+    90 ''x, -y+1/2, -z+1/2''
+
+    91 ''z, y+1/2, x+1/2''
+
+    92 ''y, x+1/2, z+1/2''
+
+    93 ''x, z+1/2, y+1/2''
+
+    94 ''z, x+1/2, y+1/2''
+
+    95 ''y, z+1/2, x+1/2''
+
+    96 ''x, y+1/2, z+1/2''
+
+    97 ''z+3/4, y+1/4, -x+3/4''
+
+    98 ''y+3/4, x+1/4, -z+3/4''
+
+    99 ''x+3/4, z+1/4, -y+3/4''
+
+    100 ''z+3/4, x+1/4, -y+3/4''
+
+    101 ''y+3/4, z+1/4, -x+3/4''
+
+    102 ''x+3/4, y+1/4, -z+3/4''
+
+    103 ''z+3/4, -y+1/4, x+3/4''
+
+    104 ''y+3/4, -x+1/4, z+3/4''
+
+    105 ''x+3/4, -z+1/4, y+3/4''
+
+    106 ''z+3/4, -x+1/4, y+3/4''
+
+    107 ''y+3/4, -z+1/4, x+3/4''
+
+    108 ''x+3/4, -y+1/4, z+3/4''
+
+    109 ''-z+3/4, y+1/4, x+3/4''
+
+    110 ''-y+3/4, x+1/4, z+3/4''
+
+    111 ''-x+3/4, z+1/4, y+3/4''
+
+    112 ''-z+3/4, x+1/4, y+3/4''
+
+    113 ''-y+3/4, z+1/4, x+3/4''
+
+    114 ''-x+3/4, y+1/4, z+3/4''
+
+    115 ''-z+3/4, -y+1/4, -x+3/4''
+
+    116 ''-y+3/4, -x+1/4, -z+3/4''
+
+    117 ''-x+3/4, -z+1/4, -y+3/4''
+
+    118 ''-z+3/4, -x+1/4, -y+3/4''
+
+    119 ''-y+3/4, -z+1/4, -x+3/4''
+
+    120 ''-x+3/4, -y+1/4, -z+3/4''
+
+    121 ''-z+1/2, -y, x+1/2''
+
+    122 ''-y+1/2, -x, z+1/2''
+
+    123 ''-x+1/2, -z, y+1/2''
+
+    124 ''-z+1/2, -x, y+1/2''
+
+    125 ''-y+1/2, -z, x+1/2''
+
+    126 ''-x+1/2, -y, z+1/2''
+
+    127 ''-z+1/2, y, -x+1/2''
+
+    128 ''-y+1/2, x, -z+1/2''
+
+    129 ''-x+1/2, z, -y+1/2''
+
+    130 ''-z+1/2, x, -y+1/2''
+
+    131 ''-y+1/2, z, -x+1/2''
+
+    132 ''-x+1/2, y, -z+1/2''
+
+    133 ''z+1/2, -y, -x+1/2''
+
+    134 ''y+1/2, -x, -z+1/2''
+
+    135 ''x+1/2, -z, -y+1/2''
+
+    136 ''z+1/2, -x, -y+1/2''
+
+    137 ''y+1/2, -z, -x+1/2''
+
+    138 ''x+1/2, -y, -z+1/2''
+
+    139 ''z+1/2, y, x+1/2''
+
+    140 ''y+1/2, x, z+1/2''
+
+    141 ''x+1/2, z, y+1/2''
+
+    142 ''z+1/2, x, y+1/2''
+
+    143 ''y+1/2, z, x+1/2''
+
+    144 ''x+1/2, y, z+1/2''
+
+    145 ''z+3/4, y+3/4, -x+1/4''
+
+    146 ''y+3/4, x+3/4, -z+1/4''
+
+    147 ''x+3/4, z+3/4, -y+1/4''
+
+    148 ''z+3/4, x+3/4, -y+1/4''
+
+    149 ''y+3/4, z+3/4, -x+1/4''
+
+    150 ''x+3/4, y+3/4, -z+1/4''
+
+    151 ''z+3/4, -y+3/4, x+1/4''
+
+    152 ''y+3/4, -x+3/4, z+1/4''
+
+    153 ''x+3/4, -z+3/4, y+1/4''
+
+    154 ''z+3/4, -x+3/4, y+1/4''
+
+    155 ''y+3/4, -z+3/4, x+1/4''
+
+    156 ''x+3/4, -y+3/4, z+1/4''
+
+    157 ''-z+3/4, y+3/4, x+1/4''
+
+    158 ''-y+3/4, x+3/4, z+1/4''
+
+    159 ''-x+3/4, z+3/4, y+1/4''
+
+    160 ''-z+3/4, x+3/4, y+1/4''
+
+    161 ''-y+3/4, z+3/4, x+1/4''
+
+    162 ''-x+3/4, y+3/4, z+1/4''
+
+    163 ''-z+3/4, -y+3/4, -x+1/4''
+
+    164 ''-y+3/4, -x+3/4, -z+1/4''
+
+    165 ''-x+3/4, -z+3/4, -y+1/4''
+
+    166 ''-z+3/4, -x+3/4, -y+1/4''
+
+    167 ''-y+3/4, -z+3/4, -x+1/4''
+
+    168 ''-x+3/4, -y+3/4, -z+1/4''
+
+    169 ''-z+1/2, -y+1/2, x''
+
+    170 ''-y+1/2, -x+1/2, z''
+
+    171 ''-x+1/2, -z+1/2, y''
+
+    172 ''-z+1/2, -x+1/2, y''
+
+    173 ''-y+1/2, -z+1/2, x''
+
+    174 ''-x+1/2, -y+1/2, z''
+
+    175 ''-z+1/2, y+1/2, -x''
+
+    176 ''-y+1/2, x+1/2, -z''
+
+    177 ''-x+1/2, z+1/2, -y''
+
+    178 ''-z+1/2, x+1/2, -y''
+
+    179 ''-y+1/2, z+1/2, -x''
+
+    180 ''-x+1/2, y+1/2, -z''
+
+    181 ''z+1/2, -y+1/2, -x''
+
+    182 ''y+1/2, -x+1/2, -z''
+
+    183 ''x+1/2, -z+1/2, -y''
+
+    184 ''z+1/2, -x+1/2, -y''
+
+    185 ''y+1/2, -z+1/2, -x''
+
+    186 ''x+1/2, -y+1/2, -z''
+
+    187 ''z+1/2, y+1/2, x''
+
+    188 ''y+1/2, x+1/2, z''
+
+    189 ''x+1/2, z+1/2, y''
+
+    190 ''z+1/2, x+1/2, y''
+
+    191 ''y+1/2, z+1/2, x''
+
+    192 ''x+1/2, y+1/2, z''
+
+    loop_
+
+    _atom_type_symbol
+
+    _atom_type_oxidation_number
+
+    C0+ 0
+
+    loop_
+
+    _atom_site_label
+
+    _atom_site_type_symbol
+
+    _atom_site_symmetry_multiplicity
+
+    _atom_site_Wyckoff_symbol
+
+    _atom_site_fract_x
+
+    _atom_site_fract_y
+
+    _atom_site_fract_z
+
+    _atom_site_B_iso_or_equiv
+
+    _atom_site_occupancy
+
+    _atom_site_attached_hydrogens
+
+    C1 C0+ 8 a 0 0 0 . 1. 0
+
+    #End of TTdata_28857-ICSD'
+  control:
+    elements: []
+    id: C
+    pretty_formula: ''
+    queue_id: []
+  dft:
+    basis:
+    - 0.2
+    - 3
+    - 3
+    broyden:
+    - 0.01
+    - 60
+    - 8
+    edifftol: 10
+    fmixing: 99
+    functional:
+      correlation: PBE
+      exchange: PBE
+      hybrid: 25
+    initial_charges: {}
+    initial_spin: []
+    kmesh:
+    - 8
+    - 8
+    - 8
+    maxcycle: 200
+    restart_from: null
+    resume_mode: conservative
+    smear: null
+    spin_polarized: true
+    tolinteg:
+    - 12
+    - 12
+    - 12
+    - 12
+    - 20
+  pseudopotential: BFD
+  qmc:
+    dmc:
+      excitations: 'no'
+      jastrow:
+      - twobody
+      kpoints: real
+      localization:
+      - tmoves
+      nblock: 16
+      optimizer:
+      - variance
+      save_trace: true
+      target_error: 0.01
+      timestep:
+      - 0.02
+    energy_optimize:
+      jastrow:
+      - twobody
+      threshold: 0.001
+      vmc_nstep: 1000
+    maximize:
+      jastrow:
+      - twobody
+      nconfig:
+      - 100
+    variance_optimize:
+      abstol: 1000.0
+      jastrow:
+      - twobody
+      niterations: 10
+      nruns: 3
+      reltol: 0.1
+  supercell:
+  - - 1
+    - 0
+    - 0
+  - - 0
+    - 1
+    - 0
+  - - 0
+    - 0
+    - 1
+  total_spin: 0
+- charge: 0
+  cif: '
+
+    #(C) 2015 by Fachinformationszentrum Karlsruhe.  All rights reserved.
+
+    data_28737-ICSD
+
+    _database_code_ICSD 28737
+
+    _audit_creation_date 1980-01-01
+
+    _chemical_name_systematic ''Copper(I) gallium selenide''
+
+    _chemical_formula_structural ''Cu Ga Se2''
+
+    _chemical_formula_sum ''Cu1 Ga1 Se2''
+
+    _chemical_name_structure_type CuFeS2
+
+    _exptl_crystal_density_diffrn 5.6
+
+    _publ_section_title ''Ueber einige ternaere Chalkogenide mit Chalkopyritstruktur''
+
+    loop_
+
+    _citation_id
+
+    _citation_journal_full
+
+    _citation_year
+
+    _citation_journal_volume
+
+    _citation_page_first
+
+    _citation_page_last
+
+    _citation_journal_id_ASTM
+
+    primary ''Zeitschrift fuer Anorganische und Allgemeine Chemie (1950) (DE)'' 1953
+
+    271 153 170 ZAACAB
+
+    loop_
+
+    _publ_author_name
+
+    ''Hahn, H.''
+
+    ''Frank, G.''
+
+    ''Klingler, W.''
+
+    ''Meyer, A.D.''
+
+    ''Stoerger, G.''
+
+    _cell_length_a 5.607(5)
+
+    _cell_length_b 5.607(5)
+
+    _cell_length_c 10.99(1)
+
+    _cell_angle_alpha 90.
+
+    _cell_angle_beta 90.
+
+    _cell_angle_gamma 90.
+
+    _cell_volume 345.51
+
+    _cell_formula_units_Z 4
+
+    _symmetry_space_group_name_H-M ''I -4 2 d''
+
+    _symmetry_Int_Tables_number 122
+
+    loop_
+
+    _symmetry_equiv_pos_site_id
+
+    _symmetry_equiv_pos_as_xyz
+
+    1 ''-y, -x+1/2, z+1/4''
+
+    2 ''y, -x, -z''
+
+    3 ''y, x+1/2, z+1/4''
+
+    4 ''-y, x, -z''
+
+    5 ''x, -y+1/2, -z+1/4''
+
+    6 ''-x, -y, z''
+
+    7 ''-x, y+1/2, -z+1/4''
+
+    8 ''x, y, z''
+
+    9 ''-y+1/2, -x, z+3/4''
+
+    10 ''y+1/2, -x+1/2, -z+1/2''
+
+    11 ''y+1/2, x, z+3/4''
+
+    12 ''-y+1/2, x+1/2, -z+1/2''
+
+    13 ''x+1/2, -y, -z+3/4''
+
+    14 ''-x+1/2, -y+1/2, z+1/2''
+
+    15 ''-x+1/2, y, -z+3/4''
+
+    16 ''x+1/2, y+1/2, z+1/2''
+
+    loop_
+
+    _atom_type_symbol
+
+    _atom_type_oxidation_number
+
+    Cu1+ 1
+
+    Ga3+ 3
+
+    Se2- -2
+
+    loop_
+
+    _atom_site_label
+
+    _atom_site_type_symbol
+
+    _atom_site_symmetry_multiplicity
+
+    _atom_site_Wyckoff_symbol
+
+    _atom_site_fract_x
+
+    _atom_site_fract_y
+
+    _atom_site_fract_z
+
+    _atom_site_B_iso_or_equiv
+
+    _atom_site_occupancy
+
+    _atom_site_attached_hydrogens
+
+    Cu1 Cu1+ 4 a 0 0 0 . 1. 0
+
+    Ga1 Ga3+ 4 b 0 0 0.5 . 1. 0
+
+    Se1 Se2- 8 d 0.25 0.25 0.125 . 1. 0
+
+    #End of TTdata_28737-ICSD'
+  control:
+    elements: []
+    id: CuGaSe2
+    pretty_formula: ''
+    queue_id: []
+  dft:
+    basis:
+    - 0.2
+    - 3
+    - 3
+    broyden:
+    - 0.01
+    - 60
+    - 8
+    edifftol: 10
+    fmixing: 99
+    functional:
+      correlation: PBE
+      exchange: PBE
+      hybrid: 25
+    initial_charges: {}
+    initial_spin: []
+    kmesh:
+    - 8
+    - 8
+    - 8
+    maxcycle: 200
+    restart_from: null
+    resume_mode: conservative
+    smear: null
+    spin_polarized: true
+    tolinteg:
+    - 12
+    - 12
+    - 12
+    - 12
+    - 20
+  pseudopotential: BFD
+  qmc:
+    dmc:
+      excitations: 'no'
+      jastrow:
+      - twobody
+      kpoints: real
+      localization:
+      - tmoves
+      nblock: 16
+      optimizer:
+      - variance
+      save_trace: true
+      target_error: 0.01
+      timestep:
+      - 0.02
+    energy_optimize:
+      jastrow:
+      - twobody
+      threshold: 0.001
+      vmc_nstep: 1000
+    maximize:
+      jastrow:
+      - twobody
+      nconfig:
+      - 100
+    variance_optimize:
+      abstol: 1000.0
+      jastrow:
+      - twobody
+      niterations: 10
+      nruns: 3
+      reltol: 0.1
+  supercell:
+  - - 1
+    - 0
+    - 0
+  - - 0
+    - 1
+    - 0
+  - - 0
+    - 0
+    - 1
+  total_spin: 0
+- charge: 0
+  cif: '
+
+    #(C) 2015 by Fachinformationszentrum Karlsruhe.  All rights reserved.
+
+    data_28740-ICSD
+
+    _database_code_ICSD 28740
+
+    _audit_creation_date 1980-01-01
+
+    _audit_update_record 2006-04-01
+
+    _chemical_name_systematic ''Copper(I) indium selenide''
+
+    _chemical_formula_structural ''Cu In Se2''
+
+    _chemical_formula_sum ''Cu1 In1 Se2''
+
+    _chemical_name_structure_type CuFeS2
+
+    _exptl_crystal_density_diffrn 5.8
+
+    _publ_section_title ''Ueber einige ternaere Chalkogenide mit Chalkopyritstruktur''
+
+    loop_
+
+    _citation_id
+
+    _citation_journal_full
+
+    _citation_year
+
+    _citation_journal_volume
+
+    _citation_page_first
+
+    _citation_page_last
+
+    _citation_journal_id_ASTM
+
+    primary ''Zeitschrift fuer Anorganische und Allgemeine Chemie (1950) (DE)'' 1953
+
+    271 153 170 ZAACAB
+
+    loop_
+
+    _publ_author_name
+
+    ''Hahn, H.''
+
+    ''Frank, G.''
+
+    ''Klingler, W.''
+
+    ''Meyer, A.D.''
+
+    ''Stoerger, G.''
+
+    _cell_length_a 5.773(5)
+
+    _cell_length_b 5.773(5)
+
+    _cell_length_c 11.55(1)
+
+    _cell_angle_alpha 90.
+
+    _cell_angle_beta 90.
+
+    _cell_angle_gamma 90.
+
+    _cell_volume 384.93
+
+    _cell_formula_units_Z 4
+
+    _symmetry_space_group_name_H-M ''I -4 2 d''
+
+    _symmetry_Int_Tables_number 122
+
+    loop_
+
+    _symmetry_equiv_pos_site_id
+
+    _symmetry_equiv_pos_as_xyz
+
+    1 ''-y, -x+1/2, z+1/4''
+
+    2 ''y, -x, -z''
+
+    3 ''y, x+1/2, z+1/4''
+
+    4 ''-y, x, -z''
+
+    5 ''x, -y+1/2, -z+1/4''
+
+    6 ''-x, -y, z''
+
+    7 ''-x, y+1/2, -z+1/4''
+
+    8 ''x, y, z''
+
+    9 ''-y+1/2, -x, z+3/4''
+
+    10 ''y+1/2, -x+1/2, -z+1/2''
+
+    11 ''y+1/2, x, z+3/4''
+
+    12 ''-y+1/2, x+1/2, -z+1/2''
+
+    13 ''x+1/2, -y, -z+3/4''
+
+    14 ''-x+1/2, -y+1/2, z+1/2''
+
+    15 ''-x+1/2, y, -z+3/4''
+
+    16 ''x+1/2, y+1/2, z+1/2''
+
+    loop_
+
+    _atom_type_symbol
+
+    _atom_type_oxidation_number
+
+    Cu1+ 1
+
+    In3+ 3
+
+    Se2- -2
+
+    loop_
+
+    _atom_site_label
+
+    _atom_site_type_symbol
+
+    _atom_site_symmetry_multiplicity
+
+    _atom_site_Wyckoff_symbol
+
+    _atom_site_fract_x
+
+    _atom_site_fract_y
+
+    _atom_site_fract_z
+
+    _atom_site_B_iso_or_equiv
+
+    _atom_site_occupancy
+
+    _atom_site_attached_hydrogens
+
+    Cu1 Cu1+ 4 a 0 0 0 . 1. 0
+
+    In1 In3+ 4 b 0 0 0.5 . 1. 0
+
+    Se1 Se2- 8 d 0.22 0.25 0.125 . 1. 0
+
+    #End of TTdata_28740-ICSD'
+  control:
+    elements: []
+    id: CuInSe2
+    pretty_formula: ''
+    queue_id: []
+  dft:
+    basis:
+    - 0.2
+    - 3
+    - 3
+    broyden:
+    - 0.01
+    - 60
+    - 8
+    edifftol: 10
+    fmixing: 99
+    functional:
+      correlation: PBE
+      exchange: PBE
+      hybrid: 25
+    initial_charges: {}
+    initial_spin: []
+    kmesh:
+    - 8
+    - 8
+    - 8
+    maxcycle: 200
+    restart_from: null
+    resume_mode: conservative
+    smear: null
+    spin_polarized: true
+    tolinteg:
+    - 12
+    - 12
+    - 12
+    - 12
+    - 20
+  pseudopotential: BFD
+  qmc:
+    dmc:
+      excitations: 'no'
+      jastrow:
+      - twobody
+      kpoints: real
+      localization:
+      - tmoves
+      nblock: 16
+      optimizer:
+      - variance
+      save_trace: true
+      target_error: 0.01
+      timestep:
+      - 0.02
+    energy_optimize:
+      jastrow:
+      - twobody
+      threshold: 0.001
+      vmc_nstep: 1000
+    maximize:
+      jastrow:
+      - twobody
+      nconfig:
+      - 100
+    variance_optimize:
+      abstol: 1000.0
+      jastrow:
+      - twobody
+      niterations: 10
+      nruns: 3
+      reltol: 0.1
+  supercell:
+  - - 1
+    - 0
+    - 0
+  - - 0
+    - 1
+    - 0
+  - - 0
+    - 0
+    - 1
+  total_spin: 0
+- charge: 0
+  cif: "data_24695-ICSD\n_audit_creation_method         'generated by CrystalMaker\
+    \ 8.7.3'\n_publ_section_comment\n;\nICSD code: 24695\n\n\nSystematic name: Iron\
+    \ oxide (0.97/1)\n\nStructural formula: Fe.974 O\n\nChemical formula (sum): Fe0.974\
+    \ O1\n\n\nCrystal structure data from: Willis, B.T.M., Rooksby, H.P. Change of\
+    \ structure \nof ferrous oxide at low temperature. \n\n;\n_cell_length_a     \
+    \              4.3088(0)\n_cell_length_b                   4.3088(0)\n_cell_length_c\
+    \                   4.3088(0)\n_cell_angle_alpha               90.0000(0)\n_cell_angle_beta\
+    \                90.0000(0)\n_cell_angle_gamma               90.0000(0)\n\n\n\
+    loop_\n_symmetry_equiv_pos_as_xyz\n'+z,+y,-x'\n'+z,1/2+y,1/2-x'\n'1/2+z,1/2+y,-x'\n\
+    '1/2+z,+y,1/2-x'\n'+y,+x,-z'\n'+y,1/2+x,1/2-z'\n'1/2+y,1/2+x,-z'\n'1/2+y,+x,1/2-z'\n\
+    '+x,+z,-y'\n'+x,1/2+z,1/2-y'\n'1/2+x,1/2+z,-y'\n'1/2+x,+z,1/2-y'\n'+z,+x,-y'\n\
+    '+z,1/2+x,1/2-y'\n'1/2+z,1/2+x,-y'\n'1/2+z,+x,1/2-y'\n'+y,+z,-x'\n'+y,1/2+z,1/2-x'\n\
+    '1/2+y,1/2+z,-x'\n'1/2+y,+z,1/2-x'\n'+x,+y,-z'\n'+x,1/2+y,1/2-z'\n'1/2+x,1/2+y,-z'\n\
+    '1/2+x,+y,1/2-z'\n'+z,-y,+x'\n'+z,1/2-y,1/2+x'\n'1/2+z,1/2-y,+x'\n'1/2+z,-y,1/2+x'\n\
+    '+y,-x,+z'\n'+y,1/2-x,1/2+z'\n'1/2+y,1/2-x,+z'\n'1/2+y,-x,1/2+z'\n'+x,-z,+y'\n\
+    '+x,1/2-z,1/2+y'\n'1/2+x,1/2-z,+y'\n'1/2+x,-z,1/2+y'\n'+z,-x,+y'\n'+z,1/2-x,1/2+y'\n\
+    '1/2+z,1/2-x,+y'\n'1/2+z,-x,1/2+y'\n'+y,-z,+x'\n'+y,1/2-z,1/2+x'\n'1/2+y,1/2-z,+x'\n\
+    '1/2+y,-z,1/2+x'\n'+x,-y,+z'\n'+x,1/2-y,1/2+z'\n'1/2+x,1/2-y,+z'\n'1/2+x,-y,1/2+z'\n\
+    '-z,+y,+x'\n'-z,1/2+y,1/2+x'\n'1/2-z,1/2+y,+x'\n'1/2-z,+y,1/2+x'\n'-y,+x,+z'\n\
+    '-y,1/2+x,1/2+z'\n'1/2-y,1/2+x,+z'\n'1/2-y,+x,1/2+z'\n'-x,+z,+y'\n'-x,1/2+z,1/2+y'\n\
+    '1/2-x,1/2+z,+y'\n'1/2-x,+z,1/2+y'\n'-z,+x,+y'\n'-z,1/2+x,1/2+y'\n'1/2-z,1/2+x,+y'\n\
+    '1/2-z,+x,1/2+y'\n'-y,+z,+x'\n'-y,1/2+z,1/2+x'\n'1/2-y,1/2+z,+x'\n'1/2-y,+z,1/2+x'\n\
+    '-x,+y,+z'\n'-x,1/2+y,1/2+z'\n'1/2-x,1/2+y,+z'\n'1/2-x,+y,1/2+z'\n'-z,-y,-x'\n\
+    '-z,1/2-y,1/2-x'\n'1/2-z,1/2-y,-x'\n'1/2-z,-y,1/2-x'\n'-y,-x,-z'\n'-y,1/2-x,1/2-z'\n\
+    '1/2-y,1/2-x,-z'\n'1/2-y,-x,1/2-z'\n'-x,-z,-y'\n'-x,1/2-z,1/2-y'\n'1/2-x,1/2-z,-y'\n\
+    '1/2-x,-z,1/2-y'\n'-z,-x,-y'\n'-z,1/2-x,1/2-y'\n'1/2-z,1/2-x,-y'\n'1/2-z,-x,1/2-y'\n\
+    '-y,-z,-x'\n'-y,1/2-z,1/2-x'\n'1/2-y,1/2-z,-x'\n'1/2-y,-z,1/2-x'\n'-x,-y,-z'\n\
+    '-x,1/2-y,1/2-z'\n'1/2-x,1/2-y,-z'\n'1/2-x,-y,1/2-z'\n'-z,-y,+x'\n'-z,1/2-y,1/2+x'\n\
+    '1/2-z,1/2-y,+x'\n'1/2-z,-y,1/2+x'\n'-y,-x,+z'\n'-y,1/2-x,1/2+z'\n'1/2-y,1/2-x,+z'\n\
+    '1/2-y,-x,1/2+z'\n'-x,-z,+y'\n'-x,1/2-z,1/2+y'\n'1/2-x,1/2-z,+y'\n'1/2-x,-z,1/2+y'\n\
+    '-z,-x,+y'\n'-z,1/2-x,1/2+y'\n'1/2-z,1/2-x,+y'\n'1/2-z,-x,1/2+y'\n'-y,-z,+x'\n\
+    '-y,1/2-z,1/2+x'\n'1/2-y,1/2-z,+x'\n'1/2-y,-z,1/2+x'\n'-x,-y,+z'\n'-x,1/2-y,1/2+z'\n\
+    '1/2-x,1/2-y,+z'\n'1/2-x,-y,1/2+z'\n'-z,+y,-x'\n'-z,1/2+y,1/2-x'\n'1/2-z,1/2+y,-x'\n\
+    '1/2-z,+y,1/2-x'\n'-y,+x,-z'\n'-y,1/2+x,1/2-z'\n'1/2-y,1/2+x,-z'\n'1/2-y,+x,1/2-z'\n\
+    '-x,+z,-y'\n'-x,1/2+z,1/2-y'\n'1/2-x,1/2+z,-y'\n'1/2-x,+z,1/2-y'\n'-z,+x,-y'\n\
+    '-z,1/2+x,1/2-y'\n'1/2-z,1/2+x,-y'\n'1/2-z,+x,1/2-y'\n'-y,+z,-x'\n'-y,1/2+z,1/2-x'\n\
+    '1/2-y,1/2+z,-x'\n'1/2-y,+z,1/2-x'\n'-x,+y,-z'\n'-x,1/2+y,1/2-z'\n'1/2-x,1/2+y,-z'\n\
+    '1/2-x,+y,1/2-z'\n'+z,-y,-x'\n'+z,1/2-y,1/2-x'\n'1/2+z,1/2-y,-x'\n'1/2+z,-y,1/2-x'\n\
+    '+y,-x,-z'\n'+y,1/2-x,1/2-z'\n'1/2+y,1/2-x,-z'\n'1/2+y,-x,1/2-z'\n'+x,-z,-y'\n\
+    '+x,1/2-z,1/2-y'\n'1/2+x,1/2-z,-y'\n'1/2+x,-z,1/2-y'\n'+z,-x,-y'\n'+z,1/2-x,1/2-y'\n\
+    '1/2+z,1/2-x,-y'\n'1/2+z,-x,1/2-y'\n'+y,-z,-x'\n'+y,1/2-z,1/2-x'\n'1/2+y,1/2-z,-x'\n\
+    '1/2+y,-z,1/2-x'\n'+x,-y,-z'\n'+x,1/2-y,1/2-z'\n'1/2+x,1/2-y,-z'\n'1/2+x,-y,1/2-z'\n\
+    '+z,+y,+x'\n'+z,1/2+y,1/2+x'\n'1/2+z,1/2+y,+x'\n'1/2+z,+y,1/2+x'\n'+y,+x,+z'\n\
+    '+y,1/2+x,1/2+z'\n'1/2+y,1/2+x,+z'\n'1/2+y,+x,1/2+z'\n'+x,+z,+y'\n'+x,1/2+z,1/2+y'\n\
+    '1/2+x,1/2+z,+y'\n'1/2+x,+z,1/2+y'\n'+z,+x,+y'\n'+z,1/2+x,1/2+y'\n'1/2+z,1/2+x,+y'\n\
+    '1/2+z,+x,1/2+y'\n'+y,+z,+x'\n'+y,1/2+z,1/2+x'\n'1/2+y,1/2+z,+x'\n'1/2+y,+z,1/2+x'\n\
+    '+x,+y,+z'\n'+x,1/2+y,1/2+z'\n'1/2+x,1/2+y,+z'\n'1/2+x,+y,1/2+z'\n\nloop_\n_atom_site_label\n\
+    _atom_site_type_symbol\n_atom_site_occupancy\n_atom_site_fract_x\n_atom_site_fract_y\n\
+    _atom_site_fract_z\n   Fe1    Fe 1.0000      0.0000    0.0000    0.0000\n    O1\
+    \    O  1.0000      0.5000    0.5000    0.5000\n\n"
+  control:
+    elements: []
+    id: FeO_SG225_2
+    pretty_formula: ''
+    queue_id: []
+  dft:
+    basis:
+    - 0.2
+    - 3
+    - 3
+    broyden:
+    - 0.01
+    - 60
+    - 8
+    edifftol: 10
+    fmixing: 99
+    functional:
+      correlation: PBE
+      exchange: PBE
+      hybrid: 25
+    initial_charges: {}
+    initial_spin: []
+    kmesh:
+    - 8
+    - 8
+    - 8
+    maxcycle: 200
+    restart_from: null
+    resume_mode: conservative
+    smear: null
+    spin_polarized: true
+    tolinteg:
+    - 12
+    - 12
+    - 12
+    - 12
+    - 20
+  pseudopotential: BFD
+  qmc:
+    dmc:
+      excitations: 'no'
+      jastrow:
+      - twobody
+      kpoints: real
+      localization:
+      - tmoves
+      nblock: 16
+      optimizer:
+      - variance
+      save_trace: true
+      target_error: 0.01
+      timestep:
+      - 0.02
+    energy_optimize:
+      jastrow:
+      - twobody
+      threshold: 0.001
+      vmc_nstep: 1000
+    maximize:
+      jastrow:
+      - twobody
+      nconfig:
+      - 100
+    variance_optimize:
+      abstol: 1000.0
+      jastrow:
+      - twobody
+      niterations: 10
+      nruns: 3
+      reltol: 0.1
+  supercell:
+  - - 1
+    - 0
+    - 0
+  - - 0
+    - 1
+    - 0
+  - - 0
+    - 0
+    - 1
+  total_spin: 0
+- charge: 0
+  cif: '
+
+    #(C) 2015 by Fachinformationszentrum Karlsruhe.  All rights reserved.
+
+    data_107946-ICSD
+
+    _database_code_ICSD 107946
+
+    _audit_creation_date 2006-10-01
+
+    _chemical_name_systematic ''Gallium arsenide''
+
+    _chemical_formula_structural ''Ga As''
+
+    _chemical_formula_sum ''As1 Ga1''
+
+    _chemical_name_structure_type ZnS(cF8)
+
+    _exptl_crystal_density_diffrn 5.32
+
+    _cell_measurement_temperature 296.
+
+    _publ_section_title
+
+    ''Thermal vibrations and bonding in Ga As: an extended-face crystal study''
+
+    loop_
+
+    _citation_id
+
+    _citation_journal_full
+
+    _citation_year
+
+    _citation_journal_volume
+
+    _citation_page_first
+
+    _citation_page_last
+
+    _citation_journal_id_ASTM
+
+    primary ''Acta Crystallographica. Section A: Foundations of Crystallography''
+    1994
+
+    50 621 632 ACACEQ
+
+    loop_
+
+    _publ_author_name
+
+    ''Stevenson, A.W.''
+
+    _cell_length_a 5.652(1)
+
+    _cell_length_b 5.652(1)
+
+    _cell_length_c 5.652(1)
+
+    _cell_angle_alpha 90.
+
+    _cell_angle_beta 90.
+
+    _cell_angle_gamma 90.
+
+    _cell_volume 180.55
+
+    _cell_formula_units_Z 4
+
+    _symmetry_space_group_name_H-M ''F -4 3 m''
+
+    _symmetry_Int_Tables_number 216
+
+    _refine_ls_R_factor_all 0.007
+
+    loop_
+
+    _symmetry_equiv_pos_site_id
+
+    _symmetry_equiv_pos_as_xyz
+
+    1 ''-z, -y, x''
+
+    2 ''-y, -x, z''
+
+    3 ''-x, -z, y''
+
+    4 ''-z, -x, y''
+
+    5 ''-y, -z, x''
+
+    6 ''-x, -y, z''
+
+    7 ''-z, y, -x''
+
+    8 ''-y, x, -z''
+
+    9 ''-x, z, -y''
+
+    10 ''-z, x, -y''
+
+    11 ''-y, z, -x''
+
+    12 ''-x, y, -z''
+
+    13 ''z, -y, -x''
+
+    14 ''y, -x, -z''
+
+    15 ''x, -z, -y''
+
+    16 ''z, -x, -y''
+
+    17 ''y, -z, -x''
+
+    18 ''x, -y, -z''
+
+    19 ''z, y, x''
+
+    20 ''y, x, z''
+
+    21 ''x, z, y''
+
+    22 ''z, x, y''
+
+    23 ''y, z, x''
+
+    24 ''x, y, z''
+
+    25 ''-z, -y+1/2, x+1/2''
+
+    26 ''-y, -x+1/2, z+1/2''
+
+    27 ''-x, -z+1/2, y+1/2''
+
+    28 ''-z, -x+1/2, y+1/2''
+
+    29 ''-y, -z+1/2, x+1/2''
+
+    30 ''-x, -y+1/2, z+1/2''
+
+    31 ''-z, y+1/2, -x+1/2''
+
+    32 ''-y, x+1/2, -z+1/2''
+
+    33 ''-x, z+1/2, -y+1/2''
+
+    34 ''-z, x+1/2, -y+1/2''
+
+    35 ''-y, z+1/2, -x+1/2''
+
+    36 ''-x, y+1/2, -z+1/2''
+
+    37 ''z, -y+1/2, -x+1/2''
+
+    38 ''y, -x+1/2, -z+1/2''
+
+    39 ''x, -z+1/2, -y+1/2''
+
+    40 ''z, -x+1/2, -y+1/2''
+
+    41 ''y, -z+1/2, -x+1/2''
+
+    42 ''x, -y+1/2, -z+1/2''
+
+    43 ''z, y+1/2, x+1/2''
+
+    44 ''y, x+1/2, z+1/2''
+
+    45 ''x, z+1/2, y+1/2''
+
+    46 ''z, x+1/2, y+1/2''
+
+    47 ''y, z+1/2, x+1/2''
+
+    48 ''x, y+1/2, z+1/2''
+
+    49 ''-z+1/2, -y, x+1/2''
+
+    50 ''-y+1/2, -x, z+1/2''
+
+    51 ''-x+1/2, -z, y+1/2''
+
+    52 ''-z+1/2, -x, y+1/2''
+
+    53 ''-y+1/2, -z, x+1/2''
+
+    54 ''-x+1/2, -y, z+1/2''
+
+    55 ''-z+1/2, y, -x+1/2''
+
+    56 ''-y+1/2, x, -z+1/2''
+
+    57 ''-x+1/2, z, -y+1/2''
+
+    58 ''-z+1/2, x, -y+1/2''
+
+    59 ''-y+1/2, z, -x+1/2''
+
+    60 ''-x+1/2, y, -z+1/2''
+
+    61 ''z+1/2, -y, -x+1/2''
+
+    62 ''y+1/2, -x, -z+1/2''
+
+    63 ''x+1/2, -z, -y+1/2''
+
+    64 ''z+1/2, -x, -y+1/2''
+
+    65 ''y+1/2, -z, -x+1/2''
+
+    66 ''x+1/2, -y, -z+1/2''
+
+    67 ''z+1/2, y, x+1/2''
+
+    68 ''y+1/2, x, z+1/2''
+
+    69 ''x+1/2, z, y+1/2''
+
+    70 ''z+1/2, x, y+1/2''
+
+    71 ''y+1/2, z, x+1/2''
+
+    72 ''x+1/2, y, z+1/2''
+
+    73 ''-z+1/2, -y+1/2, x''
+
+    74 ''-y+1/2, -x+1/2, z''
+
+    75 ''-x+1/2, -z+1/2, y''
+
+    76 ''-z+1/2, -x+1/2, y''
+
+    77 ''-y+1/2, -z+1/2, x''
+
+    78 ''-x+1/2, -y+1/2, z''
+
+    79 ''-z+1/2, y+1/2, -x''
+
+    80 ''-y+1/2, x+1/2, -z''
+
+    81 ''-x+1/2, z+1/2, -y''
+
+    82 ''-z+1/2, x+1/2, -y''
+
+    83 ''-y+1/2, z+1/2, -x''
+
+    84 ''-x+1/2, y+1/2, -z''
+
+    85 ''z+1/2, -y+1/2, -x''
+
+    86 ''y+1/2, -x+1/2, -z''
+
+    87 ''x+1/2, -z+1/2, -y''
+
+    88 ''z+1/2, -x+1/2, -y''
+
+    89 ''y+1/2, -z+1/2, -x''
+
+    90 ''x+1/2, -y+1/2, -z''
+
+    91 ''z+1/2, y+1/2, x''
+
+    92 ''y+1/2, x+1/2, z''
+
+    93 ''x+1/2, z+1/2, y''
+
+    94 ''z+1/2, x+1/2, y''
+
+    95 ''y+1/2, z+1/2, x''
+
+    96 ''x+1/2, y+1/2, z''
+
+    loop_
+
+    _atom_type_symbol
+
+    _atom_type_oxidation_number
+
+    Ga3+ 3
+
+    As3- -3
+
+    loop_
+
+    _atom_site_label
+
+    _atom_site_type_symbol
+
+    _atom_site_symmetry_multiplicity
+
+    _atom_site_Wyckoff_symbol
+
+    _atom_site_fract_x
+
+    _atom_site_fract_y
+
+    _atom_site_fract_z
+
+    _atom_site_B_iso_or_equiv
+
+    _atom_site_occupancy
+
+    _atom_site_attached_hydrogens
+
+    Ga1 Ga3+ 4 a 0 0 0 .63(1) 1. 0
+
+    As1 As3- 4 c 0.25 0.25 0.25 .48(1) 1. 0
+
+    #End of TTdata_107946-ICSD'
+  control:
+    elements: []
+    id: GaAs
+    pretty_formula: ''
+    queue_id: []
+  dft:
+    basis:
+    - 0.2
+    - 3
+    - 3
+    broyden:
+    - 0.01
+    - 60
+    - 8
+    edifftol: 10
+    fmixing: 99
+    functional:
+      correlation: PBE
+      exchange: PBE
+      hybrid: 25
+    initial_charges: {}
+    initial_spin: []
+    kmesh:
+    - 8
+    - 8
+    - 8
+    maxcycle: 200
+    restart_from: null
+    resume_mode: conservative
+    smear: null
+    spin_polarized: true
+    tolinteg:
+    - 12
+    - 12
+    - 12
+    - 12
+    - 20
+  pseudopotential: BFD
+  qmc:
+    dmc:
+      excitations: 'no'
+      jastrow:
+      - twobody
+      kpoints: real
+      localization:
+      - tmoves
+      nblock: 16
+      optimizer:
+      - variance
+      save_trace: true
+      target_error: 0.01
+      timestep:
+      - 0.02
+    energy_optimize:
+      jastrow:
+      - twobody
+      threshold: 0.001
+      vmc_nstep: 1000
+    maximize:
+      jastrow:
+      - twobody
+      nconfig:
+      - 100
+    variance_optimize:
+      abstol: 1000.0
+      jastrow:
+      - twobody
+      niterations: 10
+      nruns: 3
+      reltol: 0.1
+  supercell:
+  - - 1
+    - 0
+    - 0
+  - - 0
+    - 1
+    - 0
+  - - 0
+    - 0
+    - 1
+  total_spin: 0
+- charge: 0
+  cif: '
+
+    #(C) 2015 by Fachinformationszentrum Karlsruhe.  All rights reserved.
+
+    data_25676-ICSD
+
+    _database_code_ICSD 25676
+
+    _audit_creation_date 1980-01-01
+
+    _audit_update_record 2005-10-01
+
+    _chemical_name_systematic ''Gallium nitride''
+
+    _chemical_formula_structural ''Ga N''
+
+    _chemical_formula_sum ''Ga1 N1''
+
+    _chemical_name_structure_type ZnS(2H)
+
+    _exptl_crystal_density_diffrn 6.11
+
+    _publ_section_title ''Ueber die Kristallstrukturen von Cu3 N, Ga N und In N''
+
+    loop_
+
+    _citation_id
+
+    _citation_journal_full
+
+    _citation_year
+
+    _citation_journal_volume
+
+    _citation_page_first
+
+    _citation_page_last
+
+    _citation_journal_id_ASTM
+
+    primary ''Zeitschrift fuer Anorganische und Allgemeine Chemie (1950) (DE)'' 1938
+
+    239 282 287 ZAACAB
+
+    loop_
+
+    _publ_author_name
+
+    ''Juza, R.''
+
+    ''Hahn, H.''
+
+    _cell_length_a 3.186(4)
+
+    _cell_length_b 3.186(4)
+
+    _cell_length_c 5.176(5)
+
+    _cell_angle_alpha 90.
+
+    _cell_angle_beta 90.
+
+    _cell_angle_gamma 120.
+
+    _cell_volume 45.5
+
+    _cell_formula_units_Z 2
+
+    _symmetry_space_group_name_H-M ''P 63 m c''
+
+    _symmetry_Int_Tables_number 186
+
+    loop_
+
+    _symmetry_equiv_pos_site_id
+
+    _symmetry_equiv_pos_as_xyz
+
+    1 ''-x, -x+y, z+1/2''
+
+    2 ''x-y, -y, z+1/2''
+
+    3 ''y, x, z+1/2''
+
+    4 ''x-y, x, z+1/2''
+
+    5 ''y, -x+y, z+1/2''
+
+    6 ''-x, -y, z+1/2''
+
+    7 ''x, x-y, z''
+
+    8 ''-x+y, y, z''
+
+    9 ''-y, -x, z''
+
+    10 ''-x+y, -x, z''
+
+    11 ''-y, x-y, z''
+
+    12 ''x, y, z''
+
+    loop_
+
+    _atom_type_symbol
+
+    _atom_type_oxidation_number
+
+    Ga3+ 3
+
+    N3- -3
+
+    loop_
+
+    _atom_site_label
+
+    _atom_site_type_symbol
+
+    _atom_site_symmetry_multiplicity
+
+    _atom_site_Wyckoff_symbol
+
+    _atom_site_fract_x
+
+    _atom_site_fract_y
+
+    _atom_site_fract_z
+
+    _atom_site_B_iso_or_equiv
+
+    _atom_site_occupancy
+
+    _atom_site_attached_hydrogens
+
+    Ga1 Ga3+ 2 b 0.3333 0.6667 0 . 1. 0
+
+    N1 N3- 2 b 0.3333 0.6667 0.375 . 1. 0
+
+    #End of TTdata_25676-ICSD'
+  control:
+    elements: []
+    id: GaN
+    pretty_formula: ''
+    queue_id: []
+  dft:
+    basis:
+    - 0.2
+    - 3
+    - 3
+    broyden:
+    - 0.01
+    - 60
+    - 8
+    edifftol: 10
+    fmixing: 99
+    functional:
+      correlation: PBE
+      exchange: PBE
+      hybrid: 25
+    initial_charges: {}
+    initial_spin: []
+    kmesh:
+    - 8
+    - 8
+    - 8
+    maxcycle: 200
+    restart_from: null
+    resume_mode: conservative
+    smear: null
+    spin_polarized: true
+    tolinteg:
+    - 12
+    - 12
+    - 12
+    - 12
+    - 20
+  pseudopotential: BFD
+  qmc:
+    dmc:
+      excitations: 'no'
+      jastrow:
+      - twobody
+      kpoints: real
+      localization:
+      - tmoves
+      nblock: 16
+      optimizer:
+      - variance
+      save_trace: true
+      target_error: 0.01
+      timestep:
+      - 0.02
+    energy_optimize:
+      jastrow:
+      - twobody
+      threshold: 0.001
+      vmc_nstep: 1000
+    maximize:
+      jastrow:
+      - twobody
+      nconfig:
+      - 100
+    variance_optimize:
+      abstol: 1000.0
+      jastrow:
+      - twobody
+      niterations: 10
+      nruns: 3
+      reltol: 0.1
+  supercell:
+  - - 1
+    - 0
+    - 0
+  - - 0
+    - 1
+    - 0
+  - - 0
+    - 0
+    - 1
+  total_spin: 0
+- charge: 0
+  cif: '
+
+    #(C) 2015 by Fachinformationszentrum Karlsruhe.  All rights reserved.
+
+    data_43422-ICSD
+
+    _database_code_ICSD 43422
+
+    _audit_creation_date 2000-07-15
+
+    _audit_update_record 2006-04-01
+
+    _chemical_name_systematic Germanium
+
+    _chemical_formula_structural Ge
+
+    _chemical_formula_sum Ge1
+
+    _chemical_name_structure_type C(cF8)
+
+    _exptl_crystal_density_diffrn 5.33
+
+    _publ_section_title
+
+
+    ;
+
+    Precise lattice constsants of germanium, aluminum, gallium arsenide, uranium,
+
+    sulphur, quartz and sapphire
+
+    ;
+
+    loop_
+
+    _citation_id
+
+    _citation_journal_full
+
+    _citation_year
+
+    _citation_journal_volume
+
+    _citation_page_first
+
+    _citation_page_last
+
+    _citation_journal_id_ASTM
+
+    primary ''Acta Crystallographica (1,1948-23,1967)'' 1962 15 578 582 ACCRA9
+
+    loop_
+
+    _publ_author_name
+
+    ''Cooper, A.S.''
+
+    _cell_length_a 5.65675(1)
+
+    _cell_length_b 5.65675
+
+    _cell_length_c 5.65675
+
+    _cell_angle_alpha 90.
+
+    _cell_angle_beta 90.
+
+    _cell_angle_gamma 90.
+
+    _cell_volume 181.01
+
+    _cell_formula_units_Z 8
+
+    _symmetry_space_group_name_H-M ''F d -3 m S''
+
+    _symmetry_Int_Tables_number 227
+
+    loop_
+
+    _symmetry_equiv_pos_site_id
+
+    _symmetry_equiv_pos_as_xyz
+
+    1 ''z+1/4, y+1/4, -x+1/4''
+
+    2 ''y+1/4, x+1/4, -z+1/4''
+
+    3 ''x+1/4, z+1/4, -y+1/4''
+
+    4 ''z+1/4, x+1/4, -y+1/4''
+
+    5 ''y+1/4, z+1/4, -x+1/4''
+
+    6 ''x+1/4, y+1/4, -z+1/4''
+
+    7 ''z+1/4, -y+1/4, x+1/4''
+
+    8 ''y+1/4, -x+1/4, z+1/4''
+
+    9 ''x+1/4, -z+1/4, y+1/4''
+
+    10 ''z+1/4, -x+1/4, y+1/4''
+
+    11 ''y+1/4, -z+1/4, x+1/4''
+
+    12 ''x+1/4, -y+1/4, z+1/4''
+
+    13 ''-z+1/4, y+1/4, x+1/4''
+
+    14 ''-y+1/4, x+1/4, z+1/4''
+
+    15 ''-x+1/4, z+1/4, y+1/4''
+
+    16 ''-z+1/4, x+1/4, y+1/4''
+
+    17 ''-y+1/4, z+1/4, x+1/4''
+
+    18 ''-x+1/4, y+1/4, z+1/4''
+
+    19 ''-z+1/4, -y+1/4, -x+1/4''
+
+    20 ''-y+1/4, -x+1/4, -z+1/4''
+
+    21 ''-x+1/4, -z+1/4, -y+1/4''
+
+    22 ''-z+1/4, -x+1/4, -y+1/4''
+
+    23 ''-y+1/4, -z+1/4, -x+1/4''
+
+    24 ''-x+1/4, -y+1/4, -z+1/4''
+
+    25 ''-z, -y, x''
+
+    26 ''-y, -x, z''
+
+    27 ''-x, -z, y''
+
+    28 ''-z, -x, y''
+
+    29 ''-y, -z, x''
+
+    30 ''-x, -y, z''
+
+    31 ''-z, y, -x''
+
+    32 ''-y, x, -z''
+
+    33 ''-x, z, -y''
+
+    34 ''-z, x, -y''
+
+    35 ''-y, z, -x''
+
+    36 ''-x, y, -z''
+
+    37 ''z, -y, -x''
+
+    38 ''y, -x, -z''
+
+    39 ''x, -z, -y''
+
+    40 ''z, -x, -y''
+
+    41 ''y, -z, -x''
+
+    42 ''x, -y, -z''
+
+    43 ''z, y, x''
+
+    44 ''y, x, z''
+
+    45 ''x, z, y''
+
+    46 ''z, x, y''
+
+    47 ''y, z, x''
+
+    48 ''x, y, z''
+
+    49 ''z+1/4, y+3/4, -x+3/4''
+
+    50 ''y+1/4, x+3/4, -z+3/4''
+
+    51 ''x+1/4, z+3/4, -y+3/4''
+
+    52 ''z+1/4, x+3/4, -y+3/4''
+
+    53 ''y+1/4, z+3/4, -x+3/4''
+
+    54 ''x+1/4, y+3/4, -z+3/4''
+
+    55 ''z+1/4, -y+3/4, x+3/4''
+
+    56 ''y+1/4, -x+3/4, z+3/4''
+
+    57 ''x+1/4, -z+3/4, y+3/4''
+
+    58 ''z+1/4, -x+3/4, y+3/4''
+
+    59 ''y+1/4, -z+3/4, x+3/4''
+
+    60 ''x+1/4, -y+3/4, z+3/4''
+
+    61 ''-z+1/4, y+3/4, x+3/4''
+
+    62 ''-y+1/4, x+3/4, z+3/4''
+
+    63 ''-x+1/4, z+3/4, y+3/4''
+
+    64 ''-z+1/4, x+3/4, y+3/4''
+
+    65 ''-y+1/4, z+3/4, x+3/4''
+
+    66 ''-x+1/4, y+3/4, z+3/4''
+
+    67 ''-z+1/4, -y+3/4, -x+3/4''
+
+    68 ''-y+1/4, -x+3/4, -z+3/4''
+
+    69 ''-x+1/4, -z+3/4, -y+3/4''
+
+    70 ''-z+1/4, -x+3/4, -y+3/4''
+
+    71 ''-y+1/4, -z+3/4, -x+3/4''
+
+    72 ''-x+1/4, -y+3/4, -z+3/4''
+
+    73 ''-z, -y+1/2, x+1/2''
+
+    74 ''-y, -x+1/2, z+1/2''
+
+    75 ''-x, -z+1/2, y+1/2''
+
+    76 ''-z, -x+1/2, y+1/2''
+
+    77 ''-y, -z+1/2, x+1/2''
+
+    78 ''-x, -y+1/2, z+1/2''
+
+    79 ''-z, y+1/2, -x+1/2''
+
+    80 ''-y, x+1/2, -z+1/2''
+
+    81 ''-x, z+1/2, -y+1/2''
+
+    82 ''-z, x+1/2, -y+1/2''
+
+    83 ''-y, z+1/2, -x+1/2''
+
+    84 ''-x, y+1/2, -z+1/2''
+
+    85 ''z, -y+1/2, -x+1/2''
+
+    86 ''y, -x+1/2, -z+1/2''
+
+    87 ''x, -z+1/2, -y+1/2''
+
+    88 ''z, -x+1/2, -y+1/2''
+
+    89 ''y, -z+1/2, -x+1/2''
+
+    90 ''x, -y+1/2, -z+1/2''
+
+    91 ''z, y+1/2, x+1/2''
+
+    92 ''y, x+1/2, z+1/2''
+
+    93 ''x, z+1/2, y+1/2''
+
+    94 ''z, x+1/2, y+1/2''
+
+    95 ''y, z+1/2, x+1/2''
+
+    96 ''x, y+1/2, z+1/2''
+
+    97 ''z+3/4, y+1/4, -x+3/4''
+
+    98 ''y+3/4, x+1/4, -z+3/4''
+
+    99 ''x+3/4, z+1/4, -y+3/4''
+
+    100 ''z+3/4, x+1/4, -y+3/4''
+
+    101 ''y+3/4, z+1/4, -x+3/4''
+
+    102 ''x+3/4, y+1/4, -z+3/4''
+
+    103 ''z+3/4, -y+1/4, x+3/4''
+
+    104 ''y+3/4, -x+1/4, z+3/4''
+
+    105 ''x+3/4, -z+1/4, y+3/4''
+
+    106 ''z+3/4, -x+1/4, y+3/4''
+
+    107 ''y+3/4, -z+1/4, x+3/4''
+
+    108 ''x+3/4, -y+1/4, z+3/4''
+
+    109 ''-z+3/4, y+1/4, x+3/4''
+
+    110 ''-y+3/4, x+1/4, z+3/4''
+
+    111 ''-x+3/4, z+1/4, y+3/4''
+
+    112 ''-z+3/4, x+1/4, y+3/4''
+
+    113 ''-y+3/4, z+1/4, x+3/4''
+
+    114 ''-x+3/4, y+1/4, z+3/4''
+
+    115 ''-z+3/4, -y+1/4, -x+3/4''
+
+    116 ''-y+3/4, -x+1/4, -z+3/4''
+
+    117 ''-x+3/4, -z+1/4, -y+3/4''
+
+    118 ''-z+3/4, -x+1/4, -y+3/4''
+
+    119 ''-y+3/4, -z+1/4, -x+3/4''
+
+    120 ''-x+3/4, -y+1/4, -z+3/4''
+
+    121 ''-z+1/2, -y, x+1/2''
+
+    122 ''-y+1/2, -x, z+1/2''
+
+    123 ''-x+1/2, -z, y+1/2''
+
+    124 ''-z+1/2, -x, y+1/2''
+
+    125 ''-y+1/2, -z, x+1/2''
+
+    126 ''-x+1/2, -y, z+1/2''
+
+    127 ''-z+1/2, y, -x+1/2''
+
+    128 ''-y+1/2, x, -z+1/2''
+
+    129 ''-x+1/2, z, -y+1/2''
+
+    130 ''-z+1/2, x, -y+1/2''
+
+    131 ''-y+1/2, z, -x+1/2''
+
+    132 ''-x+1/2, y, -z+1/2''
+
+    133 ''z+1/2, -y, -x+1/2''
+
+    134 ''y+1/2, -x, -z+1/2''
+
+    135 ''x+1/2, -z, -y+1/2''
+
+    136 ''z+1/2, -x, -y+1/2''
+
+    137 ''y+1/2, -z, -x+1/2''
+
+    138 ''x+1/2, -y, -z+1/2''
+
+    139 ''z+1/2, y, x+1/2''
+
+    140 ''y+1/2, x, z+1/2''
+
+    141 ''x+1/2, z, y+1/2''
+
+    142 ''z+1/2, x, y+1/2''
+
+    143 ''y+1/2, z, x+1/2''
+
+    144 ''x+1/2, y, z+1/2''
+
+    145 ''z+3/4, y+3/4, -x+1/4''
+
+    146 ''y+3/4, x+3/4, -z+1/4''
+
+    147 ''x+3/4, z+3/4, -y+1/4''
+
+    148 ''z+3/4, x+3/4, -y+1/4''
+
+    149 ''y+3/4, z+3/4, -x+1/4''
+
+    150 ''x+3/4, y+3/4, -z+1/4''
+
+    151 ''z+3/4, -y+3/4, x+1/4''
+
+    152 ''y+3/4, -x+3/4, z+1/4''
+
+    153 ''x+3/4, -z+3/4, y+1/4''
+
+    154 ''z+3/4, -x+3/4, y+1/4''
+
+    155 ''y+3/4, -z+3/4, x+1/4''
+
+    156 ''x+3/4, -y+3/4, z+1/4''
+
+    157 ''-z+3/4, y+3/4, x+1/4''
+
+    158 ''-y+3/4, x+3/4, z+1/4''
+
+    159 ''-x+3/4, z+3/4, y+1/4''
+
+    160 ''-z+3/4, x+3/4, y+1/4''
+
+    161 ''-y+3/4, z+3/4, x+1/4''
+
+    162 ''-x+3/4, y+3/4, z+1/4''
+
+    163 ''-z+3/4, -y+3/4, -x+1/4''
+
+    164 ''-y+3/4, -x+3/4, -z+1/4''
+
+    165 ''-x+3/4, -z+3/4, -y+1/4''
+
+    166 ''-z+3/4, -x+3/4, -y+1/4''
+
+    167 ''-y+3/4, -z+3/4, -x+1/4''
+
+    168 ''-x+3/4, -y+3/4, -z+1/4''
+
+    169 ''-z+1/2, -y+1/2, x''
+
+    170 ''-y+1/2, -x+1/2, z''
+
+    171 ''-x+1/2, -z+1/2, y''
+
+    172 ''-z+1/2, -x+1/2, y''
+
+    173 ''-y+1/2, -z+1/2, x''
+
+    174 ''-x+1/2, -y+1/2, z''
+
+    175 ''-z+1/2, y+1/2, -x''
+
+    176 ''-y+1/2, x+1/2, -z''
+
+    177 ''-x+1/2, z+1/2, -y''
+
+    178 ''-z+1/2, x+1/2, -y''
+
+    179 ''-y+1/2, z+1/2, -x''
+
+    180 ''-x+1/2, y+1/2, -z''
+
+    181 ''z+1/2, -y+1/2, -x''
+
+    182 ''y+1/2, -x+1/2, -z''
+
+    183 ''x+1/2, -z+1/2, -y''
+
+    184 ''z+1/2, -x+1/2, -y''
+
+    185 ''y+1/2, -z+1/2, -x''
+
+    186 ''x+1/2, -y+1/2, -z''
+
+    187 ''z+1/2, y+1/2, x''
+
+    188 ''y+1/2, x+1/2, z''
+
+    189 ''x+1/2, z+1/2, y''
+
+    190 ''z+1/2, x+1/2, y''
+
+    191 ''y+1/2, z+1/2, x''
+
+    192 ''x+1/2, y+1/2, z''
+
+    loop_
+
+    _atom_type_symbol
+
+    _atom_type_oxidation_number
+
+    Ge0+ 0
+
+    loop_
+
+    _atom_site_label
+
+    _atom_site_type_symbol
+
+    _atom_site_symmetry_multiplicity
+
+    _atom_site_Wyckoff_symbol
+
+    _atom_site_fract_x
+
+    _atom_site_fract_y
+
+    _atom_site_fract_z
+
+    _atom_site_B_iso_or_equiv
+
+    _atom_site_occupancy
+
+    _atom_site_attached_hydrogens
+
+    Ge1 Ge0+ 8 a 0 0 0 . 1. 0
+
+    #End of TTdata_43422-ICSD'
+  control:
+    elements: []
+    id: Ge
+    pretty_formula: ''
+    queue_id: []
+  dft:
+    basis:
+    - 0.2
+    - 3
+    - 3
+    broyden:
+    - 0.01
+    - 60
+    - 8
+    edifftol: 10
+    fmixing: 99
+    functional:
+      correlation: PBE
+      exchange: PBE
+      hybrid: 25
+    initial_charges: {}
+    initial_spin: []
+    kmesh:
+    - 8
+    - 8
+    - 8
+    maxcycle: 200
+    restart_from: null
+    resume_mode: conservative
+    smear: null
+    spin_polarized: true
+    tolinteg:
+    - 12
+    - 12
+    - 12
+    - 12
+    - 20
+  pseudopotential: BFD
+  qmc:
+    dmc:
+      excitations: 'no'
+      jastrow:
+      - twobody
+      kpoints: real
+      localization:
+      - tmoves
+      nblock: 16
+      optimizer:
+      - variance
+      save_trace: true
+      target_error: 0.01
+      timestep:
+      - 0.02
+    energy_optimize:
+      jastrow:
+      - twobody
+      threshold: 0.001
+      vmc_nstep: 1000
+    maximize:
+      jastrow:
+      - twobody
+      nconfig:
+      - 100
+    variance_optimize:
+      abstol: 1000.0
+      jastrow:
+      - twobody
+      niterations: 10
+      nruns: 3
+      reltol: 0.1
+  supercell:
+  - - 1
+    - 0
+    - 0
+  - - 0
+    - 1
+    - 0
+  - - 0
+    - 0
+    - 1
+  total_spin: 0
+- charge: 0
+  cif: '
+
+    #(C) 2015 by Fachinformationszentrum Karlsruhe.  All rights reserved.
+
+    data_25677-ICSD
+
+    _database_code_ICSD 25677
+
+    _audit_creation_date 1980-01-01
+
+    _audit_update_record 2008-02-01
+
+    _chemical_name_systematic ''Indium nitride''
+
+    _chemical_formula_structural ''In N''
+
+    _chemical_formula_sum ''In1 N1''
+
+    _chemical_name_structure_type ZnS(2H)
+
+    _exptl_crystal_density_diffrn 6.95
+
+    _publ_section_title ''Ueber die Kristallstrukturen von Cu3 N, Ga N und In N''
+
+    loop_
+
+    _citation_id
+
+    _citation_journal_full
+
+    _citation_year
+
+    _citation_journal_volume
+
+    _citation_page_first
+
+    _citation_page_last
+
+    _citation_journal_id_ASTM
+
+    primary ''Zeitschrift fuer Anorganische und Allgemeine Chemie (1950) (DE)'' 1938
+
+    239 282 287 ZAACAB
+
+    loop_
+
+    _publ_author_name
+
+    ''Juza, R.''
+
+    ''Hahn, H.''
+
+    _cell_length_a 3.533(4)
+
+    _cell_length_b 3.533(4)
+
+    _cell_length_c 5.693(4)
+
+    _cell_angle_alpha 90.
+
+    _cell_angle_beta 90.
+
+    _cell_angle_gamma 120.
+
+    _cell_volume 61.54
+
+    _cell_formula_units_Z 2
+
+    _symmetry_space_group_name_H-M ''P 63 m c''
+
+    _symmetry_Int_Tables_number 186
+
+    loop_
+
+    _symmetry_equiv_pos_site_id
+
+    _symmetry_equiv_pos_as_xyz
+
+    1 ''-x, -x+y, z+1/2''
+
+    2 ''x-y, -y, z+1/2''
+
+    3 ''y, x, z+1/2''
+
+    4 ''x-y, x, z+1/2''
+
+    5 ''y, -x+y, z+1/2''
+
+    6 ''-x, -y, z+1/2''
+
+    7 ''x, x-y, z''
+
+    8 ''-x+y, y, z''
+
+    9 ''-y, -x, z''
+
+    10 ''-x+y, -x, z''
+
+    11 ''-y, x-y, z''
+
+    12 ''x, y, z''
+
+    loop_
+
+    _atom_type_symbol
+
+    _atom_type_oxidation_number
+
+    In3+ 3
+
+    N3- -3
+
+    loop_
+
+    _atom_site_label
+
+    _atom_site_type_symbol
+
+    _atom_site_symmetry_multiplicity
+
+    _atom_site_Wyckoff_symbol
+
+    _atom_site_fract_x
+
+    _atom_site_fract_y
+
+    _atom_site_fract_z
+
+    _atom_site_B_iso_or_equiv
+
+    _atom_site_occupancy
+
+    _atom_site_attached_hydrogens
+
+    In1 In3+ 2 b 0.3333 0.6667 0 . 1. 0
+
+    N1 N3- 2 b 0.3333 0.6667 0.375 . 1. 0
+
+    #End of TTdata_25677-ICSD'
+  control:
+    elements: []
+    id: InN
+    pretty_formula: ''
+    queue_id: []
+  dft:
+    basis:
+    - 0.2
+    - 3
+    - 3
+    broyden:
+    - 0.01
+    - 60
+    - 8
+    edifftol: 10
+    fmixing: 99
+    functional:
+      correlation: PBE
+      exchange: PBE
+      hybrid: 25
+    initial_charges: {}
+    initial_spin: []
+    kmesh:
+    - 8
+    - 8
+    - 8
+    maxcycle: 200
+    restart_from: null
+    resume_mode: conservative
+    smear: null
+    spin_polarized: true
+    tolinteg:
+    - 12
+    - 12
+    - 12
+    - 12
+    - 20
+  pseudopotential: BFD
+  qmc:
+    dmc:
+      excitations: 'no'
+      jastrow:
+      - twobody
+      kpoints: real
+      localization:
+      - tmoves
+      nblock: 16
+      optimizer:
+      - variance
+      save_trace: true
+      target_error: 0.01
+      timestep:
+      - 0.02
+    energy_optimize:
+      jastrow:
+      - twobody
+      threshold: 0.001
+      vmc_nstep: 1000
+    maximize:
+      jastrow:
+      - twobody
+      nconfig:
+      - 100
+    variance_optimize:
+      abstol: 1000.0
+      jastrow:
+      - twobody
+      niterations: 10
+      nruns: 3
+      reltol: 0.1
+  supercell:
+  - - 1
+    - 0
+    - 0
+  - - 0
+    - 1
+    - 0
+  - - 0
+    - 0
+    - 1
+  total_spin: 0
+- charge: 0
+  cif: '
+
+    #(C) 2015 by Fachinformationszentrum Karlsruhe.  All rights reserved.
+
+    data_18006-ICSD
+
+    _database_code_ICSD 18006
+
+    _audit_creation_date 1980-01-01
+
+    _audit_update_record 2012-08-01
+
+    _chemical_name_systematic ''Manganese oxide''
+
+    _chemical_formula_structural ''Mn O''
+
+    _chemical_formula_sum ''Mn1 O1''
+
+    _chemical_name_structure_type NaCl
+
+    _chemical_name_mineral Manganosite
+
+    _exptl_crystal_density_diffrn 5.24
+
+    _publ_section_title
+
+
+    ;
+
+    Die Strukturen von Mn O, Mn S, Ag F, Ni S, Sn I4, Sr Cl2, Ba F2,
+
+    Praezisionsmessungen einiger Alkalihalogenide.
+
+    ;
+
+    loop_
+
+    _citation_id
+
+    _citation_journal_full
+
+    _citation_year
+
+    _citation_journal_volume
+
+    _citation_page_first
+
+    _citation_page_last
+
+    _citation_journal_id_ASTM
+
+    primary
+
+
+    ;
+
+    Zeitschrift fuer Kristallographie, Kristallgeometrie, Kristallphysik,
+
+    Kristallchemie (-144,1977)
+
+    ; 1926 63 222 230 ZEKGAX
+
+    loop_
+
+    _publ_author_name
+
+    ''Ott, H.''
+
+    _cell_length_a 4.48
+
+    _cell_length_b 4.48
+
+    _cell_length_c 4.48
+
+    _cell_angle_alpha 90.
+
+    _cell_angle_beta 90.
+
+    _cell_angle_gamma 90.
+
+    _cell_volume 89.92
+
+    _cell_formula_units_Z 4
+
+    _symmetry_space_group_name_H-M ''F m -3 m''
+
+    _symmetry_Int_Tables_number 225
+
+    loop_
+
+    _symmetry_equiv_pos_site_id
+
+    _symmetry_equiv_pos_as_xyz
+
+    1 ''z, y, -x''
+
+    2 ''y, x, -z''
+
+    3 ''x, z, -y''
+
+    4 ''z, x, -y''
+
+    5 ''y, z, -x''
+
+    6 ''x, y, -z''
+
+    7 ''z, -y, x''
+
+    8 ''y, -x, z''
+
+    9 ''x, -z, y''
+
+    10 ''z, -x, y''
+
+    11 ''y, -z, x''
+
+    12 ''x, -y, z''
+
+    13 ''-z, y, x''
+
+    14 ''-y, x, z''
+
+    15 ''-x, z, y''
+
+    16 ''-z, x, y''
+
+    17 ''-y, z, x''
+
+    18 ''-x, y, z''
+
+    19 ''-z, -y, -x''
+
+    20 ''-y, -x, -z''
+
+    21 ''-x, -z, -y''
+
+    22 ''-z, -x, -y''
+
+    23 ''-y, -z, -x''
+
+    24 ''-x, -y, -z''
+
+    25 ''-z, -y, x''
+
+    26 ''-y, -x, z''
+
+    27 ''-x, -z, y''
+
+    28 ''-z, -x, y''
+
+    29 ''-y, -z, x''
+
+    30 ''-x, -y, z''
+
+    31 ''-z, y, -x''
+
+    32 ''-y, x, -z''
+
+    33 ''-x, z, -y''
+
+    34 ''-z, x, -y''
+
+    35 ''-y, z, -x''
+
+    36 ''-x, y, -z''
+
+    37 ''z, -y, -x''
+
+    38 ''y, -x, -z''
+
+    39 ''x, -z, -y''
+
+    40 ''z, -x, -y''
+
+    41 ''y, -z, -x''
+
+    42 ''x, -y, -z''
+
+    43 ''z, y, x''
+
+    44 ''y, x, z''
+
+    45 ''x, z, y''
+
+    46 ''z, x, y''
+
+    47 ''y, z, x''
+
+    48 ''x, y, z''
+
+    49 ''z, y+1/2, -x+1/2''
+
+    50 ''y, x+1/2, -z+1/2''
+
+    51 ''x, z+1/2, -y+1/2''
+
+    52 ''z, x+1/2, -y+1/2''
+
+    53 ''y, z+1/2, -x+1/2''
+
+    54 ''x, y+1/2, -z+1/2''
+
+    55 ''z, -y+1/2, x+1/2''
+
+    56 ''y, -x+1/2, z+1/2''
+
+    57 ''x, -z+1/2, y+1/2''
+
+    58 ''z, -x+1/2, y+1/2''
+
+    59 ''y, -z+1/2, x+1/2''
+
+    60 ''x, -y+1/2, z+1/2''
+
+    61 ''-z, y+1/2, x+1/2''
+
+    62 ''-y, x+1/2, z+1/2''
+
+    63 ''-x, z+1/2, y+1/2''
+
+    64 ''-z, x+1/2, y+1/2''
+
+    65 ''-y, z+1/2, x+1/2''
+
+    66 ''-x, y+1/2, z+1/2''
+
+    67 ''-z, -y+1/2, -x+1/2''
+
+    68 ''-y, -x+1/2, -z+1/2''
+
+    69 ''-x, -z+1/2, -y+1/2''
+
+    70 ''-z, -x+1/2, -y+1/2''
+
+    71 ''-y, -z+1/2, -x+1/2''
+
+    72 ''-x, -y+1/2, -z+1/2''
+
+    73 ''-z, -y+1/2, x+1/2''
+
+    74 ''-y, -x+1/2, z+1/2''
+
+    75 ''-x, -z+1/2, y+1/2''
+
+    76 ''-z, -x+1/2, y+1/2''
+
+    77 ''-y, -z+1/2, x+1/2''
+
+    78 ''-x, -y+1/2, z+1/2''
+
+    79 ''-z, y+1/2, -x+1/2''
+
+    80 ''-y, x+1/2, -z+1/2''
+
+    81 ''-x, z+1/2, -y+1/2''
+
+    82 ''-z, x+1/2, -y+1/2''
+
+    83 ''-y, z+1/2, -x+1/2''
+
+    84 ''-x, y+1/2, -z+1/2''
+
+    85 ''z, -y+1/2, -x+1/2''
+
+    86 ''y, -x+1/2, -z+1/2''
+
+    87 ''x, -z+1/2, -y+1/2''
+
+    88 ''z, -x+1/2, -y+1/2''
+
+    89 ''y, -z+1/2, -x+1/2''
+
+    90 ''x, -y+1/2, -z+1/2''
+
+    91 ''z, y+1/2, x+1/2''
+
+    92 ''y, x+1/2, z+1/2''
+
+    93 ''x, z+1/2, y+1/2''
+
+    94 ''z, x+1/2, y+1/2''
+
+    95 ''y, z+1/2, x+1/2''
+
+    96 ''x, y+1/2, z+1/2''
+
+    97 ''z+1/2, y, -x+1/2''
+
+    98 ''y+1/2, x, -z+1/2''
+
+    99 ''x+1/2, z, -y+1/2''
+
+    100 ''z+1/2, x, -y+1/2''
+
+    101 ''y+1/2, z, -x+1/2''
+
+    102 ''x+1/2, y, -z+1/2''
+
+    103 ''z+1/2, -y, x+1/2''
+
+    104 ''y+1/2, -x, z+1/2''
+
+    105 ''x+1/2, -z, y+1/2''
+
+    106 ''z+1/2, -x, y+1/2''
+
+    107 ''y+1/2, -z, x+1/2''
+
+    108 ''x+1/2, -y, z+1/2''
+
+    109 ''-z+1/2, y, x+1/2''
+
+    110 ''-y+1/2, x, z+1/2''
+
+    111 ''-x+1/2, z, y+1/2''
+
+    112 ''-z+1/2, x, y+1/2''
+
+    113 ''-y+1/2, z, x+1/2''
+
+    114 ''-x+1/2, y, z+1/2''
+
+    115 ''-z+1/2, -y, -x+1/2''
+
+    116 ''-y+1/2, -x, -z+1/2''
+
+    117 ''-x+1/2, -z, -y+1/2''
+
+    118 ''-z+1/2, -x, -y+1/2''
+
+    119 ''-y+1/2, -z, -x+1/2''
+
+    120 ''-x+1/2, -y, -z+1/2''
+
+    121 ''-z+1/2, -y, x+1/2''
+
+    122 ''-y+1/2, -x, z+1/2''
+
+    123 ''-x+1/2, -z, y+1/2''
+
+    124 ''-z+1/2, -x, y+1/2''
+
+    125 ''-y+1/2, -z, x+1/2''
+
+    126 ''-x+1/2, -y, z+1/2''
+
+    127 ''-z+1/2, y, -x+1/2''
+
+    128 ''-y+1/2, x, -z+1/2''
+
+    129 ''-x+1/2, z, -y+1/2''
+
+    130 ''-z+1/2, x, -y+1/2''
+
+    131 ''-y+1/2, z, -x+1/2''
+
+    132 ''-x+1/2, y, -z+1/2''
+
+    133 ''z+1/2, -y, -x+1/2''
+
+    134 ''y+1/2, -x, -z+1/2''
+
+    135 ''x+1/2, -z, -y+1/2''
+
+    136 ''z+1/2, -x, -y+1/2''
+
+    137 ''y+1/2, -z, -x+1/2''
+
+    138 ''x+1/2, -y, -z+1/2''
+
+    139 ''z+1/2, y, x+1/2''
+
+    140 ''y+1/2, x, z+1/2''
+
+    141 ''x+1/2, z, y+1/2''
+
+    142 ''z+1/2, x, y+1/2''
+
+    143 ''y+1/2, z, x+1/2''
+
+    144 ''x+1/2, y, z+1/2''
+
+    145 ''z+1/2, y+1/2, -x''
+
+    146 ''y+1/2, x+1/2, -z''
+
+    147 ''x+1/2, z+1/2, -y''
+
+    148 ''z+1/2, x+1/2, -y''
+
+    149 ''y+1/2, z+1/2, -x''
+
+    150 ''x+1/2, y+1/2, -z''
+
+    151 ''z+1/2, -y+1/2, x''
+
+    152 ''y+1/2, -x+1/2, z''
+
+    153 ''x+1/2, -z+1/2, y''
+
+    154 ''z+1/2, -x+1/2, y''
+
+    155 ''y+1/2, -z+1/2, x''
+
+    156 ''x+1/2, -y+1/2, z''
+
+    157 ''-z+1/2, y+1/2, x''
+
+    158 ''-y+1/2, x+1/2, z''
+
+    159 ''-x+1/2, z+1/2, y''
+
+    160 ''-z+1/2, x+1/2, y''
+
+    161 ''-y+1/2, z+1/2, x''
+
+    162 ''-x+1/2, y+1/2, z''
+
+    163 ''-z+1/2, -y+1/2, -x''
+
+    164 ''-y+1/2, -x+1/2, -z''
+
+    165 ''-x+1/2, -z+1/2, -y''
+
+    166 ''-z+1/2, -x+1/2, -y''
+
+    167 ''-y+1/2, -z+1/2, -x''
+
+    168 ''-x+1/2, -y+1/2, -z''
+
+    169 ''-z+1/2, -y+1/2, x''
+
+    170 ''-y+1/2, -x+1/2, z''
+
+    171 ''-x+1/2, -z+1/2, y''
+
+    172 ''-z+1/2, -x+1/2, y''
+
+    173 ''-y+1/2, -z+1/2, x''
+
+    174 ''-x+1/2, -y+1/2, z''
+
+    175 ''-z+1/2, y+1/2, -x''
+
+    176 ''-y+1/2, x+1/2, -z''
+
+    177 ''-x+1/2, z+1/2, -y''
+
+    178 ''-z+1/2, x+1/2, -y''
+
+    179 ''-y+1/2, z+1/2, -x''
+
+    180 ''-x+1/2, y+1/2, -z''
+
+    181 ''z+1/2, -y+1/2, -x''
+
+    182 ''y+1/2, -x+1/2, -z''
+
+    183 ''x+1/2, -z+1/2, -y''
+
+    184 ''z+1/2, -x+1/2, -y''
+
+    185 ''y+1/2, -z+1/2, -x''
+
+    186 ''x+1/2, -y+1/2, -z''
+
+    187 ''z+1/2, y+1/2, x''
+
+    188 ''y+1/2, x+1/2, z''
+
+    189 ''x+1/2, z+1/2, y''
+
+    190 ''z+1/2, x+1/2, y''
+
+    191 ''y+1/2, z+1/2, x''
+
+    192 ''x+1/2, y+1/2, z''
+
+    loop_
+
+    _atom_type_symbol
+
+    _atom_type_oxidation_number
+
+    Mn2+ 2
+
+    O2- -2
+
+    loop_
+
+    _atom_site_label
+
+    _atom_site_type_symbol
+
+    _atom_site_symmetry_multiplicity
+
+    _atom_site_Wyckoff_symbol
+
+    _atom_site_fract_x
+
+    _atom_site_fract_y
+
+    _atom_site_fract_z
+
+    _atom_site_B_iso_or_equiv
+
+    _atom_site_occupancy
+
+    _atom_site_attached_hydrogens
+
+    Mn1 Mn2+ 4 a 0 0 0 . 1. 0
+
+    O1 O2- 4 b 0.5 0.5 0.5 . 1. 0
+
+    #End of TTdata_18006-ICSD'
+  control:
+    elements: []
+    id: MnO
+    pretty_formula: ''
+    queue_id: []
+  dft:
+    basis:
+    - 0.2
+    - 3
+    - 3
+    broyden:
+    - 0.01
+    - 60
+    - 8
+    edifftol: 10
+    fmixing: 99
+    functional:
+      correlation: PBE
+      exchange: PBE
+      hybrid: 25
+    initial_charges: {}
+    initial_spin: []
+    kmesh:
+    - 8
+    - 8
+    - 8
+    maxcycle: 200
+    restart_from: null
+    resume_mode: conservative
+    smear: null
+    spin_polarized: true
+    tolinteg:
+    - 12
+    - 12
+    - 12
+    - 12
+    - 20
+  pseudopotential: BFD
+  qmc:
+    dmc:
+      excitations: 'no'
+      jastrow:
+      - twobody
+      kpoints: real
+      localization:
+      - tmoves
+      nblock: 16
+      optimizer:
+      - variance
+      save_trace: true
+      target_error: 0.01
+      timestep:
+      - 0.02
+    energy_optimize:
+      jastrow:
+      - twobody
+      threshold: 0.001
+      vmc_nstep: 1000
+    maximize:
+      jastrow:
+      - twobody
+      nconfig:
+      - 100
+    variance_optimize:
+      abstol: 1000.0
+      jastrow:
+      - twobody
+      niterations: 10
+      nruns: 3
+      reltol: 0.1
+  supercell:
+  - - 1
+    - 0
+    - 0
+  - - 0
+    - 1
+    - 0
+  - - 0
+    - 0
+    - 1
+  total_spin: 0
+- charge: 0
+  cif: '
+
+    #(C) 2015 by Fachinformationszentrum Karlsruhe.  All rights reserved.
+
+    data_24014-ICSD
+
+    _database_code_ICSD 24014
+
+    _audit_creation_date 1980-01-01
+
+    _audit_update_record 2006-04-01
+
+    _chemical_name_systematic ''Nickel oxide''
+
+    _chemical_formula_structural ''Ni O''
+
+    _chemical_formula_sum ''Ni1 O1''
+
+    _chemical_name_structure_type NaCl
+
+    _chemical_name_mineral Bunsenite
+
+    _exptl_crystal_density_diffrn 6.85
+
+    _publ_section_title
+
+
+    ;
+
+    X-ray studies of the system nickel-oxygen-water. I. Nickelous oxide and
+
+    hydroxide
+
+    ;
+
+    loop_
+
+    _citation_id
+
+    _citation_journal_full
+
+    _citation_year
+
+    _citation_journal_volume
+
+    _citation_page_first
+
+    _citation_page_last
+
+    _citation_journal_id_ASTM
+
+    primary ''Journal of the American Chemical Society'' 1933 55 527 533 JACSAT
+
+    loop_
+
+    _publ_author_name
+
+    ''Cairns, R.W.''
+
+    ''Ott, E.''
+
+    _cell_length_a 4.1684(10)
+
+    _cell_length_b 4.1684(10)
+
+    _cell_length_c 4.1684(10)
+
+    _cell_angle_alpha 90.
+
+    _cell_angle_beta 90.
+
+    _cell_angle_gamma 90.
+
+    _cell_volume 72.43
+
+    _cell_formula_units_Z 4
+
+    _symmetry_space_group_name_H-M ''F m -3 m''
+
+    _symmetry_Int_Tables_number 225
+
+    loop_
+
+    _symmetry_equiv_pos_site_id
+
+    _symmetry_equiv_pos_as_xyz
+
+    1 ''z, y, -x''
+
+    2 ''y, x, -z''
+
+    3 ''x, z, -y''
+
+    4 ''z, x, -y''
+
+    5 ''y, z, -x''
+
+    6 ''x, y, -z''
+
+    7 ''z, -y, x''
+
+    8 ''y, -x, z''
+
+    9 ''x, -z, y''
+
+    10 ''z, -x, y''
+
+    11 ''y, -z, x''
+
+    12 ''x, -y, z''
+
+    13 ''-z, y, x''
+
+    14 ''-y, x, z''
+
+    15 ''-x, z, y''
+
+    16 ''-z, x, y''
+
+    17 ''-y, z, x''
+
+    18 ''-x, y, z''
+
+    19 ''-z, -y, -x''
+
+    20 ''-y, -x, -z''
+
+    21 ''-x, -z, -y''
+
+    22 ''-z, -x, -y''
+
+    23 ''-y, -z, -x''
+
+    24 ''-x, -y, -z''
+
+    25 ''-z, -y, x''
+
+    26 ''-y, -x, z''
+
+    27 ''-x, -z, y''
+
+    28 ''-z, -x, y''
+
+    29 ''-y, -z, x''
+
+    30 ''-x, -y, z''
+
+    31 ''-z, y, -x''
+
+    32 ''-y, x, -z''
+
+    33 ''-x, z, -y''
+
+    34 ''-z, x, -y''
+
+    35 ''-y, z, -x''
+
+    36 ''-x, y, -z''
+
+    37 ''z, -y, -x''
+
+    38 ''y, -x, -z''
+
+    39 ''x, -z, -y''
+
+    40 ''z, -x, -y''
+
+    41 ''y, -z, -x''
+
+    42 ''x, -y, -z''
+
+    43 ''z, y, x''
+
+    44 ''y, x, z''
+
+    45 ''x, z, y''
+
+    46 ''z, x, y''
+
+    47 ''y, z, x''
+
+    48 ''x, y, z''
+
+    49 ''z, y+1/2, -x+1/2''
+
+    50 ''y, x+1/2, -z+1/2''
+
+    51 ''x, z+1/2, -y+1/2''
+
+    52 ''z, x+1/2, -y+1/2''
+
+    53 ''y, z+1/2, -x+1/2''
+
+    54 ''x, y+1/2, -z+1/2''
+
+    55 ''z, -y+1/2, x+1/2''
+
+    56 ''y, -x+1/2, z+1/2''
+
+    57 ''x, -z+1/2, y+1/2''
+
+    58 ''z, -x+1/2, y+1/2''
+
+    59 ''y, -z+1/2, x+1/2''
+
+    60 ''x, -y+1/2, z+1/2''
+
+    61 ''-z, y+1/2, x+1/2''
+
+    62 ''-y, x+1/2, z+1/2''
+
+    63 ''-x, z+1/2, y+1/2''
+
+    64 ''-z, x+1/2, y+1/2''
+
+    65 ''-y, z+1/2, x+1/2''
+
+    66 ''-x, y+1/2, z+1/2''
+
+    67 ''-z, -y+1/2, -x+1/2''
+
+    68 ''-y, -x+1/2, -z+1/2''
+
+    69 ''-x, -z+1/2, -y+1/2''
+
+    70 ''-z, -x+1/2, -y+1/2''
+
+    71 ''-y, -z+1/2, -x+1/2''
+
+    72 ''-x, -y+1/2, -z+1/2''
+
+    73 ''-z, -y+1/2, x+1/2''
+
+    74 ''-y, -x+1/2, z+1/2''
+
+    75 ''-x, -z+1/2, y+1/2''
+
+    76 ''-z, -x+1/2, y+1/2''
+
+    77 ''-y, -z+1/2, x+1/2''
+
+    78 ''-x, -y+1/2, z+1/2''
+
+    79 ''-z, y+1/2, -x+1/2''
+
+    80 ''-y, x+1/2, -z+1/2''
+
+    81 ''-x, z+1/2, -y+1/2''
+
+    82 ''-z, x+1/2, -y+1/2''
+
+    83 ''-y, z+1/2, -x+1/2''
+
+    84 ''-x, y+1/2, -z+1/2''
+
+    85 ''z, -y+1/2, -x+1/2''
+
+    86 ''y, -x+1/2, -z+1/2''
+
+    87 ''x, -z+1/2, -y+1/2''
+
+    88 ''z, -x+1/2, -y+1/2''
+
+    89 ''y, -z+1/2, -x+1/2''
+
+    90 ''x, -y+1/2, -z+1/2''
+
+    91 ''z, y+1/2, x+1/2''
+
+    92 ''y, x+1/2, z+1/2''
+
+    93 ''x, z+1/2, y+1/2''
+
+    94 ''z, x+1/2, y+1/2''
+
+    95 ''y, z+1/2, x+1/2''
+
+    96 ''x, y+1/2, z+1/2''
+
+    97 ''z+1/2, y, -x+1/2''
+
+    98 ''y+1/2, x, -z+1/2''
+
+    99 ''x+1/2, z, -y+1/2''
+
+    100 ''z+1/2, x, -y+1/2''
+
+    101 ''y+1/2, z, -x+1/2''
+
+    102 ''x+1/2, y, -z+1/2''
+
+    103 ''z+1/2, -y, x+1/2''
+
+    104 ''y+1/2, -x, z+1/2''
+
+    105 ''x+1/2, -z, y+1/2''
+
+    106 ''z+1/2, -x, y+1/2''
+
+    107 ''y+1/2, -z, x+1/2''
+
+    108 ''x+1/2, -y, z+1/2''
+
+    109 ''-z+1/2, y, x+1/2''
+
+    110 ''-y+1/2, x, z+1/2''
+
+    111 ''-x+1/2, z, y+1/2''
+
+    112 ''-z+1/2, x, y+1/2''
+
+    113 ''-y+1/2, z, x+1/2''
+
+    114 ''-x+1/2, y, z+1/2''
+
+    115 ''-z+1/2, -y, -x+1/2''
+
+    116 ''-y+1/2, -x, -z+1/2''
+
+    117 ''-x+1/2, -z, -y+1/2''
+
+    118 ''-z+1/2, -x, -y+1/2''
+
+    119 ''-y+1/2, -z, -x+1/2''
+
+    120 ''-x+1/2, -y, -z+1/2''
+
+    121 ''-z+1/2, -y, x+1/2''
+
+    122 ''-y+1/2, -x, z+1/2''
+
+    123 ''-x+1/2, -z, y+1/2''
+
+    124 ''-z+1/2, -x, y+1/2''
+
+    125 ''-y+1/2, -z, x+1/2''
+
+    126 ''-x+1/2, -y, z+1/2''
+
+    127 ''-z+1/2, y, -x+1/2''
+
+    128 ''-y+1/2, x, -z+1/2''
+
+    129 ''-x+1/2, z, -y+1/2''
+
+    130 ''-z+1/2, x, -y+1/2''
+
+    131 ''-y+1/2, z, -x+1/2''
+
+    132 ''-x+1/2, y, -z+1/2''
+
+    133 ''z+1/2, -y, -x+1/2''
+
+    134 ''y+1/2, -x, -z+1/2''
+
+    135 ''x+1/2, -z, -y+1/2''
+
+    136 ''z+1/2, -x, -y+1/2''
+
+    137 ''y+1/2, -z, -x+1/2''
+
+    138 ''x+1/2, -y, -z+1/2''
+
+    139 ''z+1/2, y, x+1/2''
+
+    140 ''y+1/2, x, z+1/2''
+
+    141 ''x+1/2, z, y+1/2''
+
+    142 ''z+1/2, x, y+1/2''
+
+    143 ''y+1/2, z, x+1/2''
+
+    144 ''x+1/2, y, z+1/2''
+
+    145 ''z+1/2, y+1/2, -x''
+
+    146 ''y+1/2, x+1/2, -z''
+
+    147 ''x+1/2, z+1/2, -y''
+
+    148 ''z+1/2, x+1/2, -y''
+
+    149 ''y+1/2, z+1/2, -x''
+
+    150 ''x+1/2, y+1/2, -z''
+
+    151 ''z+1/2, -y+1/2, x''
+
+    152 ''y+1/2, -x+1/2, z''
+
+    153 ''x+1/2, -z+1/2, y''
+
+    154 ''z+1/2, -x+1/2, y''
+
+    155 ''y+1/2, -z+1/2, x''
+
+    156 ''x+1/2, -y+1/2, z''
+
+    157 ''-z+1/2, y+1/2, x''
+
+    158 ''-y+1/2, x+1/2, z''
+
+    159 ''-x+1/2, z+1/2, y''
+
+    160 ''-z+1/2, x+1/2, y''
+
+    161 ''-y+1/2, z+1/2, x''
+
+    162 ''-x+1/2, y+1/2, z''
+
+    163 ''-z+1/2, -y+1/2, -x''
+
+    164 ''-y+1/2, -x+1/2, -z''
+
+    165 ''-x+1/2, -z+1/2, -y''
+
+    166 ''-z+1/2, -x+1/2, -y''
+
+    167 ''-y+1/2, -z+1/2, -x''
+
+    168 ''-x+1/2, -y+1/2, -z''
+
+    169 ''-z+1/2, -y+1/2, x''
+
+    170 ''-y+1/2, -x+1/2, z''
+
+    171 ''-x+1/2, -z+1/2, y''
+
+    172 ''-z+1/2, -x+1/2, y''
+
+    173 ''-y+1/2, -z+1/2, x''
+
+    174 ''-x+1/2, -y+1/2, z''
+
+    175 ''-z+1/2, y+1/2, -x''
+
+    176 ''-y+1/2, x+1/2, -z''
+
+    177 ''-x+1/2, z+1/2, -y''
+
+    178 ''-z+1/2, x+1/2, -y''
+
+    179 ''-y+1/2, z+1/2, -x''
+
+    180 ''-x+1/2, y+1/2, -z''
+
+    181 ''z+1/2, -y+1/2, -x''
+
+    182 ''y+1/2, -x+1/2, -z''
+
+    183 ''x+1/2, -z+1/2, -y''
+
+    184 ''z+1/2, -x+1/2, -y''
+
+    185 ''y+1/2, -z+1/2, -x''
+
+    186 ''x+1/2, -y+1/2, -z''
+
+    187 ''z+1/2, y+1/2, x''
+
+    188 ''y+1/2, x+1/2, z''
+
+    189 ''x+1/2, z+1/2, y''
+
+    190 ''z+1/2, x+1/2, y''
+
+    191 ''y+1/2, z+1/2, x''
+
+    192 ''x+1/2, y+1/2, z''
+
+    loop_
+
+    _atom_type_symbol
+
+    _atom_type_oxidation_number
+
+    Ni2+ 2
+
+    O2- -2
+
+    loop_
+
+    _atom_site_label
+
+    _atom_site_type_symbol
+
+    _atom_site_symmetry_multiplicity
+
+    _atom_site_Wyckoff_symbol
+
+    _atom_site_fract_x
+
+    _atom_site_fract_y
+
+    _atom_site_fract_z
+
+    _atom_site_B_iso_or_equiv
+
+    _atom_site_occupancy
+
+    _atom_site_attached_hydrogens
+
+    Ni1 Ni2+ 4 b 0.5 0.5 0.5 . 1. 0
+
+    O1 O2- 4 a 0 0 0 . 1. 0
+
+    #End of TTdata_24014-ICSD'
+  control:
+    elements: []
+    id: NiO
+    pretty_formula: ''
+    queue_id: []
+  dft:
+    basis:
+    - 0.2
+    - 3
+    - 3
+    broyden:
+    - 0.01
+    - 60
+    - 8
+    edifftol: 10
+    fmixing: 99
+    functional:
+      correlation: PBE
+      exchange: PBE
+      hybrid: 25
+    initial_charges: {}
+    initial_spin: []
+    kmesh:
+    - 8
+    - 8
+    - 8
+    maxcycle: 200
+    restart_from: null
+    resume_mode: conservative
+    smear: null
+    spin_polarized: true
+    tolinteg:
+    - 12
+    - 12
+    - 12
+    - 12
+    - 20
+  pseudopotential: BFD
+  qmc:
+    dmc:
+      excitations: 'no'
+      jastrow:
+      - twobody
+      kpoints: real
+      localization:
+      - tmoves
+      nblock: 16
+      optimizer:
+      - variance
+      save_trace: true
+      target_error: 0.01
+      timestep:
+      - 0.02
+    energy_optimize:
+      jastrow:
+      - twobody
+      threshold: 0.001
+      vmc_nstep: 1000
+    maximize:
+      jastrow:
+      - twobody
+      nconfig:
+      - 100
+    variance_optimize:
+      abstol: 1000.0
+      jastrow:
+      - twobody
+      niterations: 10
+      nruns: 3
+      reltol: 0.1
+  supercell:
+  - - 1
+    - 0
+    - 0
+  - - 0
+    - 1
+    - 0
+  - - 0
+    - 0
+    - 1
+  total_spin: 0
+- charge: 0
+  cif: '
+
+    #(C) 2015 by Fachinformationszentrum Karlsruhe.  All rights reserved.
+
+    data_38295-ICSD
+
+    _database_code_ICSD 38295
+
+    _audit_creation_date 1983-12-31
+
+    _audit_update_record 2015-02-01
+
+    _chemical_name_systematic ''Lead telluride''
+
+    _chemical_formula_structural ''Pb Te''
+
+    _chemical_formula_sum ''Pb1 Te1''
+
+    _chemical_name_structure_type NaCl
+
+    _chemical_name_mineral Altaite
+
+    _exptl_crystal_density_diffrn 8.24
+
+    _publ_section_title
+
+
+    ;
+
+    Charge distribution and atomic thermal vibration in lead chalcogenide crystals
+
+    ;
+
+    loop_
+
+    _citation_id
+
+    _citation_journal_full
+
+    _citation_year
+
+    _citation_journal_volume
+
+    _citation_page_first
+
+    _citation_page_last
+
+    _citation_journal_id_ASTM
+
+    primary ''Acta Crystallographica, Section B: Structural Science'' 1983 39 312
+    317
+
+    ASBSDK
+
+    loop_
+
+    _publ_author_name
+
+    ''Noda, Y.''
+
+    ''Ohba, S.''
+
+    ''Sato, S.''
+
+    ''Saito, Y.''
+
+    _cell_length_a 6.462(1)
+
+    _cell_length_b 6.462(1)
+
+    _cell_length_c 6.462(1)
+
+    _cell_angle_alpha 90.
+
+    _cell_angle_beta 90.
+
+    _cell_angle_gamma 90.
+
+    _cell_volume 269.84
+
+    _cell_formula_units_Z 4
+
+    _symmetry_space_group_name_H-M ''F m -3 m''
+
+    _symmetry_Int_Tables_number 225
+
+    _refine_ls_R_factor_all 0.015
+
+    loop_
+
+    _symmetry_equiv_pos_site_id
+
+    _symmetry_equiv_pos_as_xyz
+
+    1 ''z, y, -x''
+
+    2 ''y, x, -z''
+
+    3 ''x, z, -y''
+
+    4 ''z, x, -y''
+
+    5 ''y, z, -x''
+
+    6 ''x, y, -z''
+
+    7 ''z, -y, x''
+
+    8 ''y, -x, z''
+
+    9 ''x, -z, y''
+
+    10 ''z, -x, y''
+
+    11 ''y, -z, x''
+
+    12 ''x, -y, z''
+
+    13 ''-z, y, x''
+
+    14 ''-y, x, z''
+
+    15 ''-x, z, y''
+
+    16 ''-z, x, y''
+
+    17 ''-y, z, x''
+
+    18 ''-x, y, z''
+
+    19 ''-z, -y, -x''
+
+    20 ''-y, -x, -z''
+
+    21 ''-x, -z, -y''
+
+    22 ''-z, -x, -y''
+
+    23 ''-y, -z, -x''
+
+    24 ''-x, -y, -z''
+
+    25 ''-z, -y, x''
+
+    26 ''-y, -x, z''
+
+    27 ''-x, -z, y''
+
+    28 ''-z, -x, y''
+
+    29 ''-y, -z, x''
+
+    30 ''-x, -y, z''
+
+    31 ''-z, y, -x''
+
+    32 ''-y, x, -z''
+
+    33 ''-x, z, -y''
+
+    34 ''-z, x, -y''
+
+    35 ''-y, z, -x''
+
+    36 ''-x, y, -z''
+
+    37 ''z, -y, -x''
+
+    38 ''y, -x, -z''
+
+    39 ''x, -z, -y''
+
+    40 ''z, -x, -y''
+
+    41 ''y, -z, -x''
+
+    42 ''x, -y, -z''
+
+    43 ''z, y, x''
+
+    44 ''y, x, z''
+
+    45 ''x, z, y''
+
+    46 ''z, x, y''
+
+    47 ''y, z, x''
+
+    48 ''x, y, z''
+
+    49 ''z, y+1/2, -x+1/2''
+
+    50 ''y, x+1/2, -z+1/2''
+
+    51 ''x, z+1/2, -y+1/2''
+
+    52 ''z, x+1/2, -y+1/2''
+
+    53 ''y, z+1/2, -x+1/2''
+
+    54 ''x, y+1/2, -z+1/2''
+
+    55 ''z, -y+1/2, x+1/2''
+
+    56 ''y, -x+1/2, z+1/2''
+
+    57 ''x, -z+1/2, y+1/2''
+
+    58 ''z, -x+1/2, y+1/2''
+
+    59 ''y, -z+1/2, x+1/2''
+
+    60 ''x, -y+1/2, z+1/2''
+
+    61 ''-z, y+1/2, x+1/2''
+
+    62 ''-y, x+1/2, z+1/2''
+
+    63 ''-x, z+1/2, y+1/2''
+
+    64 ''-z, x+1/2, y+1/2''
+
+    65 ''-y, z+1/2, x+1/2''
+
+    66 ''-x, y+1/2, z+1/2''
+
+    67 ''-z, -y+1/2, -x+1/2''
+
+    68 ''-y, -x+1/2, -z+1/2''
+
+    69 ''-x, -z+1/2, -y+1/2''
+
+    70 ''-z, -x+1/2, -y+1/2''
+
+    71 ''-y, -z+1/2, -x+1/2''
+
+    72 ''-x, -y+1/2, -z+1/2''
+
+    73 ''-z, -y+1/2, x+1/2''
+
+    74 ''-y, -x+1/2, z+1/2''
+
+    75 ''-x, -z+1/2, y+1/2''
+
+    76 ''-z, -x+1/2, y+1/2''
+
+    77 ''-y, -z+1/2, x+1/2''
+
+    78 ''-x, -y+1/2, z+1/2''
+
+    79 ''-z, y+1/2, -x+1/2''
+
+    80 ''-y, x+1/2, -z+1/2''
+
+    81 ''-x, z+1/2, -y+1/2''
+
+    82 ''-z, x+1/2, -y+1/2''
+
+    83 ''-y, z+1/2, -x+1/2''
+
+    84 ''-x, y+1/2, -z+1/2''
+
+    85 ''z, -y+1/2, -x+1/2''
+
+    86 ''y, -x+1/2, -z+1/2''
+
+    87 ''x, -z+1/2, -y+1/2''
+
+    88 ''z, -x+1/2, -y+1/2''
+
+    89 ''y, -z+1/2, -x+1/2''
+
+    90 ''x, -y+1/2, -z+1/2''
+
+    91 ''z, y+1/2, x+1/2''
+
+    92 ''y, x+1/2, z+1/2''
+
+    93 ''x, z+1/2, y+1/2''
+
+    94 ''z, x+1/2, y+1/2''
+
+    95 ''y, z+1/2, x+1/2''
+
+    96 ''x, y+1/2, z+1/2''
+
+    97 ''z+1/2, y, -x+1/2''
+
+    98 ''y+1/2, x, -z+1/2''
+
+    99 ''x+1/2, z, -y+1/2''
+
+    100 ''z+1/2, x, -y+1/2''
+
+    101 ''y+1/2, z, -x+1/2''
+
+    102 ''x+1/2, y, -z+1/2''
+
+    103 ''z+1/2, -y, x+1/2''
+
+    104 ''y+1/2, -x, z+1/2''
+
+    105 ''x+1/2, -z, y+1/2''
+
+    106 ''z+1/2, -x, y+1/2''
+
+    107 ''y+1/2, -z, x+1/2''
+
+    108 ''x+1/2, -y, z+1/2''
+
+    109 ''-z+1/2, y, x+1/2''
+
+    110 ''-y+1/2, x, z+1/2''
+
+    111 ''-x+1/2, z, y+1/2''
+
+    112 ''-z+1/2, x, y+1/2''
+
+    113 ''-y+1/2, z, x+1/2''
+
+    114 ''-x+1/2, y, z+1/2''
+
+    115 ''-z+1/2, -y, -x+1/2''
+
+    116 ''-y+1/2, -x, -z+1/2''
+
+    117 ''-x+1/2, -z, -y+1/2''
+
+    118 ''-z+1/2, -x, -y+1/2''
+
+    119 ''-y+1/2, -z, -x+1/2''
+
+    120 ''-x+1/2, -y, -z+1/2''
+
+    121 ''-z+1/2, -y, x+1/2''
+
+    122 ''-y+1/2, -x, z+1/2''
+
+    123 ''-x+1/2, -z, y+1/2''
+
+    124 ''-z+1/2, -x, y+1/2''
+
+    125 ''-y+1/2, -z, x+1/2''
+
+    126 ''-x+1/2, -y, z+1/2''
+
+    127 ''-z+1/2, y, -x+1/2''
+
+    128 ''-y+1/2, x, -z+1/2''
+
+    129 ''-x+1/2, z, -y+1/2''
+
+    130 ''-z+1/2, x, -y+1/2''
+
+    131 ''-y+1/2, z, -x+1/2''
+
+    132 ''-x+1/2, y, -z+1/2''
+
+    133 ''z+1/2, -y, -x+1/2''
+
+    134 ''y+1/2, -x, -z+1/2''
+
+    135 ''x+1/2, -z, -y+1/2''
+
+    136 ''z+1/2, -x, -y+1/2''
+
+    137 ''y+1/2, -z, -x+1/2''
+
+    138 ''x+1/2, -y, -z+1/2''
+
+    139 ''z+1/2, y, x+1/2''
+
+    140 ''y+1/2, x, z+1/2''
+
+    141 ''x+1/2, z, y+1/2''
+
+    142 ''z+1/2, x, y+1/2''
+
+    143 ''y+1/2, z, x+1/2''
+
+    144 ''x+1/2, y, z+1/2''
+
+    145 ''z+1/2, y+1/2, -x''
+
+    146 ''y+1/2, x+1/2, -z''
+
+    147 ''x+1/2, z+1/2, -y''
+
+    148 ''z+1/2, x+1/2, -y''
+
+    149 ''y+1/2, z+1/2, -x''
+
+    150 ''x+1/2, y+1/2, -z''
+
+    151 ''z+1/2, -y+1/2, x''
+
+    152 ''y+1/2, -x+1/2, z''
+
+    153 ''x+1/2, -z+1/2, y''
+
+    154 ''z+1/2, -x+1/2, y''
+
+    155 ''y+1/2, -z+1/2, x''
+
+    156 ''x+1/2, -y+1/2, z''
+
+    157 ''-z+1/2, y+1/2, x''
+
+    158 ''-y+1/2, x+1/2, z''
+
+    159 ''-x+1/2, z+1/2, y''
+
+    160 ''-z+1/2, x+1/2, y''
+
+    161 ''-y+1/2, z+1/2, x''
+
+    162 ''-x+1/2, y+1/2, z''
+
+    163 ''-z+1/2, -y+1/2, -x''
+
+    164 ''-y+1/2, -x+1/2, -z''
+
+    165 ''-x+1/2, -z+1/2, -y''
+
+    166 ''-z+1/2, -x+1/2, -y''
+
+    167 ''-y+1/2, -z+1/2, -x''
+
+    168 ''-x+1/2, -y+1/2, -z''
+
+    169 ''-z+1/2, -y+1/2, x''
+
+    170 ''-y+1/2, -x+1/2, z''
+
+    171 ''-x+1/2, -z+1/2, y''
+
+    172 ''-z+1/2, -x+1/2, y''
+
+    173 ''-y+1/2, -z+1/2, x''
+
+    174 ''-x+1/2, -y+1/2, z''
+
+    175 ''-z+1/2, y+1/2, -x''
+
+    176 ''-y+1/2, x+1/2, -z''
+
+    177 ''-x+1/2, z+1/2, -y''
+
+    178 ''-z+1/2, x+1/2, -y''
+
+    179 ''-y+1/2, z+1/2, -x''
+
+    180 ''-x+1/2, y+1/2, -z''
+
+    181 ''z+1/2, -y+1/2, -x''
+
+    182 ''y+1/2, -x+1/2, -z''
+
+    183 ''x+1/2, -z+1/2, -y''
+
+    184 ''z+1/2, -x+1/2, -y''
+
+    185 ''y+1/2, -z+1/2, -x''
+
+    186 ''x+1/2, -y+1/2, -z''
+
+    187 ''z+1/2, y+1/2, x''
+
+    188 ''y+1/2, x+1/2, z''
+
+    189 ''x+1/2, z+1/2, y''
+
+    190 ''z+1/2, x+1/2, y''
+
+    191 ''y+1/2, z+1/2, x''
+
+    192 ''x+1/2, y+1/2, z''
+
+    loop_
+
+    _atom_type_symbol
+
+    _atom_type_oxidation_number
+
+    Pb2+ 2
+
+    Te2- -2
+
+    loop_
+
+    _atom_site_label
+
+    _atom_site_type_symbol
+
+    _atom_site_symmetry_multiplicity
+
+    _atom_site_Wyckoff_symbol
+
+    _atom_site_fract_x
+
+    _atom_site_fract_y
+
+    _atom_site_fract_z
+
+    _atom_site_B_iso_or_equiv
+
+    _atom_site_occupancy
+
+    _atom_site_attached_hydrogens
+
+    Pb1 Pb2+ 4 b 0.5 0.5 0.5 1.781(5) 1. 0
+
+    Te1 Te2- 4 a 0 0 0 1.228(4) 1. 0
+
+    #End of TTdata_38295-ICSD'
+  control:
+    elements: []
+    id: PbTe
+    pretty_formula: ''
+    queue_id: []
+  dft:
+    basis:
+    - 0.2
+    - 3
+    - 3
+    broyden:
+    - 0.01
+    - 60
+    - 8
+    edifftol: 10
+    fmixing: 99
+    functional:
+      correlation: PBE
+      exchange: PBE
+      hybrid: 25
+    initial_charges: {}
+    initial_spin: []
+    kmesh:
+    - 8
+    - 8
+    - 8
+    maxcycle: 200
+    restart_from: null
+    resume_mode: conservative
+    smear: null
+    spin_polarized: true
+    tolinteg:
+    - 12
+    - 12
+    - 12
+    - 12
+    - 20
+  pseudopotential: BFD
+  qmc:
+    dmc:
+      excitations: 'no'
+      jastrow:
+      - twobody
+      kpoints: real
+      localization:
+      - tmoves
+      nblock: 16
+      optimizer:
+      - variance
+      save_trace: true
+      target_error: 0.01
+      timestep:
+      - 0.02
+    energy_optimize:
+      jastrow:
+      - twobody
+      threshold: 0.001
+      vmc_nstep: 1000
+    maximize:
+      jastrow:
+      - twobody
+      nconfig:
+      - 100
+    variance_optimize:
+      abstol: 1000.0
+      jastrow:
+      - twobody
+      niterations: 10
+      nruns: 3
+      reltol: 0.1
+  supercell:
+  - - 1
+    - 0
+    - 0
+  - - 0
+    - 1
+    - 0
+  - - 0
+    - 0
+    - 1
+  total_spin: 0
+- charge: 0
+  cif: '#(C) 2015 by Fachinformationszentrum Karlsruhe.  All rights reserved.
+
+    data_51688-ICSD
+
+    _database_code_ICSD 51688
+
+    _audit_creation_date 2003-10-01
+
+    _audit_update_record 2006-10-01
+
+    _chemical_name_systematic Silicon
+
+    _chemical_formula_structural Si
+
+    _chemical_formula_sum Si1
+
+    _chemical_name_structure_type C(cF8)
+
+    _exptl_crystal_density_diffrn 2.33
+
+    _publ_section_title
+
+
+    ;
+
+    E9: The new high-resolution neutron powder diffractometer at the Berlin
+
+    neutron scattering center
+
+    ;
+
+    loop_
+
+    _citation_id
+
+    _citation_journal_full
+
+    _citation_year
+
+    _citation_journal_volume
+
+    _citation_page_first
+
+    _citation_page_last
+
+    _citation_journal_id_ASTM
+
+    primary ''Materials Science Forum'' 2001 378 288 293 MSFOEP
+
+    loop_
+
+    _publ_author_name
+
+    ''Toebbens, D.M.''
+
+    ''Stuesser, N.''
+
+    ''Knorr, K.''
+
+    ''Mayer, H.M.''
+
+    ''Lampert, G.''
+
+    _cell_length_a 5.43053(7)
+
+    _cell_length_b 5.43053(7)
+
+    _cell_length_c 5.43053(7)
+
+    _cell_angle_alpha 90
+
+    _cell_angle_beta 90
+
+    _cell_angle_gamma 90
+
+    _cell_volume 160.15
+
+    _cell_formula_units_Z 8
+
+    _symmetry_space_group_name_H-M ''F d -3 m S''
+
+    _symmetry_Int_Tables_number 227
+
+    loop_
+
+    _symmetry_equiv_pos_site_id
+
+    _symmetry_equiv_pos_as_xyz
+
+    1 ''z+1/4, y+1/4, -x+1/4''
+
+    2 ''y+1/4, x+1/4, -z+1/4''
+
+    3 ''x+1/4, z+1/4, -y+1/4''
+
+    4 ''z+1/4, x+1/4, -y+1/4''
+
+    5 ''y+1/4, z+1/4, -x+1/4''
+
+    6 ''x+1/4, y+1/4, -z+1/4''
+
+    7 ''z+1/4, -y+1/4, x+1/4''
+
+    8 ''y+1/4, -x+1/4, z+1/4''
+
+    9 ''x+1/4, -z+1/4, y+1/4''
+
+    10 ''z+1/4, -x+1/4, y+1/4''
+
+    11 ''y+1/4, -z+1/4, x+1/4''
+
+    12 ''x+1/4, -y+1/4, z+1/4''
+
+    13 ''-z+1/4, y+1/4, x+1/4''
+
+    14 ''-y+1/4, x+1/4, z+1/4''
+
+    15 ''-x+1/4, z+1/4, y+1/4''
+
+    16 ''-z+1/4, x+1/4, y+1/4''
+
+    17 ''-y+1/4, z+1/4, x+1/4''
+
+    18 ''-x+1/4, y+1/4, z+1/4''
+
+    19 ''-z+1/4, -y+1/4, -x+1/4''
+
+    20 ''-y+1/4, -x+1/4, -z+1/4''
+
+    21 ''-x+1/4, -z+1/4, -y+1/4''
+
+    22 ''-z+1/4, -x+1/4, -y+1/4''
+
+    23 ''-y+1/4, -z+1/4, -x+1/4''
+
+    24 ''-x+1/4, -y+1/4, -z+1/4''
+
+    25 ''-z, -y, x''
+
+    26 ''-y, -x, z''
+
+    27 ''-x, -z, y''
+
+    28 ''-z, -x, y''
+
+    29 ''-y, -z, x''
+
+    30 ''-x, -y, z''
+
+    31 ''-z, y, -x''
+
+    32 ''-y, x, -z''
+
+    33 ''-x, z, -y''
+
+    34 ''-z, x, -y''
+
+    35 ''-y, z, -x''
+
+    36 ''-x, y, -z''
+
+    37 ''z, -y, -x''
+
+    38 ''y, -x, -z''
+
+    39 ''x, -z, -y''
+
+    40 ''z, -x, -y''
+
+    41 ''y, -z, -x''
+
+    42 ''x, -y, -z''
+
+    43 ''z, y, x''
+
+    44 ''y, x, z''
+
+    45 ''x, z, y''
+
+    46 ''z, x, y''
+
+    47 ''y, z, x''
+
+    48 ''x, y, z''
+
+    49 ''z+1/4, y+3/4, -x+3/4''
+
+    50 ''y+1/4, x+3/4, -z+3/4''
+
+    51 ''x+1/4, z+3/4, -y+3/4''
+
+    52 ''z+1/4, x+3/4, -y+3/4''
+
+    53 ''y+1/4, z+3/4, -x+3/4''
+
+    54 ''x+1/4, y+3/4, -z+3/4''
+
+    55 ''z+1/4, -y+3/4, x+3/4''
+
+    56 ''y+1/4, -x+3/4, z+3/4''
+
+    57 ''x+1/4, -z+3/4, y+3/4''
+
+    58 ''z+1/4, -x+3/4, y+3/4''
+
+    59 ''y+1/4, -z+3/4, x+3/4''
+
+    60 ''x+1/4, -y+3/4, z+3/4''
+
+    61 ''-z+1/4, y+3/4, x+3/4''
+
+    62 ''-y+1/4, x+3/4, z+3/4''
+
+    63 ''-x+1/4, z+3/4, y+3/4''
+
+    64 ''-z+1/4, x+3/4, y+3/4''
+
+    65 ''-y+1/4, z+3/4, x+3/4''
+
+    66 ''-x+1/4, y+3/4, z+3/4''
+
+    67 ''-z+1/4, -y+3/4, -x+3/4''
+
+    68 ''-y+1/4, -x+3/4, -z+3/4''
+
+    69 ''-x+1/4, -z+3/4, -y+3/4''
+
+    70 ''-z+1/4, -x+3/4, -y+3/4''
+
+    71 ''-y+1/4, -z+3/4, -x+3/4''
+
+    72 ''-x+1/4, -y+3/4, -z+3/4''
+
+    73 ''-z, -y+1/2, x+1/2''
+
+    74 ''-y, -x+1/2, z+1/2''
+
+    75 ''-x, -z+1/2, y+1/2''
+
+    76 ''-z, -x+1/2, y+1/2''
+
+    77 ''-y, -z+1/2, x+1/2''
+
+    78 ''-x, -y+1/2, z+1/2''
+
+    79 ''-z, y+1/2, -x+1/2''
+
+    80 ''-y, x+1/2, -z+1/2''
+
+    81 ''-x, z+1/2, -y+1/2''
+
+    82 ''-z, x+1/2, -y+1/2''
+
+    83 ''-y, z+1/2, -x+1/2''
+
+    84 ''-x, y+1/2, -z+1/2''
+
+    85 ''z, -y+1/2, -x+1/2''
+
+    86 ''y, -x+1/2, -z+1/2''
+
+    87 ''x, -z+1/2, -y+1/2''
+
+    88 ''z, -x+1/2, -y+1/2''
+
+    89 ''y, -z+1/2, -x+1/2''
+
+    90 ''x, -y+1/2, -z+1/2''
+
+    91 ''z, y+1/2, x+1/2''
+
+    92 ''y, x+1/2, z+1/2''
+
+    93 ''x, z+1/2, y+1/2''
+
+    94 ''z, x+1/2, y+1/2''
+
+    95 ''y, z+1/2, x+1/2''
+
+    96 ''x, y+1/2, z+1/2''
+
+    97 ''z+3/4, y+1/4, -x+3/4''
+
+    98 ''y+3/4, x+1/4, -z+3/4''
+
+    99 ''x+3/4, z+1/4, -y+3/4''
+
+    100 ''z+3/4, x+1/4, -y+3/4''
+
+    101 ''y+3/4, z+1/4, -x+3/4''
+
+    102 ''x+3/4, y+1/4, -z+3/4''
+
+    103 ''z+3/4, -y+1/4, x+3/4''
+
+    104 ''y+3/4, -x+1/4, z+3/4''
+
+    105 ''x+3/4, -z+1/4, y+3/4''
+
+    106 ''z+3/4, -x+1/4, y+3/4''
+
+    107 ''y+3/4, -z+1/4, x+3/4''
+
+    108 ''x+3/4, -y+1/4, z+3/4''
+
+    109 ''-z+3/4, y+1/4, x+3/4''
+
+    110 ''-y+3/4, x+1/4, z+3/4''
+
+    111 ''-x+3/4, z+1/4, y+3/4''
+
+    112 ''-z+3/4, x+1/4, y+3/4''
+
+    113 ''-y+3/4, z+1/4, x+3/4''
+
+    114 ''-x+3/4, y+1/4, z+3/4''
+
+    115 ''-z+3/4, -y+1/4, -x+3/4''
+
+    116 ''-y+3/4, -x+1/4, -z+3/4''
+
+    117 ''-x+3/4, -z+1/4, -y+3/4''
+
+    118 ''-z+3/4, -x+1/4, -y+3/4''
+
+    119 ''-y+3/4, -z+1/4, -x+3/4''
+
+    120 ''-x+3/4, -y+1/4, -z+3/4''
+
+    121 ''-z+1/2, -y, x+1/2''
+
+    122 ''-y+1/2, -x, z+1/2''
+
+    123 ''-x+1/2, -z, y+1/2''
+
+    124 ''-z+1/2, -x, y+1/2''
+
+    125 ''-y+1/2, -z, x+1/2''
+
+    126 ''-x+1/2, -y, z+1/2''
+
+    127 ''-z+1/2, y, -x+1/2''
+
+    128 ''-y+1/2, x, -z+1/2''
+
+    129 ''-x+1/2, z, -y+1/2''
+
+    130 ''-z+1/2, x, -y+1/2''
+
+    131 ''-y+1/2, z, -x+1/2''
+
+    132 ''-x+1/2, y, -z+1/2''
+
+    133 ''z+1/2, -y, -x+1/2''
+
+    134 ''y+1/2, -x, -z+1/2''
+
+    135 ''x+1/2, -z, -y+1/2''
+
+    136 ''z+1/2, -x, -y+1/2''
+
+    137 ''y+1/2, -z, -x+1/2''
+
+    138 ''x+1/2, -y, -z+1/2''
+
+    139 ''z+1/2, y, x+1/2''
+
+    140 ''y+1/2, x, z+1/2''
+
+    141 ''x+1/2, z, y+1/2''
+
+    142 ''z+1/2, x, y+1/2''
+
+    143 ''y+1/2, z, x+1/2''
+
+    144 ''x+1/2, y, z+1/2''
+
+    145 ''z+3/4, y+3/4, -x+1/4''
+
+    146 ''y+3/4, x+3/4, -z+1/4''
+
+    147 ''x+3/4, z+3/4, -y+1/4''
+
+    148 ''z+3/4, x+3/4, -y+1/4''
+
+    149 ''y+3/4, z+3/4, -x+1/4''
+
+    150 ''x+3/4, y+3/4, -z+1/4''
+
+    151 ''z+3/4, -y+3/4, x+1/4''
+
+    152 ''y+3/4, -x+3/4, z+1/4''
+
+    153 ''x+3/4, -z+3/4, y+1/4''
+
+    154 ''z+3/4, -x+3/4, y+1/4''
+
+    155 ''y+3/4, -z+3/4, x+1/4''
+
+    156 ''x+3/4, -y+3/4, z+1/4''
+
+    157 ''-z+3/4, y+3/4, x+1/4''
+
+    158 ''-y+3/4, x+3/4, z+1/4''
+
+    159 ''-x+3/4, z+3/4, y+1/4''
+
+    160 ''-z+3/4, x+3/4, y+1/4''
+
+    161 ''-y+3/4, z+3/4, x+1/4''
+
+    162 ''-x+3/4, y+3/4, z+1/4''
+
+    163 ''-z+3/4, -y+3/4, -x+1/4''
+
+    164 ''-y+3/4, -x+3/4, -z+1/4''
+
+    165 ''-x+3/4, -z+3/4, -y+1/4''
+
+    166 ''-z+3/4, -x+3/4, -y+1/4''
+
+    167 ''-y+3/4, -z+3/4, -x+1/4''
+
+    168 ''-x+3/4, -y+3/4, -z+1/4''
+
+    169 ''-z+1/2, -y+1/2, x''
+
+    170 ''-y+1/2, -x+1/2, z''
+
+    171 ''-x+1/2, -z+1/2, y''
+
+    172 ''-z+1/2, -x+1/2, y''
+
+    173 ''-y+1/2, -z+1/2, x''
+
+    174 ''-x+1/2, -y+1/2, z''
+
+    175 ''-z+1/2, y+1/2, -x''
+
+    176 ''-y+1/2, x+1/2, -z''
+
+    177 ''-x+1/2, z+1/2, -y''
+
+    178 ''-z+1/2, x+1/2, -y''
+
+    179 ''-y+1/2, z+1/2, -x''
+
+    180 ''-x+1/2, y+1/2, -z''
+
+    181 ''z+1/2, -y+1/2, -x''
+
+    182 ''y+1/2, -x+1/2, -z''
+
+    183 ''x+1/2, -z+1/2, -y''
+
+    184 ''z+1/2, -x+1/2, -y''
+
+    185 ''y+1/2, -z+1/2, -x''
+
+    186 ''x+1/2, -y+1/2, -z''
+
+    187 ''z+1/2, y+1/2, x''
+
+    188 ''y+1/2, x+1/2, z''
+
+    189 ''x+1/2, z+1/2, y''
+
+    190 ''z+1/2, x+1/2, y''
+
+    191 ''y+1/2, z+1/2, x''
+
+    192 ''x+1/2, y+1/2, z''
+
+    loop_
+
+    _atom_type_symbol
+
+    _atom_type_oxidation_number
+
+    Si0+ 0
+
+    loop_
+
+    _atom_site_label
+
+    _atom_site_type_symbol
+
+    _atom_site_symmetry_multiplicity
+
+    _atom_site_Wyckoff_symbol
+
+    _atom_site_fract_x
+
+    _atom_site_fract_y
+
+    _atom_site_fract_z
+
+    _atom_site_B_iso_or_equiv
+
+    _atom_site_occupancy
+
+    _atom_site_attached_hydrogens
+
+    Si1 Si0+ 8 a 0. 0. 0. 0.54(1) 1. 0
+
+    #End of TTdata_51688-ICSD
+
+
+    '
+  control:
+    elements: []
+    id: si
+    pretty_formula: ''
+    queue_id: []
+  dft:
+    basis:
+    - 0.2
+    - 3
+    - 3
+    broyden:
+    - 0.01
+    - 60
+    - 8
+    edifftol: 10
+    fmixing: 99
+    functional:
+      correlation: PBE
+      exchange: PBE
+      hybrid: 25
+    initial_charges: {}
+    initial_spin: []
+    kmesh:
+    - 8
+    - 8
+    - 8
+    maxcycle: 200
+    restart_from: null
+    resume_mode: conservative
+    smear: null
+    spin_polarized: true
+    tolinteg:
+    - 12
+    - 12
+    - 12
+    - 12
+    - 20
+  pseudopotential: BFD
+  qmc:
+    dmc:
+      excitations: 'no'
+      jastrow:
+      - twobody
+      kpoints: real
+      localization:
+      - tmoves
+      nblock: 16
+      optimizer:
+      - variance
+      save_trace: true
+      target_error: 0.01
+      timestep:
+      - 0.02
+    energy_optimize:
+      jastrow:
+      - twobody
+      threshold: 0.001
+      vmc_nstep: 1000
+    maximize:
+      jastrow:
+      - twobody
+      nconfig:
+      - 100
+    variance_optimize:
+      abstol: 1000.0
+      jastrow:
+      - twobody
+      niterations: 10
+      nruns: 3
+      reltol: 0.1
+  supercell:
+  - - 1
+    - 0
+    - 0
+  - - 0
+    - 1
+    - 0
+  - - 0
+    - 0
+    - 1
+  total_spin: 0
+- charge: 0
+  cif: '
+
+    #(C) 2015 by Fachinformationszentrum Karlsruhe.  All rights reserved.
+
+    data_41750-ICSD
+
+    _database_code_ICSD 41750
+
+    _audit_creation_date 2000-07-15
+
+    _audit_update_record 2006-04-01
+
+    _chemical_name_systematic ''Tin sulfide''
+
+    _chemical_formula_structural ''Sn S''
+
+    _chemical_formula_sum ''S1 Sn1''
+
+    _chemical_name_structure_type GeS
+
+    _chemical_name_mineral Herzenbergite
+
+    _exptl_crystal_density_diffrn 5.19
+
+    _publ_section_title ''Structure of thin films of Sn S and Sn Se''
+
+    loop_
+
+    _citation_id
+
+    _citation_journal_full
+
+    _citation_year
+
+    _citation_journal_volume
+
+    _citation_page_first
+
+    _citation_page_last
+
+    _citation_journal_id_ASTM
+
+    primary Kristallografiya 1979 24 874 875 KRISAJ
+
+    loop_
+
+    _publ_author_name
+
+    ''Avilov, A.S.''
+
+    ''Imamov, R.M.''
+
+    ''Navasardyan, S.N.''
+
+    _cell_length_a 11.19
+
+    _cell_length_b 3.98
+
+    _cell_length_c 4.33
+
+    _cell_angle_alpha 90.
+
+    _cell_angle_beta 90.
+
+    _cell_angle_gamma 90.
+
+    _cell_volume 192.84
+
+    _cell_formula_units_Z 4
+
+    _symmetry_space_group_name_H-M ''P n m a''
+
+    _symmetry_Int_Tables_number 62
+
+    _refine_ls_R_factor_all 0.167
+
+    loop_
+
+    _symmetry_equiv_pos_site_id
+
+    _symmetry_equiv_pos_as_xyz
+
+    1 ''x+1/2, y, -z+1/2''
+
+    2 ''x, -y+1/2, z''
+
+    3 ''-x+1/2, y+1/2, z+1/2''
+
+    4 ''-x, -y, -z''
+
+    5 ''-x+1/2, -y, z+1/2''
+
+    6 ''-x, y+1/2, -z''
+
+    7 ''x+1/2, -y+1/2, -z+1/2''
+
+    8 ''x, y, z''
+
+    loop_
+
+    _atom_type_symbol
+
+    _atom_type_oxidation_number
+
+    Sn2+ 2
+
+    S2- -2
+
+    loop_
+
+    _atom_site_label
+
+    _atom_site_type_symbol
+
+    _atom_site_symmetry_multiplicity
+
+    _atom_site_Wyckoff_symbol
+
+    _atom_site_fract_x
+
+    _atom_site_fract_y
+
+    _atom_site_fract_z
+
+    _atom_site_B_iso_or_equiv
+
+    _atom_site_occupancy
+
+    _atom_site_attached_hydrogens
+
+    Sn1 Sn2+ 4 c 0.122 0.25 0.097 0.74 1. 0
+
+    S1 S2- 4 c 0.353 0.25 0.01 0.74 1. 0
+
+    #End of TTdata_41750-ICSD'
+  control:
+    elements: []
+    id: SnS
+    pretty_formula: ''
+    queue_id: []
+  dft:
+    basis:
+    - 0.2
+    - 3
+    - 3
+    broyden:
+    - 0.01
+    - 60
+    - 8
+    edifftol: 10
+    fmixing: 99
+    functional:
+      correlation: PBE
+      exchange: PBE
+      hybrid: 25
+    initial_charges: {}
+    initial_spin: []
+    kmesh:
+    - 8
+    - 8
+    - 8
+    maxcycle: 200
+    restart_from: null
+    resume_mode: conservative
+    smear: null
+    spin_polarized: true
+    tolinteg:
+    - 12
+    - 12
+    - 12
+    - 12
+    - 20
+  pseudopotential: BFD
+  qmc:
+    dmc:
+      excitations: 'no'
+      jastrow:
+      - twobody
+      kpoints: real
+      localization:
+      - tmoves
+      nblock: 16
+      optimizer:
+      - variance
+      save_trace: true
+      target_error: 0.01
+      timestep:
+      - 0.02
+    energy_optimize:
+      jastrow:
+      - twobody
+      threshold: 0.001
+      vmc_nstep: 1000
+    maximize:
+      jastrow:
+      - twobody
+      nconfig:
+      - 100
+    variance_optimize:
+      abstol: 1000.0
+      jastrow:
+      - twobody
+      niterations: 10
+      nruns: 3
+      reltol: 0.1
+  supercell:
+  - - 1
+    - 0
+    - 0
+  - - 0
+    - 1
+    - 0
+  - - 0
+    - 0
+    - 1
+  total_spin: 0
+- charge: 0
+  cif: '
+
+    #(C) 2015 by Fachinformationszentrum Karlsruhe.  All rights reserved.
+
+    data_9853-ICSD
+
+    _database_code_ICSD 9853
+
+    _audit_creation_date 1980-01-01
+
+    _audit_update_record 2006-04-01
+
+    _chemical_name_systematic ''Titanium oxide''
+
+    _chemical_formula_structural ''Ti O2''
+
+    _chemical_formula_sum ''O2 Ti1''
+
+    _chemical_name_structure_type Anatase
+
+    _chemical_name_mineral Anatase
+
+    _exptl_crystal_density_diffrn 3.88
+
+    _cell_measurement_temperature 573.
+
+    _publ_section_title
+
+    ''Refinement of the structure of anatase at several temperatures''
+
+    loop_
+
+    _citation_id
+
+    _citation_journal_full
+
+    _citation_year
+
+    _citation_journal_volume
+
+    _citation_page_first
+
+    _citation_page_last
+
+    _citation_journal_id_ASTM
+
+    primary
+
+
+    ;
+
+    Zeitschrift fuer Kristallographie, Kristallgeometrie, Kristallphysik,
+
+    Kristallchemie (-144,1977)
+
+    ; 1972 136 273 281 ZEKGAX
+
+    loop_
+
+    _publ_author_name
+
+    ''Horn, M.''
+
+    ''Schwerdtfeger, C.F.''
+
+    ''Meagher, E.P.''
+
+    _cell_length_a 3.7892(4)
+
+    _cell_length_b 3.7892(4)
+
+    _cell_length_c 9.537(1)
+
+    _cell_angle_alpha 90.
+
+    _cell_angle_beta 90.
+
+    _cell_angle_gamma 90.
+
+    _cell_volume 136.93
+
+    _cell_formula_units_Z 4
+
+    _symmetry_space_group_name_H-M ''I 41/a m d S''
+
+    _symmetry_Int_Tables_number 141
+
+    _refine_ls_R_factor_all 0.023
+
+    loop_
+
+    _symmetry_equiv_pos_site_id
+
+    _symmetry_equiv_pos_as_xyz
+
+    1 ''y, -x+1/2, z+1/4''
+
+    2 ''-y, x+1/2, z+1/4''
+
+    3 ''y, -x, -z''
+
+    4 ''-y, x, -z''
+
+    5 ''-y, -x+1/2, z+1/4''
+
+    6 ''y, x+1/2, z+1/4''
+
+    7 ''-y, -x, -z''
+
+    8 ''y, x, -z''
+
+    9 ''x, -y+1/2, -z+1/4''
+
+    10 ''-x, y+1/2, -z+1/4''
+
+    11 ''x, -y, z''
+
+    12 ''-x, y, z''
+
+    13 ''-x, -y+1/2, -z+1/4''
+
+    14 ''x, y+1/2, -z+1/4''
+
+    15 ''-x, -y, z''
+
+    16 ''x, y, z''
+
+    17 ''y+1/2, -x, z+3/4''
+
+    18 ''-y+1/2, x, z+3/4''
+
+    19 ''y+1/2, -x+1/2, -z+1/2''
+
+    20 ''-y+1/2, x+1/2, -z+1/2''
+
+    21 ''-y+1/2, -x, z+3/4''
+
+    22 ''y+1/2, x, z+3/4''
+
+    23 ''-y+1/2, -x+1/2, -z+1/2''
+
+    24 ''y+1/2, x+1/2, -z+1/2''
+
+    25 ''x+1/2, -y, -z+3/4''
+
+    26 ''-x+1/2, y, -z+3/4''
+
+    27 ''x+1/2, -y+1/2, z+1/2''
+
+    28 ''-x+1/2, y+1/2, z+1/2''
+
+    29 ''-x+1/2, -y, -z+3/4''
+
+    30 ''x+1/2, y, -z+3/4''
+
+    31 ''-x+1/2, -y+1/2, z+1/2''
+
+    32 ''x+1/2, y+1/2, z+1/2''
+
+    loop_
+
+    _atom_type_symbol
+
+    _atom_type_oxidation_number
+
+    Ti4+ 4
+
+    O2- -2
+
+    loop_
+
+    _atom_site_label
+
+    _atom_site_type_symbol
+
+    _atom_site_symmetry_multiplicity
+
+    _atom_site_Wyckoff_symbol
+
+    _atom_site_fract_x
+
+    _atom_site_fract_y
+
+    _atom_site_fract_z
+
+    _atom_site_B_iso_or_equiv
+
+    _atom_site_occupancy
+
+    _atom_site_attached_hydrogens
+
+    Ti1 Ti4+ 4 a 0 0 0 0.64(6) 1. 0
+
+    O1 O2- 8 e 0 0 0.2079(2) 0.95(9) 1. 0
+
+    #End of TTdata_9853-ICSD'
+  control:
+    elements: []
+    id: TiO2_Anatase
+    pretty_formula: ''
+    queue_id: []
+  dft:
+    basis:
+    - 0.2
+    - 3
+    - 3
+    broyden:
+    - 0.01
+    - 60
+    - 8
+    edifftol: 10
+    fmixing: 99
+    functional:
+      correlation: PBE
+      exchange: PBE
+      hybrid: 25
+    initial_charges: {}
+    initial_spin: []
+    kmesh:
+    - 8
+    - 8
+    - 8
+    maxcycle: 200
+    restart_from: null
+    resume_mode: conservative
+    smear: null
+    spin_polarized: true
+    tolinteg:
+    - 12
+    - 12
+    - 12
+    - 12
+    - 20
+  pseudopotential: BFD
+  qmc:
+    dmc:
+      excitations: 'no'
+      jastrow:
+      - twobody
+      kpoints: real
+      localization:
+      - tmoves
+      nblock: 16
+      optimizer:
+      - variance
+      save_trace: true
+      target_error: 0.01
+      timestep:
+      - 0.02
+    energy_optimize:
+      jastrow:
+      - twobody
+      threshold: 0.001
+      vmc_nstep: 1000
+    maximize:
+      jastrow:
+      - twobody
+      nconfig:
+      - 100
+    variance_optimize:
+      abstol: 1000.0
+      jastrow:
+      - twobody
+      niterations: 10
+      nruns: 3
+      reltol: 0.1
+  supercell:
+  - - 1
+    - 0
+    - 0
+  - - 0
+    - 1
+    - 0
+  - - 0
+    - 0
+    - 1
+  total_spin: 0
+- charge: 0
+  cif: '
+
+    #(C) 2015 by Fachinformationszentrum Karlsruhe.  All rights reserved.
+
+    data_29272-ICSD
+
+    _database_code_ICSD 29272
+
+    _audit_creation_date 1980-01-01
+
+    _chemical_name_systematic ''Zinc oxide''
+
+    _chemical_formula_structural ''Zn O''
+
+    _chemical_formula_sum ''O1 Zn1''
+
+    _chemical_name_structure_type ZnS(2H)
+
+    _exptl_crystal_density_diffrn 5.71
+
+    _publ_section_title
+
+    ''The Wurtzite Z Parameter for Beryllium Oxide and Zinc Oxide''
+
+    loop_
+
+    _citation_id
+
+    _citation_journal_full
+
+    _citation_year
+
+    _citation_journal_volume
+
+    _citation_page_first
+
+    _citation_page_last
+
+    _citation_journal_id_ASTM
+
+    primary ''Acta Crystallographica B (24,1968-38,1982)'' 1969 25 2254 2256 ACBCAR
+
+    loop_
+
+    _publ_author_name
+
+    ''Sabine, T.M.''
+
+    ''Hogg, S.''
+
+    _cell_length_a 3.2427
+
+    _cell_length_b 3.2427
+
+    _cell_length_c 5.1948
+
+    _cell_angle_alpha 90.
+
+    _cell_angle_beta 90.
+
+    _cell_angle_gamma 120.
+
+    _cell_volume 47.31
+
+    _cell_formula_units_Z 2
+
+    _symmetry_space_group_name_H-M ''P 63 m c''
+
+    _symmetry_Int_Tables_number 186
+
+    _refine_ls_R_factor_all 0.047
+
+    loop_
+
+    _symmetry_equiv_pos_site_id
+
+    _symmetry_equiv_pos_as_xyz
+
+    1 ''-x, -x+y, z+1/2''
+
+    2 ''x-y, -y, z+1/2''
+
+    3 ''y, x, z+1/2''
+
+    4 ''x-y, x, z+1/2''
+
+    5 ''y, -x+y, z+1/2''
+
+    6 ''-x, -y, z+1/2''
+
+    7 ''x, x-y, z''
+
+    8 ''-x+y, y, z''
+
+    9 ''-y, -x, z''
+
+    10 ''-x+y, -x, z''
+
+    11 ''-y, x-y, z''
+
+    12 ''x, y, z''
+
+    loop_
+
+    _atom_type_symbol
+
+    _atom_type_oxidation_number
+
+    Zn2+ 2
+
+    O2- -2
+
+    loop_
+
+    _atom_site_label
+
+    _atom_site_type_symbol
+
+    _atom_site_symmetry_multiplicity
+
+    _atom_site_Wyckoff_symbol
+
+    _atom_site_fract_x
+
+    _atom_site_fract_y
+
+    _atom_site_fract_z
+
+    _atom_site_B_iso_or_equiv
+
+    _atom_site_occupancy
+
+    _atom_site_attached_hydrogens
+
+    Zn1 Zn2+ 2 b 0.3333 0.6667 0 0.31 1. 0
+
+    O1 O2- 2 b 0.3333 0.6667 0.3826(7) 0.55 1. 0
+
+    #End of TTdata_29272-ICSD'
+  control:
+    elements: []
+    id: ZnO_Wurtzite
+    pretty_formula: ''
+    queue_id: []
+  dft:
+    basis:
+    - 0.2
+    - 3
+    - 3
+    broyden:
+    - 0.01
+    - 60
+    - 8
+    edifftol: 10
+    fmixing: 99
+    functional:
+      correlation: PBE
+      exchange: PBE
+      hybrid: 25
+    initial_charges: {}
+    initial_spin: []
+    kmesh:
+    - 8
+    - 8
+    - 8
+    maxcycle: 200
+    restart_from: null
+    resume_mode: conservative
+    smear: null
+    spin_polarized: true
+    tolinteg:
+    - 12
+    - 12
+    - 12
+    - 12
+    - 20
+  pseudopotential: BFD
+  qmc:
+    dmc:
+      excitations: 'no'
+      jastrow:
+      - twobody
+      kpoints: real
+      localization:
+      - tmoves
+      nblock: 16
+      optimizer:
+      - variance
+      save_trace: true
+      target_error: 0.01
+      timestep:
+      - 0.02
+    energy_optimize:
+      jastrow:
+      - twobody
+      threshold: 0.001
+      vmc_nstep: 1000
+    maximize:
+      jastrow:
+      - twobody
+      nconfig:
+      - 100
+    variance_optimize:
+      abstol: 1000.0
+      jastrow:
+      - twobody
+      niterations: 10
+      nruns: 3
+      reltol: 0.1
+  supercell:
+  - - 1
+    - 0
+    - 0
+  - - 0
+    - 1
+    - 0
+  - - 0
+    - 0
+    - 1
+  total_spin: 0
+- charge: 0
+  cif: '
+
+    #(C) 2015 by Fachinformationszentrum Karlsruhe.  All rights reserved.
+
+    data_15477-ICSD
+
+    _database_code_ICSD 15477
+
+    _audit_creation_date 1980-01-01
+
+    _audit_update_record 2014-08-01
+
+    _chemical_name_systematic ''Zinc sulfide''
+
+    _chemical_formula_structural ''Zn S''
+
+    _chemical_formula_sum ''S1 Zn1''
+
+    _chemical_name_structure_type ZnS(hP20)
+
+    _chemical_name_mineral ''Wurtzite 10H''
+
+    _exptl_crystal_density_diffrn 4.09
+
+    _publ_section_title ''New wurtzite polytypes from Joplin, Missouri''
+
+    loop_
+
+    _citation_id
+
+    _citation_journal_full
+
+    _citation_year
+
+    _citation_journal_volume
+
+    _citation_page_first
+
+    _citation_page_last
+
+    _citation_journal_id_ASTM
+
+    primary ''American Mineralogist'' 1959 44 1210 1218 AMMIAY
+
+    loop_
+
+    _publ_author_name
+
+    ''Evans, H.T.jr.''
+
+    ''McKnight, E.T.''
+
+    _cell_length_a 3.824(4)
+
+    _cell_length_b 3.824(4)
+
+    _cell_length_c 31.20(3)
+
+    _cell_angle_alpha 90.
+
+    _cell_angle_beta 90.
+
+    _cell_angle_gamma 120.
+
+    _cell_volume 395.11
+
+    _cell_formula_units_Z 10
+
+    _symmetry_space_group_name_H-M ''P 63 m c''
+
+    _symmetry_Int_Tables_number 186
+
+    loop_
+
+    _symmetry_equiv_pos_site_id
+
+    _symmetry_equiv_pos_as_xyz
+
+    1 ''-x, -x+y, z+1/2''
+
+    2 ''x-y, -y, z+1/2''
+
+    3 ''y, x, z+1/2''
+
+    4 ''x-y, x, z+1/2''
+
+    5 ''y, -x+y, z+1/2''
+
+    6 ''-x, -y, z+1/2''
+
+    7 ''x, x-y, z''
+
+    8 ''-x+y, y, z''
+
+    9 ''-y, -x, z''
+
+    10 ''-x+y, -x, z''
+
+    11 ''-y, x-y, z''
+
+    12 ''x, y, z''
+
+    loop_
+
+    _atom_type_symbol
+
+    _atom_type_oxidation_number
+
+    Zn2+ 2
+
+    S2- -2
+
+    loop_
+
+    _atom_site_label
+
+    _atom_site_type_symbol
+
+    _atom_site_symmetry_multiplicity
+
+    _atom_site_Wyckoff_symbol
+
+    _atom_site_fract_x
+
+    _atom_site_fract_y
+
+    _atom_site_fract_z
+
+    _atom_site_B_iso_or_equiv
+
+    _atom_site_occupancy
+
+    _atom_site_attached_hydrogens
+
+    Zn1 Zn2+ 2 a 0 0 0 . 1. 0
+
+    Zn2 Zn2+ 2 a 0 0 0.3 . 1. 0
+
+    Zn3 Zn2+ 2 b 0.3333 0.6667 0.1 . 1. 0
+
+    Zn4 Zn2+ 2 b 0.3333 0.6667 0.4 . 1. 0
+
+    Zn5 Zn2+ 2 b 0.3333 0.6667 0.7 . 1. 0
+
+    S1 S2- 2 a 0 0 0.075 . 1. 0
+
+    S2 S2- 2 a 0 0 0.375 . 1. 0
+
+    S3 S2- 2 b 0.3333 0.6667 0.175 . 1. 0
+
+    S4 S2- 2 b 0.3333 0.6667 0.475 . 1. 0
+
+    S5 S2- 2 b 0.3333 0.6667 0.775 . 1. 0
+
+    #End of TTdata_15477-ICSD'
+  control:
+    elements: []
+    id: ZnS_Wurtzite
+    pretty_formula: ''
+    queue_id: []
+  dft:
+    basis:
+    - 0.2
+    - 3
+    - 3
+    broyden:
+    - 0.01
+    - 60
+    - 8
+    edifftol: 10
+    fmixing: 99
+    functional:
+      correlation: PBE
+      exchange: PBE
+      hybrid: 25
+    initial_charges: {}
+    initial_spin: []
+    kmesh:
+    - 8
+    - 8
+    - 8
+    maxcycle: 200
+    restart_from: null
+    resume_mode: conservative
+    smear: null
+    spin_polarized: true
+    tolinteg:
+    - 12
+    - 12
+    - 12
+    - 12
+    - 20
+  pseudopotential: BFD
+  qmc:
+    dmc:
+      excitations: 'no'
+      jastrow:
+      - twobody
+      kpoints: real
+      localization:
+      - tmoves
+      nblock: 16
+      optimizer:
+      - variance
+      save_trace: true
+      target_error: 0.01
+      timestep:
+      - 0.02
+    energy_optimize:
+      jastrow:
+      - twobody
+      threshold: 0.001
+      vmc_nstep: 1000
+    maximize:
+      jastrow:
+      - twobody
+      nconfig:
+      - 100
+    variance_optimize:
+      abstol: 1000.0
+      jastrow:
+      - twobody
+      niterations: 10
+      nruns: 3
+      reltol: 0.1
+  supercell:
+  - - 1
+    - 0
+    - 0
+  - - 0
+    - 1
+    - 0
+  - - 0
+    - 0
+    - 1
+  total_spin: 0
+- charge: 0
+  cif: '
+
+    #(C) 2015 by Fachinformationszentrum Karlsruhe.  All rights reserved.
+
+    data_53952-ICSD
+
+    _database_code_ICSD 53952
+
+    _audit_creation_date 2003-04-01
+
+    _audit_update_record 2013-02-01
+
+    _chemical_name_systematic ''Zinc selenide''
+
+    _chemical_formula_structural ''Zn Se''
+
+    _chemical_formula_sum ''Se1 Zn1''
+
+    _chemical_name_structure_type ZnS(cF8)
+
+    _chemical_name_mineral Stilleite
+
+    _exptl_crystal_density_diffrn 5.25
+
+    _publ_section_title ''Crytal structure of Zn Se''
+
+    loop_
+
+    _citation_id
+
+    _citation_journal_full
+
+    _citation_year
+
+    _citation_journal_volume
+
+    _citation_page_first
+
+    _citation_page_last
+
+    _citation_journal_id_ASTM
+
+    primary ''Physical Review (1,1893-132,1963/141,1966-188,1969)'' 1923 21 380 380
+
+    PHRVAO
+
+    loop_
+
+    _publ_author_name
+
+    ''Davey, W.P.''
+
+    _cell_length_a 5.673(7)
+
+    _cell_length_b 5.673(7)
+
+    _cell_length_c 5.673(7)
+
+    _cell_angle_alpha 90.
+
+    _cell_angle_beta 90.
+
+    _cell_angle_gamma 90.
+
+    _cell_volume 182.57
+
+    _cell_formula_units_Z 4
+
+    _symmetry_space_group_name_H-M ''F -4 3 m''
+
+    _symmetry_Int_Tables_number 216
+
+    loop_
+
+    _symmetry_equiv_pos_site_id
+
+    _symmetry_equiv_pos_as_xyz
+
+    1 ''-z, -y, x''
+
+    2 ''-y, -x, z''
+
+    3 ''-x, -z, y''
+
+    4 ''-z, -x, y''
+
+    5 ''-y, -z, x''
+
+    6 ''-x, -y, z''
+
+    7 ''-z, y, -x''
+
+    8 ''-y, x, -z''
+
+    9 ''-x, z, -y''
+
+    10 ''-z, x, -y''
+
+    11 ''-y, z, -x''
+
+    12 ''-x, y, -z''
+
+    13 ''z, -y, -x''
+
+    14 ''y, -x, -z''
+
+    15 ''x, -z, -y''
+
+    16 ''z, -x, -y''
+
+    17 ''y, -z, -x''
+
+    18 ''x, -y, -z''
+
+    19 ''z, y, x''
+
+    20 ''y, x, z''
+
+    21 ''x, z, y''
+
+    22 ''z, x, y''
+
+    23 ''y, z, x''
+
+    24 ''x, y, z''
+
+    25 ''-z, -y+1/2, x+1/2''
+
+    26 ''-y, -x+1/2, z+1/2''
+
+    27 ''-x, -z+1/2, y+1/2''
+
+    28 ''-z, -x+1/2, y+1/2''
+
+    29 ''-y, -z+1/2, x+1/2''
+
+    30 ''-x, -y+1/2, z+1/2''
+
+    31 ''-z, y+1/2, -x+1/2''
+
+    32 ''-y, x+1/2, -z+1/2''
+
+    33 ''-x, z+1/2, -y+1/2''
+
+    34 ''-z, x+1/2, -y+1/2''
+
+    35 ''-y, z+1/2, -x+1/2''
+
+    36 ''-x, y+1/2, -z+1/2''
+
+    37 ''z, -y+1/2, -x+1/2''
+
+    38 ''y, -x+1/2, -z+1/2''
+
+    39 ''x, -z+1/2, -y+1/2''
+
+    40 ''z, -x+1/2, -y+1/2''
+
+    41 ''y, -z+1/2, -x+1/2''
+
+    42 ''x, -y+1/2, -z+1/2''
+
+    43 ''z, y+1/2, x+1/2''
+
+    44 ''y, x+1/2, z+1/2''
+
+    45 ''x, z+1/2, y+1/2''
+
+    46 ''z, x+1/2, y+1/2''
+
+    47 ''y, z+1/2, x+1/2''
+
+    48 ''x, y+1/2, z+1/2''
+
+    49 ''-z+1/2, -y, x+1/2''
+
+    50 ''-y+1/2, -x, z+1/2''
+
+    51 ''-x+1/2, -z, y+1/2''
+
+    52 ''-z+1/2, -x, y+1/2''
+
+    53 ''-y+1/2, -z, x+1/2''
+
+    54 ''-x+1/2, -y, z+1/2''
+
+    55 ''-z+1/2, y, -x+1/2''
+
+    56 ''-y+1/2, x, -z+1/2''
+
+    57 ''-x+1/2, z, -y+1/2''
+
+    58 ''-z+1/2, x, -y+1/2''
+
+    59 ''-y+1/2, z, -x+1/2''
+
+    60 ''-x+1/2, y, -z+1/2''
+
+    61 ''z+1/2, -y, -x+1/2''
+
+    62 ''y+1/2, -x, -z+1/2''
+
+    63 ''x+1/2, -z, -y+1/2''
+
+    64 ''z+1/2, -x, -y+1/2''
+
+    65 ''y+1/2, -z, -x+1/2''
+
+    66 ''x+1/2, -y, -z+1/2''
+
+    67 ''z+1/2, y, x+1/2''
+
+    68 ''y+1/2, x, z+1/2''
+
+    69 ''x+1/2, z, y+1/2''
+
+    70 ''z+1/2, x, y+1/2''
+
+    71 ''y+1/2, z, x+1/2''
+
+    72 ''x+1/2, y, z+1/2''
+
+    73 ''-z+1/2, -y+1/2, x''
+
+    74 ''-y+1/2, -x+1/2, z''
+
+    75 ''-x+1/2, -z+1/2, y''
+
+    76 ''-z+1/2, -x+1/2, y''
+
+    77 ''-y+1/2, -z+1/2, x''
+
+    78 ''-x+1/2, -y+1/2, z''
+
+    79 ''-z+1/2, y+1/2, -x''
+
+    80 ''-y+1/2, x+1/2, -z''
+
+    81 ''-x+1/2, z+1/2, -y''
+
+    82 ''-z+1/2, x+1/2, -y''
+
+    83 ''-y+1/2, z+1/2, -x''
+
+    84 ''-x+1/2, y+1/2, -z''
+
+    85 ''z+1/2, -y+1/2, -x''
+
+    86 ''y+1/2, -x+1/2, -z''
+
+    87 ''x+1/2, -z+1/2, -y''
+
+    88 ''z+1/2, -x+1/2, -y''
+
+    89 ''y+1/2, -z+1/2, -x''
+
+    90 ''x+1/2, -y+1/2, -z''
+
+    91 ''z+1/2, y+1/2, x''
+
+    92 ''y+1/2, x+1/2, z''
+
+    93 ''x+1/2, z+1/2, y''
+
+    94 ''z+1/2, x+1/2, y''
+
+    95 ''y+1/2, z+1/2, x''
+
+    96 ''x+1/2, y+1/2, z''
+
+    loop_
+
+    _atom_type_symbol
+
+    _atom_type_oxidation_number
+
+    Zn2+ 2
+
+    Se2- -2
+
+    loop_
+
+    _atom_site_label
+
+    _atom_site_type_symbol
+
+    _atom_site_symmetry_multiplicity
+
+    _atom_site_Wyckoff_symbol
+
+    _atom_site_fract_x
+
+    _atom_site_fract_y
+
+    _atom_site_fract_z
+
+    _atom_site_B_iso_or_equiv
+
+    _atom_site_occupancy
+
+    _atom_site_attached_hydrogens
+
+    Zn1 Zn2+ 4 a 0 0 0 . 1. 0
+
+    Se1 Se2- 4 c 0.25 0.25 0.25 . 1. 0
+
+    #End of TTdata_53952-ICSD'
+  control:
+    elements: []
+    id: ZnSe
+    pretty_formula: ''
+    queue_id: []
+  dft:
+    basis:
+    - 0.2
+    - 3
+    - 3
+    broyden:
+    - 0.01
+    - 60
+    - 8
+    edifftol: 10
+    fmixing: 99
+    functional:
+      correlation: PBE
+      exchange: PBE
+      hybrid: 25
+    initial_charges: {}
+    initial_spin: []
+    kmesh:
+    - 8
+    - 8
+    - 8
+    maxcycle: 200
+    restart_from: null
+    resume_mode: conservative
+    smear: null
+    spin_polarized: true
+    tolinteg:
+    - 12
+    - 12
+    - 12
+    - 12
+    - 20
+  pseudopotential: BFD
+  qmc:
+    dmc:
+      excitations: 'no'
+      jastrow:
+      - twobody
+      kpoints: real
+      localization:
+      - tmoves
+      nblock: 16
+      optimizer:
+      - variance
+      save_trace: true
+      target_error: 0.01
+      timestep:
+      - 0.02
+    energy_optimize:
+      jastrow:
+      - twobody
+      threshold: 0.001
+      vmc_nstep: 1000
+    maximize:
+      jastrow:
+      - twobody
+      nconfig:
+      - 100
+    variance_optimize:
+      abstol: 1000.0
+      jastrow:
+      - twobody
+      niterations: 10
+      nruns: 3
+      reltol: 0.1
+  supercell:
+  - - 1
+    - 0
+    - 0
+  - - 0
+    - 1
+    - 0
+  - - 0
+    - 0
+    - 1
+  total_spin: 0

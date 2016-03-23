@@ -1,0 +1,70 @@
+
+#(C) 2015 by Fachinformationszentrum Karlsruhe.  All rights reserved.
+data_29272-ICSD
+_database_code_ICSD 29272
+_audit_creation_date 1980-01-01
+_chemical_name_systematic 'Zinc oxide'
+_chemical_formula_structural 'Zn O'
+_chemical_formula_sum 'O1 Zn1'
+_chemical_name_structure_type ZnS(2H)
+_exptl_crystal_density_diffrn 5.71
+_publ_section_title
+'The Wurtzite Z Parameter for Beryllium Oxide and Zinc Oxide'
+loop_
+_citation_id
+_citation_journal_full
+_citation_year
+_citation_journal_volume
+_citation_page_first
+_citation_page_last
+_citation_journal_id_ASTM
+primary 'Acta Crystallographica B (24,1968-38,1982)' 1969 25 2254 2256 ACBCAR
+loop_
+_publ_author_name
+'Sabine, T.M.'
+'Hogg, S.'
+_cell_length_a 3.2427
+_cell_length_b 3.2427
+_cell_length_c 5.1948
+_cell_angle_alpha 90.
+_cell_angle_beta 90.
+_cell_angle_gamma 120.
+_cell_volume 47.31
+_cell_formula_units_Z 2
+_symmetry_space_group_name_H-M 'P 63 m c'
+_symmetry_Int_Tables_number 186
+_refine_ls_R_factor_all 0.047
+loop_
+_symmetry_equiv_pos_site_id
+_symmetry_equiv_pos_as_xyz
+1 '-x, -x+y, z+1/2'
+2 'x-y, -y, z+1/2'
+3 'y, x, z+1/2'
+4 'x-y, x, z+1/2'
+5 'y, -x+y, z+1/2'
+6 '-x, -y, z+1/2'
+7 'x, x-y, z'
+8 '-x+y, y, z'
+9 '-y, -x, z'
+10 '-x+y, -x, z'
+11 '-y, x-y, z'
+12 'x, y, z'
+loop_
+_atom_type_symbol
+_atom_type_oxidation_number
+Zn2+ 2
+O2- -2
+loop_
+_atom_site_label
+_atom_site_type_symbol
+_atom_site_symmetry_multiplicity
+_atom_site_Wyckoff_symbol
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+_atom_site_B_iso_or_equiv
+_atom_site_occupancy
+_atom_site_attached_hydrogens
+Zn1 Zn2+ 2 b 0.3333 0.6667 0 0.31 1. 0
+O1 O2- 2 b 0.3333 0.6667 0.3826(7) 0.55 1. 0
+#End of TTdata_29272-ICSD

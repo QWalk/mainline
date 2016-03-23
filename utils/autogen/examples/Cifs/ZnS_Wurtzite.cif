@@ -1,0 +1,78 @@
+
+#(C) 2015 by Fachinformationszentrum Karlsruhe.  All rights reserved.
+data_15477-ICSD
+_database_code_ICSD 15477
+_audit_creation_date 1980-01-01
+_audit_update_record 2014-08-01
+_chemical_name_systematic 'Zinc sulfide'
+_chemical_formula_structural 'Zn S'
+_chemical_formula_sum 'S1 Zn1'
+_chemical_name_structure_type ZnS(hP20)
+_chemical_name_mineral 'Wurtzite 10H'
+_exptl_crystal_density_diffrn 4.09
+_publ_section_title 'New wurtzite polytypes from Joplin, Missouri'
+loop_
+_citation_id
+_citation_journal_full
+_citation_year
+_citation_journal_volume
+_citation_page_first
+_citation_page_last
+_citation_journal_id_ASTM
+primary 'American Mineralogist' 1959 44 1210 1218 AMMIAY
+loop_
+_publ_author_name
+'Evans, H.T.jr.'
+'McKnight, E.T.'
+_cell_length_a 3.824(4)
+_cell_length_b 3.824(4)
+_cell_length_c 31.20(3)
+_cell_angle_alpha 90.
+_cell_angle_beta 90.
+_cell_angle_gamma 120.
+_cell_volume 395.11
+_cell_formula_units_Z 10
+_symmetry_space_group_name_H-M 'P 63 m c'
+_symmetry_Int_Tables_number 186
+loop_
+_symmetry_equiv_pos_site_id
+_symmetry_equiv_pos_as_xyz
+1 '-x, -x+y, z+1/2'
+2 'x-y, -y, z+1/2'
+3 'y, x, z+1/2'
+4 'x-y, x, z+1/2'
+5 'y, -x+y, z+1/2'
+6 '-x, -y, z+1/2'
+7 'x, x-y, z'
+8 '-x+y, y, z'
+9 '-y, -x, z'
+10 '-x+y, -x, z'
+11 '-y, x-y, z'
+12 'x, y, z'
+loop_
+_atom_type_symbol
+_atom_type_oxidation_number
+Zn2+ 2
+S2- -2
+loop_
+_atom_site_label
+_atom_site_type_symbol
+_atom_site_symmetry_multiplicity
+_atom_site_Wyckoff_symbol
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+_atom_site_B_iso_or_equiv
+_atom_site_occupancy
+_atom_site_attached_hydrogens
+Zn1 Zn2+ 2 a 0 0 0 . 1. 0
+Zn2 Zn2+ 2 a 0 0 0.3 . 1. 0
+Zn3 Zn2+ 2 b 0.3333 0.6667 0.1 . 1. 0
+Zn4 Zn2+ 2 b 0.3333 0.6667 0.4 . 1. 0
+Zn5 Zn2+ 2 b 0.3333 0.6667 0.7 . 1. 0
+S1 S2- 2 a 0 0 0.075 . 1. 0
+S2 S2- 2 a 0 0 0.375 . 1. 0
+S3 S2- 2 b 0.3333 0.6667 0.175 . 1. 0
+S4 S2- 2 b 0.3333 0.6667 0.475 . 1. 0
+S5 S2- 2 b 0.3333 0.6667 0.775 . 1. 0
+#End of TTdata_15477-ICSD
