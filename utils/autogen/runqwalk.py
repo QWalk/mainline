@@ -7,6 +7,24 @@ import numpy as np
 import json
 ####################################################
 
+def extract_jastrow(f):
+  tokens=f.readlines()
+  jastrow=""
+  in_jastrow=False
+  nopen=0
+  nclose=0
+  for line in tokens:
+    if line.find("JASTROW2") != -1:
+      in_jastrow=True
+    if in_jastrow:
+      nopen+=line.count("{")
+      nclose+=line.count("}")
+    if in_jastrow and nopen >= nclose:
+      jastrow+=line
+  return jastrow
+  
+####################################################
+
 def crystal_patch_output(propname,outname,patchname):
   prop=open(propname,'r')
   shrink=[1,1,1]
@@ -448,10 +466,15 @@ class QWalkRunDMC:
     if save_trace:
       outlist += ["save_trace %s.trace"%basename]
     opt_trans={"energy":"enopt","variance":"opt"}
+    jast_inp=extract_jastrow(open("qw_0.%s.%s.wfout"%(jast,opt_trans[opt])))
     outlist += [
         "}",
         "include qw_%i.sys"%k,
-        "trialfunc { include qw_%i.%s.%s.wfout"%(k,jast,opt_trans[opt]),
+        "trialfunc { slater-jastrow ",
+           "wf1 { include qw_%i.slater } "%(k),
+           "wf2 { ",
+          jast_inp,
+          " } ",
         "}"
       ]
     outstr = '\n'.join(outlist)
