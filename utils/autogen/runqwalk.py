@@ -446,7 +446,7 @@ class QWalkRunDMC:
     outlist += [
         "}",
         "include qw_%i.sys"%k,
-        "trialfunc { include qw_%i.%s.%s.wfout"%(k,jast,opt_trans[opt]),
+        "trialfunc { include qw_0.%s.%s.wfout"%(jast,opt_trans[opt]),
         "}"
       ]
     outstr = '\n'.join(outlist)
