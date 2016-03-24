@@ -577,7 +577,7 @@ class QWalkRunMaximize:
       for n in options['nconfig']:
         for jast in options['jastrow']:
           for opt in options['optimizer']:
-            kname="qw_%i"%k
+            kname=self.make_kname(k)
             basename=self.gen_basename(k,n,jast,opt)
             f = open(basename+".max",'w')
             f.write(self.maximizeinput(k,n,jast,opt))
@@ -616,13 +616,13 @@ class QWalkRunMaximize:
       "NCONFIG %i "%n+
       "}"
       ]
-    outlist.append("include qw_%i.sys"%k)
+    outlist.append("include %s.sys"%self.make_kname(k))
 
     if jast=="none" or jast=='':
-      outlist.append("trialfunc { include qw_%i.slater }"%k)
+      outlist.append("trialfunc { include %s.slater }"%self.make_kname(k))
     else:
       opt_trans={"energy":"enopt","variance":"opt"}
-      outlist.append("trialfunc { include qw_%i.%s.%s.wfout }"%(k,jast,opt_trans[opt] ))
+      outlist.append("trialfunc { include %s.wfout }"%self.gen_basename(k,n,jast,opt))
 
     outstr = '\n'.join(outlist)
     return outstr
