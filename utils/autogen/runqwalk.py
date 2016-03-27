@@ -612,7 +612,8 @@ class QWalkRunMaximize:
     kpt_num=[]
     for kp in kpts:
       kpt_num.append(int(re.findall(r'\d+',kp)[0]))
-    return kpt_num
+    #return kpt_num
+    return [0] # only run k=0 for now
 
 #-----------------------------------------------
   def maximizeinput(self, k, n, jast, opt):
