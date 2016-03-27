@@ -7,6 +7,24 @@ import numpy as np
 import json
 ####################################################
 
+def extract_jastrow(f):
+  tokens=f.readlines()
+  jastrow=""
+  in_jastrow=False
+  nopen=0
+  nclose=0
+  for line in tokens:
+    if line.find("JASTROW2") != -1:
+      in_jastrow=True
+    if in_jastrow:
+      nopen+=line.count("{")
+      nclose+=line.count("}")
+    if in_jastrow and nopen >= nclose:
+      jastrow+=line
+  return jastrow
+  
+####################################################
+
 def crystal_patch_output(propname,outname,patchname):
   prop=open(propname,'r')
   shrink=[1,1,1]
@@ -194,35 +212,40 @@ wf2 { include qw.%s }
 
 #-------------------------------------------------      
   def resume(self,job_record,maxresume=5):
-    print("resume currently broken")
-    quit()
-    if not os.path.isfile("qw_0.opt.wfout"):
-      return self.run(job_record)
-    else: # Save previous output.
-      trynum=0
-      while os.path.isfile("%d.qw_0.opt.o"%trynum):
-        trynum += 1
-        if trynum > maxresume:
-          print("Not resuming because resume limit reached ({}>{}).".format(
-            trynum,maxresume))
-          return 'failed'
-      shutil.move("qw_0.opt.o","%d.qw_0.opt.o"%trynum)
+    infiles=[]
+    for jast in job_record['qmc']['variance_optimize']['jastrow']:
+      infiles.append("qw_0.%s.opt"%jast)
+    
+    for inf in infiles:
+      if os.path.isfile(inf+".wfout"): #save previous output
+        trynum=0
+        while os.path.isfile("%d.qw_0.opt.o"%trynum):
+          trynum += 1
+          if trynum > maxresume:
+            print("Not resuming because resume limit reached ({}>{}).".format(
+              trynum,maxresume))
+            return 'failed'
+        shutil.move(inf+".o","%d."%trynum + inf+".o")
+      else: 
+        print("VarianceOptimize: asked to resume a job which didn't run")
+        quit()
 
-    nit=job_record['qmc']['variance_optimize']['niterations']
-    nruns=job_record['qmc']['variance_optimize']['nruns']
-    inplines = ["method { optimize iterations %i } "%nit for i in range(nruns)]
-    inplines += [
-        "include qw_0.sys",
-        "trialfunc { include qw_0.opt.wfout }"
-      ]
-    with open("qw_0.opt",'w') as inpf:
-      inpf.write('\n'.join(inplines))
+      nit=job_record['qmc']['variance_optimize']['niterations']
+      nruns=job_record['qmc']['variance_optimize']['nruns']
+      inplines = ["method { optimize iterations %i } "%nit for i in range(nruns)]
+      inplines += [
+          "include qw_0.sys",
+          "trialfunc { include %s.wfout }"%inf
+        ]
+      with open(inf,'w') as inpf:
+        inpf.write('\n'.join(inplines))
 
-    job_record['control'][self._name_+'_jobid'] = [self._submitter.execute(
-      job_record, 
-      ['qw_0.opt','qw_0.sys','qw_0.slater','qw_0.orb','qw.basis','qw.%s'%jast], 
-      'qw_0.opt',
-      'qw_0.opt.stdout',self._name_)]
+    wffiles=[]
+    for inf in infiles:
+      wffiles.append(inf+".wfout")
+    self._submitter.execute(job_record, 
+        ['qw_0.sys','qw_0.slater','qw_0.orb','qw.basis']+infiles+wffiles, 
+         infiles,infiles[0]+'.stdout',self._name_)
     
     return 'running'
 #------------------------------------------------------
@@ -264,11 +287,11 @@ class QWalkEnergyOptimize:
       fname="qw_0.%s.enopt"%jast
       # TODO make restart work with 2 and 3-body jastrow
       if restart:
-        if not os.path.isfile("qw_0.enopt.wfout"):
-          print("Could not find qw_0.enopt.wfout")
+        if not os.path.isfile("%s.wfout"%fname):
+          print("Could not find %s.wfout"%fname)
           return "failed"
 
-        os.system("cp qw_0.enopt.wfout qw_0.enopt.wfin")
+        os.system("cp %s.wfout %s.wfin"%(fname,fname))
       else:
         os.system("sed s/OPTIMIZEBASIS//g qw_0.%s.opt.wfout > %s.wfin"%(jast,fname))
 
@@ -448,10 +471,15 @@ class QWalkRunDMC:
     if save_trace:
       outlist += ["save_trace %s.trace"%basename]
     opt_trans={"energy":"enopt","variance":"opt"}
+    jast_inp=extract_jastrow(open("qw_0.%s.%s.wfout"%(jast,opt_trans[opt])))
     outlist += [
         "}",
         "include qw_%i.sys"%k,
-        "trialfunc { include qw_%i.%s.%s.wfout"%(k,jast,opt_trans[opt]),
+        "trialfunc { slater-jastrow ",
+           "wf1 { include qw_%i.slater } "%(k),
+           "wf2 { ",
+          jast_inp,
+          " } ",
         "}"
       ]
     outstr = '\n'.join(outlist)
