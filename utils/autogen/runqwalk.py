@@ -110,14 +110,14 @@ class QWalkVarianceOptimize:
       nit = job_record['qmc']['variance_optimize']['niterations']
       nruns = job_record['qmc']['variance_optimize']['nruns']
       for i in range(0,nruns):
-          f.write("method { optimize iterations %i } "%nit)
-      f.write("""
-include qw_0.sys
-trialfunc { slater-jastrow
-wf1 { include qw_0.slater } 
-wf2 { include qw.%s } 
-}
-"""%jast_suf)
+        f.write("method { optimize iterations %i } "%nit)
+      f.write("\n".join([
+          "include qw_0.sys",
+          "trialfunc { slater-jastrow",
+          "  wf1 { include qw_0.slater } ",
+          "  wf2 { include qw.%s } "%jast_suf,
+          "}"
+        ]))
       infiles.append(fname)
       jastfiles.append("qw.%s"%jast_suf)
       f.close()
@@ -211,28 +211,69 @@ wf2 { include qw.%s }
     quit()
 #-------------------------------------------------      
   def resume(self,job_record,maxresume=5):
-    print("resume currently broken")
-    quit()
-    if not os.path.isfile("qw_0.opt.wfout"):
+    #print("resume currently broken")
+    #quit()
+    infiles=[]
+    jastfiles=[]
+    for jast in job_record['qmc']['variance_optimize']['jastrow']:
+      jast_suf=""
+      if jast=='twobody':
+        jast_suf = 'jast2'
+      elif jast=='threebody':
+        jast_suf = 'jast3'
+      else:
+        print("Didn't understand Jastrow",jast)
+        quit()
+      fname="qw_0.%s.opt"%jast
+      f = open(fname,'w')
+      nit = job_record['qmc']['variance_optimize']['niterations']
+      nruns = job_record['qmc']['variance_optimize']['nruns']
+      for i in range(0,nruns):
+        f.write("method { optimize iterations %i } "%nit)
+      f.write("\n".join([
+          "include qw_0.sys",
+          "trialfunc { slater-jastrow",
+          "  wf1 { include qw_0.slater } ",
+          "  wf2 { include qw.%s } "%jast_suf,
+          "}"
+        ]))
+      infiles.append(fname)
+      jastfiles.append("qw.%s"%jast_suf)
+      f.close()
+    outfiles=[]
+    for fname in infiles:
+      outfiles.append(fname+".stdout")
+
+    self._submitter.execute(
+      job_record, 
+      infiles+['qw_0.sys','qw_0.slater','qw_0.orb','qw.basis']+jastfiles, 
+      infiles,
+      outfiles[0],
+      self._name_)
+    
+    return 'running'
+    ########OLD########
+    fname="qw_0.%s.opt"%jast
+    if not os.path.isfile(fname):
       return self.run(job_record)
     else: # Save previous output.
       trynum=0
-      while os.path.isfile("%d.qw_0.opt.o"%trynum):
+      while os.path.isfile("%d.%s.o"%(trynum,fname)):
         trynum += 1
         if trynum > maxresume:
           print("Not resuming because resume limit reached ({}>{}).".format(
             trynum,maxresume))
           return 'failed'
-      shutil.move("qw_0.opt.o","%d.qw_0.opt.o"%trynum)
+      shutil.move("%s.o"%fname,"%d.%s.o"%(trynum,fname))
 
     nit=job_record['qmc']['variance_optimize']['niterations']
     nruns=job_record['qmc']['variance_optimize']['nruns']
     inplines = ["method { optimize iterations %i } "%nit for i in range(nruns)]
     inplines += [
         "include qw_0.sys",
-        "trialfunc { include qw_0.opt.wfout }"
+        "trialfunc { include %s.wfout }"%fname
       ]
-    with open("qw_0.opt",'w') as inpf:
+    with open(fname,'w') as inpf:
       inpf.write('\n'.join(inplines))
 
     job_record['control']['queue_id'] = self._submitter.execute(
@@ -1023,6 +1064,7 @@ class QWalkRunPostProcess:
               basename=self.gen_basename(k,t,loc,jast,opt)
               print("Debug basename",basename)
               if os.path.isfile("%s.post.o"%basename):
+                entry={}
                 nfres = map(lambda x:x.tolist(),
                     nf.read_number_dens(open(basename+".post.o")))
                 entry['number_fluctuation']=nfres
