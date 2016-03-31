@@ -142,14 +142,95 @@ public:
     int nelec=sample->electronSize();
     Wf_return lap(1,5);
     wf->getVal(wfdata,0,lap);
+    doublevar cutoff=0.2;
     _g[count++]=-lap.amp(0,0);
     for(int e=0; e< nelec; e++) { 
       wf->getLap(wfdata,e,lap);
-      for(int d=0; d< 3; d++) { 
-        _g[count++]=-lap.amp(0,d+1);
+      for(int d=0; d< 3; d++) {
+        doublevar grad=-lap.amp(0,d+1);
+        //if(abs(grad) > cutoff) {
+        //  cout << "big grad " << grad << endl;
+        //  grad=sign(grad)*cutoff;
+        //}
+        _g[count++]=grad;
       }
     }
     return _g[0];
+  }
+  //-----------------------------------------
+
+  doublevar eval_tstep(double * x, doublevar tstep,Array1 <doublevar> & grad,
+                       int n) {
+    Array1 <doublevar> xnew(n+1);
+    for(int i=1; i<=n; i++)
+      xnew(i)=x[i]-tstep*grad(i);
+    return func(xnew.v);
+  }
+  //-----------------------------------------
+  void macoptII(double * x,int n) {
+    Array1 <doublevar> grad(n+1);
+    Array1 <doublevar> xnew(n+1);
+    for(int big_it=0; big_it < 50; big_it++) {
+      dfunc(x,grad.v);
+      doublevar fbase=grad(0);
+      doublevar bracket_tstep,last_func=fbase;
+      for(doublevar tstep=1e-8; tstep < 20.0; tstep*=2.0) {
+        
+        doublevar f=eval_tstep(x,tstep,grad,n);
+        cout << "tstep " << tstep << " func " << f << " fbase " << fbase << endl;
+        if(f > fbase or f > last_func) {
+          bracket_tstep=tstep;
+          break;
+        }
+        else last_func=f;
+      }
+      
+      cout << "bracket_tstep " << bracket_tstep << endl;
+      doublevar resphi=2.-(1.+sqrt(5.))/2.;
+      doublevar a=0, b=resphi*bracket_tstep, c=bracket_tstep;
+      doublevar af=fbase,
+      bf=eval_tstep(x,b,grad,n),
+      cf=eval_tstep(x,c,grad,n);
+      cout << "first step  a,b,c " << a << " " << b << "  " << c
+      << " funcs " << af << " " << bf << " " << cf << endl;
+      for(int it=0; it < 20; it++) {
+        doublevar d,df;
+        if( (c-b) > (b-a))
+          d=b+resphi*(c-b);
+        else
+          d=b-resphi*(b-a);
+        df=eval_tstep(x,d,grad,n);
+        if(df < bf) {
+          if( (c-b) > (b-a) ) {
+            a=b;
+            af=bf;
+            b=d;
+            bf=df;
+          }
+          else {
+            c=b;
+            cf=bf;
+            b=d;
+            bf=df;
+          }
+        }
+        else {
+          if( (c-b) > (b-a) ) {
+            c=d;
+            cf=df;
+          }
+          else {
+            a=d;
+            af=df;
+          }
+        }
+        cout << "step " << it << " a,b,c " << a << " " << b << "  " << c
+        << " funcs " << af << " " << bf << " " << cf << endl;
+      }
+      doublevar best_tstep=b;
+      for(int i=1; i<=n; i++)
+        x[i]=x[i]-best_tstep*grad[i];
+    }
   }
   //-----------------------------------------
   
