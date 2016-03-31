@@ -69,6 +69,9 @@ class Average_tbdm_basis:public Average_generator {
     return nmo+4*nmo*nmo+2*(typ*nmo*nmo*nmo*nmo+i*nmo*nmo*nmo+j*nmo*nmo+k*nmo+l);
   }
 
+  void jsontbdmvalHelper(Average_return & avg,tbdm_t tbdm,ostream & os);
+  void jsontbdmerrHelper(Average_return & avg,Average_return & err,tbdm_t tbdm,ostream & os);
+  
   Array1 <Array1 <int> > occupations;
   Array1 < Array1 <doublevar> > saved_r;
   Array1 < int > rk; //the electron number that each position corresponds to
