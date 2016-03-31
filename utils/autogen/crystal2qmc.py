@@ -1,1 +1,1 @@
-/home/busemey2/projects/crystal2qmc_testing/crystal2qmc.py
+/home/brian/projects/crystal2qmc_testing/crystal2qmc.py

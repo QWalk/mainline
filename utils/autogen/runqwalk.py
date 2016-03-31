@@ -48,7 +48,10 @@ class NewCrystal2QWalk:
   _name_="NewCrystal2QWalk"
   def run(self,job_record):
     job_record['qmc']['kpoint_weights'] = \
-        convert_crystal(base="qw",kfmt='int').tolist()
+        convert_crystal(
+            base="qw",
+            kfmt='int',
+            kset=job_record['qmc']['kpoints']).tolist()
     return 'ok'
   def check_status(self,job_record):
     outfilename="qw_0.sys"
