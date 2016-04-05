@@ -2,6 +2,7 @@ from __future__ import print_function
 import sys
 sys.path.append('..') # Other QWalk utils.
 import read_numberfluct as nf
+import dm_tools as dm
 import os
 import glob
 import re
@@ -50,7 +51,10 @@ class NewCrystal2QWalk:
   _name_="NewCrystal2QWalk"
   def run(self,job_record):
     job_record['qmc']['kpoint_weights'] = \
-        convert_crystal(base="qw",kfmt='int').tolist()
+        convert_crystal(
+            base="qw",
+            kfmt='int',
+            kset=job_record['qmc']['kpoints']).tolist()
     return 'ok'
   def check_status(self,job_record):
     outfilename="qw_0.sys"
@@ -1015,28 +1019,28 @@ class QWalkRunPostProcess:
     basename=self.gen_basename(k,t,loc,jast,opt)
     nwarmup = self.get_warmup("%s.dmc.log"%basename)
     print("nwarmup:",nwarmup)
-    outlist = [
+    outlines = [
         "method { postprocess ",
         "readconfig %s.trace"%basename,
         "noenergy",
         "average { region_fluctuation }"
       ]
-    outlines = []
     nskip = nwarmup*2048 # TODO generalize 2048.
     if ppr_options['region_fluctuation'] == True:
       outlines += ["average { region_fluctuation }"]
     if ppr_options['density'] == True:
       outlines += [
-          "density { density up   outputfile %s.dmc.up.cube }",
-          "density { density down outputfile %s.dmc.dn.cube }"
+          "density { density up   outputfile %s.dmc.up.cube }"%basename,
+          "density { density down outputfile %s.dmc.dn.cube }"%basename
         ]
     if ppr_options['obdm'] == True:
-      if ppr_options['minbasis'] != None:
-        shutil.copy(ppr_options['minbasis'],"qw_%s.minbasis"%kpt)
+      if (ppr_options['basis'] != None) and (ppr_options['orb'] != None):
+        shutil.copy(ppr_options['basis'],ppr_options['basis'].replace("../",""))
+        shutil.copy(ppr_options['orb'],ppr_options['orb'].replace("../",""))
         outlines += [
             "average { tbdm_basis ",
             "mode obdm",
-            "include qw_%s"%kpt,
+            "include atomic.basis", #TODO generalize naming.
             "}"
           ]
       else:
@@ -1048,7 +1052,7 @@ class QWalkRunPostProcess:
         "trialfunc { include qw_0.%s.%s.wfout"%(jast,opt_trans[opt]),
         "}"
       ]
-    outstr = '\n'.join(outlist)
+    outstr = '\n'.join(outlines)
     return outstr
 
   #-----------------------------------------------
@@ -1065,12 +1069,18 @@ class QWalkRunPostProcess:
               print("Debug basename",basename)
               if os.path.isfile("%s.post.o"%basename):
                 entry={}
-                nfres = map(lambda x:x.tolist(),
-                    nf.read_number_dens(open(basename+".post.o")))
+                with open(basename+".post.o") as postin:
+                  nfres = list(map(lambda x:x.tolist(),
+                      nf.read_number_dens(postin)))
                 entry['number_fluctuation']=nfres
-                #entry['density']=...
-                #entry['obdm']=...
-                #entry['tbdm']=...
+                with open(basename+".post.o") as postin:
+                  nmres = dm.read_dm(postin)
+                for key in nmres.keys(): nmres[key] = nmres[key].tolist()
+              else:
+                entry['number_fluctuation']=(None,None)
+                entry['ordm']=(None,None)
+                entry['tbdm']=(None,None)
+                entry['density_matrices'] = nmres
                 entry['timestep']=t
                 entry['localization']=loc
                 ret.append(entry)
@@ -1088,13 +1098,27 @@ class QWalkRunPostProcess:
             for opt in options['optimizer']:
               infns.append(self.gen_basename(k,t,loc,jast,opt))
     
-    #Check on the submitter. If still running report that.
-    status=self._submitter.status(job_record,self._name_)
-    if 'running' in status:
-      return 'running'
-    
-    #If not running, try to transfer files.
-    self._submitter.transfer_output(job_record, infns)
+    status='ok'
+    for e in results:
+      print("Postprocess",e['knum'],e['number_fluctuation'] != (None,None))
+      print(e['number_fluctuation'])
+      if e['number_fluctuation'][0] is None:
+        status='failed'
+    print("initial status",status)
+    if status=='ok':
+      return status
+
+    outfiles=[]
+    for k in self.get_kpts(job_record):
+      for t in job_record['qmc']['dmc']['timestep']:
+        for local in job_record['qmc']['dmc']['localization']:
+          basename="qwt%g%s_%i"%(t,local,k)
+          outfiles.extend([basename+'.post.o'])
+    self._submitter.transfer_output(job_record, outfiles)
+    status=self._submitter.status(job_record)
+    print("status",status)
+    if status=='running':
+      return status
 
     #Now check on the runs
     ret=self.collect_runs(job_record)
