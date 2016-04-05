@@ -89,6 +89,8 @@ private:
   
   int nskip;
   bool evaluate_energy;
+  bool json_output;
+  string json_file;
   System * sys;
   Pseudopotential * pseudo;
   Wavefunction_data * wfdata;
@@ -119,6 +121,7 @@ public:
     npoints=0;
   }
 
+  //---------------------
 
   void update_average(Properties_point & pt) { 
    // cout << "here" << endl;
@@ -141,7 +144,7 @@ public:
     avgwt+=pt.weight(0);
     npoints++;
   }
-
+  //---------------------
   void print(Array1<Average_generator *> average_var,ostream & output) { 
     output.precision(10);
     output << "Averages" << endl;
@@ -152,7 +155,33 @@ public:
       for(int j=0; j< varavg(i).vals.GetDim(0); j++) 
         varavg(i).vals(j)=sqrt(varavg(i).vals(j)/npoints);
       average_var(i)->write_summary(avgavg(i),varavg(i),output);
+    }
+    
   }
+
+  //---------------------
+  void JsonOutput(Array1<Average_generator *> & average_var, 
+                  ostream & os) { 
+    os.precision(14);
+    os << "{ \"label\":\"postprocess\"," << endl;
+    os << "\"npoints\":" << npoints << "," << endl;
+    os << "\"properties\":{"<< endl;
+    if(avgen!=0 and varen!=0) { 
+      os << "\"energy\": { " << endl;
+      os << "\"value\": [ " << avgen << " ]," << endl;
+      os << "\"error\": [ " << sqrt(varen/npoints) << " ]," << endl;
+      os << "\"sigma\": [ " << sqrt(varen) << " ]" << endl;
+      os << "}" << endl;
+    }
+    for(int i=0; i< average_var.GetDim(0); i++) {
+      if(i!=0 or (avgen!=0 and varen!=0) )
+        os << "," << endl; 
+      average_var(i)->jsonOutput(avgavg(i),varavg(i), os);
+    }
+      
+    os <<"}"<< endl;
+    os << "}" << endl;
+    
     
   }
 private:

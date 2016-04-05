@@ -11,6 +11,7 @@ from io import StringIO
 import sys
 import shutil
 import string
+import numpy as np
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
 library_directory="../"
@@ -230,6 +231,44 @@ def cif2geom_sym(cif):
 
 ######################################################################
 
+def cif2geom_sym2(cif):
+  parser=CifParser.from_string(cif)
+  struct=parser.get_structures()[0]
+  sg = SpacegroupAnalyzer(struct)
+  struct = sg.get_conventional_standard_structure()
+  sg = SpacegroupAnalyzer(struct)
+
+  geomlines=["CRYSTAL"]
+  geomlines += ["0 0 1"]
+  geomlines += [str(sg.get_spacegroup_number())]
+  cry_sys = sg.get_crystal_system()
+  lattice = struct.lattice
+
+  if cry_sys == 'trigonal' or cry_sys == 'hexagonal' or cry_sys == 'tetragonal':
+    geomlines += ["%s %s" %(lattice.a,lattice.c)]
+  elif cry_sys == 'cubic':
+    geomlines += ["%s" %(lattice.a)]
+  elif cry_sys == 'triclinic':
+    geomlines += ["%s %s %s %s %s %s" %(lattice.a,lattice.b,lattice.c,lattice.alpha,lattice.beta,lattice.gamma)]
+  elif cry_sys == 'monoclinic':
+    geomlines += ["%s %s %s %s" %(lattice.a,lattice.b,lattice.c,lattice.beta)]
+  elif cry_sys == 'orthorhombic':
+    geomlines += ["%s %s %s" %(lattice.a,lattice.b,lattice.c)]
+  else:
+    print('Error printing symmetrized structure.')
+    quit()
+  
+  ds = sg.get_symmetry_dataset()
+  eq_sites = np.unique(ds['equivalent_atoms'])
+  geomlines += [str(len(eq_sites))]
+  for eq_site in eq_sites:
+    site = struct.sites[eq_site]
+    geomlines += ["%s %s %s %s" %(site.specie.Z+200,site.a,site.b,site.c)]
+
+  return geomlines,struct
+
+######################################################################
+
 class Cif2Crystal:
   _name_="Cif2Crystal"
   # Currently, check_status() and runcrystal requires user not to modify outfn. 
@@ -240,7 +279,13 @@ class Cif2Crystal:
       print("ERROR: only support BFD pseudoptentials for now")
       quit()
 
-    geomlines,primstruct=cif2geom(job_record['cif'])
+    if job_record['dft']['symmetrized'] == False:
+      geomlines,primstruct=cif2geom(job_record['cif'])
+    elif job_record['dft']['symmetrized'] == True:
+      geomlines,primstruct=cif2geom_sym2(job_record['cif'])
+    else:
+      print('Improper input for "symmetrized" keyword. Value must be True or False.')
+      quit()
     basislines=basis_section(primstruct,job_record['dft']['basis'],
                               job_record['dft']['initial_charges'])
     supercell=["SUPERCEL"]
