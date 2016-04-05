@@ -2,6 +2,7 @@ from __future__ import print_function
 import sys
 sys.path.append('..') # Other QWalk utils.
 import read_numberfluct as nf
+import dm_tools as dm
 import os
 import glob
 import re
@@ -719,33 +720,33 @@ class QWalkRunPostProcess:
     basename="qwt%g%s_%i"%(ts,loc,kpt)
     nwarmup = self.get_warmup("%s.dmc.log"%basename)
     print("nwarmup:",nwarmup)
-    outlist = [
+    outlines = [
         "method { postprocess ",
         "readconfig %s.dmc.trace"%basename, #TODO generalize non-DMC.
         "noenergy",
         "average { region_fluctuation }"
       ]
-    outlines = []
     nskip = nwarmup*2048 # TODO generalize 2048.
     if ppr_options['region_fluctuation'] == True:
       outlines += ["average { region_fluctuation }"]
     if ppr_options['density'] == True:
       outlines += [
-          "density { density up   outputfile %s.dmc.up.cube }",
-          "density { density down outputfile %s.dmc.dn.cube }"
+          "density { density up   outputfile %s.dmc.up.cube }"%basename,
+          "density { density down outputfile %s.dmc.dn.cube }"%basename
         ]
     if ppr_options['obdm'] == True:
-      if ppr_options['minbasis'] != None:
-        shutil.copy(ppr_options['minbasis'],"qw_%s.minbasis"%kpt)
+      if (ppr_options['basis'] != None) and (ppr_options['orb'] != None):
+        shutil.copy(ppr_options['basis'],ppr_options['basis'].replace("../",""))
+        shutil.copy(ppr_options['orb'],ppr_options['orb'].replace("../",""))
         outlines += [
             "average { tbdm_basis ",
             "mode obdm",
-            "include qw_%s"%kpt,
+            "include atomic.basis", #TODO generalize naming.
             "}"
             ]
       else:
-        print("Since min basis wasn't defined, postprocess can't do OBDM.")
-    outlist += [
+        print("Since basis and/or orb wasn't defined, postprocess can't do OBDM.")
+    outlines += [
         "}",
         "include qw_%i.sys"%kpt,
         "trialfunc { slater-jastrow",
@@ -753,7 +754,7 @@ class QWalkRunPostProcess:
         "wf2 { include opt.jast }",
         "}"
       ]
-    outstr = '\n'.join(outlist)
+    outstr = '\n'.join(outlines)
     return outstr
   #-----------------------------------------------
   def collect_runs(self,job_record):
@@ -767,14 +768,20 @@ class QWalkRunPostProcess:
           entry={}
           entry['knum']=k
           if os.path.isfile(basename+".post.o"):
-            nfres = map(lambda x:x.tolist(),
-                nf.read_number_dens(open(basename+".post.o")))
+            print("Reading %s"%basename+".post.o")
+            with open(basename+".post.o") as postin:
+              nfres = list(map(lambda x:x.tolist(),
+                  nf.read_number_dens(postin)))
             entry['number_fluctuation']=nfres
+            with open(basename+".post.o") as postin:
+              nmres = dm.read_dm(postin)
+            for key in nmres.keys(): nmres[key] = nmres[key].tolist()
+            entry['density_matrices'] = nmres
           else:
             entry['number_fluctuation']=(None,None)
+            entry['ordm']=(None,None)
+            entry['tbdm']=(None,None)
           #entry['density']=...
-          #entry['obdm']=...
-          #entry['tbdm']=...
           entry['timestep']=t
           entry['localization']=loc
           ret.append(entry)
@@ -786,6 +793,7 @@ class QWalkRunPostProcess:
     status='ok'
     for e in results:
       print("Postprocess",e['knum'],e['number_fluctuation'] != (None,None))
+      print(e['number_fluctuation'])
       if e['number_fluctuation'][0] is None:
         status='failed'
     print("initial status",status)
