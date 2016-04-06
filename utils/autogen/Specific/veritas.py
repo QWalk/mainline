@@ -1,13 +1,14 @@
 # RunCrystal for Veritas
+# This can also be used as an example for Linux desktop machines.
 import subprocess as sub
 from submission_tools import LocalSubmitter
 import os
 
 # Where are your executables stored?
-BIN = "/home/brian/bin/"
+BIN = "~/bin/"
 
 if BIN[-1] != '/': BIN += '/'
-##########################################################
+#####################################################################
 class LocalVeritasSubmitter(LocalSubmitter):
   """Abstract submission class. Defines interaction with the queuing system."""
 #-------------------------------------------------------  
@@ -75,7 +76,6 @@ class LocalVeritasSubmitter(LocalSubmitter):
     qid = result.decode().split()[0]
     print("Submitted as %s"%qid)
     return [qid]
-###############################################################
 
 #####################################################################
 class LocalVeritasCrystalSubmitter(LocalVeritasSubmitter):
@@ -97,7 +97,6 @@ class LocalVeritasCrystalSubmitter(LocalVeritasSubmitter):
 
     qid = self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
     return qid
-###############################################################
 
 #####################################################################
 class LocalVeritasPropertiesSubmitter(LocalVeritasSubmitter):
@@ -124,7 +123,6 @@ class LocalVeritasPropertiesSubmitter(LocalVeritasSubmitter):
 
     qid = self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
     return qid
-###############################################################
 
 #####################################################################
 class LocalVeritasQwalkSubmitter(LocalVeritasSubmitter):
@@ -149,7 +147,6 @@ class LocalVeritasQwalkSubmitter(LocalVeritasSubmitter):
 
       qid+=self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
     return qid
-###############################################################
 
 #####################################################################
 class LocalVeritasBundleQwalkSubmitter(LocalVeritasSubmitter):
@@ -171,5 +168,3 @@ class LocalVeritasBundleQwalkSubmitter(LocalVeritasSubmitter):
 
     qid = [self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)]
     return qid
-###############################################################
-  
