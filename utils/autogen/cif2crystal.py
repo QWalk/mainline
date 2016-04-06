@@ -159,7 +159,7 @@ def basis_section(struct,params=[0.2,2,3],initial_charges={}):
     nm=s['species'][0]['element']
     elements.add(nm)
   basislines=[]
-  elements = sorted(list(elements)) # Canonize ordering.
+  elements = sorted(list(elements)) # Standardize ordering.
   for e in elements:
     basislines+=modify_basis(e,library_directory+"BFD_Library.xml",
             params=params,initial_charges=initial_charges)

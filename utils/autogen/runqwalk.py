@@ -1,8 +1,6 @@
 from __future__ import print_function
 import sys
 sys.path.append('..') # Other QWalk utils.
-import read_numberfluct as nf
-import dm_tools as dm
 import os
 import glob
 import re
@@ -1057,7 +1055,7 @@ class QWalkRunPostProcess:
           for jast in options['jastrow']:
             for opt in options['optimizer']:
               basename=self.gen_basename(k,t,loc,jast,opt)
-              if os.path.isfile("%s.dmc.log"%basename):
+              if os.path.isfile("%s.post.json"%basename):
                 entry={}
                 entry['knum']=k
                 entry['timestep']=t

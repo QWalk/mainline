@@ -4,7 +4,7 @@ from submission_tools import LocalSubmitter
 import os
 
 # Where are your executables stored?
-BIN = "/home/lkwagner/autogen_3body/bin/"
+BIN = "~/bin/"
 
 if BIN[-1] != '/': BIN += '/'
 ##########################################################
@@ -33,7 +33,7 @@ class LocalTaubSubmitter(LocalSubmitter):
     if qstat == "R" or qstat == "Q":
       return "running"
     if qstat == "C" or qstat == "E":
-      status = "finished"
+      return "finished"
     return status
 #-------------------------------------------------------
   def _job_cancel(self,queue_id):
@@ -76,9 +76,8 @@ class LocalTaubSubmitter(LocalSubmitter):
     qid = result.decode().split()[0]
     print("Submitted as %s"%qid)
     return [qid]
-###############################################################
 
-#####################################################################
+###############################################################
 class LocalTaubCrystalSubmitter(LocalTaubSubmitter):
   """Fully defined submission class. Defines interaction with specific
   program to be run."""
@@ -98,6 +97,7 @@ class LocalTaubCrystalSubmitter(LocalTaubSubmitter):
 
     qid = self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
     return qid
+
 ###############################################################
 class LocalTaubPropertiesSubmitter(LocalTaubSubmitter):
   """Fully defined submission class. Defines interaction with specific
@@ -123,7 +123,6 @@ class LocalTaubPropertiesSubmitter(LocalTaubSubmitter):
 
     qid = self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
     return qid
-###############################################################
 
 #####################################################################
 class LocalTaubQwalkSubmitter(LocalTaubSubmitter):
@@ -138,7 +137,7 @@ class LocalTaubQwalkSubmitter(LocalTaubSubmitter):
     final_commands=[]
     qid=[]
     
-    for f in inpfn:
+    for f in inpfns:
       exe = BIN+"qwalk %s"%f
 
       if jobname == "":
@@ -148,7 +147,6 @@ class LocalTaubQwalkSubmitter(LocalTaubSubmitter):
 
       qid+=self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
     return qid
-###############################################################
 
 #####################################################################
 class LocalTaubBundleQwalkSubmitter(LocalTaubSubmitter):
@@ -168,7 +166,6 @@ class LocalTaubBundleQwalkSubmitter(LocalTaubSubmitter):
     if loc == "":
       loc = os.getcwd()
 
-    qid = [self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)]
+    qid = self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
     return qid
-###############################################################
   
