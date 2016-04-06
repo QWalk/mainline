@@ -157,7 +157,7 @@ class LocalVeritasBundleQwalkSubmitter(LocalVeritasSubmitter):
     
     Should not interact with user, and should receive only information specific
     to instance of a job run."""
-    exe = " ".join([BIN+"bin/qwalk"]+inpfns)
+    exe = " ".join([BIN+"qwalk"]+inpfns)
     prep_commands=[]
     final_commands=[]
 
