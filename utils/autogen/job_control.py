@@ -51,10 +51,11 @@ def default_job_record(filename):
 
   #QMC-specific options
   job_record['qmc']['kpoints']='real' # or 'all' for both real and complex valued k-points
+
   job_record['qmc']['vmc']={}
-  #job_record['qmc']['vmc']['jastrow']='twobody'
+  job_record['qmc']['vmc']['jastrow']=['twobody'] #or 'threebody'
   job_record['qmc']['vmc']['nblock']=100
-  job_record['qmc']['vmc']['optimizer']='variance' #or 'energy' or None
+  job_record['qmc']['vmc']['optimizer']=['variance'] #or 'energy' or None
   job_record['qmc']['vmc']['target_error']=0.01
 
   job_record['qmc']['dmc']={}
