@@ -1,6 +1,5 @@
 from __future__ import print_function
 import sys
-sys.path.append('..') # Other QWalk utils.
 import os
 import glob
 import re
@@ -1014,7 +1013,6 @@ class QWalkRunPostProcess:
   def postprocessinput(self,k,t,loc,jast,opt,ppr_options):
     basename=self.gen_basename(k,t,loc,jast,opt)
     nwarmup = self.get_warmup("%s.dmc.log"%basename)
-    print("nwarmup:",nwarmup)
     outlines = [
         "method { postprocess ",
         "readconfig %s.trace"%basename,
