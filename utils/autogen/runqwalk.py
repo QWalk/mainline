@@ -1037,7 +1037,7 @@ class QWalkRunPostProcess:
       else:
         print("Since min basis wasn't defined, postprocess can't do OBDM.")
     opt_trans={"energy":"enopt","variance":"opt"}
-    outlist += [
+    outlines += [
         "}",
         "include qw_%i.sys"%k,
         "trialfunc { include qw_0.%s.%s.wfout"%(jast,opt_trans[opt]),
@@ -1057,28 +1057,20 @@ class QWalkRunPostProcess:
           for jast in options['jastrow']:
             for opt in options['optimizer']:
               basename=self.gen_basename(k,t,loc,jast,opt)
-              print("Debug basename",basename)
-              if os.path.isfile("%s.post.o"%basename):
+              if os.path.isfile("%s.dmc.log"%basename):
                 entry={}
-                with open(basename+".post.o") as postin:
-                  nfres = list(map(lambda x:x.tolist(),
-                      nf.read_number_dens(postin)))
-                entry['number_fluctuation']=nfres
-                with open(basename+".post.o") as postin:
-                  nmres = dm.read_dm(postin)
-                for key in nmres.keys(): nmres[key] = nmres[key].tolist()
-              else:
-                entry['number_fluctuation']=(None,None)
-                entry['ordm']=(None,None)
-                entry['tbdm']=(None,None)
-                entry['density_matrices'] = nmres
+                entry['knum']=k
                 entry['timestep']=t
                 entry['localization']=loc
+                entry['jastrow']=jast
+                entry['optimizer']=opt
+                entry['results']=json.load(open("%s.post.json"%basename))
                 ret.append(entry)
     return ret
 
   #-----------------------------------------------
   def check_status(self,job_record):
+
     options=job_record['qmc']['dmc']
     kpts=self.get_kpts(job_record)
     infns = [] #DMC inputs
@@ -1089,54 +1081,24 @@ class QWalkRunPostProcess:
             for opt in options['optimizer']:
               infns.append(self.gen_basename(k,t,loc,jast,opt))
     
-    status='ok'
-    for e in results:
-      print("Postprocess",e['knum'],e['number_fluctuation'] != (None,None))
-      print(e['number_fluctuation'])
-      if e['number_fluctuation'][0] is None:
-        status='failed'
-    print("initial status",status)
-    if status=='ok':
-      return status
-
-    outfiles=[]
-    for k in self.get_kpts(job_record):
-      for t in job_record['qmc']['dmc']['timestep']:
-        for local in job_record['qmc']['dmc']['localization']:
-          basename="qwt%g%s_%i"%(t,local,k)
-          outfiles.extend([basename+'.post.o'])
-    self._submitter.transfer_output(job_record, outfiles)
-    status=self._submitter.status(job_record)
-    print("status",status)
-    if status=='running':
-      return status
+    #Check on the submitter. If still running report that.
+    status=self._submitter.status(job_record,self._name_)
+    if 'running' in status:
+      return 'running'
+    
+    #If not running, try to transfer files.
+    self._submitter.transfer_output(job_record, infns)
 
     #Now check on the runs
     ret=self.collect_runs(job_record)
     if len(ret)==0:
       return "not_started"
-    if len(ret) != len(infns):
+    elif len(ret) == len(infns):
+      return "ok"
+    else:
       print("There are no jobs running and not enough .log files. Not sure what's going on.")
       quit()
-    
-    statuses=[]
-    thresh=options['target_error']
-    for r in ret:
-      if 'number_fluctuation' in r.keys():
-        statuses.append("ok")
-      else:
-        status.append("not_finished")
-    #Finally, decide what to do
-    if len(set(statuses))==1:
-      return statuses[0]
-    if 'not_finished' in statuses:
-      return 'not_finished'
-    #We may have some failed and some not..
-    print("Not sure what to do right now..")
-    print(statuses)
-    quit()
 
-  #-----------------------------------------------
   def resume(self,job_record):
     return self.run(job_record,restart=True)
 
