@@ -515,8 +515,6 @@ class QWalkRunVMC:
           if os.path.isfile("%s.vmc.log"%basename):
             entry={}
             entry['knum']=k
-            entry['timestep']=t
-            entry['localization']=loc
             entry['jastrow']=jast
             entry['optimizer']=opt
             os.system("gosling -json %s.vmc.log > %s.json"%(basename,basename))
