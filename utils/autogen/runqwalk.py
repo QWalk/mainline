@@ -5,8 +5,13 @@ import glob
 import re
 import shutil
 from crystal2qmc import convert_crystal
+import subprocess as sub
 import numpy as np
 import json
+
+# If you need the swap_endian option, you need to set this to the correct location.
+swap_endian_exe = "/home/busemey2/bin/swap_endian"
+
 ####################################################
 
 def extract_jastrow(f):
@@ -164,8 +169,8 @@ class QWalkVarianceOptimize:
       outf = open(outfilename,'r')
       outlines = outf.read().split('\n')
       finlines = [l for l in outlines if "Optimization finished" in l]
-      if len(finlines) < nruns:
-        return 'failed' # This function unstable if job was killed.
+      #if len(finlines) < nruns:
+      #  return 'failed' # This function unstable if job was killed.
       displines = [l for l in outlines if "dispersion" in l]
       init_disps = [float(l.split()[4]) for l in displines if "iteration # 1 " in l]
       disps = [float(l.split()[4]) for l in displines]
@@ -202,7 +207,9 @@ class QWalkVarianceOptimize:
     #If so, we return ok
     all_ok=True
     for outfilename in outfnames:
-      if self.check_outputfile(outfilename,nruns,reltol,abstol)!='ok':
+      status = self.check_outputfile(outfilename,nruns,reltol,abstol)
+      if status!='ok':
+        print("Status: %s"%status)
         all_ok=False
     if all_ok:
       return 'ok'
@@ -955,6 +962,9 @@ class QWalkRunPostProcess:
             for opt in options['optimizer']:
               kname="qw_%i"%k
               basename=self.gen_basename(k,t,loc,jast,opt)
+              if not os.path.exists(basename+".dmc.trace"):
+                print("You need a trace file to run postprocess.")
+                return "failed"
               f=open(basename+".post",'w')
               f.write(self.postprocessinput(k,t,loc,jast,opt,
                 job_record['qmc']['postprocess']))
@@ -975,6 +985,10 @@ class QWalkRunPostProcess:
       "qw.post.stdout",
       self._name_)
     return 'running'
+
+  #-----------------------------------------------
+  def swap_endian(self,tracefn):
+    return newtracefn
 
   #-----------------------------------------------
   def gen_basename(self,k,t,loc,jast,opt):
@@ -1013,9 +1027,15 @@ class QWalkRunPostProcess:
   def postprocessinput(self,k,t,loc,jast,opt,ppr_options):
     basename=self.gen_basename(k,t,loc,jast,opt)
     nwarmup = self.get_warmup("%s.dmc.log"%basename)
+    tracefn = basename+".dmc.trace"
+    if ppr_options['swap_endian']:
+      newtracefn = tracefn.replace(".trace",".swap.trace")
+      if not os.path.exists(newtracefn):
+        print("Swapping."+sub.check_output([swap_endian_exe,tracefn,newtracefn]))
+      tracefn = newtracefn
     outlines = [
         "method { postprocess ",
-        "readconfig %s.trace"%basename,
+        "readconfig %s"%tracefn,
         "noenergy",
         "average { region_fluctuation }"
       ]

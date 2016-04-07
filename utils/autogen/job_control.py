@@ -74,6 +74,7 @@ def default_job_record(filename):
   job_record['qmc']['postprocess']['obdm'] = False
   job_record['qmc']['postprocess']['basis'] = None
   job_record['qmc']['postprocess']['orb'] = None
+  job_record['qmc']['postprocess']['swap_endian'] = False
 
   job_record['qmc']['variance_optimize']={}
   job_record['qmc']['variance_optimize']['niterations']=10
