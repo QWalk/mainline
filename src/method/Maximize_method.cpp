@@ -158,7 +158,7 @@ public:
     return _g[0];
   }
   //-----------------------------------------
-
+  //move along the gradient for time tstep and evaluate the function
   doublevar eval_tstep(double * x, doublevar tstep,Array1 <doublevar> & grad,
                        int n) {
     Array1 <doublevar> xnew(n+1);
@@ -171,9 +171,11 @@ public:
     Array1 <doublevar> grad(n+1);
     Array1 <doublevar> xnew(n+1);
     for(int big_it=0; big_it < 50; big_it++) {
+      //find the direction of the gradient at x
       dfunc(x,grad.v);
       doublevar fbase=grad(0);
       doublevar bracket_tstep,last_func=fbase;
+      //bracket the minimum in this direction (in 1D units of tstep) for bisection method
       for(doublevar tstep=1e-8; tstep < 20.0; tstep*=2.0) {
         
         doublevar f=eval_tstep(x,tstep,grad,n);
@@ -186,6 +188,7 @@ public:
       }
       
       cout << "bracket_tstep " << bracket_tstep << endl;
+      //bisection method works best using the golden ratio
       doublevar resphi=2.-(1.+sqrt(5.))/2.;
       doublevar a=0, b=resphi*bracket_tstep, c=bracket_tstep;
       doublevar af=fbase,
@@ -193,13 +196,16 @@ public:
       cf=eval_tstep(x,c,grad,n);
       cout << "first step  a,b,c " << a << " " << b << "  " << c
       << " funcs " << af << " " << bf << " " << cf << endl;
+      //bisection method iteration, (a, b, c)
       for(int it=0; it < 20; it++) {
         doublevar d,df;
+        //choose point d on the bigger interval (a,b) or (b,c)
         if( (c-b) > (b-a))
           d=b+resphi*(c-b);
         else
           d=b-resphi*(b-a);
         df=eval_tstep(x,d,grad,n);
+        //check if the function is smaller at d than at b to choose next bracket
         if(df < bf) {
           if( (c-b) > (b-a) ) {
             a=b;
@@ -214,6 +220,7 @@ public:
             bf=df;
           }
         }
+        //if function is bigger at d than at b, make d the new bracket boundary
         else {
           if( (c-b) > (b-a) ) {
             c=d;
@@ -227,6 +234,7 @@ public:
         cout << "step " << it << " a,b,c " << a << " " << b << "  " << c
         << " funcs " << af << " " << bf << " " << cf << endl;
       }
+      //finished bisection search, minimum at b; compute x for tstep b
       doublevar best_tstep=b;
       for(int i=1; i<=n; i++)
         x[i]=x[i]-best_tstep*grad[i];
