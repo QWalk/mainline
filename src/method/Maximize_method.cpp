@@ -174,6 +174,7 @@ public:
       //find the direction of the gradient at x
       dfunc(x,grad.v);
       doublevar fbase=grad(0);
+      doublevar tol = 1e-8*fbase // normalize tolerance to function value
       doublevar bracket_tstep,last_func=fbase;
       //bracket the minimum in this direction (in 1D units of tstep) for bisection method
       for(doublevar tstep=1e-8; tstep < 20.0; tstep*=2.0) {
@@ -188,12 +189,16 @@ public:
       }
       
       cout << "bracket_tstep " << bracket_tstep << endl;
+      if(bracket_tstep<1e-7) { break; } // small tstep, close to minimum, exit loop
       //bisection method works best using the golden ratio
       doublevar resphi=2.-(1.+sqrt(5.))/2.;
       doublevar a=0, b=resphi*bracket_tstep, c=bracket_tstep;
       doublevar af=fbase,
       bf=eval_tstep(x,b,grad,n),
       cf=eval_tstep(x,c,grad,n);
+      if(af-bf<tol and cf-bf<tol and bf-af<tol and bf-cf<tol){
+        break; //exit big loop if there is small change in the direction of gradient 
+      }
       cout << "first step  a,b,c " << a << " " << b << "  " << c
       << " funcs " << af << " " << bf << " " << cf << endl;
       //bisection method iteration, (a, b, c)
@@ -208,12 +213,14 @@ public:
         //check if the function is smaller at d than at b to choose next bracket
         if(df < bf) {
           if( (c-b) > (b-a) ) {
+            if(af-bf<tol) { break; }
             a=b;
             af=bf;
             b=d;
             bf=df;
           }
           else {
+            if(cf-bf<tol) { break; }
             c=b;
             cf=bf;
             b=d;
@@ -223,10 +230,12 @@ public:
         //if function is bigger at d than at b, make d the new bracket boundary
         else {
           if( (c-b) > (b-a) ) {
+            if(cf-df<tol) { break; }
             c=d;
             cf=df;
           }
           else {
+            if(af-df<tol) { break; }
             a=d;
             af=df;
           }
