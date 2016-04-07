@@ -295,7 +295,7 @@ class Cif2Crystal:
     modisym=[]
     if len(job_record['dft']['initial_spin']) > 0:
       ninit=len(job_record['dft']['initial_spin'])
-      #modisym += ["MODISYMM",str(ninit)]
+      modisym += ["MODISYMM",str(ninit)]
       count=1
       for i,s in enumerate(job_record['dft']['initial_spin']):
         if s!=0:
