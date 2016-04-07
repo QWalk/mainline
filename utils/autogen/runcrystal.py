@@ -1,5 +1,6 @@
 from __future__ import print_function
 import os
+import subprocess as sub
 import shutil
 ####################################################
 
@@ -186,10 +187,16 @@ class RunProperties:
   def check_outputfile(self,outfilename):
     if os.path.isfile(outfilename):
       f=open(outfilename,'r')
-      for line in f:
-        if "ENDPROP" in line:
-          return 'ok'
-      return 'running'
+      # Sometimes prop.in.o files are GB large, and this takes forever. 
+      # Instead just search the end.
+      if "ENDPROP" in str(sub.check_output(["tail",outfilename])):
+        return 'ok'
+      else:
+        return 'running'
+      #for line in f:
+      #  if "ENDPROP" in line:
+      #    return 'ok'
+      #return 'running'
     else:
       return 'not_started'
 
