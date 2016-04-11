@@ -1,7 +1,6 @@
 from __future__ import print_function
 import sys
 sys.path.append("../")
-sys.path.append("/projects/wagner/apps/qwalk_src/utils/autogen")
 import cif2crystal
 import runcrystal
 import runqwalk
@@ -29,7 +28,7 @@ element_list.append(runqwalk.QWalkVarianceOptimize(
     nn=1,time="0:05:00",queue="secondary")))
 element_list.append(runqwalk.QWalkRunDMC(
   submitter=taub.LocalTaubBundleQwalkSubmitter(
-    nn=2,time="1:00:00",queue="secondary")))
+    nn=2,time="0:30:00",queue="secondary")))
 
 qchecker = taub.LocalTaubSubmitter()
 

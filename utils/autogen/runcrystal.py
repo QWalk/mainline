@@ -1,5 +1,6 @@
 from __future__ import print_function
 import os
+import subprocess as sub
 import shutil
 ####################################################
 
@@ -40,9 +41,9 @@ class RunCrystal:
     no_record, not_started, ok, too_many_cycles, finished (fall-back),
     scf_fail, not_enough_decrease, divergence, not_finished
     """
-    try:
+    if os.path.isfile("autogen.d12.o"):
       outf = open("autogen.d12.o",'r')
-    except IOError:
+    else:
       return "not_started"
     outlines = outf.read().split('\n')
     reslines = [line for line in outlines if "ENDED" in line]
@@ -50,18 +51,24 @@ class RunCrystal:
       if "CONVERGENCE" in reslines[0]:
         return "ok"
       elif "TOO MANY CYCLES" in reslines[0]:
+        print("RunCrystal output: Too many cycles.")
         return "too_many_cycles"
       else: # What else can happen?
+        print("RunCrystal output: Finished, but unknown state.")
         return "finished"
     detots = [float(line.split()[5]) for line in outlines if "DETOT" in line]
     if len(detots) == 0:
+      print("RunCrystal output: Last run completed no cycles.")
       return "scf_fail"
     detots_net = sum(detots[1:])
     if detots_net > acceptable_scf:
+      print("RunCrystal output: Last run performed poorly.")
       return "not_enough_decrease"
     etots = [float(line.split()[3]) for line in outlines if "DETOT" in line]
     if etots[-1] > 0:
+      print("RunCrystal output: Energy divergence.")
       return "divergence"
+    print("RunCrystal output: Not finished.")
     return "not_finished"
 #-------------------------------------------------      
   # Diagnose routines basically decide 'not_finished' or 'failed'
@@ -113,28 +120,32 @@ class RunCrystal:
 
     return 'failed'
 #-------------------------------------------------      
+  def add_guessp(self,inpfn):
+    inplines = open(inpfn,'r').read().split('\n')
+    if "GUESSP" not in inplines:
+      cursor = -1
+      while "END" not in inplines[cursor]:
+        cursor -= 1
+      inplines.insert(cursor,"GUESSP")
+    with open(inpfn,'w') as outf:
+      outf.write('\n'.join(inplines))
+    return None
+#-------------------------------------------------      
   def resume(self,job_record,maxresume=5):
     """ Continue a crystal run using GUESSP."""
     jobname = job_record['control']['id']
     trynum = 0
-    while os.path.isfile(str(trynum)+".autogen.d12.o"):
+    while os.path.isfile("%d.autogen.d12.o"%trynum):
       trynum += 1
       if trynum > maxresume:
         print("Not resuming because resume limit reached ({}>{}).".format(
           trynum,maxresume))
         return 'failed'
     for filename in ["autogen.d12","autogen.d12.o","fort.79"]:
-      shutil.copy(filename,str(trynum)+"."+filename)
+      shutil.copy(filename,"%d.%s"%(trynum,filename))
     shutil.copy("fort.79","fort.20")
-    inplines = open("autogen.d12",'r').read().split('\n')
-    if "GUESSP" not in inplines:
-      pos = -1
-      while inplines[-1] != "END": pos -= 1
-      inplines = inplines[:pos] # Trim extra newlines.
-      inplines.append("GUESSP")
-      inplines.append("END")
-    with open("autogen.d12",'w') as inpf:
-      inpf.write('\n'.join(inplines))
+    job_record['dft']['restart_from'] = os.getcwd()+"%d.fort.79"%trynum
+    self.add_guessp("autogen.d12")
     return self.run(job_record)
 
 ####################################################
@@ -161,6 +172,87 @@ class RunProperties:
         "NEWK",
         "1 1",
         "67 999",
+        "END"
+      ])
+      f.write(out)
+    f.close()
+
+    if self._submitter==None:
+      os.system("properties < prop.in > prop.in.o")
+      return 'ok'
+    else:
+      self._submitter.execute(job_record,["prop.in"], 'prop.in', 'prop.in.o',self._name_)
+      return 'running'
+
+  def check_outputfile(self,outfilename):
+    if os.path.isfile(outfilename):
+      f=open(outfilename,'r')
+      # Sometimes prop.in.o files are GB large, and this takes forever. 
+      # Instead just search the end.
+      if "ENDPROP" in str(sub.check_output(["tail",outfilename])):
+        return 'ok'
+      else:
+        return 'running'
+      #for line in f:
+      #  if "ENDPROP" in line:
+      #    return 'ok'
+      #return 'running'
+    else:
+      return 'not_started'
+
+  def check_status(self,job_record):
+    outfilename="prop.in.o"
+    status=self.check_outputfile(outfilename)
+    if status=='ok' or status=='failed':
+      return status
+
+    if self._submitter!=None:
+      status=self._submitter.status(job_record,self._name_)
+      if 'running' in status:
+        return 'running'
+      self._submitter.transfer_output(job_record, [outfilename, 'fort.9'])
+      status=self.check_outputfile(outfilename)
+      if status=='ok':
+        self._submitter.cancel(job_record['control']['queue_id'])
+        return status
+      elif status=='not_finished' or status=='failed':
+        return status
+    
+    if not os.path.isfile(outfilename):
+      return 'not_started'
+
+    return 'failed'
+      
+  def retry(self,job_record):
+    return self.run(job_record)
+
+  def output(self,job_record):
+    return job_record
+
+####################################################
+
+class NewRunProperties:
+  _name_="RunProperties"
+  def __init__(self,submitter=None):
+    # 'None' implies to run in command line.
+    self._submitter=submitter
+  def run(self,job_record):
+    f=open("prop.in",'w')
+    if 'cif' in job_record.keys():
+      kmax = max(job_record['dft']['kmesh'])
+      out = '\n'.join([
+        "NEWK",
+        "%d %d"%(kmax,2*kmax),
+        "1 0",
+        "CRYAPI_OUT",
+        "END"
+      ])
+      f.write(out)
+    else:
+      out = '\n'.join([
+        "NEWK",
+        "1 0",
+        "CRYAPI_OUT",
         "END"
       ])
       f.write(out)

@@ -48,8 +48,15 @@ def default_job_record(filename):
   # 'conservative' : never resume job.
   job_record['dft']['resume_mode']='conservative'
 
+
   #QMC-specific options
   job_record['qmc']['kpoints']='real' # or 'all' for both real and complex valued k-points
+
+  job_record['qmc']['vmc']={}
+  job_record['qmc']['vmc']['jastrow']=['twobody'] #or 'threebody'
+  job_record['qmc']['vmc']['nblock']=100
+  job_record['qmc']['vmc']['optimizer']=['variance'] #or 'energy' or None
+  job_record['qmc']['vmc']['target_error']=0.01
 
   job_record['qmc']['dmc']={}
   job_record['qmc']['dmc']['timestep']=[0.02]
@@ -61,6 +68,13 @@ def default_job_record(filename):
   job_record['qmc']['dmc']['excitations']='no'#VBM-CBM or other..
   job_record['qmc']['dmc']['save_trace']=True
 
+  job_record['qmc']['postprocess'] = {}
+  job_record['qmc']['postprocess']['region_fluctuation'] = True
+  job_record['qmc']['postprocess']['density'] = False #True
+  job_record['qmc']['postprocess']['obdm'] = False
+  job_record['qmc']['postprocess']['basis'] = None
+  job_record['qmc']['postprocess']['orb'] = None
+  job_record['qmc']['postprocess']['swap_endian'] = False
 
   job_record['qmc']['variance_optimize']={}
   job_record['qmc']['variance_optimize']['niterations']=10

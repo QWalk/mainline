@@ -1,4 +1,5 @@
-# RunCrystal for Taub
+# RunCrystal for Veritas
+# This can also be used as an example for Linux desktop machines.
 import subprocess as sub
 from submission_tools import LocalSubmitter
 import os
@@ -7,8 +8,8 @@ import os
 BIN = "~/bin/"
 
 if BIN[-1] != '/': BIN += '/'
-##########################################################
-class LocalTaubSubmitter(LocalSubmitter):
+#####################################################################
+class LocalVeritasSubmitter(LocalSubmitter):
   """Abstract submission class. Defines interaction with the queuing system."""
 #-------------------------------------------------------  
   def __init__(self,time='72:00:00',nn=1,np='allprocs', queue='batch'):
@@ -33,7 +34,7 @@ class LocalTaubSubmitter(LocalSubmitter):
     if qstat == "R" or qstat == "Q":
       return "running"
     if qstat == "C" or qstat == "E":
-      return "finished"
+      status = "finished"
     return status
 #-------------------------------------------------------
   def _job_cancel(self,queue_id):
@@ -60,7 +61,6 @@ class LocalTaubSubmitter(LocalSubmitter):
       "#PBS -m n",
       "#PBS -N %s"%name,
       "#PBS -o {0}".format(loc+"/qsub.out"),
-      "module load openmpi/1.4-gcc+ifort"
     ]
     if self.np=="allprocs":
       exeline = "mpirun %s &> %s"%(exe, stdout)
@@ -77,8 +77,8 @@ class LocalTaubSubmitter(LocalSubmitter):
     print("Submitted as %s"%qid)
     return [qid]
 
-###############################################################
-class LocalTaubCrystalSubmitter(LocalTaubSubmitter):
+#####################################################################
+class LocalVeritasCrystalSubmitter(LocalVeritasSubmitter):
   """Fully defined submission class. Defines interaction with specific
   program to be run."""
   def _submit_job(self,inpfn,outfn="stdout",jobname="",loc=""):
@@ -98,8 +98,8 @@ class LocalTaubCrystalSubmitter(LocalTaubSubmitter):
     qid = self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
     return qid
 
-###############################################################
-class LocalTaubPropertiesSubmitter(LocalTaubSubmitter):
+#####################################################################
+class LocalVeritasPropertiesSubmitter(LocalVeritasSubmitter):
   """Fully defined submission class. Defines interaction with specific
   program to be run."""
   def _submit_job(self,inpfn,outfn="stdout",jobname="",loc=""):
@@ -125,7 +125,7 @@ class LocalTaubPropertiesSubmitter(LocalTaubSubmitter):
     return qid
 
 #####################################################################
-class LocalTaubQwalkSubmitter(LocalTaubSubmitter):
+class LocalVeritasQwalkSubmitter(LocalVeritasSubmitter):
   """Fully defined submission class. Defines interaction with specific
   program to be run."""
   def _submit_job(self,inpfns,outfn="stdout",jobname="",loc=""):
@@ -149,7 +149,7 @@ class LocalTaubQwalkSubmitter(LocalTaubSubmitter):
     return qid
 
 #####################################################################
-class LocalTaubBundleQwalkSubmitter(LocalTaubSubmitter):
+class LocalVeritasBundleQwalkSubmitter(LocalVeritasSubmitter):
   """Fully defined submission class. Defines interaction with specific
   program to be run."""
   def _submit_job(self,inpfns,outfn="stdout",jobname="",loc=""):
@@ -166,6 +166,5 @@ class LocalTaubBundleQwalkSubmitter(LocalTaubSubmitter):
     if loc == "":
       loc = os.getcwd()
 
-    qid = self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
+    qid = [self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)]
     return qid
-  
