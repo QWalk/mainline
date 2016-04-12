@@ -384,14 +384,16 @@ class Cif2Crystal:
     status = self.run(job_record,outfn="new.autogen.d12")
     new = open("new.autogen.d12",'r').read().split()
     old = open("autogen.d12",'r').read().split()
-    for doesntmatter in ["GUESSP"]:
-      if doesntmatter in new: new.remove("GUESSP")
-      if doesntmatter in old: old.remove("GUESSP")
+    for doesntmatter in ["GUESSP","SAVEWF"]:
+      if doesntmatter in new: new.remove(doesntmatter)
+      if doesntmatter in old: old.remove(doesntmatter)
     if new != old:
-      # This functionality has saved me on numerous occasions,
-      # so I'd like to debug it if there are problems.
-      print("Error: job record inconsistent with past input")
-      return 'failed'
+      if not job_record['assert_nochanges']:
+        print("Warning: job record inconsistent with past input")
+        return 'ok'
+      else:
+        print("Error: job record inconsistent with past input")
+        return 'failed'
     else:
       return 'ok'
 
