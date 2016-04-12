@@ -739,7 +739,7 @@ class QWalkRunDMC:
       if r['results']['properties']['total_energy']['error'][0] < thresh:
         statuses.append("ok")
       else:
-        status.append("not_finished")
+        statuses.append("not_finished")
     #Finally, decide what to do
     if len(set(statuses))==1:
       return statuses[0]
@@ -1006,10 +1006,14 @@ class QWalkRunPostProcess:
   def check_outputfile(self,outfilename):
     if os.path.isfile(outfilename):
       f=open(outfilename,'r')
-      for line in f:
-        if 'Wall' in line:
-          return 'ok'
-      return 'running'
+      # Sometimes output files are large, and this takes forever. 
+      # Instead just search the end.
+      if "Wall" in str(sub.check_output(["tail",outfilename])):
+        return 'ok'
+      else:
+        return 'running'
+    else:
+      return 'not_started'
 
   #-----------------------------------------------
   def get_warmup(self,logfilename):
