@@ -668,6 +668,10 @@ int main_read_g03fchkfile(/* input */
   key="Number of basis functions";
   g03_fchk_read_i(fchkfilename,key,nbasis);
   cout << key << ": " << nbasis <<endl;
+  int nindep; 
+  key="Number of independant functions";
+  g03_fchk_read_i(fchkfilename,key,nindep);
+  cout << key << ": " << nindep <<endl;
 
 
   key="Multiplicity";
@@ -754,15 +758,15 @@ int main_read_g03fchkfile(/* input */
 
 
   key="Alpha MO coefficients";
-  g03_fchk_read_rv(fchkfilename,key,nbasis*nbasis,nout,rv);
-  if (rv.size()!=nbasis*nbasis) {
+  g03_fchk_read_rv(fchkfilename,key,nbasis*nindep,nout,rv);
+  if (rv.size()!=nbasis*nindep) {
      cout << t << " error in alpha MO"<<endl;
      exit(ERR_CODE);
   }
   alphamo.clear();
   {
     int j=0;
-    for (int i=0;i<nbasis;i++) {
+    for (int i=0;i<nindep;i++) {
       vector<double> rv1;
       rv1.clear();
       for (int k=0;k<nbasis;k++) {
@@ -773,17 +777,17 @@ int main_read_g03fchkfile(/* input */
   }
 
   key="Beta MO coefficients";
-  g03_fchk_read_rv(fchkfilename,key,nbasis*nbasis,nout,rv);
-  if (rv.size()!=nbasis*nbasis && rv.size()!=0 ) {
+  g03_fchk_read_rv(fchkfilename,key,nbasis*nindep,nout,rv);
+  if (rv.size()!=nbasis*nindep && rv.size()!=0 ) {
      cout << t << " error in beta MO"<<endl;
      exit(ERR_CODE);
   }
   
   betamo.clear();
-  if ( rv.size() == nbasis*nbasis ) 
+  if ( rv.size() == nbasis*nindep ) 
   {
     int j=0;
-    for (int i=0;i<nbasis;i++) {
+    for (int i=0;i<nindep;i++) {
       vector<double> rv1;
       rv1.clear();
       for (int k=0;k<nbasis;k++) {
