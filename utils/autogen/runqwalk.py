@@ -739,7 +739,7 @@ class QWalkRunDMC:
       if r['results']['properties']['total_energy']['error'][0] < thresh:
         statuses.append("ok")
       else:
-        status.append("not_finished")
+        statuses.append("not_finished")
     #Finally, decide what to do
     if len(set(statuses))==1:
       return statuses[0]
