@@ -36,7 +36,9 @@ def read_number_dens(inpf):
 
 def read_number_dens_likejson(inpf):
   """ Same as read number fluctuation data into format the same as if you used
-  the JSON flag instead."""
+  the JSON flag instead.
+  
+  This is not complete yet (some keys are missing), but is functional."""
   data=np.zeros((0,0,0,0,0,0))
   data_err=np.zeros((0,0,0,0,0,0))
   while True:
