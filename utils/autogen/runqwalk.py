@@ -169,8 +169,8 @@ class QWalkVarianceOptimize:
       outf = open(outfilename,'r')
       outlines = outf.read().split('\n')
       finlines = [l for l in outlines if "Optimization finished" in l]
-      #if len(finlines) < nruns:
-      #  return 'failed' # This function unstable if job was killed.
+      if len(finlines) < nruns:
+        return 'failed' # This function unstable if job was killed.
       displines = [l for l in outlines if "dispersion" in l]
       init_disps = [float(l.split()[4]) for l in displines if "iteration # 1 " in l]
       disps = [float(l.split()[4]) for l in displines]
@@ -739,6 +739,10 @@ class QWalkRunDMC:
       if r['results']['properties']['total_energy']['error'][0] < thresh:
         statuses.append("ok")
       else:
+        print("Error too large: {0:.2e}>{1:.2e}".format(
+            r['results']['properties']['total_energy']['error'][0],
+            thresh
+          ))
         statuses.append("not_finished")
     #Finally, decide what to do
     if len(set(statuses))==1:
