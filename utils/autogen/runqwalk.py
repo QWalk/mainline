@@ -1035,7 +1035,7 @@ class QWalkRunPostProcess:
   def postprocessinput(self,k,t,loc,jast,opt,ppr_options):
     basename=self.gen_basename(k,t,loc,jast,opt)
     nwarmup = self.get_warmup("%s.dmc.log"%basename)
-    tracefn = basename+".dmc.trace"
+    tracefn = basename+".trace"
     if ppr_options['swap_endian']:
       newtracefn = tracefn.replace(".trace",".swap.trace")
       if not os.path.exists(newtracefn):
@@ -1068,10 +1068,15 @@ class QWalkRunPostProcess:
       else:
         print("Since min basis wasn't defined, postprocess can't do OBDM.")
     opt_trans={"energy":"enopt","variance":"opt"}
+    jast_inp=extract_jastrow(open("qw_0.%s.%s.wfout"%(jast,opt_trans[opt])))
     outlines += [
         "}",
         "include qw_%i.sys"%k,
-        "trialfunc { include qw_0.%s.%s.wfout"%(jast,opt_trans[opt]),
+        "trialfunc { slater-jastrow ",
+           "wf1 { include qw_%i.slater } "%(k),
+           "wf2 { ",
+          jast_inp,
+          " } ",
         "}"
       ]
     outstr = '\n'.join(outlines)
