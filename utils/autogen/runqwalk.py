@@ -966,7 +966,7 @@ class QWalkRunPostProcess:
             for opt in options['optimizer']:
               kname="qw_%i"%k
               basename=self.gen_basename(k,t,loc,jast,opt)
-              if not os.path.exists(basename+".dmc.trace"):
+              if not os.path.exists(basename+".trace"):
                 print("You need a trace file to run postprocess.")
                 return "failed"
               f=open(basename+".post",'w')
