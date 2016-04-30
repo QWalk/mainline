@@ -24,6 +24,7 @@ def default_job_record(filename):
   job_record['pseudopotential']='BFD'
   job_record['charge']=0
   job_record['total_spin']=0
+  job_record['assert_nochanges'] = True # Assert no changes in CRYSTAL input.
 
   #DFT-specific options
   job_record['dft']['symmetrized'] = False # True to use spacegroup symmetry, False for primitive symmetry

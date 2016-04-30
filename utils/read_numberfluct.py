@@ -34,6 +34,47 @@ def read_number_dens(inpf):
       return None,None
   return data,data_err
 
+def read_number_dens_likejson(inpf):
+  """ Same as read number fluctuation data into format the same as if you used
+  the JSON flag instead.
+  
+  This is not complete yet (some keys are missing), but is functional."""
+  data=np.zeros((0,0,0,0,0,0))
+  data_err=np.zeros((0,0,0,0,0,0))
+  while True:
+    line=inpf.readline()
+    #print line
+    if line.find("Region fluctuation")!=-1:
+      line=inpf.readline()
+      spl=line.split()
+      nspin=int(spl[1])
+      maxn=int(spl[3])
+      nregion=int(spl[5])
+
+      alldata = []
+      for s1 in range(0,nspin):
+        for s2 in range(0,nspin):
+          for r1 in range(0,nregion):
+            for r2 in range(0,nregion):
+              data = {
+                  'region':[r1,r2],
+                  'value':np.zeros((maxn,maxn)),
+                  'error':np.zeros((maxn,maxn)),
+                  'spin':[s1,s2]
+                }
+              line=inpf.readline()
+              for n1 in range(0,maxn):
+                spl=inpf.readline().split()
+                for n2 in range(0,maxn):
+                  data['value'][n1,n2]=float(spl[n2])
+                for n2 in range(maxn,2*maxn):
+                  data['value'][n1,n2-maxn]=float(spl[n2])
+              alldata.append(data)
+      break
+    elif line == '':
+      return []
+  return alldata
+
 def moments(data,data_err):
   nspin=data.shape[0]
   nregion=data.shape[2]

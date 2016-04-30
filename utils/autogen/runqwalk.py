@@ -169,8 +169,8 @@ class QWalkVarianceOptimize:
       outf = open(outfilename,'r')
       outlines = outf.read().split('\n')
       finlines = [l for l in outlines if "Optimization finished" in l]
-      #if len(finlines) < nruns:
-      #  return 'failed' # This function unstable if job was killed.
+      if len(finlines) < nruns:
+        return 'failed' # This function unstable if job was killed.
       displines = [l for l in outlines if "dispersion" in l]
       init_disps = [float(l.split()[4]) for l in displines if "iteration # 1 " in l]
       disps = [float(l.split()[4]) for l in displines]
@@ -739,6 +739,10 @@ class QWalkRunDMC:
       if r['results']['properties']['total_energy']['error'][0] < thresh:
         statuses.append("ok")
       else:
+        print("Error too large: {0:.2e}>{1:.2e}".format(
+            r['results']['properties']['total_energy']['error'][0],
+            thresh
+          ))
         statuses.append("not_finished")
     #Finally, decide what to do
     if len(set(statuses))==1:
@@ -962,7 +966,7 @@ class QWalkRunPostProcess:
             for opt in options['optimizer']:
               kname="qw_%i"%k
               basename=self.gen_basename(k,t,loc,jast,opt)
-              if not os.path.exists(basename+".dmc.trace"):
+              if not os.path.exists(basename+".trace"):
                 print("You need a trace file to run postprocess.")
                 return "failed"
               f=open(basename+".post",'w')
@@ -1006,10 +1010,14 @@ class QWalkRunPostProcess:
   def check_outputfile(self,outfilename):
     if os.path.isfile(outfilename):
       f=open(outfilename,'r')
-      for line in f:
-        if 'Wall' in line:
-          return 'ok'
-      return 'running'
+      # Sometimes output files are large, and this takes forever. 
+      # Instead just search the end.
+      if "Wall" in str(sub.check_output(["tail",outfilename])):
+        return 'ok'
+      else:
+        return 'running'
+    else:
+      return 'not_started'
 
   #-----------------------------------------------
   def get_warmup(self,logfilename):
@@ -1027,7 +1035,7 @@ class QWalkRunPostProcess:
   def postprocessinput(self,k,t,loc,jast,opt,ppr_options):
     basename=self.gen_basename(k,t,loc,jast,opt)
     nwarmup = self.get_warmup("%s.dmc.log"%basename)
-    tracefn = basename+".dmc.trace"
+    tracefn = basename+".trace"
     if ppr_options['swap_endian']:
       newtracefn = tracefn.replace(".trace",".swap.trace")
       if not os.path.exists(newtracefn):
@@ -1060,10 +1068,15 @@ class QWalkRunPostProcess:
       else:
         print("Since min basis wasn't defined, postprocess can't do OBDM.")
     opt_trans={"energy":"enopt","variance":"opt"}
+    jast_inp=extract_jastrow(open("qw_0.%s.%s.wfout"%(jast,opt_trans[opt])))
     outlines += [
         "}",
         "include qw_%i.sys"%k,
-        "trialfunc { include qw_0.%s.%s.wfout"%(jast,opt_trans[opt]),
+        "trialfunc { slater-jastrow ",
+           "wf1 { include qw_%i.slater } "%(k),
+           "wf2 { ",
+          jast_inp,
+          " } ",
         "}"
       ]
     outstr = '\n'.join(outlines)

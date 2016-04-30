@@ -78,6 +78,18 @@ class LocalTaubSubmitter(LocalSubmitter):
     return [qid]
 
 ###############################################################
+class LocalTaubNullSubmitter(LocalTaubSubmitter):
+  """Fully defined submission class. Defines interaction with specific
+  program to be run."""
+  def _submit_job(self,inpfn,outfn="stdout",jobname="",loc=""):
+    """ Do Nothing. Useful for getting autogen to gather output but submit
+    no new jobs.
+    
+    Should not interact with user, and should receive only information specific
+    to instance of a job run."""
+    return [None]
+
+###############################################################
 class LocalTaubCrystalSubmitter(LocalTaubSubmitter):
   """Fully defined submission class. Defines interaction with specific
   program to be run."""
@@ -139,13 +151,14 @@ class LocalTaubQwalkSubmitter(LocalTaubSubmitter):
     
     for f in inpfns:
       exe = BIN+"qwalk %s"%f
+      fulloutfn = f+outfn # Ugly but more functional.
 
       if jobname == "":
         jobname = outfn
       if loc == "":
         loc = os.getcwd()
 
-      qid+=self._qsub(exe,prep_commands,final_commands,jobname,outfn,loc)
+      qid+=self._qsub(exe,prep_commands,final_commands,jobname,fulloutfn,loc)
     return qid
 
 #####################################################################

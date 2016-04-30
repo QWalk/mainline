@@ -1,5 +1,6 @@
 from __future__ import print_function
 import os
+import numpy as np
 import subprocess as sub
 import shutil
 ####################################################
@@ -14,7 +15,6 @@ class RunCrystal:
           'autogen.d12', 'autogen.d12.o',self._name_)
     return 'running'
 #-------------------------------------------------      
-
   def output(self,job_record):
     """ Collect results from output."""
     if os.path.isfile('autogen.d12.o'):
@@ -37,6 +37,7 @@ class RunCrystal:
   # each query.
   def check_outputfile(self,outfilename,acceptable_scf=0.0):
     """ Check output file. 
+
     Current return values:
     no_record, not_started, ok, too_many_cycles, finished (fall-back),
     scf_fail, not_enough_decrease, divergence, not_finished
@@ -108,8 +109,14 @@ class RunCrystal:
     self._submitter.transfer_output(job_record, ['autogen.d12.o', 'fort.9'])
     status=self.check_outputfile(outfilename)
     print("status",status)
-    if status in ['not_started','ok']:
-      return status
+    if status == 'not_started':
+      return 'not_started'
+    elif status == 'ok':
+      if 'initial_spin' in job_record['dft'].keys():
+        if not self._consistent_spins(outfilename,job_record['dft']['initial_spin']):
+          print("Error: Spin changed from initial configuration!")
+          return self.conservative_diagnose("changed_spins")
+      return 'ok'
     status=diagnose(status)
     if status in ['ok','not_finished','failed']:
       return status
@@ -119,6 +126,32 @@ class RunCrystal:
       return 'not_started'
 
     return 'failed'
+#-------------------------------------------------      
+  def _consistent_spins(self,outfn,init_spins,small_spin=1.0):
+    f = open(outfn, 'r')
+    lines = f.readlines()
+    for li,line in enumerate(lines):
+      if 'TOTAL ATOMIC SPINS' in line:
+        moms = []
+        shift = 1
+        while "TTT" not in lines[li+shift]:
+          moms += map(float,lines[li+shift].split())
+          shift += 1
+    moms = np.array(moms)
+    zs = abs(moms) < small_spin
+    up = moms > 0.
+    dn = moms < 0.
+    moms.dtype = int
+    moms[up] = 1
+    moms[dn] = -1
+    moms[zs] = 0
+    if len(init_spins)==0:
+      if (moms == np.zeros(moms.shape)).all():
+        return True
+      else:
+        return False
+    else:
+      return (moms == np.array(init_spins)).all()
 #-------------------------------------------------      
   def add_guessp(self,inpfn):
     inplines = open(inpfn,'r').read().split('\n')
