@@ -512,9 +512,12 @@ class QWalkRunDMC:
                 entry['localization']=loc
                 entry['jastrow']=jast
                 entry['optimizer']=opt
-                os.system("gosling -json %s.dmc.log > %s.json"%(basename,basename))
-                entry['results']=json.load(open("%s.json"%basename))
-                ret.append(entry)
+                try: 
+                  os.system("gosling -json %s.dmc.log > %s.json"%(basename,basename))
+                  entry['results']=json.load(open("%s.json"%basename))
+                  ret.append(entry)
+                except:
+                  print("WARNING: analysis of %s.dmc.log failed. This may be caused by a job crashing or an error in the input file.")
     return ret
 #-----------------------------------------------
   def check_status(self,job_record):
@@ -542,8 +545,8 @@ class QWalkRunDMC:
     if len(ret)==0:
       return "not_started"
     if len(ret) != len(infns):
-      print("There are no jobs running and not enough .log files. Not sure what's going on.")
-      quit()
+      print("There are no jobs running and not enough .log files. Retrying, but be careful!")
+      return "not_finished"
     
     statuses=[]
     thresh=options['target_error']
