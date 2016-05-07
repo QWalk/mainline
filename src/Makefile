@@ -5,6 +5,7 @@
 PLATFORM = $(shell uname -s)
 DVLPATH = $(shell pwd)
 INSTALLPATH = $(DVLPATH)/../bin/
+QWALK_VERSION = $(shell git describe)
 
 ####################################################################
 # Derived paths, all relative to the base path.  These shouldn't

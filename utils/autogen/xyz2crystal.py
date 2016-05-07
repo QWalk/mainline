@@ -164,6 +164,7 @@ class Xyz2Crystal:
       "XLGRID",
       "END",
       "SCFDIR",
+      "SAVEWF",
       "BIPOSIZE",
       "100000000",
       "EXCHSIZE",
