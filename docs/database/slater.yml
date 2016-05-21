@@ -29,7 +29,7 @@ required:
   - keyword: ORBITALS/CORBITALS
     type: section
     description: >
-      List of the occupations of [molecular orbitals](Orbital), first spin up and then spin down. If there is more than one determinant, continue listing up and down occupations. See HOWTOs for methods to modify this section to select states.
+      A Molecular Orbital section. 
 optional:
   - keyword: NSPIN
     type: section
