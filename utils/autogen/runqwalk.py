@@ -326,10 +326,10 @@ class QWalkEnergyOptimize:
 
       enopt_options=job_record['qmc']['energy_optimize']
       f=open(fname,'w')
-      f.write("""method { LINEAR VMC_NSTEP %i } 
+      f.write("""method { LINEAR TOTAL_NSTEP %i } 
 include qw_0.sys
 trialfunc { include %s.wfin }
-"""%(enopt_options['vmc_nstep'],fname))
+"""%(enopt_options['total_nstep'],fname))
       infiles.append(fname)
       jastfiles.append("qw.%s"%jast_suf)
       f.close()
@@ -739,7 +739,7 @@ class QWalkRunDMC:
       if r['results']['properties']['total_energy']['error'][0] < thresh:
         statuses.append("ok")
       else:
-        print("Error too large: {0:.2e}>{1:.2e}".format(
+        print("Stochastic error too large: {0:.2e}>{1:.2e}".format(
             r['results']['properties']['total_energy']['error'][0],
             thresh
           ))
@@ -912,7 +912,7 @@ class QWalkRunMaximize:
                           basename+".max.o"])
 
     self._submitter.transfer_output(job_record, outfiles)
-    status=self._submitter.status(job_record)
+    status=self._submitter.status(job_record,self._name_)
     print("status",status)
     if status=='running':
       return status
