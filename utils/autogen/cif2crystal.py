@@ -14,7 +14,6 @@ import string
 import numpy as np
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
-#library_directory="../"
 
 ######################################################################
 def pseudopotential_section(symbol, xml_name):
@@ -271,10 +270,13 @@ def cif2geom_sym2(cif):
 
 class Cif2Crystal:
   _name_="Cif2Crystal"
+
+  def __init__(self,library_directory="../"):
+    self.library_directory=library_directory
   # Currently, check_status() and runcrystal requires user not to modify outfn. 
   # In the future, we should probably store name of d12 in record, 
   # so this is not needed.
-  def run(self,job_record,outfn="autogen.d12",library_directory="../"):
+  def run(self,job_record,outfn="autogen.d12"):
     if job_record['pseudopotential']!='BFD':
       print("ERROR: only support BFD pseudoptentials for now")
       quit()
@@ -288,7 +290,7 @@ class Cif2Crystal:
       quit()
     basislines=basis_section(primstruct,job_record['dft']['basis'],
                               job_record['dft']['initial_charges'],
-                              library_directory)
+                              self.library_directory)
     supercell=["SUPERCEL"]
     for row in job_record['supercell']:
       supercell+=[' '.join(map(str,row))]
