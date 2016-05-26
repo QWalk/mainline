@@ -177,6 +177,16 @@ public:
       xnew(i)=x[i]-tstep*grad(i);
     return func(xnew.v);
   }
+
+  //-----------------------------------------
+  // check if the magnitude of the gradient is within tol
+  bool grad_under_tol(Array1 <doublevar> & grad, int n, doublevar tol) {
+    doublevar total = 0;
+    for(int i=1; i<=n; i++)
+      total += grad(i)*grad(i);
+    return total < tol*tol;
+  }
+  
   //-----------------------------------------
   void macoptII(double * x,int n) {
     Array1 <doublevar> grad(n+1);
@@ -188,6 +198,7 @@ public:
       dfunc(x,grad.v);
       doublevar fbase=grad(0);
       doublevar tol = 1e-12;
+      doublevar outer_tol = tol*10; // make outer loop tolerance looser than inner
       doublevar bracket_tstep,last_func=fbase;
       //bracket the minimum in this direction (in 1D units of tstep) for bisection method
       for(doublevar tstep=1e-8; tstep < 20.0; tstep*=2.0) {
@@ -208,10 +219,11 @@ public:
       doublevar af=fbase,
       bf=eval_tstep(x,b,grad,n),
       cf=eval_tstep(x,c,grad,n);
-      doublevar tolbf = tol*bf*10; // make outer loop tolerance looser than inner
-      if(af-bf<tolbf and cf-bf<tolbf and bf-af<tolbf and bf-cf<tolbf){
-        break; //exit big loop if there is small change in the direction of gradient 
-      }
+      //if(af-bf<tolbf and cf-bf<tolbf and bf-af<tolbf and bf-cf<tolbf){
+      //  break; //exit big loop if there is small change in the direction of gradient 
+      //}
+      //(grad psi)/psi = grad (log psi), small change in grad direction ( var grad is grad(log psi))
+      if(grad_under_tol(grad,n,outer_tol)) {break;} //Exit big loop if (grad psi)/psi is small 
       cout << "first step  a,b,c " << a << " " << b << "  " << c
       << " funcs " << af << " " << bf << " " << cf << endl;
       //bisection method iteration, (a, b, c)
@@ -226,14 +238,16 @@ public:
         //check if the function is smaller at d than at b to choose next bracket
         if(df < bf) {
           if( (c-b) > (b-a) ) {
-            if(af-bf<tol*bf) { break; }
+            // How to check tolerance: log(1+x) ~ x. Want to make sure to check relative change in psi
+            //(af-bf) = log psi_a - log psi_b = log(psi_a/psi_b) ~ (psi_a-psi_b)/psi_b < tol
+            if(af-bf<tol) { break; }
             a=b;
             af=bf;
             b=d;
             bf=df;
           }
           else {
-            if(cf-bf<tol*bf) { break; }
+            if(cf-bf<tol) { break; }
             c=b;
             cf=bf;
             b=d;
@@ -243,12 +257,12 @@ public:
         //if function is bigger at d than at b, make d the new bracket boundary
         else {
           if( (c-b) > (b-a) ) {
-            if(cf-df<tol*df) { break; }
+            if(cf-df<tol) { break; }
             c=d;
             cf=df;
           }
           else {
-            if(af-df<tol*df) { break; }
+            if(af-df<tol) { break; }
             a=d;
             af=df;
           }
@@ -256,7 +270,7 @@ public:
         cout << "step " << it << " a,b,c " << a << " " << b << "  " << c
         << " funcs " << af << " " << bf << " " << cf << endl;
         if(it==max_it-1) {
-          cout << "Warning: inner loop did not reach tolerance";
+          cout << "Warning: inner loop did not reach tolerance" << endl;
         }
       }
       //finished bisection search, minimum at b; compute x for tstep b
@@ -265,7 +279,7 @@ public:
         x[i]=x[i]-best_tstep*grad[i];
 
       if(big_it==max_big_it-1) {
-        cout << "Warning: outer loop did not reach tolerance";
+        cout << "Warning: outer loop did not reach tolerance. grad " << grad(1) << " " << grad(2) << " " << grad(3) << endl;
       }
     }
   }
