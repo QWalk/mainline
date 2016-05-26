@@ -1,0 +1,12 @@
+type: Entry
+name: Cosine functions
+keyword: COSINE
+title: Cosine basis function
+is_a: Basis function
+description: >
+  The function \( f(r)=\cos(g\cdot r) \) , where 
+required:
+  - keyword: GVECTOR
+    type: section
+    description: A list of the \( g \) vectors this function represents.
+optional: []

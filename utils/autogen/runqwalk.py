@@ -1,10 +1,17 @@
 from __future__ import print_function
+import sys
 import os
 import glob
 import re
 import shutil
+from crystal2qmc import convert_crystal
+import subprocess as sub
 import numpy as np
 import json
+
+# If you need the swap_endian option, you need to set this to the correct location.
+swap_endian_exe = "/home/busemey2/bin/swap_endian"
+
 ####################################################
 
 def extract_jastrow(f):
@@ -60,6 +67,28 @@ def crystal_patch_output(propname,outname,patchname):
 
 ####################################################
 
+class NewCrystal2QWalk:
+  _name_="NewCrystal2QWalk"
+  def run(self,job_record):
+    job_record['qmc']['kpoint_weights'] = \
+        convert_crystal(
+            base="qw",
+            kfmt='int',
+            kset=job_record['qmc']['kpoints']).tolist()
+    return 'ok'
+  def check_status(self,job_record):
+    outfilename="qw_0.sys"
+    if os.path.exists(outfilename):
+      return 'ok'
+    return 'not_started'
+      
+  def retry(self,job_record):
+    return self.run(job_record)
+  def output(self,job_record):
+    return job_record
+
+####################################################
+
 class Crystal2QWalk:
   _name_="Crystal2QWalk"
   def run(self,job_record):
@@ -109,14 +138,14 @@ class QWalkVarianceOptimize:
       nit = job_record['qmc']['variance_optimize']['niterations']
       nruns = job_record['qmc']['variance_optimize']['nruns']
       for i in range(0,nruns):
-          f.write("method { optimize iterations %i } "%nit)
-      f.write("""
-include qw_0.sys
-trialfunc { slater-jastrow
-wf1 { include qw_0.slater } 
-wf2 { include qw.%s } 
-}
-"""%jast_suf)
+        f.write("method { optimize iterations %i } "%nit)
+      f.write("\n".join([
+          "include qw_0.sys",
+          "trialfunc { slater-jastrow",
+          "  wf1 { include qw_0.slater } ",
+          "  wf2 { include qw.%s } "%jast_suf,
+          "}"
+        ]))
       infiles.append(fname)
       jastfiles.append("qw.%s"%jast_suf)
       f.close()
@@ -178,7 +207,9 @@ wf2 { include qw.%s }
     #If so, we return ok
     all_ok=True
     for outfilename in outfnames:
-      if self.check_outputfile(outfilename,nruns,reltol,abstol)!='ok':
+      status = self.check_outputfile(outfilename,nruns,reltol,abstol)
+      if status!='ok':
+        print("Status: %s"%status)
         all_ok=False
     if all_ok:
       return 'ok'
@@ -208,8 +239,6 @@ wf2 { include qw.%s }
     print("Not sure what to do right now..")
     print(statuses)
     quit()
-    
-
 #-------------------------------------------------      
   def resume(self,job_record,maxresume=5):
     infiles=[]
@@ -297,10 +326,10 @@ class QWalkEnergyOptimize:
 
       enopt_options=job_record['qmc']['energy_optimize']
       f=open(fname,'w')
-      f.write("""method { LINEAR VMC_NSTEP %i } 
+      f.write("""method { LINEAR TOTAL_NSTEP %i } 
 include qw_0.sys
 trialfunc { include %s.wfin }
-"""%(enopt_options['vmc_nstep'],fname))
+"""%(enopt_options['total_nstep'],fname))
       infiles.append(fname)
       jastfiles.append("qw.%s"%jast_suf)
       f.close()
@@ -396,7 +425,163 @@ trialfunc { include %s.wfin }
       job_record['qmc']['energy_optimize'][jast]['energy']=energy
       job_record['qmc']['energy_optimize'][jast]['energy_err']=energy_err
     return job_record
+
+####################################################
+class QWalkRunVMC:
+  _name_ = "QWalkRunVMC"
+
+  def __init__(self,submitter):
+    self._submitter = submitter
+
+#-----------------------------------------------
+  def gen_basename(self,k,jast,opt):
+    return "qw_%i_%s_%s"%(k,jast,opt)
+
+#-----------------------------------------------
+  def run(self, job_record, restart=False):
+    options=job_record['qmc']['vmc']
+    kpts=self.get_kpts(job_record)
     
+    depfns = [] # Dependencies. 
+    inpfns = [] # DMC inputs
+    for k in kpts:
+      for jast in options['jastrow']:
+        for opt in options['optimizer']:
+          kname="qw_%i"%k
+          basename=self.gen_basename(k,jast,opt)
+          f=open(basename+".vmc",'w')
+          f.write(self.vmcinput(k,jast,opt,options['nblock']))
+          f.close()
+
+          depfns.extend([basename+".dmc",
+                         "opt.jast",
+                         kname+'.sys',
+                         kname+'.slater',
+                         kname+'.orb',
+                         'qw.basis'])
+          if restart:
+            depfns.extend([basename+'.vmc.config',basename+'.vmc.log'])
+          inpfns.append(basename+".vmc")
+
+    self._submitter.execute(
+      job_record,
+      depfns,
+      inpfns,  # Actual VMC inputs.
+      "qw.vmc.stdout",
+      self._name_)
+    return 'running'
+
+#-----------------------------------------------
+  def get_kpts(self, job_record):
+    kpts=glob.glob("qw*.sys")
+    kpt_num=[]
+    for kp in kpts:
+      kpt_num.append(int(re.findall(r'\d+',kp)[0]))
+    return kpt_num
+
+#-----------------------------------------------
+  def vmcinput(self,k,jast,opt,nblock):
+    outlist = [
+        "method { VMC ",
+        "nblock %i"%nblock,
+      ]
+    opt_trans={"energy":"enopt","variance":"opt"}
+    jast_inp=extract_jastrow(open("qw_0.%s.%s.wfout"%(jast,opt_trans[opt])))
+    outlist += [
+        "}",
+        "include qw_%i.sys"%k,
+        "trialfunc { slater-jastrow ",
+           "wf1 { include qw_%i.slater } "%(k),
+           "wf2 { ",
+          jast_inp,
+        " } ",
+        "}"
+      ]
+    outstr = '\n'.join(outlist)
+    return outstr
+
+#-----------------------------------------------
+  def check_outputfile(self,outfilename):
+    if os.path.isfile(outfilename):
+      f=open(outfilename,'r')
+      for line in f:
+        if 'Wall' in line:
+          return 'ok'
+      return 'running'
+
+#-----------------------------------------------
+  def collect_runs(self,job_record):
+    ret=[]
+    options=job_record['qmc']['vmc']
+    kpts=self.get_kpts(job_record)
+    for k in kpts:
+      for jast in options['jastrow']:
+        for opt in options['optimizer']:
+          basename=self.gen_basename(k,jast,opt)
+          if os.path.isfile("%s.vmc.log"%basename):
+            entry={}
+            entry['knum']=k
+            entry['jastrow']=jast
+            entry['optimizer']=opt
+            os.system("gosling -json %s.vmc.log > %s.json"%(basename,basename))
+            entry['results']=json.load(open("%s.json"%basename))
+            ret.append(entry)
+    return ret
+
+#-----------------------------------------------
+  def check_status(self,job_record):
+
+    options=job_record['qmc']['vmc']
+    kpts=self.get_kpts(job_record)
+    infns = [] #VMC inputs
+    for k in kpts:
+      for jast in options['jastrow']:
+        for opt in options['optimizer']:
+          infns.append(self.gen_basename(k,jast,opt))
+    
+    #Check on the submitter. If still running report that.
+    status=self._submitter.status(job_record,self._name_)
+    if 'running' in status:
+      return 'running'
+    
+    #If not running, try to transfer files.
+    self._submitter.transfer_output(job_record, infns)
+
+    #Now check on the runs
+    ret=self.collect_runs(job_record)
+    if len(ret)==0:
+      return "not_started"
+    if len(ret) != len(infns):
+      print("There are no jobs running and not enough .log files. Not sure what's going on.")
+      quit()
+    
+    statuses=[]
+    thresh=options['target_error']
+    for r in ret:
+      if r['results']['properties']['total_energy']['error'][0] < thresh:
+        statuses.append("ok")
+      else:
+        status.append("not_finished")
+    #Finally, decide what to do
+    if len(set(statuses))==1:
+      return statuses[0]
+    if 'not_finished' in statuses:
+      return 'not_finished'
+    #We may have some failed and some not..
+    print("Not sure what to do right now..")
+    print(statuses)
+    quit()
+
+#-----------------------------------------------
+  def retry(self,job_record):
+    return self.run(job_record,restart=True)
+
+
+#-----------------------------------------------
+  def output(self,job_record):
+    job_record['qmc']['vmc']['results']=self.collect_runs(job_record)
+    return job_record
+
 ####################################################
 
 class QWalkRunDMC:
@@ -413,7 +598,7 @@ class QWalkRunDMC:
     if 'cif' in job_record.keys():
       calc_sk=True
     # Make and submit the runs: bundle all jobs.
-    infiles = []# Dependencies. 
+    depfns = []# Dependencies. 
     inpfns = [] #DMC inputs
     for k in kpts:
       for t in options['timestep']:
@@ -429,19 +614,20 @@ class QWalkRunDMC:
               f.close()
 
 #Warning: remote may not be working with this..
-              infiles.extend([basename+".dmc",
+              depfns.extend([basename+".dmc",
                              "opt.jast",
                              kname+'.sys',
                              kname+'.slater',
                              kname+'.orb',
                              'qw.basis'])
               if restart:
-                infiles.extend([basename+'.dmc.config',basename+'.dmc.log'])
+                depfns.extend([basename+'.dmc.config',basename+'.dmc.log'])
               inpfns.append(basename+".dmc")
 
     self._submitter.execute(
       job_record,
-      infiles,       inpfns,  # Actual DMC inputs.
+      depfns,
+      inpfns,  # Actual DMC inputs.
       "qw.dmc.stdout",
       self._name_)
     return 'running'
@@ -457,6 +643,7 @@ class QWalkRunDMC:
     for kp in kpts:
       kpt_num.append(int(re.findall(r'\d+',kp)[0]))
     return kpt_num
+
 #-----------------------------------------------
   def dmcinput(self,k,t,loc,jast,opt,nblock=16,save_trace=False,sk=False):
     basename=self.gen_basename(k,t,loc,jast,opt)
@@ -493,8 +680,8 @@ class QWalkRunDMC:
         if 'Wall' in line:
           return 'ok'
       return 'running'
-#-----------------------------------------------
 
+#-----------------------------------------------
   def collect_runs(self,job_record):
     ret=[]
     options=job_record['qmc']['dmc']
@@ -516,9 +703,10 @@ class QWalkRunDMC:
                 entry['results']=json.load(open("%s.json"%basename))
                 ret.append(entry)
     return ret
+
 #-----------------------------------------------
   def check_status(self,job_record):
-    
+
     options=job_record['qmc']['dmc']
     kpts=self.get_kpts(job_record)
     infns = [] #DMC inputs
@@ -551,7 +739,11 @@ class QWalkRunDMC:
       if r['results']['properties']['total_energy']['error'][0] < thresh:
         statuses.append("ok")
       else:
-        status.append("not_finished")
+        print("Stochastic error too large: {0:.2e}>{1:.2e}".format(
+            r['results']['properties']['total_energy']['error'][0],
+            thresh
+          ))
+        statuses.append("not_finished")
     #Finally, decide what to do
     if len(set(statuses))==1:
       return statuses[0]
@@ -572,7 +764,6 @@ class QWalkRunDMC:
   def output(self,job_record):
     job_record['qmc']['dmc']['results']=self.collect_runs(job_record)
     return job_record
-
 
 ####################################################
 
@@ -758,4 +949,207 @@ class QWalkRunMaximize:
     return job_record
 
 ####################################################
-                                                        
+
+class QWalkRunPostProcess:
+  _name_="QwalkRunPostProcess"
+  
+  #-----------------------------------------------
+  def __init__(self,submitter):
+    self._submitter=submitter
+
+  #-----------------------------------------------
+  def run(self,job_record,restart=False):
+    options=job_record['qmc']['dmc']
+    kpts=self.get_kpts(job_record)
+    
+    calc_sk=False
+    if 'cif' in job_record.keys():
+      calc_sk=True
+    # Make and submit the runs: bundle all jobs.
+    depfns = [] # Dependencies. 
+    inpfns = [] # DMC inputs
+    for k in kpts:
+      for t in options['timestep']:
+        for loc in options['localization']:
+          for jast in options['jastrow']:
+            for opt in options['optimizer']:
+              kname="qw_%i"%k
+              basename=self.gen_basename(k,t,loc,jast,opt)
+              if not os.path.exists(basename+".trace"):
+                print("You need a trace file to run postprocess.")
+                return "failed"
+              f=open(basename+".post",'w')
+              f.write(self.postprocessinput(k,t,loc,jast,opt,
+                job_record['qmc']['postprocess']))
+              f.close()
+
+#Warning: remote may not be working with this..
+              depfns.extend([basename+".post",
+                             "opt.jast",
+                             kname+'.sys',
+                             kname+'.slater',
+                             kname+'.orb',
+                             'qw.basis'])
+              inpfns.append(basename+".post")
+
+    self._submitter.execute(
+      job_record,
+      depfns, inpfns,
+      "qw.post.stdout",
+      self._name_)
+    return 'running'
+
+  #-----------------------------------------------
+  def swap_endian(self,tracefn):
+    return newtracefn
+
+  #-----------------------------------------------
+  def gen_basename(self,k,t,loc,jast,opt):
+    return "qw_%i_%s_%g_%s_%s"%(k,jast,t,opt,loc)
+
+  #-----------------------------------------------
+  def get_kpts(self, job_record):
+    kpts=glob.glob("qw*.sys")
+    kpt_num=[]
+    for kp in kpts:
+      kpt_num.append(int(re.findall(r'\d+',kp)[0]))
+    return kpt_num
+
+  #-----------------------------------------------
+  def check_outputfile(self,outfilename):
+    if os.path.isfile(outfilename):
+      f=open(outfilename,'r')
+      # Sometimes output files are large, and this takes forever. 
+      # Instead just search the end.
+      if "Wall" in str(sub.check_output(["tail",outfilename])):
+        return 'ok'
+      else:
+        return 'running'
+    else:
+      return 'not_started'
+
+  #-----------------------------------------------
+  def get_warmup(self,logfilename):
+    os.system("gosling %s > %s.stdout"%(logfilename,logfilename))
+    f=open(logfilename+".stdout",'r')
+    nwarm=0
+    for line in f:
+      if "Threw out" in line:
+        spl=line.split()
+        nwarm=int(spl[4])
+        return nwarm
+    return nwarm
+
+  #-----------------------------------------------
+  def postprocessinput(self,k,t,loc,jast,opt,ppr_options):
+    basename=self.gen_basename(k,t,loc,jast,opt)
+    nwarmup = self.get_warmup("%s.dmc.log"%basename)
+    tracefn = basename+".trace"
+    if ppr_options['swap_endian']:
+      newtracefn = tracefn.replace(".trace",".swap.trace")
+      if not os.path.exists(newtracefn):
+        print("Swapping."+sub.check_output([swap_endian_exe,tracefn,newtracefn]))
+      tracefn = newtracefn
+    outlines = [
+        "method { postprocess ",
+        "readconfig %s"%tracefn,
+        "noenergy",
+        "average { region_fluctuation }"
+      ]
+    nskip = nwarmup*2048 # TODO generalize 2048.
+    if ppr_options['region_fluctuation'] == True:
+      outlines += ["average { region_fluctuation }"]
+    if ppr_options['density'] == True:
+      outlines += [
+          "density { density up   outputfile %s.dmc.up.cube }"%basename,
+          "density { density down outputfile %s.dmc.dn.cube }"%basename
+        ]
+    if ppr_options['obdm'] == True:
+      if (ppr_options['basis'] != None) and (ppr_options['orb'] != None):
+        shutil.copy(ppr_options['basis'],ppr_options['basis'].replace("../",""))
+        shutil.copy(ppr_options['orb'],ppr_options['orb'].replace("../",""))
+        outlines += [
+            "average { tbdm_basis ",
+            "mode obdm",
+            "include atomic.basis", #TODO generalize naming.
+            "}"
+          ]
+      else:
+        print("Since min basis wasn't defined, postprocess can't do OBDM.")
+    opt_trans={"energy":"enopt","variance":"opt"}
+    jast_inp=extract_jastrow(open("qw_0.%s.%s.wfout"%(jast,opt_trans[opt])))
+    outlines += [
+        "}",
+        "include qw_%i.sys"%k,
+        "trialfunc { slater-jastrow ",
+           "wf1 { include qw_%i.slater } "%(k),
+           "wf2 { ",
+          jast_inp,
+          " } ",
+        "}"
+      ]
+    outstr = '\n'.join(outlines)
+    return outstr
+
+  #-----------------------------------------------
+  def collect_runs(self,job_record):
+    ret=[]
+    options=job_record['qmc']['dmc']
+    kpts=self.get_kpts(job_record)
+    for k in kpts:
+      for t in options['timestep']:
+        for loc in options['localization']:
+          for jast in options['jastrow']:
+            for opt in options['optimizer']:
+              basename=self.gen_basename(k,t,loc,jast,opt)
+              if os.path.isfile("%s.post.json"%basename):
+                entry={}
+                entry['knum']=k
+                entry['timestep']=t
+                entry['localization']=loc
+                entry['jastrow']=jast
+                entry['optimizer']=opt
+                entry['results']=json.load(open("%s.post.json"%basename))
+                ret.append(entry)
+    return ret
+
+  #-----------------------------------------------
+  def check_status(self,job_record):
+
+    options=job_record['qmc']['dmc']
+    kpts=self.get_kpts(job_record)
+    infns = [] #DMC inputs
+    for k in kpts:
+      for t in options['timestep']:
+        for loc in options['localization']:
+          for jast in options['jastrow']:
+            for opt in options['optimizer']:
+              infns.append(self.gen_basename(k,t,loc,jast,opt))
+    
+    #Check on the submitter. If still running report that.
+    status=self._submitter.status(job_record,self._name_)
+    if 'running' in status:
+      return 'running'
+    
+    #If not running, try to transfer files.
+    self._submitter.transfer_output(job_record, infns)
+
+    #Now check on the runs
+    ret=self.collect_runs(job_record)
+    if len(ret)==0:
+      return "not_started"
+    elif len(ret) == len(infns):
+      return "ok"
+    else:
+      print("There are no jobs running and not enough .log files. Not sure what's going on.")
+      quit()
+
+  def resume(self,job_record):
+    return self.run(job_record,restart=True)
+
+  #-----------------------------------------------
+  def output(self,job_record):
+    job_record['qmc']['postprocess']['results']=self.collect_runs(job_record)
+    return job_record
+
+####################################################

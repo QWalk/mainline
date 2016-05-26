@@ -14,7 +14,6 @@ from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from cif2crystal import pseudopotential_section
 import pymatgen
 
-library_directory="../"
 
 ######################################################################
 def generate_basis(symbol,xml_name,initial_charges={}):
@@ -87,7 +86,7 @@ def generate_basis(symbol,xml_name,initial_charges={}):
 
 ######################################################################
 
-def basis_section(struct,params=[0.2,2,3],initial_charges={}):
+def basis_section(struct,params=[0.2,2,3],initial_charges={},library_directory="../"):
   sites=struct.as_dict()['sites']
   elements=set()
   for s in sites:
@@ -118,6 +117,9 @@ def xyz2geom(xyzfile):
 
 class Xyz2Crystal:
   _name_="Xyz2Crystal"
+
+  def __init__(self,library_directory="../"):
+    self.library_directory=library_directory
   # Currently, check_status() and runcrystal requires user not to modify outfn. 
   # In the future, we should probably store name of d12 in record, 
   # so this is not needed.
@@ -129,7 +131,8 @@ class Xyz2Crystal:
 
     geomlines,primstruct=xyz2geom(job_record['xyz'])
     basislines=basis_section(primstruct,job_record['dft']['basis'],
-                              job_record['dft']['initial_charges'])
+                              job_record['dft']['initial_charges'],
+                              self.library_directory)
     modisym=[]
     if len(job_record['dft']['initial_spin']) > 0:
       ninit=len(job_record['dft']['initial_spin'])
@@ -164,6 +167,7 @@ class Xyz2Crystal:
       "XLGRID",
       "END",
       "SCFDIR",
+      "SAVEWF",
       "BIPOSIZE",
       "100000000",
       "EXCHSIZE",

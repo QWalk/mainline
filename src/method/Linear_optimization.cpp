@@ -42,6 +42,9 @@ void Linear_optimization_method::read(vector <string> words,
   if(!readvalue(words, pos=0, max_nconfig_eval, "MAX_FIT_NCONFIG"))
     max_nconfig_eval=8*nconfig_eval;
   
+  if(!readvalue(words, pos=0, max_nconfig_eval, "MAX_ZERO_ITERATIONS"))
+    max_zero_iterations=3;
+
   allocate(options.systemtext[0],  sys);
   sys->generatePseudo(options.pseudotext, pseudo);
   wfdata=NULL;
@@ -93,7 +96,7 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
   Array2 <doublevar> alpha_step(iterations,nparms);
   
   wfdata->getVarParms(alpha);
-
+  int nzero_iterations=0;
   for(int it=0; it< iterations; it++) {
     //cout << "wf derivative " << endl;
     Array1 <doublevar> olden=en;
@@ -114,6 +117,10 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
       output << "Did not find a downhill move; increasing total vmc steps to "
         << vmc_nstep*mpi_info.nprocs << endl;
     }
+    else if(endiff >= 0) {
+      nzero_iterations++;
+      output << "Iterations without a downhill move:" << nzero_iterations << endl;
+    }
     wfdata->setVarParms(alpha);
     wfdata->renormalize();
     if(mpi_info.node==0) { 
@@ -126,6 +133,13 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
     
     for(int i=0; i< nparms; i++) {
       alpha_step(it,i)=alpha(i);
+    }
+    
+    if(nzero_iterations >= max_zero_iterations) {
+      output << "Reached " << max_zero_iterations
+             << " without a downhill move and at the maximum number of samples.\n"
+             << "Halting." << endl;
+      break;
     }
   }
 
