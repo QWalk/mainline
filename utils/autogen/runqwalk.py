@@ -597,6 +597,8 @@ class QWalkRunDMC:
     calc_sk=False
     if 'cif' in job_record.keys():
       calc_sk=True
+    if restart:
+      ret = self.collect_runs(job_record)
     # Make and submit the runs: bundle all jobs.
     depfns = []# Dependencies. 
     inpfns = [] #DMC inputs
@@ -621,8 +623,19 @@ class QWalkRunDMC:
                              kname+'.orb',
                              'qw.basis'])
               if restart:
-                depfns.extend([basename+'.dmc.config',basename+'.dmc.log'])
-              inpfns.append(basename+".dmc")
+                results = None
+                for r in ret:
+                  if r['knum'] == k:
+                    results = r['results']
+                thresh = job_record['qmc']['dmc']['target_error']
+                if results == None or results['properties']['total_energy']['error'][0] >= thresh:
+                  print('Job not finished and added to queue: %s'%(basename))
+                  depfns.extend(dep)
+                  depfns.extend([basename+'.dmc.config',basename+'.dmc.log'])
+                  inpfns.append(basename+".dmc")
+              else:
+                depfns.extend(dep)
+                inpfns.append(basename+".dmc")
 
     self._submitter.execute(
       job_record,
@@ -699,7 +712,10 @@ class QWalkRunDMC:
                 entry['localization']=loc
                 entry['jastrow']=jast
                 entry['optimizer']=opt
-                os.system("gosling -json %s.dmc.log > %s.json"%(basename,basename))
+                try:
+                  os.system("gosling -json %s.dmc.log > %s.json"%(basename,basename))
+                except:
+                  entry['results'] = None
                 entry['results']=json.load(open("%s.json"%basename))
                 ret.append(entry)
     return ret
