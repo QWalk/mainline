@@ -73,41 +73,48 @@ void Maximize_method::run(Program_options & options, ostream & output) {
   Array1 <Config_save_point> config_pos(nconfigs_per_node);
   Array1 <Maximize_config> maximize_config(nconfigs_per_node);
   Array1 <doublevar> epos(3);
-  
+
   Primary guidewf;
   generate_sample(sample,wf,wfdata,&guidewf,nconfig,config_pos);
   int nelectrons=sample->electronSize();
   Properties_gather mygather;
-
+  
+  int count = 1;
+  Array2 <doublevar> tempconfig(nelectrons,3);
+  Array2 <doublevar> temphessian(3*nelectrons,3*nelectrons);
+  
   for(int i=0; i < nconfigs_per_node; i++) { 
     stringstream tableout;
-    maximize(sample,wf,config_pos(i));
+    maximize(sample,wf,config_pos(i),temphessian);
     for(int e=0; e< nelectrons; e++) {
       sample->getElectronPos(e,epos);
       for(int d=0; d< 3; d++) {
-        tableout << epos(d) << " ";
+        tempconfig(e,d) = epos(d);
+        //tableout << epos(d) << " ";
       }
     }
+
     Properties_point pt;
     mygather.gatherData(pt, pseudo, sys, wfdata, wf, 
                             sample, &guidewf);
     
     wf->getVal(wfdata,0,wfret);
     
-    tableout << pt.energy(0) << " ";
-    tableout << wfret.amp(0,0) << endl;
+    //tableout << pt.energy(0) << " ";
+    //tableout << wfret.amp(0,0) << endl;
     
     maximize_config(i).nelectrons = nelectrons;
-    maximize_config(i).config_string = tableout.str();
+    maximize_config(i).logpsi = wfret.amp(0,0);
+    maximize_config(i).energy = pt.energy(0);
+    maximize_config(i).config = tempconfig;
+    maximize_config(i).hessian= temphessian;
      
     config_pos(i).write(cout);
   }
   
-  string tablename=options.runid+".table";
+  string outfilename=options.runid+".yaml";
+  write_configurations_maximize_yaml(outfilename, maximize_config);
   
-  write_configurations_maximize(tablename, maximize_config);
-  
-
   delete wf;
   delete sample;
 }
@@ -190,7 +197,7 @@ public:
   //-----------------------------------------
   void macoptII(double * x,int n) {
     Array1 <doublevar> grad(n+1);
-    Array1 <doublevar> xnew(n+1);
+    //Array1 <doublevar> xnew(n+1);
     int max_it = 100;
     int max_big_it = 100;
     for(int big_it=0; big_it < max_big_it; big_it++) {
@@ -288,6 +295,33 @@ public:
   void iteration_print(double f, double gg, double tol,  int itn) {
     cout << "It " << endl;
   }
+  
+  //-----------------------------------------
+  void calc_hessian(double * x, Array2 <doublevar> & hessian, int n) {
+    Array1 <doublevar> grad_plus(n+1);
+    Array1 <doublevar> grad_minus(n+1);
+    Array1 <doublevar> xnew(n+1);
+    double h = 1e-3; // step size
+    
+    for(int i=1; i<=n; i++) {
+      xnew(i)=x[i];
+    }
+    
+    for(int i=1; i<=n; i++) {
+      // forward step
+      xnew(i) = x[i] + h;
+      dfunc(xnew.v,grad_plus.v);
+      // backward step
+      xnew(i) = x[i] - h;
+      dfunc(xnew.v,grad_minus.v);
+      // reset position
+      xnew(i) = x[i];
+      // compute derivative
+      for(int j=1; j<=n; j++) {
+        hessian(i-1,j-1) = (grad_plus(j) - grad_minus(j)) / (2*h);
+      }   
+    }
+  }
   //-----------------------------------------
 
   Wavefunction * wf;
@@ -298,8 +332,7 @@ public:
 
 //----------------------------------------------------------------------
 
-
-void Maximize_method::maximize(Sample_point * sample,Wavefunction * wf,Config_save_point & pt) { 
+void Maximize_method::maximize(Sample_point * sample,Wavefunction * wf,Config_save_point & pt,Array2 <doublevar> & hessian) { 
   int nelectrons=sample->electronSize();
   pt.restorePos(sample);
   Maximize_fn maximizer(nelectrons*3,1,1e-12,1000,1);
@@ -320,6 +353,7 @@ void Maximize_method::maximize(Sample_point * sample,Wavefunction * wf,Config_sa
 
   maximizer.maccheckgrad(allpos.v,nelectrons*3,0.001,nelectrons*3);
   maximizer.macoptII(allpos.v,nelectrons*3);  
+  maximizer.calc_hessian(allpos.v,hessian,nelectrons*3);
 
   pt.savePos(sample);
 }
@@ -329,6 +363,88 @@ void Maximize_method::maximize(Sample_point * sample,Wavefunction * wf,Config_sa
 int Maximize_method::showinfo(ostream & os) { 
   return 1;
 }
+
+//----------------------------------------------------------------------
+//void Maximize_method::calc_hessian(double * x, Array2 <doublevar> & hessian, int n) {
+//  Array1 <doublevar> grad_plus(n+1);
+//  Array1 <doublevar> grad_minus(n+1);
+//  Array1 <doublevar> xnew(n+1);
+//  double h = 1e-3; // step size
+//  
+//  for(int i=1; i<=n; i++) {
+//    xnew(i)=x[i];
+//  }
+//  
+//  for(int i=1; i<=n; i++) {
+//    // forward step
+//    xnew(i) = x[i] + h;
+//    dfunc(xnew,grad_plus.v);
+//    // backward step
+//    xnew(i) = x[i] - h;
+//    dfunc(xnew,grad_minus.v);
+//    // reset position
+//    xnew(i) = x[i];
+//    // compute derivative
+//    for(j=1; j<=n; j++) {
+//      hessian(i-1,j-1) = (grad_plus(j) - grad_minus(j)) / (2*h)
+//    }   
+//  }
+//}
+
+//----------------------------------------------------------------------
+void write_configurations_maximize_yaml(string & filename, Array1 <Maximize_config> configs) { 
+  int nconfigs=configs.GetDim(0);
+  time_t starttime;
+  time(&starttime);
+  string tmpfilename=filename; //+".qw_tomove";
+  string backfilename=filename+".backup";
+  if(mpi_info.node==0) { rename(tmpfilename.c_str(),backfilename.c_str()); }
+
+  #ifdef USE_MPI
+  stringstream os;
+  os.precision(15);
+  for(int i=0; i< nconfigs; i++) {
+     configs(i).write(os);
+  }
+
+  string walkstr=os.str();
+  int nthis_string=walkstr.size();
+  if(mpi_info.node==0) {
+    ofstream os(tmpfilename.c_str());
+    os << "results:" << endl;
+    os << walkstr;
+    MPI_Status status;
+    for(int i=1; i< mpi_info.nprocs; i++) {
+      MPI_Recv(nthis_string,i);
+      char * buf=new char[nthis_string+1];
+      MPI_Recv(buf,nthis_string,MPI_CHAR, i, 0, MPI_Comm_grp, & status);
+      buf[nthis_string]='\0';
+      os << buf;
+      delete [] buf;
+    }
+  }
+  else {
+    MPI_Send(nthis_string,0);
+    //we know that MPI_Send obeys const-ness, but the interfaces are not clean 
+    // and so...casting!
+    MPI_Send((char *) walkstr.c_str(),nthis_string, MPI_CHAR, 0,0,MPI_Comm_grp);
+  }
+  #else
+    ofstream os(tmpfilename.c_str());
+    os.precision(15);
+    os << "results:" << endl;
+    for(int i=0; i< nconfigs; i++) {
+      configs(i).write(os);
+    }
+    os.close();
+  #endif
+    time_t endtime;
+    time(&endtime);
+    if(mpi_info.node==1) {
+      debug_write(cout, "Write took ", difftime(endtime, starttime), " seconds\n");
+    }
+}
+
 //----------------------------------------------------------------------
 void write_configurations_maximize(string & filename, 
                               Array1 <Maximize_config> configs) { 
@@ -396,7 +512,23 @@ void write_configurations_maximize(string & filename,
 
 //---------------------------------------------------------------------
 void Maximize_config::write(ostream & os) {
-  os << config_string;
+  
+  os << "- " << "psi: " << logpsi << endl;
+  os << "  " << "energy: " << energy << endl;
+  os << "  " << "config: " << endl;
+  for(int e=0; e<nelectrons; e++) {
+    os << "  - - " << config(e,0) << endl;
+    for(int d=1; d<3; d++) {
+      os << "    - " << config(e,d) << endl;
+    }
+  }
+  os << "  " << "hessian: " << endl;
+  for(int c=0; c<3*nelectrons; c++) {
+    os << "  - - " << hessian(c,0) << endl;
+    for(int d=1; d<3*nelectrons; d++) {
+      os << "    - " << hessian(c,d) << endl;
+    }
+  }
 }
 
 void Maximize_config::read(istream & is) {}
