@@ -8,6 +8,7 @@ from crystal2qmc import convert_crystal
 import subprocess as sub
 import numpy as np
 import json
+import yaml
 
 # If you need the swap_endian option, you need to set this to the correct location.
 swap_endian_exe = "/home/busemey2/bin/swap_endian"
@@ -884,17 +885,24 @@ class QWalkRunMaximize:
       for n in options['nconfig']:
         for jast in options['jastrow']:
           for opt in options['optimizer']:
-            logfilename=self.gen_basename(k,n,jast,opt)+".max.table"
+            logfilename=self.gen_basename(k,n,jast,opt)+".max.yaml"
             if os.path.isfile(logfilename):
               entry = {}
               entry['knum']=k
               entry['nconfig']=n
               entry['jastrow']=jast
               entry['optimizer']=opt
-              amp, locE, conf = self.extract_data(logfilename)
-              entry['psi'] = amp
-              entry['energies'] = locE
-              entry['configs'] = conf
+              #amp, locE, conf = self.extract_data(logfilename)
+              data = yaml.load(open(logfilename,'r'))
+
+              entry['psi'] = [r['psi'] for r in data['results']]
+              entry['energies'] = [r['energy'] for r in data['results']]
+              entry['configs'] = [r['config'] for r in data['results']]
+              entry['hessian'] = [r['hessian'] for r in data['results']]
+              #l = [[r['psi'],r['energy'],r['config'],r['hessian']] for r in data['results']]
+              #[entry['psi'],entry['energies'],entry['configs'],entry['hessian']] = list(map(list,zip(*l)))
+              
+              
               ret.append(entry)
     return ret
 
@@ -930,7 +938,7 @@ class QWalkRunMaximize:
     if len(ret)==0:
       return "not_started"
     if len(ret) != len(infns):
-      print("There are no jobs running and not enough .table files. Not sure what's going on.")
+      print("There are no jobs running and not enough .yaml files. Not sure what's going on.")
       quit()
     return 'ok'
 
