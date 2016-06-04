@@ -1,0 +1,26 @@
+type: Entry
+name: Pfaffian pairing orbital
+keyword: PAIRING_ORBITAL
+is_a: Orbital
+title: Pfaffian pairing orbital
+description: >
+  WARNING. This is a development feature. Make sure you know what you're doing before trying to use Pfaffians.
+  
+  Defines the coefficients of linear combinations of one-particle orbitals from which the pairing orbitals are constructed. 
+  The normalization is everywhere such that sum of squares of independent coefficients is equal to 1.  
+  
+required:
+  - keyword: TRIPLET_UU_COEF
+    type: section
+    description: N(N-1)/2 normalized coefficients for triplet spin-up spin-up pairs 
+  - keyword: TRIPLET_DD_COEF
+    type: section
+    description:  Same as TRIPLET_UU_COEF for down-down pairs
+  - keyword: SINGLET_COEF
+    type: section
+    description: N(N+1)/2 normalized coefficients for singlet pairing orbitals
+  - keyword: UNPAIRED_COEF
+    type: section
+    description: Normalized coefficients for unpaired orbitals.
+optional: []
+  

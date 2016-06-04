@@ -87,7 +87,7 @@ def default_job_record(filename):
 
   job_record['qmc']['energy_optimize']={}
   job_record['qmc']['energy_optimize']['threshold']=0.001
-  job_record['qmc']['energy_optimize']['vmc_nstep']=1000
+  job_record['qmc']['energy_optimize']['total_nstep']=16384
   job_record['qmc']['energy_optimize']['jastrow']=['twobody']
 
 

@@ -1,0 +1,40 @@
+type: Entry
+name: Pfaffian
+keyword: PFAFFIAN
+is_a: Wavefunction
+title: Pfaffian wave function
+description: >
+  WARNING. This is a development feature. Make sure you know what you're doing before trying to use Pfaffians.
+  A pfaffian (generalized determinant) or several pfaffians. 
+  See Bajdich et al. Phys. Rev. B 77 115112 (2008) for implementation details.
+
+  Submatrices \( \boldsymbol \xi \), \( \boldsymbol  \Phi \) and \( \boldsymbol \varphi \) are defined in Pfaffian group.
+  and ordered according the ORBITAL_ORDER section.
+
+
+required:
+  - keyword: NPAIRS
+    type: section
+    description: > 
+      Number of spin up, spin down, and unpaired electrons. The sum of these 3 numbers defines the Pfaffian matrix.
+  - keyword: PFWT
+    type: section
+    description: >
+      List of the weights of the Pfaffians, for a multi-Pfaffian wave function
+  - keyword: PARIING_ORBITAL
+    type: section
+    description: Section for Pfaffian group
+  - keyword: ORBITALS
+    type: section
+    description: Input for a MO Matrix object
+optional:
+  - keyword: ORBITAL_ORDER
+    type: section
+    default: ith pairing orbital for ith Pfaffian matrix
+    description: Contains upper-diagonal of \f( N \times N \f) matrix of pairing occupation numbers
+  - keyword: OPTIMIZE_PFWT
+    type: flag
+    default: off
+    description: Optimize the Pfaffian weights
+  
+     
