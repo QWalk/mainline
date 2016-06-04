@@ -146,10 +146,7 @@ class RunCrystal:
     moms[dn] = -1
     moms[zs] = 0
     if len(init_spins)==0:
-      if (moms == np.zeros(moms.shape)).all():
-        return True
-      else:
-        return False
+      return True
     else:
       return (moms == np.array(init_spins)).all()
 #-------------------------------------------------      
