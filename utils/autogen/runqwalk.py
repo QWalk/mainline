@@ -169,9 +169,10 @@ class QWalkVarianceOptimize:
       outf = open(outfilename,'r')
       outlines = outf.read().split('\n')
       finlines = [l for l in outlines if "Optimization finished" in l]
-      if len(finlines) < nruns:
-        return 'failed' # This function unstable if job was killed.
       displines = [l for l in outlines if "dispersion" in l]
+      if len(displines) < 4:
+        print("Only completed four optimization routines. May want to increase the queue time.")
+        return "not_finished" 
       init_disps = [float(l.split()[4]) for l in displines if "iteration # 1 " in l]
       disps = [float(l.split()[4]) for l in displines]
       if len(disps) > 1:
