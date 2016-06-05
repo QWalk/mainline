@@ -204,17 +204,6 @@ class QWalkVarianceOptimize:
       outfnames.append(f+".o")
       wfoutnames.append(f+".wfout")
 
-    #First check if all the runs are ok.
-    #If so, we return ok
-    all_ok=True
-    for outfilename in outfnames:
-      status = self.check_outputfile(outfilename,nruns,reltol,abstol)
-      if status!='ok':
-        print("Status: %s"%status)
-        all_ok=False
-    if all_ok:
-      return 'ok'
-
     #Check on the submitter. If still running report that.
     status=self._submitter.status(job_record,self._name_)
     if 'running' in status:
@@ -224,14 +213,13 @@ class QWalkVarianceOptimize:
     print(fnames,outfnames,wfoutnames)
     self._submitter.transfer_output(job_record, fnames+outfnames+wfoutnames)
 
-    #Now check on the output files again
+    #Now check on the output files 
     statuses=[]
     for outfilename in outfnames:
       statuses.append(self.check_outputfile(outfilename,nruns,reltol,abstol))
     
     #Finally, decide what to do
     if len(set(statuses))==1:
-      print("all statuses the same")
       return statuses[0]
     if 'not_finished' in statuses:
       return 'not_finished'
