@@ -18,7 +18,8 @@ MY_SOURCES:= \
 	Slat_Jastrow_data.cpp \
 	Slat_wf_data.cpp \
 	Wavefunction.cpp \
-	Wavefunction_data.cpp
+	Wavefunction_data.cpp \
+  Wf_return.cpp 
 
 
 SOURCES:= $(SOURCES) $(addprefix wavefunction/,$(MY_SOURCES))

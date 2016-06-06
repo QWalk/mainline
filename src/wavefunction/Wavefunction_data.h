@@ -26,7 +26,10 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Wavefunction.h"
 
 
-
+/*!
+ \brief 
+ Query whether a particular wave function supports various features.
+ */
 enum wf_support_type { laplacian_update, density, parameter_derivatives };
 
 /*!
