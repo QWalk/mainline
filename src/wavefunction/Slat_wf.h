@@ -83,7 +83,6 @@ public:
   virtual void getVal(Wavefunction_data *, int, Wf_return &);
   virtual void getLap(Wavefunction_data *, int, Wf_return &);
   virtual void evalTestPos(Array1 <doublevar> & pos, Sample_point *, Array1 <Wf_return> & wf);
-  virtual void getDensity(Wavefunction_data *,int, Array2 <doublevar> &);
 
   virtual void saveUpdate(Sample_point *, int e, Wavefunction_storage *);
   virtual void restoreUpdate(Sample_point *, int e, Wavefunction_storage *);
@@ -92,13 +91,6 @@ public:
   virtual void saveUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *);
   virtual void restoreUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *);
   
-  virtual void storeParmIndVal(Wavefunction_data *, Sample_point *,
-                               int, Array1 <doublevar> & );
-  virtual void getParmDepVal(Wavefunction_data *,
-                             Sample_point *,
-                             int,
-                             Array1 <doublevar> &,
-                             Wf_return &);
 
   virtual int getParmDeriv(Wavefunction_data *, 
 			   Sample_point *,
@@ -604,77 +596,7 @@ template <class T> inline void Slat_wf<T>::updateLap( Wavefunction_data * wfdata
 
 }
 
-//----------------------------------------------------------------------
 
-
-template <class T> inline void Slat_wf<T>::storeParmIndVal(Wavefunction_data * wfdata, Sample_point * sample,
-                              int e, Array1 <doublevar> & vals )
-{
-
-  if(parent->optimize_mo) {
-
-  }
-  else { error("parmindval not implemented yet!"); } 
-  /*
-  else if(parent->optimize_det) {
-    assert(vals.GetDim(0) >= 2*parent->detwt.GetDim(0));
-    updateVal(wfdata, sample);
-    int count=0;
-    for(int det=0; det < ndet; det++) {
-      vals(count++)=detVal(0,det,0).val();
-      vals(count++)=detVal(0,det,1).val();
-    }
-  }
-  else {
-    assert(vals.GetDim(0) >=2);
-    Wf_return newval(nfunc_,1);
-    updateVal(wfdata, sample);
-    getVal(wfdata, e, newval);
-    vals(0)=newval.amp(0,0);
-    vals(1)=newval.phase(0,0);
-  }
-  */
-}
-
-//----------------------------------------------------------------------
-
-template<class T> inline void Slat_wf<T>::getParmDepVal(Wavefunction_data * wfdata,
-                            Sample_point * sample,
-                            int e,
-                            Array1 <doublevar> & oldval,
-                            Wf_return & newval)
-{
-
-  if(parent->optimize_mo) {
-    updateVal(wfdata, sample);
-    getVal(wfdata, e, newval);
-  }
-  else if(parent->optimize_det) {
-    assert(oldval.GetDim(0) >=2*ndet);
-    if(nfunc_ != 1) error("Don't support several functions and ndet yet");
-    doublevar tempval=0;
-    int count=0;
-    for(int det=0; det < ndet; det++) {
-      tempval+=parent->detwt(det).val()*oldval(count)*oldval(count+1);
-      count+=2;
-    }
-    newval.phase(0,0)=.5*pi*(1-sign(tempval));// pi if the function is negative
-
-    if(fabs(tempval) > 0)
-      newval.amp(0,0)=log(fabs(tempval));
-    else
-      newval.amp(0,0)=-1e3;
-  }
-  else { 
-    assert(oldval.GetDim(0) >=2);
-    assert(newval.amp.GetDim(1) >= 1);
-    assert(newval.amp.GetDim(0) >= nfunc_);
-    int counter=0;
-    newval.amp(0,0)=oldval(counter++);
-    newval.phase(0,0)=oldval(counter++);
-    
-  }
-}
 
 
 //-----------------------------------------------------------------------
@@ -1197,34 +1119,6 @@ template <class T> inline void Slat_wf<T>::getSymmetricVal(Wavefunction_data * w
 
 //----------------------------------------------------------------------
 
-template <class T> inline void Slat_wf<T>::getDensity(Wavefunction_data * wfdata, int e,
-                         Array2 <doublevar> & dens)
-{
-
-  assert(dens.GetDim(0) >= nfunc_);
-  Slat_wf_data * dataptr;
-  recast(wfdata, dataptr);
-
-  int s=dataptr->spin(e);
-
-  if(ndet > 1)
-  {
-    error("Haven't done density for several determinants yet.");
-  }
-  dens=0;
-  int det=0;
-  for(int f=0; f< nfunc_; f++)
-  {
-    for(int j=0; j< nelectrons(s); j++)
-    {
-      dens(f,0)+=abs(moVal(0 , e, dataptr->occupation(f,det,s)(j) )
-                 *moVal(0,e,dataptr->occupation(f,det,s)(j)));
-    }
-  }
-
-}
-
-//----------------------------------------------------------------------------
 
 
 template <class T> inline void Slat_wf<T>::calcLap(Slat_wf_data * dataptr, Sample_point * sample)

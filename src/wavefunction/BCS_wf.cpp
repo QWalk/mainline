@@ -450,29 +450,6 @@ void BCS_wf::updateLap( Wavefunction_data * wfdata,
 
 }
 
-//----------------------------------------------------------------------
-
-
-void BCS_wf::storeParmIndVal(Wavefunction_data * wfdata, Sample_point * sample,
-                              int e, Array1 <doublevar> & vals )
-{
-
-}
-
-//----------------------------------------------------------------------
-
-void BCS_wf::getParmDepVal(Wavefunction_data * wfdata,
-                            Sample_point * sample,
-                            int e,
-                            Array1 <doublevar> & oldval,
-                            Wf_return & newval)
-{
-  updateVal(wfdata,sample);
-  getVal(wfdata,e,newval);
-
-}
-
-
 //-----------------------------------------------------------------------
 
 
@@ -510,14 +487,6 @@ void BCS_wf::getSymmetricVal(Wavefunction_data * wfdata,
 
 //----------------------------------------------------------------------
 
-void BCS_wf::getDensity(Wavefunction_data * wfdata, int e,
-                         Array2 <doublevar> & dens)
-{
-  error("No density for BCS now.");
-
-}
-
-//----------------------------------------------------------------------------
 
 //Note that the matrix is almost symmetric--
 //we can use that to halve the computational time

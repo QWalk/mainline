@@ -240,26 +240,6 @@ void Backflow_pf_wf::updateLap( Wavefunction_data * wfdata,
 
 }
 
-//----------------------------------------------------------------------
-
-
-void Backflow_pf_wf::storeParmIndVal(Wavefunction_data * wfdata, Sample_point * sample,
-                              int e, Array1 <doublevar> & vals )
-{
-}
-
-//----------------------------------------------------------------------
-
-void Backflow_pf_wf::getParmDepVal(Wavefunction_data * wfdata,
-                            Sample_point * sample,
-                            int e,
-                            Array1 <doublevar> & oldval,
-                            Wf_return & newval)
-{
-  updateVal(wfdata,sample);
-  getVal(wfdata,e,newval);
-}
-
 
 //-----------------------------------------------------------------------
 
@@ -351,14 +331,6 @@ void Backflow_pf_wf::getSymmetricVal(Wavefunction_data * wfdata,
 } 
 
 
-//----------------------------------------------------------------------
-
-void Backflow_pf_wf::getDensity(Wavefunction_data * wfdata, int e,
-                         Array2 <doublevar> & dens)
-{
-  error("No density for Backflow now..");
-
-}
 
 //----------------------------------------------------------------------------
 
