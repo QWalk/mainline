@@ -24,7 +24,10 @@
 #include "Average_generator.h"
 #include "MO_matrix.h"
 
-//Evaluate the two-body density matrix on a basis.
+/*!
+ \brief
+ Evaluate the correlation of moments of the Hamiltonian with Average_generator objects.
+ */
 class Average_enmoment:public Average_generator { 
  public:
   virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,

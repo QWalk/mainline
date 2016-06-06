@@ -29,6 +29,9 @@ const char*  names[]={"total_energy",
             "weight"};
 };
 
+
+//---------------------------------------------------------
+
 void print_array_sec(ostream & os, string & indent, 
                      const char * label, Array1 <doublevar>  arr) {
   os << indent << label << " { ";
@@ -38,6 +41,7 @@ void print_array_sec(ostream & os, string & indent,
   os << "} " << endl;
 }
 
+//---------------------------------------------------------
 
 void read_array(vector<string> & words, unsigned int pos, 
                 Array1 <doublevar> & array, const char * label) {
@@ -47,6 +51,8 @@ void read_array(vector<string> & words, unsigned int pos,
   int ns=section.size();
   for(int i=0; i< ns; i++) array(i)=atof(section[i].c_str());
 }
+
+//---------------------------------------------------------
 
 int read_into_array(vector <string> & words, unsigned int pos,
                 Array2 <doublevar> & array, const char * label, int place) {
@@ -61,6 +67,8 @@ int read_into_array(vector <string> & words, unsigned int pos,
   for(int i=0; i< ns; i++) array(place,i)=atof(section[i].c_str());
   return 1;
 }
+
+//---------------------------------------------------------
 
 void Properties_block::storeToLog(string & indent, ostream & os,
                                     string & label) {
