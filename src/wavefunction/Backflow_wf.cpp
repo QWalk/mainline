@@ -234,78 +234,7 @@ void Backflow_wf::updateLap( Wavefunction_data * wfdata,
 
 }
 
-//----------------------------------------------------------------------
 
-
-void Backflow_wf::storeParmIndVal(Wavefunction_data * wfdata, Sample_point * sample,
-                              int e, Array1 <doublevar> & vals )
-{
-  /*
-  if(parent->optimize_backflow) {
-
-  }
-  else if(parent->optimize_det) {
-    assert(vals.GetDim(0) >= 2*parent->detwt.GetDim(0));
-    updateVal(wfdata, sample);
-    int count=0;
-    for(int det=0; det < ndet; det++) {
-      vals(count++)=detVal(det,0);
-      vals(count++)=detVal(det,1);
-    }
-  }
-  else {
-    assert(vals.GetDim(0) >=2);
-    Wf_return newval(1,1);
-    updateVal(wfdata, sample);
-    getVal(wfdata, e, newval);
-    vals(0)=newval.amp(0,0);
-    vals(1)=newval.phase(0,0);
-  }
-  */
-}
-
-//----------------------------------------------------------------------
-
-void Backflow_wf::getParmDepVal(Wavefunction_data * wfdata,
-                            Sample_point * sample,
-                            int e,
-                            Array1 <doublevar> & oldval,
-                            Wf_return & newval)
-{
-  updateVal(wfdata,sample);
-  getVal(wfdata,e,newval);
-
-  /*
-  if(parent->optimize_backflow) {
-    updateVal(wfdata, sample);
-    getVal(wfdata, e, newval);
-  }
-  else if(parent->dkeeper.optimize_det) {
-    assert(oldval.GetDim(0) >=2*ndet);
-    doublevar tempval=0;
-    int count=0;
-    for(int det=0; det < ndet; det++) {
-      tempval+=parent->dkeeper.detwt(det)*oldval(count)*oldval(count+1);
-      count+=2;
-    }
-    newval.phase(0,0)=.5*pi*(1-sign(tempval));// pi if the function is negative
-
-    if(fabs(tempval) > 0)
-      newval.amp(0,0)=log(fabs(tempval));
-    else
-      newval.amp(0,0)=-1e3;
-  }
-  else { 
-    assert(oldval.GetDim(0) >=2);
-    assert(newval.amp.GetDim(1) >= 1);
-    assert(newval.amp.GetDim(0) >= nfunc_);
-    int counter=0;
-    newval.amp(0,0)=oldval(counter++);
-    newval.phase(0,0)=oldval(counter++);
-    
-  }
-  */
-}
 
 
 //-----------------------------------------------------------------------

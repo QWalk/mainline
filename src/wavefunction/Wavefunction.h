@@ -61,99 +61,14 @@ private:
 };
 
 typedef complex <doublevar> dcomplex;
-//typedef Array2 <complex <doublevar> > Wf_return;
 #include "MatrixAlgebra.h"
+#include "Wf_return.h"
 
-struct Wf_return {
-  Wf_return() {is_complex=0;}
-  
-  void write(string & indent, ostream & os);
-  void read(istream & is);
-  void mpiSend(int node);
-  void mpiRecieve(int node);
-  
-  Wf_return(int nfunc, int nst) {
-    is_complex=0;
-    amp.Resize(nfunc, nst);
-    phase.Resize(nfunc, nst);
-    cvals.Resize(nfunc, nst);
-  }
-  void Resize(int nfunc, int nst) {
-    amp.Resize(nfunc, nst);
-    phase.Resize(nfunc, nst);
-    cvals.Resize(nfunc, nst);
-  }
-
-  int sign(int w) {
-    if(is_complex) return 1;
-
-    if(fabs(phase(w,0)) < 1e-6) return 1;
-    else return -1;
-  }
-
-  void setVals(Array2 <log_value<doublevar> > & v ) { 
-    is_complex=0;
-    int nfunc=v.GetDim(0);
-    int nst=v.GetDim(1);
-    Resize(nfunc,nst);
-    for(int f=0; f< nfunc; f++) { 
-      amp(f,0)=v(f,0).logval;
-      phase(f,0)=v(f,0).sign<0?pi:0.0;
-      for(int s=1; s< nst; s++) { 
-        amp(f,s)=v(f,s).val();
-        phase(f,s)=0.0;
-      }
-    }
-  }
-
-  void setVals(Array2 <log_value<dcomplex> > & v ) { 
-    is_complex=1;
-    int nfunc=v.GetDim(0);
-    int nst=v.GetDim(1);
-    Resize(nfunc,nst);
-    for(int f=0; f< nfunc; f++) { 
-      amp(f,0)=v(f,0).logval.real();
-      phase(f,0)=v(f,0).logval.imag();
-      for(int s=1; s< nst; s++) { 
-        amp(f,s)=v(f,s).val().real();
-        phase(f,s)=v(f,s).val().imag();
-      }
-      if(nst > 4) { 
-        doublevar sum_ii=0,sum_ri=0;
-        for(int s=1; s< 4; s++) { 
-           sum_ii+=phase(f,s)*phase(f,s);
-           sum_ri+=amp(f,s)*phase(f,s);
-        }
-        phase(f,4)-=2*sum_ri;
-        amp(f,4)+=sum_ii;
-      }
-
-    }
-  }
-
-
-  /*!
-    used for complex functions
-    vals= [ln|psi|, grad psi/psi, grad^2 psi/psi
-    p=phase
-   */
-  void setVals(Array2 <dcomplex> & vals, Array1 <doublevar> & p);
-
-  /*!
-    used for real functions
-    vals= [ln|psi|, grad psi/psi, grad^2 psi/psi
-    sign= sign of wave function
-  */
-  void setVals(Array2 <doublevar> & vals, Array1 <doublevar> &  sign);
-
-  int is_complex;
-  Array2 <doublevar> amp;//!< ln( |psi| ), grad ln( |psi| ), grad^2 |psi|/|psi|
-  Array2 <doublevar> phase; //!< phase and derivatives
-  Array2 <dcomplex> cvals; //!< (null), grad ln(|psi|), grad^2 psi/psi  for debuggin purposes.
-};
-
-
-
+/*!
+ \brief
+ An object that holds parameter derivatives of wave functions.
+ 
+ */
 struct Parm_deriv_return { 
   int need_hessian;
   int need_lapderiv;
@@ -171,6 +86,7 @@ struct Parm_deriv_return {
     nparms_start=nparms_end=0;
   }
 };
+
 
 /*!  extend the Hessian matrix assuming that the variables are independent
 */
@@ -280,11 +196,6 @@ public:
   virtual void getSymmetricVal(Wavefunction_data *, int, Wf_return &)=0;
 
 
-  /*!
-    \brief
-    get an approximation to the one-particle density(use updateVal to update)
-   */
-  virtual void getDensity(Wavefunction_data *,int,  Array2 <doublevar> &)=0;
 
   /*!
     \brief
@@ -332,21 +243,21 @@ public:
     There are no assertions over what is in the array, or what order,
     so it should be treated as a black box.
    */
-  virtual void storeParmIndVal(Wavefunction_data *, Sample_point *,
-                               int, Array1 <doublevar> & )=0;
+  //virtual void storeParmIndVal(Wavefunction_data *, Sample_point *,
+  //                             int, Array1 <doublevar> & )=0;
   /*!
     \brief
     The companion operation to storeParmIndVal.  Takes the array given by that
     function and turns it into the correct return for the current parameter set.
     (ala getVal())
    */
-  virtual void getParmDepVal(Wavefunction_data *, Sample_point *,
-                             int, //!< electron number
-                             Array1 <doublevar> &,
+  //virtual void getParmDepVal(Wavefunction_data *, Sample_point *,
+  //                           int, //!< electron number
+  //                           Array1 <doublevar> &,
                              //!< values from storeParmIndVal
-                             Wf_return &
+  //                           Wf_return &
                              //!< return values, same as from getVal()
-                            )=0;
+  //                          )=0;
 
   /*! \brief
     Plots 1d functions from inside the wave function, e.g. constituents

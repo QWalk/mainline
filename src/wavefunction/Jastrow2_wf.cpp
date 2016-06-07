@@ -1317,11 +1317,6 @@ void Jastrow2_wf::getForceBias(Wavefunction_data *wfdata, int e,
 
 //----------------------------------------------------------
 
-void Jastrow2_wf::getDensity(Wavefunction_data *,int,  Array2 <doublevar> &){
-  error("Jastrow2 doesn't have density yet");
-}
-
-//----------------------------------------------------------
 
 void Jastrow2_wf::generateStorage(Wavefunction_storage *& wfstore) {
   Jastrow2_storage * store=new Jastrow2_storage(nelectrons);
@@ -1571,41 +1566,6 @@ void Jastrow2_wf::restoreUpdate(Sample_point * sample, int e1, int e2, Wavefunct
 }
 //----------------------------------------------------------
 
-void Jastrow2_wf::storeParmIndVal(Wavefunction_data * dataptr, Sample_point *
-				  sample, 
-                               int e, Array1 <doublevar> & vals){
-  //do nothing for now..
-  if(parent->nparms()==0 ) { 
-    //cout << " saving " << " valsize " << vals.GetDim(0) << endl;
-    Wf_return newval(1,1);
-    updateVal(parent, sample);
-    getVal(parent, e,newval);
-    vals(0)=newval.amp(0,0);
-  }
-    
-}
-
-//----------------------------------------------------------
-void Jastrow2_wf::getParmDepVal(Wavefunction_data * dataptr,
-                             Sample_point * sample,
-                             int e,
-                             Array1 <doublevar> & oldvals,
-                             Wf_return & newval) {
-  if(parent->nparms()==0 ) { 
-    assert(oldvals.GetDim(0)>=1);
-    assert(newval.amp.GetDim(1)>=1);
-    assert(newval.amp.GetDim(0)>= 1);
-    newval.amp(0,0)=oldvals(0);
-    newval.phase(0,0)=0;
-  }
-  else { 
-    updateVal(dataptr, sample);
-    getVal(dataptr, e, newval);
-  }
-
-}
-
-//--------------------------------------------------------------------------
 
 //Note that one could implement this as updates to improve speed further.
 int Jastrow2_wf::getParmDeriv(Wavefunction_data *wfdata , Sample_point * sample,

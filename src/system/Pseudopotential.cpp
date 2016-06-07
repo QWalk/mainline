@@ -82,7 +82,7 @@ Pseudopotential::~Pseudopotential()  {
       if(radial_basis(i,j)) delete radial_basis(i,j);
 }
 
-
+/*
 
 int Pseudopotential::initializeStatic(Wavefunction_data *wfdata,
                                       Sample_point * sample, Wavefunction * wf,
@@ -135,9 +135,9 @@ int Pseudopotential::initializeStatic(Wavefunction_data *wfdata,
   //delete wfStore;
   return 1;
 }
-
+*/
 //----------------------------------------------------------------------
-
+/*
 void Pseudopotential::calcNonlocWithFile(Wavefunction_data * wfdata,
                                          System * sys,
                                          Sample_point * sample,
@@ -291,7 +291,7 @@ void Pseudopotential::calcNonlocWithFile(Wavefunction_data * wfdata,
 
 }
 
-
+*/
 
 //----------------------------------------------------------------------
 
