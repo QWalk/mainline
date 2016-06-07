@@ -3,22 +3,18 @@ import subprocess as sub
 from submission_tools import LocalSubmitter
 import os
 
-# Where are your executables stored?
-BIN = "/u/sciteam/jaschil2/bin/"
-# Account code:
-acct = ""
-
-if BIN[-1] != '/': BIN += '/'
 ##########################################################
 class LocalBWSubmitter(LocalSubmitter):
   """Abstract submission class. Defines interaction with the queuing system."""
 #-------------------------------------------------------  
-  def __init__(self,time='72:00:00',nn=1,np='allprocs', queue='batch'):
+  def __init__(self,time='72:00:00',nn=1,np='allprocs', queue='batch',BIN="~/bin/",account=""):
     """ Initialize a submitter object. 
 
     This part should contain all parts of calculation that user should care
     about, and all parts that are common to calculations of a certain type (all
     crystal SCF calculations, for instance)."""
+    assert account != ""
+    self.account = account
     self.time  = time,
     self.nn    = nn
     self.np    = np
@@ -59,7 +55,7 @@ class LocalBWSubmitter(LocalSubmitter):
       "#PBS -l walltime=%s"%self.time,
       "#PBS -j oe",
       "#PBS -m n",
-      "#PBS -A %s"%acct,
+      "#PBS -A %s"%self.account,
       "#PBS -N %s"%name,
       "#PBS -o {0}".format(loc+"/qsub.out")
     ]
