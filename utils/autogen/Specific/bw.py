@@ -14,6 +14,7 @@ class LocalBWSubmitter(LocalSubmitter):
     about, and all parts that are common to calculations of a certain type (all
     crystal SCF calculations, for instance)."""
     assert account != ""
+    self.BIN=BIN
     self.account = account
     self.time  = time,
     self.nn    = nn
@@ -83,7 +84,7 @@ class LocalBWCrystalSubmitter(LocalBWSubmitter):
     
     Should not interact with user, and should receive only information specific
     to instance of a job run."""
-    exe = BIN+"Pcrystal"
+    exe = self.BIN+"Pcrystal"
     prep_commands=["cp %s INPUT"%inpfn]
     final_commands = ["rm *.pe[0-9]","rm *.pe[0-9][0-9]"]
 
@@ -103,7 +104,7 @@ class LocalBWPropertiesSubmitter(LocalBWSubmitter):
     
     Should not interact with user, and should receive only information specific
     to instance of a job run."""
-    exe = BIN+"properties < %s"%inpfn
+    exe = self.BIN+"properties < %s"%inpfn
     prep_commands = []
     final_commands = []
 
@@ -134,7 +135,7 @@ class LocalBWQwalkSubmitter(LocalBWSubmitter):
     qid=[]
     
     for f in inpfn:
-      exe = BIN+"qwalk %s"%f
+      exe = self.BIN+"qwalk %s"%f
 
       if jobname == "":
         jobname = outfn
@@ -153,7 +154,7 @@ class LocalBWBundleQwalkSubmitter(LocalBWSubmitter):
     
     Should not interact with user, and should receive only information specific
     to instance of a job run."""
-    exe = " ".join([BIN+"qwalk"]+inpfns)
+    exe = " ".join([self.BIN+"qwalk"]+inpfns)
     prep_commands=['module swap PrgEnv-cray PrgEnv-intel']
     final_commands=[]
 
