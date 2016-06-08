@@ -605,12 +605,12 @@ class QWalkRunDMC:
               f.close()
 
 #Warning: remote may not be working with this..
-              depfns.extend([basename+".dmc",
+              dep=[basename+".dmc",
                              "opt.jast",
                              kname+'.sys',
                              kname+'.slater',
                              kname+'.orb',
-                             'qw.basis'])
+                             'qw.basis']
               if restart:
                 results = None
                 for r in ret:
