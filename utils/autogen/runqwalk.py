@@ -614,11 +614,12 @@ class QWalkRunDMC:
               if restart:
                 results = None
                 for r in ret:
-                  if r['knum'] == k:
+                  if r['knum'] == k and r['timestep']==t and r['localization']==loc\
+                    and r['jastrow']==jast and r['optimizer']==opt:
                     results = r['results']
                 thresh = job_record['qmc']['dmc']['target_error']
                 if results == None or results['properties']['total_energy']['error'][0] >= thresh:
-                  print('Job not finished and added to queue: %s'%(basename))
+                  print('%s not finished '%(basename))
                   depfns.extend(dep)
                   depfns.extend([basename+'.dmc.config',basename+'.dmc.log'])
                   inpfns.append(basename+".dmc")
@@ -703,10 +704,10 @@ class QWalkRunDMC:
                 entry['optimizer']=opt
                 try:
                   os.system("gosling -json %s.dmc.log > %s.json"%(basename,basename))
+                  entry['results']=json.load(open("%s.json"%basename))
+                  ret.append(entry)
                 except:
-                  entry['results'] = None
-                entry['results']=json.load(open("%s.json"%basename))
-                ret.append(entry)
+                  print("trouble processing",basename)
     return ret
 
 #-----------------------------------------------
@@ -735,8 +736,8 @@ class QWalkRunDMC:
     if len(ret)==0:
       return "not_started"
     if len(ret) != len(infns):
-      print("There are no jobs running and not enough .log files. Not sure what's going on.")
-      quit()
+      print("WARNING: There are missing log files. Expected",len(infns), "found", len(ret) )
+      return "not_finished"
     
     statuses=[]
     thresh=options['target_error']
