@@ -195,7 +195,6 @@ public:
 
   virtual void getForceBias(Wavefunction_data *, int, Wf_return &);
 
-  virtual void getDensity(Wavefunction_data *,int,  Array2 <doublevar> &);
   virtual void evalTestPos(Array1 <doublevar> & pos, Sample_point * sample,Array1 <Wf_return> & wf);
   
 
@@ -206,14 +205,6 @@ public:
 
   virtual void saveUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *);
   virtual void restoreUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *);
-
-  virtual void storeParmIndVal(Wavefunction_data *, Sample_point *,
-                               int, Array1 <doublevar> & );
-  virtual void getParmDepVal(Wavefunction_data *,
-                             Sample_point *,
-                             int,
-                             Array1 <doublevar> &,
-                             Wf_return &);
  
   virtual int getParmDeriv(Wavefunction_data *, Sample_point *,
                            Parm_deriv_return & );

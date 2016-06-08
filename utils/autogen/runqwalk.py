@@ -586,6 +586,8 @@ class QWalkRunDMC:
     calc_sk=False
     if 'cif' in job_record.keys():
       calc_sk=True
+    if restart:
+      ret = self.collect_runs(job_record)
     # Make and submit the runs: bundle all jobs.
     depfns = []# Dependencies. 
     inpfns = [] #DMC inputs
@@ -603,15 +605,27 @@ class QWalkRunDMC:
               f.close()
 
 #Warning: remote may not be working with this..
-              depfns.extend([basename+".dmc",
+              dep=[basename+".dmc",
                              "opt.jast",
                              kname+'.sys',
                              kname+'.slater',
                              kname+'.orb',
-                             'qw.basis'])
+                             'qw.basis']
               if restart:
-                depfns.extend([basename+'.dmc.config',basename+'.dmc.log'])
-              inpfns.append(basename+".dmc")
+                results = None
+                for r in ret:
+                  if r['knum'] == k and r['timestep']==t and r['localization']==loc\
+                    and r['jastrow']==jast and r['optimizer']==opt:
+                    results = r['results']
+                thresh = job_record['qmc']['dmc']['target_error']
+                if results == None or results['properties']['total_energy']['error'][0] >= thresh:
+                  print('%s not finished '%(basename))
+                  depfns.extend(dep)
+                  depfns.extend([basename+'.dmc.config',basename+'.dmc.log'])
+                  inpfns.append(basename+".dmc")
+              else:
+                depfns.extend(dep)
+                inpfns.append(basename+".dmc")
 
     self._submitter.execute(
       job_record,
@@ -688,12 +702,12 @@ class QWalkRunDMC:
                 entry['localization']=loc
                 entry['jastrow']=jast
                 entry['optimizer']=opt
-                try: 
+                try:
                   os.system("gosling -json %s.dmc.log > %s.json"%(basename,basename))
                   entry['results']=json.load(open("%s.json"%basename))
                   ret.append(entry)
                 except:
-                  print("WARNING: analysis of %s.dmc.log failed. This may be caused by a job crashing or an error in the input file.")
+                  print("trouble processing",basename)
     return ret
 
 #-----------------------------------------------
@@ -722,7 +736,7 @@ class QWalkRunDMC:
     if len(ret)==0:
       return "not_started"
     if len(ret) != len(infns):
-      print("There are no jobs running and not enough .log files. Retrying, but be careful!")
+      print("WARNING: There are missing log files. Expected",len(infns), "found", len(ret) )
       return "not_finished"
     
     statuses=[]

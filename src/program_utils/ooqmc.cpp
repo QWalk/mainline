@@ -126,7 +126,7 @@ int main(int argc, char* argv[])
     output << "Pavel Vagner, Rene Derian, Paul Kent, Jarrod McClean, \n";
     output << "Fernando Reboredo, Lucas Wagner, Hiori Kino, ";
     output << "Lubos Mitas, Brian Busemeyer, Joshua Schiller,\n";
-    output << "Li Chen, and Huihuo Zheng\n";
+    output << "Li Chen, Kiel Williams, and Huihuo Zheng\n";
     output << "Originated at North Carolina State University \n";
     output << "Please cite J. Comp. Phys. v 228 pp 3390-3404 (2009) \n when publishing results from this program.\n";
     output << "------------------------------------------------\n";

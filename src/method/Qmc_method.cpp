@@ -30,7 +30,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Reptation_method.h"
 #include "Postprocess_method.h"
 #include "Plot1d_method.h"
-#include "Rmc_corr_method.h"
 #include "Wannier_method.h"
 #include "Linear_optimization.h"
 #include "Rotate_orbs.h"
@@ -59,10 +58,7 @@ int allocate(vector <string> & words,
 
   else if(caseless_eq(words[0],"RNDMC"))
     methptr=new Rndmc_method;
-  
-  else if(caseless_eq(words[0],"RMC_CORR")) 
-    methptr=new Rmc_corr_method;
-  
+    
   else if(caseless_eq(words[0],"TEST"))
     methptr=new Test_method;
   

@@ -80,7 +80,8 @@ public:
   }
   
   virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
-                        System * sys, Pseudopotential *psp, Sample_point * sample, Properties_point & pt,Average_return &avg) { 
+                        System * sys, Pseudopotential *psp, Sample_point * sample,
+                        Properties_point & pt,Average_return &avg) {
     evaluate(wfdata,wf,sys, sample, pt, avg);
   }
 
@@ -220,7 +221,7 @@ private:
 //----------------------------------------------------------------------------
 
 /*!
-Projected two-body density matrix, spherically averaged too.
+Projected two-body density matrix, spherically averaged.
 */
 class Average_tbdm:public Average_generator { 
 public:
@@ -387,7 +388,10 @@ public:
 
 //----------------------------------------------------------------------------
 
-
+/*!
+ \brief 
+ Accumulate the derivative of the wave function with respect to the parameters. 
+ */
 class Average_wf_parmderivs:public Average_generator { 
 public:
   virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
