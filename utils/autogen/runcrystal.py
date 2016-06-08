@@ -146,10 +146,11 @@ class RunCrystal:
     moms[up] = 1
     moms[dn] = -1
     moms[zs] = 0
+    moms=np.resize(moms,(len(init_spins)))
     if len(init_spins)==0:
       return True
     else:
-      return (moms == np.array(init_spins)).all()
+      return np.array_equal(moms,np.array(init_spins))
 #-------------------------------------------------      
   def add_guessp(self,inpfn):
     inplines = open(inpfn,'r').read().split('\n')
