@@ -695,19 +695,21 @@ class QWalkRunDMC:
           for jast in options['jastrow']:
             for opt in options['optimizer']:
               basename=self.gen_basename(k,t,loc,jast,opt)
+              entry={}
+              entry['knum']=k
+              entry['timestep']=t
+              entry['localization']=loc
+              entry['jastrow']=jast
+              entry['optimizer']=opt
+              entry['results'] = None
               if os.path.isfile("%s.dmc.log"%basename):
-                entry={}
-                entry['knum']=k
-                entry['timestep']=t
-                entry['localization']=loc
-                entry['jastrow']=jast
-                entry['optimizer']=opt
                 try:
                   os.system("gosling -json %s.dmc.log > %s.json"%(basename,basename))
                   entry['results']=json.load(open("%s.json"%basename))
-                  ret.append(entry)
                 except:
                   print("trouble processing",basename)
+              ret.append(entry)
+
     return ret
 
 #-----------------------------------------------
