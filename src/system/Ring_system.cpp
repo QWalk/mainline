@@ -31,11 +31,9 @@ void Ring_system::notify(change_type change, int n)
 {
   switch(change)
   {
-  case sample_static:
-    break;
   default:
     cout << "WARNING: Ring system got a signal that it doesn't know: "
-    << change << endl;
+         << change << endl;
   }
 }
 

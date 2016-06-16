@@ -43,8 +43,6 @@ enum change_type {sample_attach,//!< A sample point is reporting to this wf
                   all_wf_parms_change,//!< all wavefunction parameters changed
                   ion_move,//!< One ion(atom) moved
                   all_ions_move,//!< all atoms moved
-                  sample_static,//!< We promise that we won't move an electron
-                  sample_dynamic//!< revoke the promise of sample_static
                   };
 
 

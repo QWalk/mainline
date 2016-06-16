@@ -45,7 +45,7 @@ public:
   virtual int showinfo(ostream & os)=0;
   virtual int read(vector <string> & words, unsigned int & pos)=0;
   virtual int generateSample(Sample_point * &)=0;
-  virtual void notify(change_type, int)=0;
+  //virtual void notify(change_type, int)=0;
   virtual void generatePseudo(vector < vector < string > > &,
                               Pseudopotential * & pseudo);
   virtual doublevar calcLoc(Sample_point *)=0;

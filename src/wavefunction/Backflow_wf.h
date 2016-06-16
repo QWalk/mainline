@@ -119,8 +119,6 @@ private:
   //!< (elec,[grad lap])
 
 
-  int staticSample;
-
   int nmo;        //!<Number of molecular orbitals
   int ndet;       //!<Number of determinants
   int ndim;       //!<Number of (spacial) dimensions each electron has

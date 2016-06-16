@@ -76,7 +76,6 @@ void Backflow_pf_wf::init(Wavefunction_data * wfdata)
   updateEverythingLap=1;
   sampleAttached=0;
   dataAttached=0;
-  staticSample=0;
   
   coor_grad.Resize(tote,tote,ndim,ndim);
   coor_lap.Resize(tote,tote,ndim);
@@ -127,18 +126,6 @@ void Backflow_pf_wf::notify(change_type change, int num)
     break;
   case data_attach:
     dataAttached=1;
-    updateEverythingVal=1;
-    updateEverythingLap=1;
-    break;
-  case sample_static:
-    //if(!parent->optimize_backflow) {
-      //save_for_static();
-      //staticSample=1;
-      //}
-    break;
-  case sample_dynamic:
-    staticSample=0;
-    //init(parent);
     updateEverythingVal=1;
     updateEverythingLap=1;
     break;

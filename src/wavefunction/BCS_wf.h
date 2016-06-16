@@ -158,8 +158,6 @@ private:
   //D_ij = grad_i phi(r_i,r_j) for i < nup and
   //D_ij = grad_j phi(r_i,r_j) for i >= nup
 
-  //int staticSample;
-
   //int nmo;      //!<Number of molecular orbitals
   int ndet;       //!<Number of determinants
   int ndim;       //!<Number of (spacial) dimensions each electron has

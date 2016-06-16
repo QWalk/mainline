@@ -256,7 +256,6 @@ private:
   int updateEverythingLap;
   int sampleAttached;
   int dataAttached;
-  int staticSample;
   int parmChanged;
 
   

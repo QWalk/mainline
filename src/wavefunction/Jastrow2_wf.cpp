@@ -892,12 +892,6 @@ void Jastrow2_wf::notify(change_type change, int num)
     electronIsStaleVal=1;
     electronIsStaleLap=1;
     break;
-  case sample_static:
-    staticSample=1;
-    break;
-  case sample_dynamic:
-    staticSample=0;
-    break;
   default:
     updateEverythingVal=1;
     updateEverythingLap=1;
@@ -915,7 +909,6 @@ void Jastrow2_wf::init(Wavefunction_data * wfdata) {
   electronIsStaleVal=1;
   electronIsStaleLap=1;
   updateEverythingVal=updateEverythingLap=1;
-  staticSample=0;
   parmChanged=0;
   two_body_save.Resize(nelectrons, nelectrons, 5);
   two_body_save=0;

@@ -121,9 +121,6 @@ private:
   Array2 <doublevar> gradlap;
   //!< (elec,[grad lap])
 
-
-  int staticSample;
-
   int nmo;        //!<Number of molecular orbitals
   int npf;        //!<Number of pfaffians
   int ndim;       //!<Number of (spacial) dimensions each electron has

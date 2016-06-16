@@ -121,7 +121,7 @@ public:
   //--
 private:
 
-  void save_for_static();
+ // void save_for_static();
 
   void calcVal(Pfaff_wf_data *, Sample_point *);
   void updateVal(Pfaff_wf_data *, Sample_point *, int);
@@ -149,7 +149,6 @@ private:
   Array1 <doublevar> pfaffVal;
 
   //Variables for a static(electrons not moving) calculation
-  int staticSample;
   Array3 <doublevar> saved_laplacian;
   //!<Saved laplacian for a static calculation (electron, function, [val grad lap])
 

@@ -28,11 +28,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 void Molecular_system::notify(change_type change, int n)
 {
-  switch(change)
-  {
-  case sample_static:
-    //pseudo.setStatic(1);
-    break;
+  switch(change) {
   default:
     cout << "WARNING: Molecular system got a signal that it doesn't know: "
     << change << endl;

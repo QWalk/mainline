@@ -71,7 +71,6 @@ void Backflow_wf::init(Wavefunction_data * wfdata)
   updateEverythingLap=1;
   sampleAttached=0;
   dataAttached=0;
-  staticSample=0;
 
 
   coor_grad.Resize(tote,tote,ndim,ndim);
@@ -123,18 +122,6 @@ void Backflow_wf::notify(change_type change, int num)
     break;
   case data_attach:
     dataAttached=1;
-    updateEverythingVal=1;
-    updateEverythingLap=1;
-    break;
-  case sample_static:
-    //if(!parent->optimize_backflow) {
-      //save_for_static();
-      //staticSample=1;
-      //}
-    break;
-  case sample_dynamic:
-    staticSample=0;
-    //init(parent);
     updateEverythingVal=1;
     updateEverythingLap=1;
     break;
@@ -191,12 +178,12 @@ void Backflow_wf::updateVal(Wavefunction_data * wfdata,
     updateEverythingVal=0;
     electronIsStaleVal=0;
   }
-  else { 
+  else {
     for(int e=0; e< nelectrons(0)+nelectrons(1); e++) {
       if(electronIsStaleVal(e)) {
-	calcVal(sample);
-	//updateVal(e,sample);
-	electronIsStaleVal=0;
+        calcVal(sample);
+        //updateVal(e,sample);
+        electronIsStaleVal=0;
       }
     }
   }
@@ -223,9 +210,9 @@ void Backflow_wf::updateLap( Wavefunction_data * wfdata,
   else {
     for(int e=0; e< nelectrons(0)+nelectrons(1); e++) {
       if(electronIsStaleLap(e)) {
-	calcLap(sample);
-	electronIsStaleLap(e)=0;
-	electronIsStaleVal(e)=0;
+        calcLap(sample);
+        electronIsStaleLap(e)=0;
+        electronIsStaleVal(e)=0;
       }
     }
     
