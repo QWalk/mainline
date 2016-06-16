@@ -46,7 +46,6 @@ class Excitation_list {
 
 template <class T> void Excitation_list::clark_updates(Array2 <T> & ginv, Array2 <T> & M,
      int s, Array1 <T> & ratios) { 
-  int norb=M.GetDim(1);
   int ne=M.GetDim(0);
   int nex=excitations.GetDim(0);
 

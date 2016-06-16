@@ -75,10 +75,8 @@ struct Parm_deriv_return {
   Array2 <doublevar> hessian;  
   Array3 <doublevar> gradderiv; //Parameter derivative of the gradient of the wave function
   //indices are (parameter,electron,[gradx,grady,gradz,lap])
-//  Array1 <doublevar> lapderiv;  //Parameter derivative of the laplacian of the wave function
   Array2 <doublevar> val_gradient; //Electron derivative of the wave function (needed to combine lapderiv for multiplication of wave functions)
-//  Array1 <bool> is_linear;
-  Parm_deriv_return() { 
+  Parm_deriv_return() {
     need_hessian=0;
     need_lapderiv=0;
     nparms_start=nparms_end=0;
@@ -145,14 +143,6 @@ public:
     return 1;
   }
 
-  /*!
-    \brief
-    Initialize with a wavefunction_data(should it be private, since
-    wf_data is a friend, usually?)
-  */
-  virtual void init(Wavefunction_data * )
-  {error("This Wavefunction object doesn't have init");}
-
 
   virtual void updateVal(Wavefunction_data *, Sample_point *)=0;
   virtual void updateLap(Wavefunction_data *, Sample_point *)=0;
@@ -194,14 +184,12 @@ public:
   virtual void getSymmetricVal(Wavefunction_data *, int, Wf_return &)=0;
 
 
-
   /*!
     \brief
     generate the correct Wavefunction_storage object to store an electron
     update
    */
   virtual void generateStorage(Wavefunction_storage * & wfstore)=0;
-
 
   /*!
     \brief
@@ -233,30 +221,6 @@ public:
   {error("This Wavefunction object doesn't have two electron storage");}
 
 
-  /*!
-    \brief
-    Stores wavefunction parameter independent values to the given array.
-
-    Find out the size of the array from Wavefunction_data::valSize().
-    There are no assertions over what is in the array, or what order,
-    so it should be treated as a black box.
-   */
-  //virtual void storeParmIndVal(Wavefunction_data *, Sample_point *,
-  //                             int, Array1 <doublevar> & )=0;
-  /*!
-    \brief
-    The companion operation to storeParmIndVal.  Takes the array given by that
-    function and turns it into the correct return for the current parameter set.
-    (ala getVal())
-   */
-  //virtual void getParmDepVal(Wavefunction_data *, Sample_point *,
-  //                           int, //!< electron number
-  //                           Array1 <doublevar> &,
-                             //!< values from storeParmIndVal
-  //                           Wf_return &
-                             //!< return values, same as from getVal()
-  //                          )=0;
-
   /*! \brief
     Plots 1d functions from inside the wave function, e.g. constituents
     of the Jastrow factor. Called from PLOT1D method.
@@ -278,10 +242,9 @@ public:
     An option for developers to muck around in the internals.
 
 
-    This isn't really a good function to use, but if you are doing
+    This function should be used only if you are doing
     development, you can define this for the function you're working
-    on to do averages, etc.  This can be removed for release, so
-    don't leave it hanging around code.
+    on to do averages, etc. Don't depend on this in any way.
    */
   virtual void developerAccess(Wavefunction_data *, Sample_point *,
                                Array1 <doublevar> &, Array1 <doublevar> &)
@@ -322,8 +285,7 @@ public:
       delete sampStore;
   }
 
-  void initialize(Sample_point * sample, Wavefunction * wf)
-  {
+  void initialize(Sample_point * sample, Wavefunction * wf) {
     assert(wf != NULL);
     if(wfStore != NULL) delete wfStore;
     if(sampStore != NULL ) delete sampStore;

@@ -844,10 +844,11 @@ int Jastrow2_wf_data::showinfo( ostream & os) {
 
 void Jastrow2_wf_data::generateWavefunction(Wavefunction * & wf) {
   assert(wf==NULL);
-  wf=new Jastrow2_wf;
-  wf->init(this);
-  attachObserver(wf);
-  wfObserver.push_back(wf);
+  Jastrow2_wf * jwf=new Jastrow2_wf;
+  jwf->init(this);
+  attachObserver(jwf);
+  wfObserver.push_back(jwf);
+  wf=jwf;
 }
 
 

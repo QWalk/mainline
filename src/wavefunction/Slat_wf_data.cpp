@@ -239,24 +239,6 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
   }
 
 
-  spin.Resize(tote);
-  opspin.Resize(tote);
-  rede.Resize(tote);
-
-  int eup=nelectrons(0);
-  for(int e=0; e<eup; e++) {
-    spin(e)=0;
-    opspin(e)=1;
-    rede(e)=e;
-  }
-  for(int e=eup; e<tote; e++) {
-    spin(e)=1;
-    opspin(e)=0;
-    rede(e)=e-eup;
-  }
-
-
-
   //Find what MO's are necessary for each spin
   totoccupation.Resize(2);
   for(int s=0; s<2; s++) {
