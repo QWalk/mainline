@@ -28,6 +28,8 @@ def default_job_record(filename):
 
   #DFT-specific options
   job_record['dft']['symmetrized'] = False # True to use spacegroup symmetry, False for primitive symmetry
+  job_record['dft']['levshift'] = None # [shift,lock]; shift is the shift in Hartree, lock (0/1) is whether to lock into a non-conducting state
+
   job_record['dft']['functional']={'exchange':'PBE','correlation':'PBE','hybrid':25}
   job_record['dft']['basis']=[0.2,3,3]
   job_record['dft']['kmesh']=[8,8,8]
