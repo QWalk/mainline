@@ -303,13 +303,18 @@ class QWalkEnergyOptimize:
         quit()
     
       fname="qw_0.%s.enopt"%jast
-      # TODO make restart work with 2 and 3-body jastrow
       if restart:
         if not os.path.isfile("%s.wfout"%fname):
           print("Could not find %s.wfout"%fname)
           return "failed"
 
         os.system("cp %s.wfout %s.wfin"%(fname,fname))
+        #Remove the .config file because sometimes the number of
+        #processors changes.
+        try:
+          os.remove("%s.config"%fname)
+        except:
+          pass
       else:
         os.system("sed s/OPTIMIZEBASIS//g qw_0.%s.opt.wfout > %s.wfin"%(jast,fname))
 
