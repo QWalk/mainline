@@ -744,7 +744,11 @@ class QWalkRunDMC:
     statuses=[]
     thresh=options['target_error']
     for r in ret:
-      if r['results']['properties']['total_energy']['error'][0] < thresh:
+      if r['results'] == None:
+        basename = self.gen_basename(r['knum'],r['timestep'],r['localization'],r['jastrow'],r['optimizer'])
+        print('DMC Calculation not finished: %s'%basename)
+        statuses.append('not_finished')
+      elif r['results']['properties']['total_energy']['error'][0] < thresh:
         statuses.append("ok")
       else:
         print("Stochastic error too large: {0:.2e}>{1:.2e}".format(
