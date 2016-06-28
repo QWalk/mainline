@@ -127,7 +127,7 @@ class RunCrystal:
 
     return 'failed'
 #-------------------------------------------------      
-  def _consistent_spins(self,outfn,init_spins,small_spin=1.0):
+  def _consistent_spins(self,outfn,init_spins,small_spin=0.1):
     f = open(outfn, 'r')
     lines = f.readlines()
     moms=[]
