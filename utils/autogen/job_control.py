@@ -39,6 +39,17 @@ def default_job_record(filename):
   job_record['dft']['fmixing']=99
   job_record['dft']['broyden']=[0.01,60,8]
   job_record['dft']['maxcycle']=200
+  job_record['dft']['madelind']=50
+    # Geometry relaxation:                                                                                                                              
+  # None = no relaxation                                                                                                                              
+  # ionic = atoms only                                                                                                                                
+  # cell = lattice parameters only                                                                                                                    
+  # full = both ionic and lattice parameters                                                                                                          
+  # iter = iterative full optimization (atom -> cell -> atom -> ...)                                                                                  
+  # redundant = full optimization of atomic positions and cell parameters in redundant internal coordinates                                           
+  job_record['dft']['relax'] = None
+  job_record['dft']['relax_cvol'] = False
+  job_record['dft']['relax_restart'] = False
   # None = fresh run, else copy this path to fort.20;
   # e.g. job_record['dft']['restart_from'] = ../successful_run/fort.9
   job_record['dft']['restart_from']=None
