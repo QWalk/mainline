@@ -700,19 +700,21 @@ class QWalkRunDMC:
           for jast in options['jastrow']:
             for opt in options['optimizer']:
               basename=self.gen_basename(k,t,loc,jast,opt)
+              entry={}
+              entry['knum']=k
+              entry['timestep']=t
+              entry['localization']=loc
+              entry['jastrow']=jast
+              entry['optimizer']=opt
+              entry['results'] = None
               if os.path.isfile("%s.dmc.log"%basename):
-                entry={}
-                entry['knum']=k
-                entry['timestep']=t
-                entry['localization']=loc
-                entry['jastrow']=jast
-                entry['optimizer']=opt
                 try:
                   os.system("gosling -json %s.dmc.log > %s.json"%(basename,basename))
                   entry['results']=json.load(open("%s.json"%basename))
-                  ret.append(entry)
                 except:
                   print("trouble processing",basename)
+              ret.append(entry)
+
     return ret
 
 #-----------------------------------------------
@@ -747,7 +749,11 @@ class QWalkRunDMC:
     statuses=[]
     thresh=options['target_error']
     for r in ret:
-      if r['results']['properties']['total_energy']['error'][0] < thresh:
+      if r['results'] == None:
+        basename = self.gen_basename(r['knum'],r['timestep'],r['localization'],r['jastrow'],r['optimizer'])
+        print('DMC Calculation not finished: %s'%basename)
+        statuses.append('not_finished')
+      elif r['results']['properties']['total_energy']['error'][0] < thresh:
         statuses.append("ok")
       else:
         print("Stochastic error too large: {0:.2e}>{1:.2e}".format(
