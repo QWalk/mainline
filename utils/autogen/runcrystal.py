@@ -35,7 +35,7 @@ class RunCrystal:
 #-------------------------------------------------      
   # This can be made more efficient if it's a problem: searches whole file for
   # each query.
-  def check_outputfile(self,outfilename,acceptable_scf=0.0):
+  def check_outputfile(self,outfilename,acceptable_scf=10.0):
     """ Check output file. 
 
     Current return values:
