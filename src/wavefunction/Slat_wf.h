@@ -247,7 +247,7 @@ template <class T> inline void Slat_wf<T>::init(Wavefunction_data * wfdata,
   for(int e=nelectrons(0); e< nelectrons(0)+nelectrons(1); e++) {
     rede(e)=e-nelectrons(0);
     spin(e)=1;
-    opspin(e)=1;
+    opspin(e)=0;
   }
   //Properties and intermediate calculation storage.
   moVal.Resize(5,   tote, nmo);
