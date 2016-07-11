@@ -56,4 +56,29 @@ for k,v in success.items():
   print(k,v)
 if False in allsuc:
   exit(1)
+
+
+print("""###########################################
+Checking DMC for the H atom. 
+This tests the basic DMC algorithm.
+The reference is the exact result.
+################################################""")
+try:
+  subprocess.check_output(['rm','qw.dmc.log','qw.dmc.config'])
+except:
+  pass
+subprocess.check_output([QW,'qw.dmc'])
+
+json_str=subprocess.check_output([GOS,'-json','qw.dmc.log'])
+dat=json.loads(json_str)
+
+en=dat['properties']['total_energy']['value'][0]
+err=dat['properties']['total_energy']['error'][0]
+
+print("Exact: -0.5")
+print("Data: ",en,"+/-",err)
+if not check_errorbars(-0.5,en,err):
+  print("FAILED")
+  exit(1)
+print("PASSED")
 exit(0)

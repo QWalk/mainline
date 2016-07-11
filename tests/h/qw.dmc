@@ -1,0 +1,5 @@
+
+method { DMC timestep 0.005 nblock 20  } 
+include qw.sys
+trialfunc { include qw.slater } 
+
