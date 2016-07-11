@@ -1,0 +1,4 @@
+method { VMC } 
+include qw.sys
+trialfunc { include qw.slater } 
+
