@@ -35,6 +35,6 @@ print("This run:",run_data)
 #I added a factor of 2 fudge factor to account for differences in optimization.
 if check_errorbars(ref_data[0],run_data[0],2.*math.sqrt(ref_data[1]**2+run_data[1]**2)):
   print("PASSED")
-  exit(0)
+  sys.exit(0)
 print("FAILED")
-exit(1)
+sys.exit(1)
