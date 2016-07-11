@@ -21,7 +21,10 @@ This tests the orbital evaluation routine and the VMC method.
 The reference is the Hartree-Fock result from GAMESS.
 ################################################""")
 
-subprocess.check_output(['rm','qw.hf.log','qw.hf.config'])
+try:
+  subprocess.check_output(['rm','qw.hf.log','qw.hf.config'])
+except:
+  pass
 subprocess.check_output([QW,'qw.hf'])
 json_str=subprocess.check_output([GOS,'-json','qw.hf.log'])
 
