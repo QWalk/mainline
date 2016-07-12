@@ -329,54 +329,54 @@ int main(int argc, char ** argv) {
       words.clear();
       split(line, space, words);
       if(words[0]=="DAVIDSON" && words[1]=="METHOD"){
-	if(printout>1) cout <<"found DAVIDSON METHOD CI-MATRIX DIAGONALIZATION"<<endl;
-	//read in info on  DAVIDSON METHOD CI-MATRIX DIAGONALIZATION   
-	while(getline(is, line)) {
-	  words.clear();
-	  split(line, space, words);
-	  if(words[0]=="ITER." && words[2]=="IMPROVED") {
-	    while(getline(is, line)) {
-	      if(printout>1) cout << line <<endl;
-	      if(line=="") break;
-	    }
-	  }//---done energy info
-	  //cout << line<<endl;
-	  words.clear();
-	  split(line, space, words);
-	  //read in contributing CSFs
-	  if (words[0]=="STATE"&& words[1]=="#" && words[3]=="ENERGY" && atoi(words[2].c_str())==nstate){
-	    cout << "Printing CSFs for state : " << atoi(words[2].c_str()) << endl;
-	    int i=0;
-	    double smallest_csf_weight=1.0;
-	    while(getline(is,line)) {
-	      words.clear();
-	      split(line, space, words);
-	      //cout << line<<endl;
-	      if(words[0]=="......" || words[0]=="STATE") break;
-	      
-	      if(words.size()>1 && atoi(words[0].c_str())>0  && !(words[0]=="---") && !(words[0]=="CSF")){
-		csf.push_back(atoi(words[0].c_str())-1);
-		csf_weights.push_back(atof(words[1].c_str()));
-		csf_occupations_str.push_back(words[2]);
-		if(smallest_csf_weight > abs(csf_weights[i]))
-		  smallest_csf_weight=abs(csf_weights[i]);
-		i++;
-	      }
-	      else if (words.size()==1){
-		csf_occupations_str.back()+=words[0];
-	      }
-	    }
-	    if(csf.size()>0){
-	      cout <<"Found "<<csf.size()<<" contributing CSFs with smallest weight of "<<smallest_csf_weight<<endl;
-	      if(printout>1)
-		cout <<"MB: to increase printout set PRTTOL smaller than "<<smallest_csf_weight<<" in $GUGDIA"<<endl;
-	    }
-	    else{
-	      cout <<"did not find any CSF COEF OCCUPANCY array in the DAVIDSON METHOD CI-MATRIX DIAGONALIZATION printout"<<endl;
-	      exit(1);
-	    }
-	  }
-	}
+        if(printout>1) cout <<"found DAVIDSON METHOD CI-MATRIX DIAGONALIZATION"<<endl;
+        //read in info on  DAVIDSON METHOD CI-MATRIX DIAGONALIZATION   
+        while(getline(is, line)) {
+          words.clear();
+          split(line, space, words);
+          if(words[0]=="ITER." && words[2]=="IMPROVED") {
+            while(getline(is, line)) {
+              if(printout>1) cout << line <<endl;
+              if(line=="") break;
+            }
+          }//---done energy info
+          //cout << line<<endl;
+          words.clear();
+          split(line, space, words);
+          //read in contributing CSFs
+          if (words[0]=="STATE"&& words[1]=="#" && words[3]=="ENERGY" && atoi(words[2].c_str())==nstate){
+            cout << "Printing CSFs for state : " << atoi(words[2].c_str()) << endl;
+            int i=0;
+            double smallest_csf_weight=1.0;
+            while(getline(is,line)) {
+              words.clear();
+              split(line, space, words);
+              //cout << "in state : " << line<<endl;
+              if(words.size() >0 and (words[0]=="......" || words[0]=="STATE")) break;
+
+              if(words.size()>1 && atoi(words[0].c_str())>0  && !(words[0]=="---") && !(words[0]=="CSF")){
+                csf.push_back(atoi(words[0].c_str())-1);
+                csf_weights.push_back(atof(words[1].c_str()));
+                csf_occupations_str.push_back(words[2]);
+                if(smallest_csf_weight > abs(csf_weights[i]))
+                  smallest_csf_weight=abs(csf_weights[i]);
+                i++;
+              }
+              else if (words.size()==1){
+                csf_occupations_str.back()+=words[0];
+              }
+            }
+            if(csf.size()>0){
+              cout <<"Found "<<csf.size()<<" contributing CSFs with smallest weight of "<<smallest_csf_weight<<endl;
+              if(printout>1)
+                cout <<"MB: to increase printout set PRTTOL smaller than "<<smallest_csf_weight<<" in $GUGDIA"<<endl;
+            }
+            else{
+              cout <<"did not find any CSF COEF OCCUPANCY array in the DAVIDSON METHOD CI-MATRIX DIAGONALIZATION printout"<<endl;
+              exit(1);
+            }
+          }
+        }
       }//if DAVIDSON METHOD CI-MATRIX DIAGONALIZATION
     }
     is.close();
@@ -384,8 +384,8 @@ int main(int argc, char ** argv) {
     vector <vector <double> > det_weights(csf.size());
     vector <vector <string> > det_str(csf.size());
 
-    
-    
+
+
     int counter_csf=0;
     is.open(infilename.c_str());
     while(getline(is, line)) {
