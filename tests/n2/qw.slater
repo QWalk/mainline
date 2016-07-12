@@ -1,0 +1,16 @@
+  SLATER 
+  ORBITALS {
+  CUTOFF_MO
+    MAGNIFY 1
+    NMO 5
+    ORBFILE qw.orb
+    INCLUDE qw.basis
+    CENTERS { USEGLOBAL } 
+  }
+
+  DETWT { 1.0 } 
+  STATES {
+     #Spin up orbitals
+   1 2 3 4 5 
+     #Spin down orbitals 
+   1 2 3 4 5   }

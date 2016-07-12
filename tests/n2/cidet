@@ -1,0 +1,93 @@
+   DETWT {
+   # NDET = 28
+     0.931545   -0.183132   -0.183132  0.09086253  0.09086253   -0.087635  
+   0.06788747  0.06788747  0.06735781  0.06735781  -0.06735781  -0.06735781  
+   0.03964662  0.03964662  -0.03964662  -0.03964662  0.02771119  0.02771119  
+   -0.02771119  -0.02771119   -0.026203   -0.026203   -0.024382   -0.024382  
+   0.02297507  0.02297507   -0.017542   -0.017542  }
+   STATES {
+   #  Determinant 1: weight: 0.931545
+   1  2  3  4  5  
+   1  2  3  4  5  
+   #  Determinant 2: weight: -0.183132
+   1  2  3  5  7  
+   1  2  3  5  7  
+   #  Determinant 3: weight: -0.183132
+   1  2  3  4  6  
+   1  2  3  4  6  
+   #  Determinant 4: weight: 0.09086253
+   1  2  3  5  7  
+   1  2  3  4  6  
+   #  Determinant 5: weight: 0.09086253
+   1  2  3  4  6  
+   1  2  3  5  7  
+   #  Determinant 6: weight: -0.087635
+   1  2  4  5  8  
+   1  2  4  5  8  
+   #  Determinant 7: weight: 0.06788747
+   1  2  3  5  6  
+   1  2  3  4  7  
+   #  Determinant 8: weight: 0.06788747
+   1  2  3  4  7  
+   1  2  3  5  6  
+   #  Determinant 9: weight: 0.06735781
+   1  2  3  5  7  
+   1  2  4  5  8  
+   #  Determinant 10: weight: 0.06735781
+   1  2  4  5  8  
+   1  2  3  5  7  
+   #  Determinant 11: weight: -0.06735781
+   1  2  3  4  6  
+   1  2  4  5  8  
+   #  Determinant 12: weight: -0.06735781
+   1  2  4  5  8  
+   1  2  3  4  6  
+   #  Determinant 13: weight: 0.03964662
+   1  2  3  4  5  
+   1  2  5  7  8  
+   #  Determinant 14: weight: 0.03964662
+   1  2  5  7  8  
+   1  2  3  4  5  
+   #  Determinant 15: weight: -0.03964662
+   1  2  3  4  5  
+   1  2  4  6  8  
+   #  Determinant 16: weight: -0.03964662
+   1  2  4  6  8  
+   1  2  3  4  5  
+   #  Determinant 17: weight: 0.02771119
+   1  2  3  5  8  
+   1  2  4  5  7  
+   #  Determinant 18: weight: 0.02771119
+   1  2  4  5  7  
+   1  2  3  5  8  
+   #  Determinant 19: weight: -0.02771119
+   1  2  3  4  8  
+   1  2  4  5  6  
+   #  Determinant 20: weight: -0.02771119
+   1  2  4  5  6  
+   1  2  3  4  8  
+   #  Determinant 21: weight: -0.026203
+   1  2  4  5  7  
+   1  2  4  5  7  
+   #  Determinant 22: weight: -0.026203
+   1  2  4  5  6  
+   1  2  4  5  6  
+   #  Determinant 23: weight: -0.024382
+   1  2  3  4  7  
+   1  2  3  4  7  
+   #  Determinant 24: weight: -0.024382
+   1  2  3  5  6  
+   1  2  3  5  6  
+   #  Determinant 25: weight: 0.02297507
+   1  2  3  4  5  
+   1  2  3  6  7  
+   #  Determinant 26: weight: 0.02297507
+   1  2  3  6  7  
+   1  2  3  4  5  
+   #  Determinant 27: weight: -0.017542
+   1  2  3  5  8  
+   1  2  3  5  8  
+   #  Determinant 28: weight: -0.017542
+   1  2  3  4  8  
+   1  2  3  4  8  
+   }

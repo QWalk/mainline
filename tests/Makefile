@@ -1,10 +1,13 @@
-all: h.results h2.results
+all: h.test h2.test n2.test
 
 clean: 
-	rm -f *.results
+	rm -f *.test
 
-h.results: 
+h.test: 
 	cd h && ./run_test 
 
-h2.results:
+h2.test:
 	cd h2 && ./run_test 
+
+n2.test:
+	cd n2 && ./run_test
