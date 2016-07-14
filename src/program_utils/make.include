@@ -1,6 +1,5 @@
 
 MY_SOURCES:= average.cpp \
-	jeep_utils.cpp \
 	MatrixAlgebrac.cpp  \
 	ooqmc.cpp  \
 	qmc_io.cpp  \

@@ -98,7 +98,6 @@ public:
   virtual void getVal(Wavefunction_data *, int, Wf_return &);
   virtual void getLap(Wavefunction_data *, int, Wf_return &);
 
-  virtual void getDensity(Wavefunction_data *,int, Array2 <doublevar> &);
 
   virtual void saveUpdate(Sample_point *, int e, Wavefunction_storage *);
   virtual void restoreUpdate(Sample_point *, int e, Wavefunction_storage *);
@@ -107,13 +106,6 @@ public:
   virtual void saveUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *);
   virtual void restoreUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *);
 
-  virtual void storeParmIndVal(Wavefunction_data *, Sample_point *,
-                               int, Array1 <doublevar> & );
-  virtual void getParmDepVal(Wavefunction_data *,
-                             Sample_point *,
-                             int,
-                             Array1 <doublevar> &,
-                             Wf_return &);
 
   virtual int getParmDeriv(Wavefunction_data *, 
 			   Sample_point *,
@@ -165,8 +157,6 @@ private:
   //Keeps the derivatives of the pairing wave functions:
   //D_ij = grad_i phi(r_i,r_j) for i < nup and
   //D_ij = grad_j phi(r_i,r_j) for i >= nup
-
-  //int staticSample;
 
   //int nmo;      //!<Number of molecular orbitals
   int ndet;       //!<Number of determinants

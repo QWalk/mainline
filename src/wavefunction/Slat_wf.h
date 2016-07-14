@@ -83,7 +83,6 @@ public:
   virtual void getVal(Wavefunction_data *, int, Wf_return &);
   virtual void getLap(Wavefunction_data *, int, Wf_return &);
   virtual void evalTestPos(Array1 <doublevar> & pos, Sample_point *, Array1 <Wf_return> & wf);
-  virtual void getDensity(Wavefunction_data *,int, Array2 <doublevar> &);
 
   virtual void saveUpdate(Sample_point *, int e, Wavefunction_storage *);
   virtual void restoreUpdate(Sample_point *, int e, Wavefunction_storage *);
@@ -92,13 +91,6 @@ public:
   virtual void saveUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *);
   virtual void restoreUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *);
   
-  virtual void storeParmIndVal(Wavefunction_data *, Sample_point *,
-                               int, Array1 <doublevar> & );
-  virtual void getParmDepVal(Wavefunction_data *,
-                             Sample_point *,
-                             int,
-                             Array1 <doublevar> &,
-                             Wf_return &);
 
   virtual int getParmDeriv(Wavefunction_data *, 
 			   Sample_point *,
@@ -117,7 +109,6 @@ public:
   //--
 private:
 
-  void save_for_static();
 
   void updateInverse(Slat_wf_data *, int e);
   int updateValNoInverse(Slat_wf_data *, int e); 
@@ -154,11 +145,6 @@ private:
 
   Array3 <log_value<T> > detVal; //function #, determinant #, spin
 
-  //Variables for a static(electrons not moving) calculation
-  int staticSample;
-  Array3 <T> saved_laplacian;
-  //!<Saved laplacian for a static calculation (electron, function, [val grad lap])
-
 
   int nmo;        //!<Number of molecular orbitals
   int ndet;       //!<Number of determinants
@@ -166,6 +152,8 @@ private:
   int nfunc_;      //!<Number of functions this class represents.
   Array1 <int> nelectrons; //!< 2 elements, for spin up and down
   Array1 <int> spin;       //!< lookup table for the spin of a given electron
+  Array1 <int> rede;       //!< number of the electron within its spin channel
+  Array1 <int> opspin;
 
 
   Array2 <T> work1, work2; //!< Work matrices
@@ -249,7 +237,18 @@ template <class T> inline void Slat_wf<T>::init(Wavefunction_data * wfdata,
   ndim=3;
 
   spin.Resize(tote);
-  spin=dataptr->spin;
+  rede.Resize(tote);
+  opspin.Resize(tote);
+  for(int e=0; e < nelectrons(0); e++) {
+    spin(e)=0;
+    rede(e)=e;
+    opspin(e)=1;
+  }
+  for(int e=nelectrons(0); e< nelectrons(0)+nelectrons(1); e++) {
+    rede(e)=e-nelectrons(0);
+    spin(e)=1;
+    opspin(e)=0;
+  }
   //Properties and intermediate calculation storage.
   moVal.Resize(5,   tote, nmo);
   updatedMoVal.Resize(nmo,5);
@@ -282,7 +281,6 @@ template <class T> inline void Slat_wf<T>::init(Wavefunction_data * wfdata,
   updateEverythingLap=1;
   sampleAttached=0;
   dataAttached=0;
-  staticSample=0;
   
   inverseStale=0;
   lastValUpdate=0;
@@ -291,162 +289,114 @@ template <class T> inline void Slat_wf<T>::init(Wavefunction_data * wfdata,
 //----------------------------------------------------------------------
 
 /*!
-Behavior under staticSample:  if sample_static is set, then
-we ignore all electron moves in the main algorithm, and the only way
-to update based on a move is by the getParmDepVal function.  The
-regular update functions will not work in this case.
-*/
+ */
 template<class T> inline void Slat_wf<T>::notify(change_type change, int num)
 {
-  switch(change)
-  {
-  case electron_move:
-    if(staticSample==0) {
+  switch(change) {
+    case electron_move:
       electronIsStaleVal(num)=1;
       electronIsStaleLap(num)=1;
-    }
-    break;
-  case all_electrons_move:
-    if(staticSample==0) {
+      break;
+    case all_electrons_move:
       updateEverythingVal=1;
       updateEverythingLap=1;
-    }
-    break;
-  case wf_parm_change:  
-  case all_wf_parms_change:
-    if(parent->optimize_mo  ) {
-      updateEverythingVal=1;
-      updateEverythingLap=1;
-    }
-    break;
-  case sample_attach:
-    sampleAttached=1;
-    updateEverythingVal=1;
-    updateEverythingLap=1;
-    break;
-  case data_attach:
-    dataAttached=1;
-    updateEverythingVal=1;
-    updateEverythingLap=1;
-    break;
-  case sample_static:
-    if(!parent->optimize_mo) {
-      save_for_static();
-      staticSample=1;
-    }
-    break;
-  case sample_dynamic:
-    staticSample=0;
-    updateEverythingVal=1;
-    updateEverythingLap=1;
-    break;
-  default:
-    updateEverythingVal=1;
-    updateEverythingLap=1;
-  }
-}
-
-//----------------------------------------------------------------------
-
-template<class T> inline void Slat_wf<T>::save_for_static() {
-  assert(staticSample==0);
-
-  if(!parent->optimize_mo && !parent->optimize_det) {
-    
-    int totelectrons=nelectrons(0)+nelectrons(1);
-    saved_laplacian.Resize(totelectrons, nfunc_, 6);
-    Wf_return templap(nfunc_, 5);
-    
-    for(int e=0; e< totelectrons; e++) {
-      getLap(parent, e, templap);
-      for(int f=0; f< nfunc_; f++) {
-      for(int i=0; i< 5; i++) saved_laplacian(e,f,i)=templap.amp(f,i);
-      //saved_laplacian(e,f,5)=templap.phase(f,0);
-      saved_laplacian(e,f,5)=templap.sign(f);
+      break;
+    case wf_parm_change:
+    case all_wf_parms_change:
+      if(parent->optimize_mo  ) {
+        updateEverythingVal=1;
+        updateEverythingLap=1;
       }
-    }
+      break;
+    case sample_attach:
+      sampleAttached=1;
+      updateEverythingVal=1;
+      updateEverythingLap=1;
+      break;
+    case data_attach:
+      dataAttached=1;
+      updateEverythingVal=1;
+      updateEverythingLap=1;
+      break;
+    default:
+      updateEverythingVal=1;
+      updateEverythingLap=1;
   }
-
 }
+
 
 //----------------------------------------------------------------------
 
 template<class T>inline void Slat_wf<T>::saveUpdate(Sample_point * sample, int e,
-                         Wavefunction_storage * wfstore)
-{
-
-  if(staticSample==0) {
-    Slat_wf_storage<T> * store;
-    recast(wfstore, store);
-
-    //presumably, if we care enough to save the update, we care enough
-    //to have the inverse up to date
-    if(inverseStale) { 
-      detVal=lastDetVal;
-      updateInverse(parent, lastValUpdate);
-      inverseStale=0;
+                                                    Wavefunction_storage * wfstore) {
+  
+  Slat_wf_storage<T> * store;
+  recast(wfstore, store);
+  
+  //presumably, if we care enough to save the update, we care enough
+  //to have the inverse up to date
+  if(inverseStale) {
+    detVal=lastDetVal;
+    updateInverse(parent, lastValUpdate);
+    inverseStale=0;
+  }
+  int s=spin(e);
+  
+  int ndet_save=ndet;
+  if(parent->use_clark_updates) ndet_save=1;
+  for(int f=0; f< nfunc_; f++) {
+    for(int det=0; det<ndet_save; det++) {
+      store->inverse_temp(f,det,s)=inverse(f,det,s);
     }
-    int s=spin(e);
-
-    int ndet_save=ndet;
-    if(parent->use_clark_updates) ndet_save=1;
-    for(int f=0; f< nfunc_; f++) {
-      for(int det=0; det<ndet_save; det++) {
-        store->inverse_temp(f,det,s)=inverse(f,det,s);
-      }
-      for(int det=0; det < ndet; det++) { 
-        store->detVal_temp(f,det,s)=detVal(f,det,s);
-      }
-    }
-
-
-    int norb=moVal.GetDim(2);
-    for(int d=0; d< 5; d++) {
-      for(int i=0; i< norb; i++) {
-        store->moVal_temp(d,i)=moVal(d,e,i);
-      }
+    for(int det=0; det < ndet; det++) {
+      store->detVal_temp(f,det,s)=detVal(f,det,s);
     }
   }
-
+  
+  
+  int norb=moVal.GetDim(2);
+  for(int d=0; d< 5; d++) {
+    for(int i=0; i< norb; i++) {
+      store->moVal_temp(d,i)=moVal(d,e,i);
+    }
+  }
+  
 
 }
 
 //----------------------------------------------------------------------
 
 template<class T>inline void Slat_wf<T>::restoreUpdate(Sample_point * sample, int e,
-                            Wavefunction_storage * wfstore)
-{
+                            Wavefunction_storage * wfstore) {
 
-  if(staticSample==0) {
-    Slat_wf_storage<T> * store;
-    recast(wfstore, store);
-    int s=spin(e);
-    inverseStale=0;
-    
-    for(int j=0; j<5; j++) {
-      for(int i=0; i<moVal.GetDim(2); i++) {
-        moVal(j,e,i)=store->moVal_temp(j,i);
-      }
+  Slat_wf_storage<T> * store;
+  recast(wfstore, store);
+  int s=spin(e);
+  inverseStale=0;
+  
+  for(int j=0; j<5; j++) {
+    for(int i=0; i<moVal.GetDim(2); i++) {
+      moVal(j,e,i)=store->moVal_temp(j,i);
     }
-    int ndet_save=ndet;
-    if(parent->use_clark_updates) ndet_save=1;
-    
-    for(int f=0; f< nfunc_; f++) {
-      for(int det=0; det < ndet_save; det++) {
-        inverse(f,det,s)=store->inverse_temp(f,det,s);
-      }
-      for(int det=0; det < ndet; det++) { 
-        detVal(f,det,s)=store->detVal_temp(f,det,s);
-      }
-    }
-    //It seems to be faster to update the inverse than to save it and
-    //recover it.  However, it complicates the implementation too much.
-    //For now, we'll disable it.
-    //updateInverse(parent,e);
-
-    electronIsStaleVal(e)=0;
-    electronIsStaleLap(e)=0;
   }
+  int ndet_save=ndet;
+  if(parent->use_clark_updates) ndet_save=1;
+  
+  for(int f=0; f< nfunc_; f++) {
+    for(int det=0; det < ndet_save; det++) {
+      inverse(f,det,s)=store->inverse_temp(f,det,s);
+    }
+    for(int det=0; det < ndet; det++) {
+      detVal(f,det,s)=store->detVal_temp(f,det,s);
+    }
+  }
+  //It seems to be faster to update the inverse than to save it and
+  //recover it.  However, it complicates the implementation too much.
+  //For now, we'll disable it.
+  //updateInverse(parent,e);
+  
+  electronIsStaleVal(e)=0;
+  electronIsStaleLap(e)=0;
 
 }
 
@@ -454,47 +404,44 @@ template<class T>inline void Slat_wf<T>::restoreUpdate(Sample_point * sample, in
 
 // Added by Matous
 template <class T>inline void Slat_wf<T>::saveUpdate(Sample_point * sample, int e1, int e2,
-                         Wavefunction_storage * wfstore)
-{
+                         Wavefunction_storage * wfstore) {
 
-  if(staticSample==0) {
-    Slat_wf_storage<T> * store;
-    recast(wfstore, store);
-
-    //presumably, if we care enough to save the update, we care enough
-    //to have the inverse up to date
-    if(inverseStale) { 
-      detVal=lastDetVal;
-      updateInverse(parent, lastValUpdate);
-      inverseStale=0;
-    }
-    
-    int s1=spin(e1), s2=spin(e2);
-
-    for(int f=0; f< nfunc_; f++) {
-      for(int det=0; det<ndet; det++) {
-        if ( s1 == s2 ) {
-		store->inverse_temp(f,det,s1)=inverse(f,det,s1);
-		store->detVal_temp(f,det,s1)=detVal(f,det,s1);
-	}
-	else {
-		store->inverse_temp(f,det,s1)=inverse(f,det,s1);
-		store->inverse_temp(f,det,s2)=inverse(f,det,s2);
-		store->detVal_temp(f,det,s1)=detVal(f,det,s1);
-		store->detVal_temp(f,det,s2)=detVal(f,det,s2);
-	}
+  Slat_wf_storage<T> * store;
+  recast(wfstore, store);
+  
+  //presumably, if we care enough to save the update, we care enough
+  //to have the inverse up to date
+  if(inverseStale) {
+    detVal=lastDetVal;
+    updateInverse(parent, lastValUpdate);
+    inverseStale=0;
+  }
+  
+  int s1=spin(e1), s2=spin(e2);
+  
+  for(int f=0; f< nfunc_; f++) {
+    for(int det=0; det<ndet; det++) {
+      if ( s1 == s2 ) {
+        store->inverse_temp(f,det,s1)=inverse(f,det,s1);
+        store->detVal_temp(f,det,s1)=detVal(f,det,s1);
       }
-    }
-
-
-    for(int d=0; d< 5; d++) {
-      for(int i=0; i< moVal.GetDim(2); i++) {
-        store->moVal_temp(d,i)=moVal(d,e1,i);
-        store->moVal_temp_2(d,i)=moVal(d,e2,i);
+      else {
+        store->inverse_temp(f,det,s1)=inverse(f,det,s1);
+        store->inverse_temp(f,det,s2)=inverse(f,det,s2);
+        store->detVal_temp(f,det,s1)=detVal(f,det,s1);
+        store->detVal_temp(f,det,s2)=detVal(f,det,s2);
       }
     }
   }
-
+  
+  
+  for(int d=0; d< 5; d++) {
+    for(int i=0; i< moVal.GetDim(2); i++) {
+      store->moVal_temp(d,i)=moVal(d,e1,i);
+      store->moVal_temp_2(d,i)=moVal(d,e2,i);
+    }
+  }
+  
 
 }
 
@@ -505,39 +452,37 @@ template<class T> inline void Slat_wf<T>::restoreUpdate(Sample_point * sample, i
                             Wavefunction_storage * wfstore)
 {
 
-  if(staticSample==0) {
-    Slat_wf_storage<T> * store;
-    recast(wfstore, store);
-    
-    int s1=spin(e1), s2=spin(e2);
-    inverseStale=0;
-    
-    for(int j=0; j<5; j++) {
-      for(int i=0; i<moVal.GetDim(2); i++) {
-        moVal(j,e1,i)=store->moVal_temp(j,i);
-        moVal(j,e2,i)=store->moVal_temp_2(j,i);
-      }
+  Slat_wf_storage<T> * store;
+  recast(wfstore, store);
+  
+  int s1=spin(e1), s2=spin(e2);
+  inverseStale=0;
+  
+  for(int j=0; j<5; j++) {
+    for(int i=0; i<moVal.GetDim(2); i++) {
+      moVal(j,e1,i)=store->moVal_temp(j,i);
+      moVal(j,e2,i)=store->moVal_temp_2(j,i);
     }
-    for(int f=0; f< nfunc_; f++) {
-      for(int det=0; det < ndet; det++) {
-	      if ( s1 == s2 ) {
+  }
+  for(int f=0; f< nfunc_; f++) {
+    for(int det=0; det < ndet; det++) {
+      if ( s1 == s2 ) {
 		      inverse(f,det,s1)=store->inverse_temp(f,det,s1);
 		      detVal(f,det,s1)=store->detVal_temp(f,det,s1);
-	      }
-	      else {
+      }
+      else {
 		      inverse(f,det,s1)=store->inverse_temp(f,det,s1);
 		      inverse(f,det,s2)=store->inverse_temp(f,det,s2);
 		      detVal(f,det,s1)=store->detVal_temp(f,det,s1);
 		      detVal(f,det,s2)=store->detVal_temp(f,det,s2);
-	      }
       }
     }
-
-    electronIsStaleVal(e1)=0;
-    electronIsStaleLap(e1)=0;
-    electronIsStaleVal(e2)=0;
-    electronIsStaleLap(e2)=0;
   }
+  
+  electronIsStaleVal(e1)=0;
+  electronIsStaleLap(e1)=0;
+  electronIsStaleVal(e2)=0;
+  electronIsStaleLap(e2)=0;
 
 }
 
@@ -550,21 +495,16 @@ template <class T> inline void Slat_wf<T>::updateVal(Wavefunction_data * wfdata,
   assert(sampleAttached);
   assert(dataAttached);
 
-  Slat_wf_data * slatdata;
-  recast(wfdata, slatdata);
-
-  if(staticSample==0 || parent->optimize_mo ) {
-    if(updateEverythingVal==1) {
-      calcVal(slatdata, sample);
-      updateEverythingVal=0;
-      electronIsStaleVal=0;
-    }
-    else {
-      for(int e=0; e< nelectrons(0)+nelectrons(1); e++) {
-        if(electronIsStaleVal(e)) {
-          updateVal(slatdata, sample, e);
-          electronIsStaleVal(e)=0;
-        }
+  if(updateEverythingVal==1) {
+    calcVal(parent, sample);
+    updateEverythingVal=0;
+    electronIsStaleVal=0;
+  }
+  else {
+    for(int e=0; e< nelectrons(0)+nelectrons(1); e++) {
+      if(electronIsStaleVal(e)) {
+        updateVal(parent, sample, e);
+        electronIsStaleVal(e)=0;
       }
     }
   }
@@ -578,103 +518,28 @@ template <class T> inline void Slat_wf<T>::updateLap( Wavefunction_data * wfdata
 {
   assert(sampleAttached);
   assert(dataAttached);
-
-  Slat_wf_data * slatdata;
-  recast(wfdata, slatdata);
-  if(staticSample==0 || parent->optimize_mo ) {
-    if(updateEverythingLap==1) {
-      calcLap(slatdata, sample);
-      updateEverythingVal=0;
-      updateEverythingLap=0;
-      electronIsStaleLap=0;
-      electronIsStaleVal=0;
-    }
-    else {
-      for(int e=0; e< nelectrons(0)+nelectrons(1); e++) {
-        if(electronIsStaleLap(e)) {
-          assert(!staticSample);
-          updateLap(slatdata, sample, e);
-          electronIsStaleLap(e)=0;
-          electronIsStaleVal(e)=0;
-        }
-      }
-
-    }
-  }
-
-}
-
-//----------------------------------------------------------------------
-
-
-template <class T> inline void Slat_wf<T>::storeParmIndVal(Wavefunction_data * wfdata, Sample_point * sample,
-                              int e, Array1 <doublevar> & vals )
-{
-
-  if(parent->optimize_mo) {
-
-  }
-  else { error("parmindval not implemented yet!"); } 
-  /*
-  else if(parent->optimize_det) {
-    assert(vals.GetDim(0) >= 2*parent->detwt.GetDim(0));
-    updateVal(wfdata, sample);
-    int count=0;
-    for(int det=0; det < ndet; det++) {
-      vals(count++)=detVal(0,det,0).val();
-      vals(count++)=detVal(0,det,1).val();
-    }
+  
+  if(updateEverythingLap==1) {
+    calcLap(parent, sample);
+    updateEverythingVal=0;
+    updateEverythingLap=0;
+    electronIsStaleLap=0;
+    electronIsStaleVal=0;
   }
   else {
-    assert(vals.GetDim(0) >=2);
-    Wf_return newval(nfunc_,1);
-    updateVal(wfdata, sample);
-    getVal(wfdata, e, newval);
-    vals(0)=newval.amp(0,0);
-    vals(1)=newval.phase(0,0);
-  }
-  */
-}
-
-//----------------------------------------------------------------------
-
-template<class T> inline void Slat_wf<T>::getParmDepVal(Wavefunction_data * wfdata,
-                            Sample_point * sample,
-                            int e,
-                            Array1 <doublevar> & oldval,
-                            Wf_return & newval)
-{
-
-  if(parent->optimize_mo) {
-    updateVal(wfdata, sample);
-    getVal(wfdata, e, newval);
-  }
-  else if(parent->optimize_det) {
-    assert(oldval.GetDim(0) >=2*ndet);
-    if(nfunc_ != 1) error("Don't support several functions and ndet yet");
-    doublevar tempval=0;
-    int count=0;
-    for(int det=0; det < ndet; det++) {
-      tempval+=parent->detwt(det).val()*oldval(count)*oldval(count+1);
-      count+=2;
+    for(int e=0; e< nelectrons(0)+nelectrons(1); e++) {
+      if(electronIsStaleLap(e)) {
+        updateLap(parent, sample, e);
+        electronIsStaleLap(e)=0;
+        electronIsStaleVal(e)=0;
+      }
     }
-    newval.phase(0,0)=.5*pi*(1-sign(tempval));// pi if the function is negative
-
-    if(fabs(tempval) > 0)
-      newval.amp(0,0)=log(fabs(tempval));
-    else
-      newval.amp(0,0)=-1e3;
-  }
-  else { 
-    assert(oldval.GetDim(0) >=2);
-    assert(newval.amp.GetDim(1) >= 1);
-    assert(newval.amp.GetDim(0) >= nfunc_);
-    int counter=0;
-    newval.amp(0,0)=oldval(counter++);
-    newval.phase(0,0)=oldval(counter++);
     
   }
+
 }
+
+
 
 
 //-----------------------------------------------------------------------
@@ -698,7 +563,6 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
     inverseStale=0;
   }
   
-  //int nparms_full=parent->nparms();
   int nparms_start=derivatives.nparms_start;
   int nparms_end=derivatives.nparms_end;
   int nparms=nparms_end-nparms_start;
@@ -706,148 +570,9 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
   
   derivatives.gradient.Resize(nparms);
   derivatives.hessian.Resize(nparms, nparms);
-//  derivatives.lapderiv.Resize(nparms);
   derivatives.gradderiv.Resize(nparms,tote,4);
   derivatives.val_gradient.Resize(tote,4);
- /* 
   if(parent->optimize_mo) {
-    //get values of determinats with 1 and 2 rows differentiated
-    Array3 < Array2 <T> > detGrad(nfunc_,ndet,2);
-    Array2 < Array1 <doublevar> > BasisVal;
-    Array3 < Array2 <doublevar> > doubletrace(nfunc_,ndet,2);
-    
-    int totmo=parent->molecorb->getNmo();
-    int totcoeff=parent->molecorb->nMoCoeff();
-    int nmocoeff=totcoeff/totmo;
-    assert(nparms_full==parent->orbitals_for_optimize_mo.GetSize()*nmocoeff);
-    int etotal=nelectrons(0)+nelectrons(1);
-
-    if(nparms%nmocoeff)
-      error("The number of MAXNPARMS_AT_ONCE != n*nmocoeff/orbital ");
-
-    if(ndet>1){
-      cout<<"WARNING!!! The analytic derivatives of orbital coeficients are calculated without normalization condition."<<endl;
-      cout<<"This might be an issue for overal normalization if you have more than one determinant in your w.f."<<endl;
-      cout<<"Please contact M.B. about details/fix"<<endl;
-    }
-
-    int totmo_start=nparms_start/nmocoeff;
-    int totmo_end=nparms_end/nmocoeff;
-    int totmo_diff=totmo_end-totmo_start;
-
-
-    Array3 < Array1 <int> > which_orbitals(nfunc_,ndet,2), which_occupation(nfunc_,ndet,2);
-    Array3 <int> dfuncdet(nfunc_,ndet,2);
-    for(int f=0; f< nfunc_; f++)  
-      for(int det=0; det< ndet; det++)
-        for(int s=0; s< 2; s++) {
-          dfuncdet(f,det,s)=0;
-          vector <int> orbitals_tmp;
-          vector <int> occupation_tmp;
-          for(int i=totmo_start; i<totmo_end; i++) //because only these will be used
-            for(int ii = 0; ii < nelectrons(s); ii++) 
-              if (parent->occupation(f,det,s)(ii)==parent->orbitals_for_optimize_mo(i)){
-                dfuncdet(f,det,s)=1;
-                orbitals_tmp.push_back(i-totmo_start); //so this one starts from 0
-                occupation_tmp.push_back(ii);
-              }
-          which_orbitals(f,det,s).Resize(orbitals_tmp.size());
-          which_occupation(f,det,s).Resize(orbitals_tmp.size());
-          for(int k=0;k<which_orbitals(f,det,s).GetSize();k++){
-            which_orbitals(f,det,s)(k)=orbitals_tmp[k];
-            which_occupation(f,det,s)(k)=occupation_tmp[k];
-            //cout <<det<<"  "<<s<<"  "<<k<<" which_orbitals(f,det,s)(k) "<<which_orbitals(f,det,s)(k)
-            //	 <<" which_occupation(f,det,s)(k) " <<which_occupation(f,det,s)(k)<<endl;
-          }
-        }
-     
-    //cout <<"setting up temp arrays"<<endl;
-    for(int f=0; f< nfunc_; f++)  
-      for(int det=0; det< ndet; det++)  
-        for(int s=0;s<2;s++){
-          detGrad(f,det,s).Resize(totmo_diff,nmocoeff);
-          detGrad(f,det,s)=0.0;
-        }
-         
-    
-    //cout <<"getting BasisVal for all electrons"<<endl;
-    BasisVal.Resize(2,etotal);
-    for(int e=0; e< etotal; e++) {
-      int s=parent->spin(e);
-      int ee=parent->rede(e);
-      parent->molecorb->getBasisVal(sample, e, BasisVal(s,ee));
-      assert(BasisVal(s)(ee).GetSize()==nmocoeff);
-    }
-
-    //cout <<"getting gradients (single trace)"<<endl;
-    for(int f=0; f< nfunc_; f++)  
-      for(int det=0; det< ndet; det++) 
-        for(int s=0; s< 2; s++)
-          if(dfuncdet(f,det,s))
-            for(int orb=0;orb<which_orbitals(f,det,s).GetSize();orb++){
-              //cout <<" orb "<<orb<<endl;
-              for(int j=0;j<nmocoeff;j++)
-                for(int ee = 0; ee < nelectrons(s); ee++) {
-                  detGrad(f,det,s)(which_orbitals(f,det,s)(orb),j)+=
-                    inverse(f,det,s)(ee,which_occupation(f,det,s)(orb))*BasisVal(s,ee)(j);
-                }   
-            }
-    
-    //get the wf's val
-    T sum=0;
-    for(int det=0; det < ndet; det++) {
-      sum+=parent->detwt(det)*(detVal(0,det,0)*detVal(0,det,1)).val();
-    }
-    
-    //calculate the actual gradient and hessian
-    //cout <<"calculating the actual gradient and hessian"<<endl;
-    derivatives.gradient=0.0;
-    for(int orb=0;orb<totmo_diff;orb++)
-      for(int coef=0;coef<nmocoeff;coef++){
-        int i=orb*nmocoeff+coef;
-        derivatives.gradient(i)=0.0;
-        for(int f=0; f< nfunc_; f++)  
-          for(int det=0; det< ndet; det++){ 
-            T temp=0.0;
-            for(int s=0; s< 2; s++)
-              //if(dfuncdet(f,det,s))
-              temp+=detGrad(f,det,s)(orb,coef);
-            derivatives.gradient(i)+=(parent->detwt(det)*detVal(0,det,0)*detVal(0,det,1)*temp).val();
-          }
-        derivatives.gradient(i)/=sum;
-      }
-    
-    derivatives.hessian=0.0;
-    if(derivatives.need_hessian){
-      for(int orbi=0;orbi<totmo_diff;orbi++)
-        for(int coefi=0;coefi<nmocoeff;coefi++){
-          int i=orbi*nmocoeff+coefi;
-          for(int orbj=0;orbj<totmo_diff;orbj++)
-            for(int coefj=0;coefj<nmocoeff;coefj++){
-              int j=orbj*nmocoeff+coefj;
-              derivatives.hessian(i,j)=0.0;
-              for(int f=0; f< nfunc_; f++)  
-                for(int det=0; det< ndet; det++){
-                  doublevar temp=0;
-                  for(int s=0; s< 2; s++)
-                    if(dfuncdet(f,det,s) && orbi!=orbj){
-                      temp+=detGrad(f,det,s)(orbi,coefi)*detGrad(f,det,s)(orbj,coefj)
-                        -detGrad(f,det,s)(orbi,coefj)*detGrad(f,det,s)(orbj,coefi);
-                    }
-                  temp+=detGrad(0,det,0)(orbi,coefi)*detGrad(0,det,1)(orbj,coefj)
-                    +detGrad(0,det,0)(orbj,coefj)*detGrad(0,det,1)(orbi,coefi);
-                  derivatives.hessian(i,j)+=(parent->detwt(det)*detVal(0,det,0)*detVal(0,det,1)).val()*temp;
-                }
-              //cout <<"derivatives.hessian(i,j) "<<derivatives.hessian(i,j)<<endl;
-              derivatives.hessian(i,j)/=sum;
-              derivatives.hessian(j,i)=derivatives.hessian(i,j);
-            }
-        }
-      return 1;
-    }
-  }
-*/
-  if(parent->optimize_mo) { 
     error("don't support optimizing mo yet");
   }
   else if(parent->optimize_det) {
@@ -855,23 +580,6 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
     Array1 <log_value<doublevar> > detvals(ndet);
     Array3 <log_value <doublevar> > detgrads(ndet,tote,5);
     Array2 <log_value <doublevar> > totgrads(tote,5);
-    /*
-    for(int det=0; det < ndet; det++) {
-      log_value<doublevar> thisdet=detVal(0,det,0)*detVal(0,det,1);
-      detvals(det)=parent->detwt(det)*thisdet;
-      for(int e=0; e< tote; e++) { 
-        int s=spin(e);
-        for(int d=1; d< 5; d++) {
-          doublevar temp=0;
-          for(int j=0; j< nelectrons(s); j++) { 
-             temp+=moVal(d,e,parent->occupation(0,det,s)(j))
-               *inverse(0,det,s)(parent->rede(e),j);
-          }
-          detgrads(det,e,d)=temp*thisdet;
-        }
-      }
-    }
-    */
     for(int det=0; det < ndet; det++) {
       log_value<doublevar> thisdet=detVal(0,det,0)*detVal(0,det,1);
       detvals(det)=parent->detwt(det)*thisdet;
@@ -892,7 +600,6 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
     detsum.logval*=-1;
     derivatives.gradient=0.0;
     derivatives.gradderiv=0.0;
-    //derivatives.lapderiv=0.0;
     //---------------  Assign the value gradient
     for(int e=0; e< tote; e++) {
       for(int d=1; d< 5; d++) { 
@@ -1022,7 +729,7 @@ template <class T>inline void Slat_wf<T>::updateInverse(Slat_wf_data * dataptr, 
           modet(i)=moVal(0,e,dataptr->occupation(f,det,s)(i));
         }
         T ratio=1./InverseUpdateColumn(inverse(f,det,s),
-            modet, dataptr->rede(e),
+            modet, rede(e),
             nelectrons(s));
 
         detVal(f,det, s)=ratio*detVal(f,det, s);
@@ -1074,11 +781,11 @@ template <class T> inline int Slat_wf<T>::updateValNoInverse(Slat_wf_data * data
       
       
       T ratio=1./InverseGetNewRatio(inverse(f,det,s),
-                                            modet, dataptr->rede(e),
+                                            modet, rede(e),
                                             nelectrons(s));
 #ifdef SUPERDEBUG
       T tmpratio=InverseGetNewRatio(inverse(f,det,s),
-                                            modet, dataptr->rede(e),
+                                            modet, rede(e),
                                             nelectrons(s));
 
       cout << "Slat_wf::updateValNoInverse: " << "ratio " << ratio 
@@ -1110,7 +817,7 @@ template <class T> inline void Slat_wf<T>::updateVal( Slat_wf_data * dataptr, Sa
 
   assert(dataptr != NULL);
   sample->updateEIDist();
-  int s=dataptr->spin(e);
+  int s=spin(e);
 
   //update all the mo's that we will be using.
   molecorb->updateVal(sample, e, s,
@@ -1154,33 +861,22 @@ template <class T>inline void Slat_wf<T>::getVal(Wavefunction_data * wfdata, int
   assert(val.amp.GetDim(0) >=nfunc_);
   assert(val.amp.GetDim(1) >= 1);
  
-
-  if(staticSample==1 && parent->optimize_mo==0 && parent->optimize_det==0) {
-    //lap.phase=0;
-    for(int f=0; f< nfunc_; f++) {
-      for(int i=0; i< 1; i++) 
-        vals(f,i)=saved_laplacian(e,f,i);
-
-      //si(f)=saved_laplacian(e,f,5);
+  
+  Slat_wf_data * dataptr;
+  recast(wfdata, dataptr);
+  
+  int s=spin(e);
+  int opp=opspin(e);
+  
+  for(int f=0; f< nfunc_; f++) {
+    Array1 <log_value<T> > detvals(ndet);
+    for(int det=0; det < ndet; det++) {
+      detvals(det) = dataptr->detwt(det)*detVal(f,det,s)*detVal(f,det,opp);
     }
-  }
-  else {
-    Slat_wf_data * dataptr;
-    recast(wfdata, dataptr);
-
-    int s=dataptr->spin(e);
-    int opp=dataptr->opspin(e);
-
-    for(int f=0; f< nfunc_; f++) {
-      Array1 <log_value<T> > detvals(ndet);
-      for(int det=0; det < ndet; det++) {
-        detvals(det) = dataptr->detwt(det)*detVal(f,det,s)*detVal(f,det,opp);
-      }
-      log_value<T> totval=sum(detvals);
-      //vals(f,0)=totval.logval;
-      //si(f)=totval.sign;
-      vals(f,0)=totval;
-    }
+    log_value<T> totval=sum(detvals);
+    //vals(f,0)=totval.logval;
+    //si(f)=totval.sign;
+    vals(f,0)=totval;
   }
 
   val.setVals(vals);
@@ -1197,34 +893,6 @@ template <class T> inline void Slat_wf<T>::getSymmetricVal(Wavefunction_data * w
 
 //----------------------------------------------------------------------
 
-template <class T> inline void Slat_wf<T>::getDensity(Wavefunction_data * wfdata, int e,
-                         Array2 <doublevar> & dens)
-{
-
-  assert(dens.GetDim(0) >= nfunc_);
-  Slat_wf_data * dataptr;
-  recast(wfdata, dataptr);
-
-  int s=dataptr->spin(e);
-
-  if(ndet > 1)
-  {
-    error("Haven't done density for several determinants yet.");
-  }
-  dens=0;
-  int det=0;
-  for(int f=0; f< nfunc_; f++)
-  {
-    for(int j=0; j< nelectrons(s); j++)
-    {
-      dens(f,0)+=abs(moVal(0 , e, dataptr->occupation(f,det,s)(j) )
-                 *moVal(0,e,dataptr->occupation(f,det,s)(j)));
-    }
-  }
-
-}
-
-//----------------------------------------------------------------------------
 
 
 template <class T> inline void Slat_wf<T>::calcLap(Slat_wf_data * dataptr, Sample_point * sample)
@@ -1232,7 +900,7 @@ template <class T> inline void Slat_wf<T>::calcLap(Slat_wf_data * dataptr, Sampl
   //cout << "calcLap " << endl;
   inverseStale=0;
   for(int e=0; e< nelectrons(0)+nelectrons(1); e++)  {
-    int s=dataptr->spin(e);
+    int s=spin(e);
     sample->updateEIDist();
 
     //update all the mo's that we will be using, using the lists made in
@@ -1292,10 +960,8 @@ template <class T> inline void Slat_wf<T>::calcLap(Slat_wf_data * dataptr, Sampl
 
 template <class T> void Slat_wf<T>::getDetLap(int e, Array3<log_value <T> > &  vals ) { 
   vals.Resize(nfunc_,ndet,5);
-  int s=parent->spin(e);
-  int opp=parent->opspin(e);
-
-
+  int s=spin(e);
+  int opp=opspin(e);
 
   //Prepare the matrices we need for the inverse.
   //There is likely a way to do this via updates, but we'll
@@ -1321,7 +987,6 @@ template <class T> void Slat_wf<T>::getDetLap(int e, Array3<log_value <T> > &  v
 
       vals(f,det,0)=detvals(det);
     }
-    log_value<T> totval=sum(detvals);
     
     Array1 <log_value <T> > detgrads(ndet);
     for(int i=1; i< 5; i++) {
@@ -1330,7 +995,7 @@ template <class T> void Slat_wf<T>::getDetLap(int e, Array3<log_value <T> > &  v
           T temp=0;
           for(int j=0; j<nelectrons(s); j++) {
             temp+=moVal(i , e, parent->occupation(f,det,s)(j) )
-              *inverse(f,det,s)(parent->rede(e), j);
+              *inverse(f,det,s)(rede(e), j);
           }
           detgrads(det)=temp; 
           detgrads(det)*=detVal(f,det,s);
@@ -1342,13 +1007,13 @@ template <class T> void Slat_wf<T>::getDetLap(int e, Array3<log_value <T> > &  v
         tmpinverse=inverse(f,0,s);
 
         for(int j=0; j< n; j++) 
-          lapvec(parent->rede(e),j)=moVal(i,e,j);
+          lapvec(rede(e),j)=moVal(i,e,j);
 
         for(int j=0; j< nelectrons(s); j++) 
-          tmplapvec(j)=lapvec(parent->rede(e),parent->occupation(f,0,s)(j));
+          tmplapvec(j)=lapvec(rede(e),parent->occupation(f,0,s)(j));
 
         T baseratio=1.0/InverseUpdateColumn(tmpinverse,tmplapvec,
-            parent->rede(e),nelectrons(s));
+            rede(e),nelectrons(s));
         Array1 <T> ratios;
         parent->excitations.clark_updates(tmpinverse,lapvec,s,ratios);
         detgrads(0)=baseratio*detVal(f,0,s);
@@ -1380,35 +1045,22 @@ template <class T> void Slat_wf<T>::getLap(Wavefunction_data * wfdata,
   //Array1 <doublevar> si(nfunc_, 0.0);
   //Array2 <doublevar> vals(nfunc_,5,0.0);
   Array2 <log_value <T> > vals(nfunc_,5);
-
-  if(staticSample==1 && parent->optimize_mo==0 && parent->optimize_det==0) {
-    //lap.phase=0;
-    for(int f=0; f< nfunc_; f++) {
-      for(int i=0; i< 5; i++) 
-        vals(f,i)=saved_laplacian(e,f,i);
-
-      //si(f)=saved_laplacian(e,f,5);
-    }
-  }
-  else {
-    Slat_wf_data * dataptr;
-    recast(wfdata, dataptr);
-    Array3 <log_value<T> > detvals;
-    getDetLap(e,detvals);
-    Array1 <log_value<T> > tempsum(ndet);
-    for(int f=0; f< nfunc_; f++) {
-      for(int i=0; i< 5; i++) { 
-        for(int d=0;d < ndet; d++) { 
-          tempsum(d)=parent->detwt(d)*detvals(f,d,i);
-        }
-        vals(f,i)=sum(tempsum);
+  
+  Array3 <log_value<T> > detvals;
+  getDetLap(e,detvals);
+  Array1 <log_value<T> > tempsum(ndet);
+  for(int f=0; f< nfunc_; f++) {
+    for(int i=0; i< 5; i++) {
+      for(int d=0;d < ndet; d++) {
+        tempsum(d)=parent->detwt(d)*detvals(f,d,i);
       }
-      log_value<T> inv=vals(f,0);
-      inv.logval*=-1;
-      for(int i=1; i< 5; i++) vals(f,i)*=inv;
+      vals(f,i)=sum(tempsum);
     }
-      
+    log_value<T> inv=vals(f,0);
+    inv.logval*=-1;
+    for(int i=1; i< 5; i++) vals(f,i)*=inv;
   }
+  
   
   lap.setVals(vals);
   
@@ -1433,7 +1085,7 @@ template <class T> inline void Slat_wf<T>::updateLap(Slat_wf_data * dataptr,
   }
   assert(dataptr != NULL);
 
-  int s=dataptr->spin(e);
+  int s=spin(e);
   sample->updateEIDist();
 
 
@@ -1489,7 +1141,7 @@ template <class T> inline void Slat_wf<T>::evalTestPos(Array1 <doublevar> & pos,
           modet(i)=movals(s)(parent->occupation(f,det,s)(i),0);
         }
         T ratio=1./InverseGetNewRatio(inverse(f,det,s),
-            modet, parent->rede(e),
+            modet, rede(e),
             nelectrons(s));
         new_detVals(det)=parent->detwt(det)*detVal(f,det,s);
         new_detVals(det)*=ratio;
@@ -1508,11 +1160,11 @@ template <class T> inline void Slat_wf<T>::evalTestPos(Array1 <doublevar> & pos,
           motmp(e1,j)=moVal(0,shift,j);
         }
       }
-      for(int j=0; j< n; j++) motmp(parent->rede(e),j)=movals(s)(j,0);
+      for(int j=0; j< n; j++) motmp(rede(e),j)=movals(s)(j,0);
       Array1 <T> tmpvec(nelectrons(s));
       for(int j=0; j< nelectrons(s); j++) 
         tmpvec(j)=movals(s)(parent->occupation(f,0,s)(j),0);
-      T baseratio=1.0/InverseUpdateColumn(invtmp,tmpvec,parent->rede(e),nelectrons(s));
+      T baseratio=1.0/InverseUpdateColumn(invtmp,tmpvec,rede(e),nelectrons(s));
       Array1 <T> ratios;
       parent->excitations.clark_updates(invtmp,motmp,s,ratios);
       for(int d=0; d< ndet; d++) {

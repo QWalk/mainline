@@ -30,8 +30,6 @@ void SHO_system::notify(change_type change, int n)
 {
   switch(change)
   {
-  case sample_static:
-    break;
   default:
     cout << "WARNING: SHO system got a signal that it doesn't know: "
     << change << endl;

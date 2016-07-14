@@ -71,7 +71,6 @@ void Backflow_wf::init(Wavefunction_data * wfdata)
   updateEverythingLap=1;
   sampleAttached=0;
   dataAttached=0;
-  staticSample=0;
 
 
   coor_grad.Resize(tote,tote,ndim,ndim);
@@ -123,18 +122,6 @@ void Backflow_wf::notify(change_type change, int num)
     break;
   case data_attach:
     dataAttached=1;
-    updateEverythingVal=1;
-    updateEverythingLap=1;
-    break;
-  case sample_static:
-    //if(!parent->optimize_backflow) {
-      //save_for_static();
-      //staticSample=1;
-      //}
-    break;
-  case sample_dynamic:
-    staticSample=0;
-    //init(parent);
     updateEverythingVal=1;
     updateEverythingLap=1;
     break;
@@ -191,12 +178,12 @@ void Backflow_wf::updateVal(Wavefunction_data * wfdata,
     updateEverythingVal=0;
     electronIsStaleVal=0;
   }
-  else { 
+  else {
     for(int e=0; e< nelectrons(0)+nelectrons(1); e++) {
       if(electronIsStaleVal(e)) {
-	calcVal(sample);
-	//updateVal(e,sample);
-	electronIsStaleVal=0;
+        calcVal(sample);
+        //updateVal(e,sample);
+        electronIsStaleVal=0;
       }
     }
   }
@@ -223,9 +210,9 @@ void Backflow_wf::updateLap( Wavefunction_data * wfdata,
   else {
     for(int e=0; e< nelectrons(0)+nelectrons(1); e++) {
       if(electronIsStaleLap(e)) {
-	calcLap(sample);
-	electronIsStaleLap(e)=0;
-	electronIsStaleVal(e)=0;
+        calcLap(sample);
+        electronIsStaleLap(e)=0;
+        electronIsStaleVal(e)=0;
       }
     }
     
@@ -234,78 +221,7 @@ void Backflow_wf::updateLap( Wavefunction_data * wfdata,
 
 }
 
-//----------------------------------------------------------------------
 
-
-void Backflow_wf::storeParmIndVal(Wavefunction_data * wfdata, Sample_point * sample,
-                              int e, Array1 <doublevar> & vals )
-{
-  /*
-  if(parent->optimize_backflow) {
-
-  }
-  else if(parent->optimize_det) {
-    assert(vals.GetDim(0) >= 2*parent->detwt.GetDim(0));
-    updateVal(wfdata, sample);
-    int count=0;
-    for(int det=0; det < ndet; det++) {
-      vals(count++)=detVal(det,0);
-      vals(count++)=detVal(det,1);
-    }
-  }
-  else {
-    assert(vals.GetDim(0) >=2);
-    Wf_return newval(1,1);
-    updateVal(wfdata, sample);
-    getVal(wfdata, e, newval);
-    vals(0)=newval.amp(0,0);
-    vals(1)=newval.phase(0,0);
-  }
-  */
-}
-
-//----------------------------------------------------------------------
-
-void Backflow_wf::getParmDepVal(Wavefunction_data * wfdata,
-                            Sample_point * sample,
-                            int e,
-                            Array1 <doublevar> & oldval,
-                            Wf_return & newval)
-{
-  updateVal(wfdata,sample);
-  getVal(wfdata,e,newval);
-
-  /*
-  if(parent->optimize_backflow) {
-    updateVal(wfdata, sample);
-    getVal(wfdata, e, newval);
-  }
-  else if(parent->dkeeper.optimize_det) {
-    assert(oldval.GetDim(0) >=2*ndet);
-    doublevar tempval=0;
-    int count=0;
-    for(int det=0; det < ndet; det++) {
-      tempval+=parent->dkeeper.detwt(det)*oldval(count)*oldval(count+1);
-      count+=2;
-    }
-    newval.phase(0,0)=.5*pi*(1-sign(tempval));// pi if the function is negative
-
-    if(fabs(tempval) > 0)
-      newval.amp(0,0)=log(fabs(tempval));
-    else
-      newval.amp(0,0)=-1e3;
-  }
-  else { 
-    assert(oldval.GetDim(0) >=2);
-    assert(newval.amp.GetDim(1) >= 1);
-    assert(newval.amp.GetDim(0) >= nfunc_);
-    int counter=0;
-    newval.amp(0,0)=oldval(counter++);
-    newval.phase(0,0)=oldval(counter++);
-    
-  }
-  */
-}
 
 
 //-----------------------------------------------------------------------

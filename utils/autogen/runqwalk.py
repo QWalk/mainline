@@ -171,9 +171,10 @@ class QWalkVarianceOptimize:
       outf = open(outfilename,'r')
       outlines = outf.read().split('\n')
       finlines = [l for l in outlines if "Optimization finished" in l]
-      if len(finlines) < nruns:
-        return 'failed' # This function unstable if job was killed.
       displines = [l for l in outlines if "dispersion" in l]
+      if len(displines) < 4:
+        print("Only completed four optimization routines. May want to increase the queue time.")
+        return "not_finished" 
       init_disps = [float(l.split()[4]) for l in displines if "iteration # 1 " in l]
       disps = [float(l.split()[4]) for l in displines]
       if len(disps) > 1:
@@ -205,17 +206,6 @@ class QWalkVarianceOptimize:
       outfnames.append(f+".o")
       wfoutnames.append(f+".wfout")
 
-    #First check if all the runs are ok.
-    #If so, we return ok
-    all_ok=True
-    for outfilename in outfnames:
-      status = self.check_outputfile(outfilename,nruns,reltol,abstol)
-      if status!='ok':
-        print("Status: %s"%status)
-        all_ok=False
-    if all_ok:
-      return 'ok'
-
     #Check on the submitter. If still running report that.
     status=self._submitter.status(job_record,self._name_)
     if 'running' in status:
@@ -225,14 +215,13 @@ class QWalkVarianceOptimize:
     print(fnames,outfnames,wfoutnames)
     self._submitter.transfer_output(job_record, fnames+outfnames+wfoutnames)
 
-    #Now check on the output files again
+    #Now check on the output files 
     statuses=[]
     for outfilename in outfnames:
       statuses.append(self.check_outputfile(outfilename,nruns,reltol,abstol))
     
     #Finally, decide what to do
     if len(set(statuses))==1:
-      print("all statuses the same")
       return statuses[0]
     if 'not_finished' in statuses:
       return 'not_finished'
@@ -316,13 +305,18 @@ class QWalkEnergyOptimize:
         quit()
     
       fname="qw_0.%s.enopt"%jast
-      # TODO make restart work with 2 and 3-body jastrow
       if restart:
         if not os.path.isfile("%s.wfout"%fname):
           print("Could not find %s.wfout"%fname)
           return "failed"
 
         os.system("cp %s.wfout %s.wfin"%(fname,fname))
+        #Remove the .config file because sometimes the number of
+        #processors changes.
+        try:
+          os.remove("%s.config"%fname)
+        except:
+          pass
       else:
         os.system("sed s/OPTIMIZEBASIS//g qw_0.%s.opt.wfout > %s.wfin"%(jast,fname))
 
@@ -599,6 +593,8 @@ class QWalkRunDMC:
     calc_sk=False
     if 'cif' in job_record.keys():
       calc_sk=True
+    if restart:
+      ret = self.collect_runs(job_record)
     # Make and submit the runs: bundle all jobs.
     depfns = []# Dependencies. 
     inpfns = [] #DMC inputs
@@ -616,15 +612,27 @@ class QWalkRunDMC:
               f.close()
 
 #Warning: remote may not be working with this..
-              depfns.extend([basename+".dmc",
+              dep=[basename+".dmc",
                              "opt.jast",
                              kname+'.sys',
                              kname+'.slater',
                              kname+'.orb',
-                             'qw.basis'])
+                             'qw.basis']
               if restart:
-                depfns.extend([basename+'.dmc.config',basename+'.dmc.log'])
-              inpfns.append(basename+".dmc")
+                results = None
+                for r in ret:
+                  if r['knum'] == k and r['timestep']==t and r['localization']==loc\
+                    and r['jastrow']==jast and r['optimizer']==opt:
+                    results = r['results']
+                thresh = job_record['qmc']['dmc']['target_error']
+                if results == None or results['properties']['total_energy']['error'][0] >= thresh:
+                  print('%s not finished '%(basename))
+                  depfns.extend(dep)
+                  depfns.extend([basename+'.dmc.config',basename+'.dmc.log'])
+                  inpfns.append(basename+".dmc")
+              else:
+                depfns.extend(dep)
+                inpfns.append(basename+".dmc")
 
     self._submitter.execute(
       job_record,
@@ -694,16 +702,21 @@ class QWalkRunDMC:
           for jast in options['jastrow']:
             for opt in options['optimizer']:
               basename=self.gen_basename(k,t,loc,jast,opt)
+              entry={}
+              entry['knum']=k
+              entry['timestep']=t
+              entry['localization']=loc
+              entry['jastrow']=jast
+              entry['optimizer']=opt
+              entry['results'] = None
               if os.path.isfile("%s.dmc.log"%basename):
-                entry={}
-                entry['knum']=k
-                entry['timestep']=t
-                entry['localization']=loc
-                entry['jastrow']=jast
-                entry['optimizer']=opt
-                os.system("gosling -json %s.dmc.log > %s.json"%(basename,basename))
-                entry['results']=json.load(open("%s.json"%basename))
-                ret.append(entry)
+                try:
+                  os.system("gosling -json %s.dmc.log > %s.json"%(basename,basename))
+                  entry['results']=json.load(open("%s.json"%basename))
+                except:
+                  print("trouble processing",basename)
+              ret.append(entry)
+
     return ret
 
 #-----------------------------------------------
@@ -732,13 +745,17 @@ class QWalkRunDMC:
     if len(ret)==0:
       return "not_started"
     if len(ret) != len(infns):
-      print("There are no jobs running and not enough .log files. Not sure what's going on.")
-      quit()
+      print("WARNING: There are missing log files. Expected",len(infns), "found", len(ret) )
+      return "not_finished"
     
     statuses=[]
     thresh=options['target_error']
     for r in ret:
-      if r['results']['properties']['total_energy']['error'][0] < thresh:
+      if r['results'] == None:
+        basename = self.gen_basename(r['knum'],r['timestep'],r['localization'],r['jastrow'],r['optimizer'])
+        print('DMC Calculation not finished: %s'%basename)
+        statuses.append('not_finished')
+      elif r['results']['properties']['total_energy']['error'][0] < thresh:
         statuses.append("ok")
       else:
         print("Stochastic error too large: {0:.2e}>{1:.2e}".format(

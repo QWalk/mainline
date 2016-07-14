@@ -138,9 +138,10 @@ public:
 
     Uses a cutoff radius for evaluation, completely nonrandom
    */
+  /*
   void calcNonlocWithFile(Wavefunction_data *, System *,Sample_point *, Wavefunction *,
                           Array1 <doublevar> &, Pseudo_buffer & input);
-
+*/
 
   
   void calcNonlocParmDeriv(Wavefunction_data * wfdata, System *,

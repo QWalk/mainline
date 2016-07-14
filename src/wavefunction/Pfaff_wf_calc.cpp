@@ -89,7 +89,6 @@ void Pfaff_wf::init(Wavefunction_data * wfdata)
   updateMoLap=1;
   sampleAttached=0;
   dataAttached=0;
-  staticSample=0;
   firstime=true;
   
 
@@ -102,70 +101,43 @@ void Pfaff_wf::init(Wavefunction_data * wfdata)
 //----------------------------------------------------------------------
 
 /*!
-Behavior under staticSample:  if sample_static is set, then
-we ignore all electron moves in the main algorithm, and the only way
-to update based on a move is by the getParmDepVal function.  The
-regular update functions will not work in this case.
-*/
+ */
 void Pfaff_wf::notify(change_type change, int num)
 {
   //  cout<<"notify\n";
-  switch(change)
-  {
-  case electron_move:
-    if(staticSample==0) {
+  switch(change) {
+    case electron_move:
       electronIsStaleVal(num)=1;
       electronIsStaleLap(num)=1;
-    }
-    break;
-  case all_electrons_move:
-    if(staticSample==0) {
+      break;
+    case all_electrons_move:
       updateEverythingVal=1;
       updateEverythingLap=1;
-    }
-    break;
-  case wf_parm_change:  
-  case all_wf_parms_change:
-    if(staticSample==0){
-      updateEverythingVal=1;
-      updateEverythingLap=1;
-    }
-    else {
+      break;
+    case wf_parm_change:
+    case all_wf_parms_change:
       updateMoLap=0;
       updateEverythingVal=1;
       updateEverythingLap=1;
-    }
-    break;
-  case sample_attach:
-    sampleAttached=1;
-    updateEverythingVal=1;
-    updateEverythingLap=1;
-    break;
-  case data_attach:
-    dataAttached=1;
-    updateEverythingVal=1;
-    updateEverythingLap=1;
-    break;
-  case sample_static:
-    if(!parent->optimize_pf || !parent->optimize_pfwt) {
-      save_for_static();
-    }
-    staticSample=1;
-    break;
-  case sample_dynamic:
-    staticSample=0;
-    updateEverythingVal=1;
-    updateEverythingLap=1;
-    updateMoLap=1;
-    break;
-  default:
-    updateEverythingVal=1;
-    updateEverythingLap=1;
+      break;
+    case sample_attach:
+      sampleAttached=1;
+      updateEverythingVal=1;
+      updateEverythingLap=1;
+      break;
+    case data_attach:
+      dataAttached=1;
+      updateEverythingVal=1;
+      updateEverythingLap=1;
+      break;
+    default:
+      updateEverythingVal=1;
+      updateEverythingLap=1;
   }
 }
 
 //----------------------------------------------------------------------
-
+/*
 void Pfaff_wf::save_for_static() {
   // cout<<"save_for_static\n";
   assert(staticSample==0);
@@ -185,16 +157,14 @@ void Pfaff_wf::save_for_static() {
     
   }
 
-}
+}*/
 
 //----------------------------------------------------------------------
 
 void Pfaff_wf::saveUpdate(Sample_point * sample, int e,
                          Wavefunction_storage * wfstore)
 {
-  // need to be saved for irregardless of static flag
   //cout<<"saveUpdate\n";
-  // if(staticSample==1) {
   Pfaff_wf_storage * store;
   recast(wfstore, store);
   
@@ -215,9 +185,7 @@ void Pfaff_wf::saveUpdate(Sample_point * sample, int e,
 void Pfaff_wf::restoreUpdate(Sample_point * sample, int e,
                             Wavefunction_storage * wfstore)
 {
-  // need to be restored for irregardless of static flag
   //cout<<"restoreUpdate\n";
-  // if(staticSample==1) {
   Pfaff_wf_storage * store;
   recast(wfstore, store);
   
@@ -250,20 +218,15 @@ void Pfaff_wf::updateVal(Wavefunction_data * wfdata,
   Pfaff_wf_data * pfaffdata;
   recast(wfdata, pfaffdata);
 
-  if(staticSample==0 || parent->optimize_pf )
-  {
-    if(updateEverythingVal==1)
-    {
+  if(parent->optimize_pf ) {
+    if(updateEverythingVal==1) {
       calcVal(pfaffdata, sample);
       updateEverythingVal=0;
       electronIsStaleVal=0;
     }
-    else
-    {
-      for(int e=0; e< nelectrons(0)+nelectrons(1); e++)
-      {
-        if(electronIsStaleVal(e))
-        {
+    else {
+      for(int e=0; e< nelectrons(0)+nelectrons(1); e++) {
+        if(electronIsStaleVal(e)) {
           updateVal(pfaffdata, sample, e);
           electronIsStaleVal(e)=0;
         }
@@ -289,45 +252,29 @@ void Pfaff_wf::updateLap( Wavefunction_data * wfdata,
 
   Pfaff_wf_data * pfaffdata;
   recast(wfdata, pfaffdata);
-  if( staticSample==0 ){
-    if(updateEverythingLap==1){
-      //cout <<"calcLap" <<endl;
-      calcLap(pfaffdata, sample);
-      updateEverythingVal=0;
-      updateEverythingLap=0;
-      electronIsStaleLap=0;
-      electronIsStaleVal=0;
-    }
-    else
-      {
-        for(int e=0; e< nelectrons(0)+nelectrons(1); e++){
-          // sample->getElectronPos(e, elecpos);
-          //cout <<  "elecpos:  "<< elecpos(0)<<"  "<< elecpos(1)<<"  "<< elecpos(2)<<endl;
-
-
-          //  cout << "Checking electron: "<<e<<endl;
-        if(electronIsStaleLap(e)){
-          //cout <<"updateLap1" <<endl;
-            assert(!staticSample);
-            updateLap(pfaffdata, sample, e);
-            electronIsStaleLap(e)=0;
-            electronIsStaleVal(e)=0;
-          }
-        }
-        
-      }
+  if(updateEverythingLap==1){
+    //cout <<"calcLap" <<endl;
+    calcLap(pfaffdata, sample);
+    updateEverythingVal=0;
+    updateEverythingLap=0;
+    electronIsStaleLap=0;
+    electronIsStaleVal=0;
   }
   else {
-    if (parent->optimize_pf) {
-      if(updateEverythingLap==1){
-        //cout <<"calcLap2" <<endl;
-        calcLap(pfaffdata, sample);
-        updateEverythingVal=0;
-        updateEverythingLap=0;
-        electronIsStaleLap=0;
-        electronIsStaleVal=0;
+    for(int e=0; e< nelectrons(0)+nelectrons(1); e++){
+      // sample->getElectronPos(e, elecpos);
+      //cout <<  "elecpos:  "<< elecpos(0)<<"  "<< elecpos(1)<<"  "<< elecpos(2)<<endl;
+      
+      
+      //  cout << "Checking electron: "<<e<<endl;
+      if(electronIsStaleLap(e)){
+        //cout <<"updateLap1" <<endl;
+        updateLap(pfaffdata, sample, e);
+        electronIsStaleLap(e)=0;
+        electronIsStaleVal(e)=0;
       }
     }
+    
   }
  // cout <<"pfaffVal inside UpdateLap" <<pfaffVal<<endl;
  //cout << "This is end of updateLap-main part"<<endl;;
@@ -1361,145 +1308,6 @@ void FillPfaffianMatrixHess( Array2 <doublevar> & mopfaff_tot,
 }
 
 
-//----------------------------------------------------------------------
-
-void Pfaff_wf::storeParmIndVal(Wavefunction_data * wfdata, Sample_point * sample,
-                              int e, Array1 <doublevar> & vals )
-{
-  if(parent->optimize_pf){
-    assert(vals.GetDim(0) >= updatedMoVal.GetDim(0));	
-    //update all the mo's that we will be using.
-    parent->molecorb->updateLap(sample, e, 0, updatedMoVal);
-    
-    int count=0;
-    for (int i=0;i<updatedMoVal.GetDim(0);i++)
-      vals(count++)=updatedMoVal(i,0);
-    
-    //cout <<"count "<<count<<endl;
-    
-  }
-  else if(parent->optimize_pfwt) {
-    assert(vals.GetDim(0) >= npf);
-    updateVal(wfdata, sample);
-    int count=0;
-    for(int pf=0; pf < npf; pf++) {
-      vals(count++)=pfaffVal(pf);
-    }
-  }
-  else {
-    assert(vals.GetDim(0) >=2);
-    Wf_return newval(1,2);
-    updateVal(wfdata, sample);
-    getVal(wfdata, e, newval);
-    vals(0)=newval.phase(0,0);
-    vals(1)=newval.amp(0,0);
-  }
- 
-}
-
-//----------------------------------------------------------------------
-
-void Pfaff_wf::getParmDepVal(Wavefunction_data * wfdata,
-                            Sample_point * sample,
-                            int e,
-                            Array1 <doublevar> & oldval,
-                            Wf_return & newval){
-  if(parent->optimize_pf){
-    assert(newval.amp.GetDim(1) >= 1);
-    assert(newval.amp.GetDim(0) >= 1); //greater than nfunc
-
-    //cout <<"oldval.GetDim(0) "<<oldval.GetDim(0)<<endl;
-    assert(oldval.GetDim(0) >= updatedMoVal.GetDim(0));
-    
-    int total_pairs=parent->npairs(0)+parent->npairs(1)+parent->npairs(2);
-    //int totelectrons=nelectrons(0)+nelectrons(1);
-    //Array3 <doublevar> moVal_tmp(5, totelectrons, updatedMoVal.GetDim(0));
-    
-    for(int i=0; i< updatedMoVal.GetDim(0); i++) {
-      moVal(0,e,i)=oldval(i);
-    }	
-    
-    Array1 <doublevar> mopfaff_row(total_pairs);
-    Array1 <doublevar> mopfaff_column(total_pairs);
-    
-    
-    for (int pf=0;pf<npf;pf++){
-      //cout <<" Update e-th row& column for pfaffian"<<endl;
-      UpdatePfaffianRowVal(mopfaff_row, 
-                           e,  
-                           moVal,
-                           parent->occupation_pos,
-                           parent->npairs,
-                           parent->order_in_pfaffian(pf),
-                           parent->tripletorbuu, 
-                           parent->tripletorbdd,
-                           parent->singletorb,
-                           parent->unpairedorb,
-                           parent->normalization,
-                           coef_eps
-                           );
-   
-      if(pfaffVal(pf)==0){
-        cout << "getParmDepVal::WARNING: pfaffian  zero!" << endl;
-        calcLap(parent, sample);
-        return;
-      }
-      //cout <<" After Update e-th row& column for pfaffian"<<endl;
-      doublevar ratio= UpdateInversePfaffianMatrix(inverse(pf), mopfaff_row, mopfaff_column, e);
-      //doublevar ratio= GetUpdatedPfaffianValue(inverse, mopfaff_row, e);
-      
-      // cout << "Pfaffval before " << pfaffVal << "ratio " << ratio << endl;
-      //update detVal
-      pfaffVal(pf)*=ratio;
-    }
-
-    doublevar tempval=0;
-    
-    for (int pf=0;pf<npf;pf++){
-      tempval+=parent->pfwt(pf)*pfaffVal(pf);
-    }
-    
-    //cout << "Pfaffian value in getParmDepVal is "<<pfaffVal<<endl;
-    
-    newval.phase(0,0)=.5*pi*(1-sign(tempval));// pi if the function is negative
-    
-    if(fabs(tempval) > 0)
-      newval.amp(0,0)=log(fabs(tempval));
-    else
-      newval.amp(0,0)=-1e3;
-    
-    //updateVal(wfdata, sample);
-    //getVal(wfdata, e, newval);
-  }
-  else if(parent->optimize_pfwt) {
-    assert(newval.amp.GetDim(1) >= 1);
-    assert(newval.amp.GetDim(0) >= 1); //greater than nfunc
-    //cout <<"oldval.GetDim(0) "<<oldval.GetDim(0)<<endl;
-    assert(oldval.GetDim(0) >= npf);
-    
-    doublevar tempval=0;
-    for (int pf=0;pf<npf;pf++){
-      tempval+=parent->pfwt(pf)*oldval(pf);
-    }
-    newval.phase(0,0)=.5*pi*(1-sign(tempval));// pi if the function is negative
-    
-    if(fabs(tempval) > 0)
-      newval.amp(0,0)=log(fabs(tempval));
-    else
-      newval.amp(0,0)=-1e3;
-  }
-  else { 
-    assert(oldval.GetDim(0) >=2);
-    assert(newval.amp.GetDim(1) >= 1);
-    assert(newval.amp.GetDim(0) >= 1); //greater than nfunc
-    int counter=0;
-    newval.phase(0,0)=oldval(counter++);
-    newval.amp(0,0)=oldval(counter++);
-  }
-}
-
-
-
 
 //-----------------------------------------------------------------------
 int Pfaff_wf::getParmDeriv(Wavefunction_data *  wfdata, 
@@ -1860,30 +1668,24 @@ void Pfaff_wf::getVal(Wavefunction_data * wfdata, int e,
   assert(val.amp.GetDim(1) >= 1);
   assert(val.amp.GetDim(1) >= 1);
   
-   
-  if(staticSample==1 && parent->optimize_pf==0 && parent->optimize_pfwt==0 ) {
-    vals(0, 0)=saved_laplacian(e, 0, 0);
-    si(0)=saved_laplacian(e,0,5);
+  
+  
+  Pfaff_wf_data * dataptr;
+  recast(wfdata, dataptr);
+  doublevar tempval=0;
+  
+  for (int pf=0;pf<npf;pf++){
+    tempval+=dataptr->pfwt(pf)*pfaffVal(pf);
   }
-  else {
-
-    Pfaff_wf_data * dataptr;
-    recast(wfdata, dataptr);
-    doublevar tempval=0;
-    
-    for (int pf=0;pf<npf;pf++){
-      tempval+=dataptr->pfwt(pf)*pfaffVal(pf);
-    }
-    si(0)=sign(tempval);
-    
-    if(fabs(tempval) > 0)
-      vals(0,0)=log(fabs(tempval));
-    else
-      vals(0,0)=-1e3;
-  }
-   val.setVals(vals, si);
-
-   //cout << "End getVal"<<endl;
+  si(0)=sign(tempval);
+  
+  if(fabs(tempval) > 0)
+    vals(0,0)=log(fabs(tempval));
+  else
+    vals(0,0)=-1e3;
+  val.setVals(vals, si);
+  
+  //cout << "End getVal"<<endl;
 }
 
 //-----------------------------------------------------------------------
@@ -1897,34 +1699,6 @@ void Pfaff_wf::getSymmetricVal(Wavefunction_data * wfdata,
 
 
 //----------------------------------------------------------------------
-
-void Pfaff_wf::getDensity(Wavefunction_data * wfdata, int e,
-                         Array2 <doublevar> & dens)
-{
-
-  assert(dens.GetDim(0) >= 0 );
-  Pfaff_wf_data * dataptr;
-  recast(wfdata, dataptr);
-
-    
-  dens=0;
-  /*
-  int det=0;
-
-  
-  for(int j=0; j< moVal(0 , e, get; j++)
-    {
-      dens(0,0)+=moVal(0 , e, dataptr->occupation_pos(f,det,s)(j) )
-                 *moVal(0,e,dataptr->occupation_pos(f,det,s)(j));
-    }
-  
-  dens(0,0)=0.0;
-  */
-
-}
-
-//----------------------------------------------------------------------------
-
 
 
 void Pfaff_wf::calcLap(Pfaff_wf_data * dataptr, Sample_point * sample)
@@ -2035,87 +1809,79 @@ void Pfaff_wf::calcLap(Pfaff_wf_data * dataptr, Sample_point * sample)
 
 
 void Pfaff_wf::getLap(Wavefunction_data * wfdata,
-                     int e, Wf_return & lap)
-{
+                     int e, Wf_return & lap) {
 
   //cout << "getLap"<<endl;
   Array1 <doublevar> si(1, 0.0);
   Array2 <doublevar> vals(1,5,0.0);
   
-  if(staticSample==1 && parent->optimize_pf==0 && parent->optimize_pfwt==0 ) {
-    for(int i=0; i< 5; i++) 
-      vals(0,i)=saved_laplacian(e,0,i);
-    si(0)=saved_laplacian(e,0,5);
+  
+  Pfaff_wf_data * dataptr;
+  recast(wfdata, dataptr);
+  int upuppairs=dataptr->npairs(0);
+  int downdownpairs=dataptr->npairs(1);
+  int nopairs=dataptr->npairs(2);
+  //int ntote_pairs=dataptr->ntote_pairs;
+  
+  int shiftf=0;
+  
+  Array1 < Array1 < Array1 <doublevar> >  > mopfaff_row;
+  mopfaff_row.Resize(npf);
+  
+  
+  doublevar funcval=0;
+  for (int pf=0;pf<npf;pf++){
+    funcval+=dataptr->pfwt(pf)*pfaffVal(pf);
   }
-  else {
-
-    Pfaff_wf_data * dataptr;
-    recast(wfdata, dataptr);
-    int upuppairs=dataptr->npairs(0);
-    int downdownpairs=dataptr->npairs(1);
-    int nopairs=dataptr->npairs(2);
-    //int ntote_pairs=dataptr->ntote_pairs;
-    
-    int shiftf=0;
-    
-    Array1 < Array1 < Array1 <doublevar> >  > mopfaff_row;
-    mopfaff_row.Resize(npf);
-    
-    
-    doublevar funcval=0;
+  
+  si(shiftf)=sign(funcval);
+  
+  if(fabs(funcval) > 0)
+    vals(shiftf,0)=log(fabs(funcval));
+  else vals(shiftf,0)=-1e3;
+  
+  //   cout << "lap(0,0)" << lap(0,0) << endl;
+  //cout << "funcval " << funcval << endl;
+  
+  for (int pf=0;pf<npf;pf++){
+    //mopfaff_row(pf).Resize(upuppairs+downdownpairs+nopairs);
+    //for (int i=0;i<upuppairs+downdownpairs+nopairs;i++)
+    // mopfaff_row(pf)(i).Resize(5); //now done inside UpdatePfaffianRowLap
+    UpdatePfaffianRowLap(mopfaff_row(pf),
+                         e,
+                         moVal,
+                         dataptr->occupation_pos,
+                         dataptr->npairs,
+                         dataptr->order_in_pfaffian(pf),
+                         dataptr->tripletorbuu,
+                         dataptr->tripletorbdd,
+                         dataptr->singletorb,
+                         dataptr->unpairedorb,
+                         dataptr->normalization,
+                         coef_eps
+                         );
+  }
+  // cout.setf(ios::scientific| ios:: showpos);
+  for(int d=1; d< 5; d++){
+    vals(shiftf,d)=0.0;
     for (int pf=0;pf<npf;pf++){
-      funcval+=dataptr->pfwt(pf)*pfaffVal(pf);
-    }
-    
-    si(shiftf)=sign(funcval);
-
-    if(fabs(funcval) > 0)
-      vals(shiftf,0)=log(fabs(funcval));
-    else vals(shiftf,0)=-1e3;
-      
-    //   cout << "lap(0,0)" << lap(0,0) << endl;
-    //cout << "funcval " << funcval << endl;
-    
-    for (int pf=0;pf<npf;pf++){
-      //mopfaff_row(pf).Resize(upuppairs+downdownpairs+nopairs);
-      //for (int i=0;i<upuppairs+downdownpairs+nopairs;i++)
-      // mopfaff_row(pf)(i).Resize(5); //now done inside UpdatePfaffianRowLap
-      UpdatePfaffianRowLap(mopfaff_row(pf), 
-                           e,  
-                           moVal, 
-                           dataptr->occupation_pos,
-                           dataptr->npairs,
-                           dataptr->order_in_pfaffian(pf),
-                           dataptr->tripletorbuu, 
-                           dataptr->tripletorbdd,
-                           dataptr->singletorb,
-                           dataptr->unpairedorb,
-                           dataptr->normalization,
-                           coef_eps
-                           );
-    }
-    // cout.setf(ios::scientific| ios:: showpos);
-    for(int d=1; d< 5; d++){
-      vals(shiftf,d)=0.0;
-      for (int pf=0;pf<npf;pf++){
-        doublevar temp=0.0;
-        for(int j=0; j<upuppairs+downdownpairs+nopairs; j++){
-          temp+=mopfaff_row(pf)(j)(d)*inverse(pf)(j,e);
-          //updated row*inverse matrix; 
-        }
-        if(dataptr->pfwt(pf)==0)
-          temp=0.0;
-        if(npf >1) 
-          temp*=dataptr->pfwt(pf)*pfaffVal(pf);
-        vals(shiftf,d)+=temp;
+      doublevar temp=0.0;
+      for(int j=0; j<upuppairs+downdownpairs+nopairs; j++){
+        temp+=mopfaff_row(pf)(j)(d)*inverse(pf)(j,e);
+        //updated row*inverse matrix;
       }
-      if(funcval==0)
-        vals(shiftf,d)=0;
-      else if (npf >1)
-        vals(shiftf,d)/=funcval;
+      if(dataptr->pfwt(pf)==0)
+        temp=0.0;
+      if(npf >1)
+        temp*=dataptr->pfwt(pf)*pfaffVal(pf);
+      vals(shiftf,d)+=temp;
     }
+    if(funcval==0)
+      vals(shiftf,d)=0;
+    else if (npf >1)
+      vals(shiftf,d)/=funcval;
   }
-
+  
   lap.setVals(vals, si);
   /*
   cout.unsetf(ios::scientific| ios:: showpos);

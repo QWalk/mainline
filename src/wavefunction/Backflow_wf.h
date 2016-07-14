@@ -62,15 +62,6 @@ public:
   virtual void saveUpdate(Sample_point *, int e, Wavefunction_storage *);
   virtual void restoreUpdate(Sample_point *, int e, Wavefunction_storage *);
 
-
-  virtual void storeParmIndVal(Wavefunction_data *, Sample_point *,
-                               int, Array1 <doublevar> & );
-  virtual void getParmDepVal(Wavefunction_data *,
-                             Sample_point *,
-                             int,
-                             Array1 <doublevar> &,
-                             Wf_return &);
-
   virtual int getParmDeriv(Wavefunction_data *, 
 			   Sample_point *,
 			   Parm_deriv_return & );
@@ -127,8 +118,6 @@ private:
   Array2 <doublevar> gradlap;
   //!< (elec,[grad lap])
 
-
-  int staticSample;
 
   int nmo;        //!<Number of molecular orbitals
   int ndet;       //!<Number of determinants

@@ -107,19 +107,6 @@ public:
     if(optimize_mo) 
       return orbitals_for_optimize_mo.GetSize()*(molecorb->nMoCoeff()/molecorb->getNmo());
     else if(optimize_det){ return ncsf-1; } 
-    /*
-      if(use_csf)
-        if(all_weights)
-          return ncsf;
-        else
-          return ncsf-1;
-      else
-        if(all_weights)
-          return ndet;
-        else
-          return ndet-1;
-    }
-    */
     else return 0;
   }
 
@@ -138,9 +125,6 @@ private:
 
   int max_occupation_changes;
 
-  Array1 <int> spin;  //!< spin as a function of electron
-  Array1 <int> opspin;//!< the opposing spin for an electron
-  Array1 <int> rede;  //<! The number of the electron within its spin
   Array1 <int> nelectrons; //!< number of electrons as a function of spin
 
   int nmo;        //!<Number of molecular orbitals

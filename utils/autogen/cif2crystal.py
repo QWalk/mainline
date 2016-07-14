@@ -349,13 +349,19 @@ class Cif2Crystal:
       str(job_record['dft']['edifftol']),
       "FMIXING",
       str(job_record['dft']['fmixing']),
-      "BROYDEN",
-      ' '.join(map(str,job_record['dft']['broyden'])),
       "TOLINTEG",
       ' '.join(map(str,job_record['dft']['tolinteg'])),
       "MAXCYCLE",
       str(job_record['dft']['maxcycle'])
     ]
+    
+    if job_record['dft']['levshift']!=None:
+      outlines+=["LEVSHIFT",' '.join(map(str,job_record['dft']['levshift']))]
+    else:
+      outlines+=["BROYDEN",
+                 ' '.join(map(str,job_record['dft']['broyden']))]
+    
+
     if job_record['dft']['smear'] != None:
       outlines += ["SMEAR",str(job_record['dft']['smear'])]
     if job_record['dft']['spin_polarized']:

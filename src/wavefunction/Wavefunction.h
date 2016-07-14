@@ -43,8 +43,6 @@ enum change_type {sample_attach,//!< A sample point is reporting to this wf
                   all_wf_parms_change,//!< all wavefunction parameters changed
                   ion_move,//!< One ion(atom) moved
                   all_ions_move,//!< all atoms moved
-                  sample_static,//!< We promise that we won't move an electron
-                  sample_dynamic//!< revoke the promise of sample_static
                   };
 
 
@@ -61,99 +59,14 @@ private:
 };
 
 typedef complex <doublevar> dcomplex;
-//typedef Array2 <complex <doublevar> > Wf_return;
 #include "MatrixAlgebra.h"
+#include "Wf_return.h"
 
-struct Wf_return {
-  Wf_return() {is_complex=0;}
-  
-  void write(string & indent, ostream & os);
-  void read(istream & is);
-  void mpiSend(int node);
-  void mpiRecieve(int node);
-  
-  Wf_return(int nfunc, int nst) {
-    is_complex=0;
-    amp.Resize(nfunc, nst);
-    phase.Resize(nfunc, nst);
-    cvals.Resize(nfunc, nst);
-  }
-  void Resize(int nfunc, int nst) {
-    amp.Resize(nfunc, nst);
-    phase.Resize(nfunc, nst);
-    cvals.Resize(nfunc, nst);
-  }
-
-  int sign(int w) {
-    if(is_complex) return 1;
-
-    if(fabs(phase(w,0)) < 1e-6) return 1;
-    else return -1;
-  }
-
-  void setVals(Array2 <log_value<doublevar> > & v ) { 
-    is_complex=0;
-    int nfunc=v.GetDim(0);
-    int nst=v.GetDim(1);
-    Resize(nfunc,nst);
-    for(int f=0; f< nfunc; f++) { 
-      amp(f,0)=v(f,0).logval;
-      phase(f,0)=v(f,0).sign<0?pi:0.0;
-      for(int s=1; s< nst; s++) { 
-        amp(f,s)=v(f,s).val();
-        phase(f,s)=0.0;
-      }
-    }
-  }
-
-  void setVals(Array2 <log_value<dcomplex> > & v ) { 
-    is_complex=1;
-    int nfunc=v.GetDim(0);
-    int nst=v.GetDim(1);
-    Resize(nfunc,nst);
-    for(int f=0; f< nfunc; f++) { 
-      amp(f,0)=v(f,0).logval.real();
-      phase(f,0)=v(f,0).logval.imag();
-      for(int s=1; s< nst; s++) { 
-        amp(f,s)=v(f,s).val().real();
-        phase(f,s)=v(f,s).val().imag();
-      }
-      if(nst > 4) { 
-        doublevar sum_ii=0,sum_ri=0;
-        for(int s=1; s< 4; s++) { 
-           sum_ii+=phase(f,s)*phase(f,s);
-           sum_ri+=amp(f,s)*phase(f,s);
-        }
-        phase(f,4)-=2*sum_ri;
-        amp(f,4)+=sum_ii;
-      }
-
-    }
-  }
-
-
-  /*!
-    used for complex functions
-    vals= [ln|psi|, grad psi/psi, grad^2 psi/psi
-    p=phase
-   */
-  void setVals(Array2 <dcomplex> & vals, Array1 <doublevar> & p);
-
-  /*!
-    used for real functions
-    vals= [ln|psi|, grad psi/psi, grad^2 psi/psi
-    sign= sign of wave function
-  */
-  void setVals(Array2 <doublevar> & vals, Array1 <doublevar> &  sign);
-
-  int is_complex;
-  Array2 <doublevar> amp;//!< ln( |psi| ), grad ln( |psi| ), grad^2 |psi|/|psi|
-  Array2 <doublevar> phase; //!< phase and derivatives
-  Array2 <dcomplex> cvals; //!< (null), grad ln(|psi|), grad^2 psi/psi  for debuggin purposes.
-};
-
-
-
+/*!
+ \brief
+ An object that holds parameter derivatives of wave functions.
+ 
+ */
 struct Parm_deriv_return { 
   int need_hessian;
   int need_lapderiv;
@@ -162,15 +75,14 @@ struct Parm_deriv_return {
   Array2 <doublevar> hessian;  
   Array3 <doublevar> gradderiv; //Parameter derivative of the gradient of the wave function
   //indices are (parameter,electron,[gradx,grady,gradz,lap])
-//  Array1 <doublevar> lapderiv;  //Parameter derivative of the laplacian of the wave function
   Array2 <doublevar> val_gradient; //Electron derivative of the wave function (needed to combine lapderiv for multiplication of wave functions)
-//  Array1 <bool> is_linear;
-  Parm_deriv_return() { 
+  Parm_deriv_return() {
     need_hessian=0;
     need_lapderiv=0;
     nparms_start=nparms_end=0;
   }
 };
+
 
 /*!  extend the Hessian matrix assuming that the variables are independent
 */
@@ -231,14 +143,6 @@ public:
     return 1;
   }
 
-  /*!
-    \brief
-    Initialize with a wavefunction_data(should it be private, since
-    wf_data is a friend, usually?)
-  */
-  virtual void init(Wavefunction_data * )
-  {error("This Wavefunction object doesn't have init");}
-
 
   virtual void updateVal(Wavefunction_data *, Sample_point *)=0;
   virtual void updateLap(Wavefunction_data *, Sample_point *)=0;
@@ -282,17 +186,10 @@ public:
 
   /*!
     \brief
-    get an approximation to the one-particle density(use updateVal to update)
-   */
-  virtual void getDensity(Wavefunction_data *,int,  Array2 <doublevar> &)=0;
-
-  /*!
-    \brief
     generate the correct Wavefunction_storage object to store an electron
     update
    */
   virtual void generateStorage(Wavefunction_storage * & wfstore)=0;
-
 
   /*!
     \brief
@@ -324,30 +221,6 @@ public:
   {error("This Wavefunction object doesn't have two electron storage");}
 
 
-  /*!
-    \brief
-    Stores wavefunction parameter independent values to the given array.
-
-    Find out the size of the array from Wavefunction_data::valSize().
-    There are no assertions over what is in the array, or what order,
-    so it should be treated as a black box.
-   */
-  virtual void storeParmIndVal(Wavefunction_data *, Sample_point *,
-                               int, Array1 <doublevar> & )=0;
-  /*!
-    \brief
-    The companion operation to storeParmIndVal.  Takes the array given by that
-    function and turns it into the correct return for the current parameter set.
-    (ala getVal())
-   */
-  virtual void getParmDepVal(Wavefunction_data *, Sample_point *,
-                             int, //!< electron number
-                             Array1 <doublevar> &,
-                             //!< values from storeParmIndVal
-                             Wf_return &
-                             //!< return values, same as from getVal()
-                            )=0;
-
   /*! \brief
     Plots 1d functions from inside the wave function, e.g. constituents
     of the Jastrow factor. Called from PLOT1D method.
@@ -369,10 +242,9 @@ public:
     An option for developers to muck around in the internals.
 
 
-    This isn't really a good function to use, but if you are doing
+    This function should be used only if you are doing
     development, you can define this for the function you're working
-    on to do averages, etc.  This can be removed for release, so
-    don't leave it hanging around code.
+    on to do averages, etc. Don't depend on this in any way.
    */
   virtual void developerAccess(Wavefunction_data *, Sample_point *,
                                Array1 <doublevar> &, Array1 <doublevar> &)
@@ -413,8 +285,7 @@ public:
       delete sampStore;
   }
 
-  void initialize(Sample_point * sample, Wavefunction * wf)
-  {
+  void initialize(Sample_point * sample, Wavefunction * wf) {
     assert(wf != NULL);
     if(wfStore != NULL) delete wfStore;
     if(sampStore != NULL ) delete sampStore;

@@ -35,7 +35,7 @@ class RunCrystal:
 #-------------------------------------------------      
   # This can be made more efficient if it's a problem: searches whole file for
   # each query.
-  def check_outputfile(self,outfilename,acceptable_scf=0.0):
+  def check_outputfile(self,outfilename,acceptable_scf=10.0):
     """ Check output file. 
 
     Current return values:
@@ -127,9 +127,10 @@ class RunCrystal:
 
     return 'failed'
 #-------------------------------------------------      
-  def _consistent_spins(self,outfn,init_spins,small_spin=1.0):
+  def _consistent_spins(self,outfn,init_spins,small_spin=0.1):
     f = open(outfn, 'r')
     lines = f.readlines()
+    moms=[]
     for li,line in enumerate(lines):
       if 'TOTAL ATOMIC SPINS' in line:
         moms = []
@@ -145,13 +146,11 @@ class RunCrystal:
     moms[up] = 1
     moms[dn] = -1
     moms[zs] = 0
+    moms=np.resize(moms,(len(init_spins)))
     if len(init_spins)==0:
-      if (moms == np.zeros(moms.shape)).all():
-        return True
-      else:
-        return False
+      return True
     else:
-      return (moms == np.array(init_spins)).all()
+      return np.array_equal(moms,np.array(init_spins))
 #-------------------------------------------------      
   def add_guessp(self,inpfn):
     inplines = open(inpfn,'r').read().split('\n')

@@ -98,19 +98,11 @@ public:
   virtual void getVal(Wavefunction_data *, int, Wf_return &);
   virtual void getLap(Wavefunction_data *, int, Wf_return &);
 
-  virtual void getDensity(Wavefunction_data *,int, Array2 <doublevar> &);
 
   virtual void saveUpdate(Sample_point *, int e, Wavefunction_storage *);
   virtual void restoreUpdate(Sample_point *, int e, Wavefunction_storage *);
 
 
-  virtual void storeParmIndVal(Wavefunction_data *, Sample_point *,
-                               int, Array1 <doublevar> & );
-  virtual void getParmDepVal(Wavefunction_data *,
-                             Sample_point *,
-                             int,
-                             Array1 <doublevar> &,
-                             Wf_return &);
 
   virtual int getParmDeriv(Wavefunction_data *, 
 			   Sample_point *,
@@ -129,7 +121,7 @@ public:
   //--
 private:
 
-  void save_for_static();
+ // void save_for_static();
 
   void calcVal(Pfaff_wf_data *, Sample_point *);
   void updateVal(Pfaff_wf_data *, Sample_point *, int);
@@ -157,7 +149,6 @@ private:
   Array1 <doublevar> pfaffVal;
 
   //Variables for a static(electrons not moving) calculation
-  int staticSample;
   Array3 <doublevar> saved_laplacian;
   //!<Saved laplacian for a static calculation (electron, function, [val grad lap])
 
