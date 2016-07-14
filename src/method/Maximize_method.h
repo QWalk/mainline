@@ -86,11 +86,12 @@ struct Maximize_config {
   void mpiSend(int node);
   void mpiReceive(int node);
   void read(istream & is);
-  void write(ostream & os);
+  void write(ostream & os,bool write_hessian);
 };
 
 void write_configurations_maximize(string & filename, Array1 <Maximize_config> configs);
 void write_configurations_maximize_yaml(string & filename, Array1 <Maximize_config> configs);
+void write_configurations_maximize_json(string & filename, Array1 <Maximize_config> configs);
 
 #endif //MAXIMIZE_METHOD_H_INCLUDED
 //------------------------------------------------------------------------

@@ -112,8 +112,8 @@ void Maximize_method::run(Program_options & options, ostream & output) {
     config_pos(i).write(cout);
   }
   
-  string outfilename=options.runid+".yaml";
-  write_configurations_maximize_yaml(outfilename, maximize_config);
+  string outfilename=options.runid+".json";
+  write_configurations_maximize_json(outfilename, maximize_config);
   
   delete wf;
   delete sample;
@@ -193,16 +193,25 @@ public:
       total += grad(i)*grad(i);
     return total < tol*tol;
   }
+
+  doublevar grad_abs(Array1 <doublevar> & grad, int n) {
+    doublevar total = 0;
+    for(int i=1; i<=n; i++)
+      total += grad(i)*grad(i);
+    return sqrt(total);
+  }
   
   //-----------------------------------------
   void macoptII(double * x,int n) {
     Array1 <doublevar> grad(n+1);
     //Array1 <doublevar> xnew(n+1);
     int max_it = 100;
-    int max_big_it = 100;
+    int max_big_it = 10000;
     for(int big_it=0; big_it < max_big_it; big_it++) {
       //find the direction of the gradient at x
       dfunc(x,grad.v);
+      doublevar gradlen = grad_abs(grad,n);
+      doublevar unit;
       doublevar fbase=grad(0);
       doublevar tol = 1e-12;
       doublevar outer_tol = tol*10; // make outer loop tolerance looser than inner
@@ -230,7 +239,7 @@ public:
       //  break; //exit big loop if there is small change in the direction of gradient 
       //}
       //(grad psi)/psi = grad (log psi), small change in grad direction ( var grad is grad(log psi))
-      if(grad_under_tol(grad,n,outer_tol)) {break;} //Exit big loop if (grad psi)/psi is small 
+      if(gradlen < outer_tol) {break;} //Exit big loop if (grad psi)/psi is small 
       cout << "first step  a,b,c " << a << " " << b << "  " << c
       << " funcs " << af << " " << bf << " " << cf << endl;
       //bisection method iteration, (a, b, c)
@@ -247,14 +256,16 @@ public:
           if( (c-b) > (b-a) ) {
             // How to check tolerance: log(1+x) ~ x. Want to make sure to check relative change in psi
             //(af-bf) = log psi_a - log psi_b = log(psi_a/psi_b) ~ (psi_a-psi_b)/psi_b < tol
-            if(af-bf<tol) { break; }
+            unit = gradlen*(b-a);
+            if(af/unit-bf/unit<tol and bf/unit-af/unit<tol) { cout << it << " (af-bf)/(b-a)=" << af/unit-bf/unit << endl; break; }
             a=b;
             af=bf;
             b=d;
             bf=df;
           }
           else {
-            if(cf-bf<tol) { break; }
+            unit = gradlen*(c-b);
+            if(cf/unit-bf/unit<tol and bf/unit-cf/unit<tol) { cout << it << " (cf-bf)/(c-b)=" << cf/unit-bf/unit << endl; break; }
             c=b;
             cf=bf;
             b=d;
@@ -264,12 +275,14 @@ public:
         //if function is bigger at d than at b, make d the new bracket boundary
         else {
           if( (c-b) > (b-a) ) {
-            if(cf-df<tol) { break; }
+            unit = gradlen*(c-d);
+            if(cf/unit-df/unit<tol and df/unit-cf/unit<tol) { cout << it << " (df-cf)/(d-c)=" << df/unit-cf/unit << endl; break; }
             c=d;
             cf=df;
           }
           else {
-            if(af-df<tol) { break; }
+            unit = gradlen*(d-a);
+            if(af/unit-df/unit<tol and df/unit-af/unit<tol) { cout << it << " (af-df)/(d-a)=" << af/unit-df/unit << endl; break; }
             a=d;
             af=df;
           }
@@ -280,13 +293,19 @@ public:
           cout << "Warning: inner loop did not reach tolerance" << endl;
         }
       }
+      cout << "last step b-a,c-b " << b-a << " " << c-b
+      << " func diffs " << af-bf << " " << cf-bf << " " << endl;
       //finished bisection search, minimum at b; compute x for tstep b
       doublevar best_tstep=b;
       for(int i=1; i<=n; i++)
         x[i]=x[i]-best_tstep*grad[i];
 
       if(big_it==max_big_it-1) {
-        cout << "Warning: outer loop did not reach tolerance. grad " << grad(1) << " " << grad(2) << " " << grad(3) << endl;
+        doublevar grad_squared = 0;
+        for (int i=1;i<n;i++){
+          grad_squared += grad(i)*grad(i);
+        }
+        cout << "Warning: outer loop did not reach tolerance. |grad| = " << sqrt(grad_squared) << endl;
       }
     }
   }
@@ -297,11 +316,11 @@ public:
   }
   
   //-----------------------------------------
-  void calc_hessian(double * x, Array2 <doublevar> & hessian, int n) {
+  void calc_hessian(double * x, Array2 <doublevar> & hessian, int n, double h) {
     Array1 <doublevar> grad_plus(n+1);
     Array1 <doublevar> grad_minus(n+1);
     Array1 <doublevar> xnew(n+1);
-    double h = 1e-3; // step size
+    if(h<=0) { h = 1e-3; } // default step size 
     
     for(int i=1; i<=n; i++) {
       xnew(i)=x[i];
@@ -392,6 +411,64 @@ int Maximize_method::showinfo(ostream & os) {
 //}
 
 //----------------------------------------------------------------------
+void write_configurations_maximize_json(string & filename, Array1 <Maximize_config> configs) { 
+  int nconfigs=configs.GetDim(0);
+  time_t starttime;
+  time(&starttime);
+  string tmpfilename=filename; //+".qw_tomove";
+  string backfilename=filename+".backup";
+  if(mpi_info.node==0) { rename(tmpfilename.c_str(),backfilename.c_str()); }
+
+  #ifdef USE_MPI
+  stringstream os;
+  os.precision(15);
+  for(int i=0; i< nconfigs; i++) {
+    if(i!=0) { os << ", "; }
+    configs(i).write(os,false);
+  }
+
+  string walkstr=os.str();
+  int nthis_string=walkstr.size();
+  if(mpi_info.node==0) {
+    ofstream os(tmpfilename.c_str());
+    os << "[";
+    os << walkstr;
+    MPI_Status status;
+    for(int i=1; i< mpi_info.nprocs; i++) {
+      MPI_Recv(nthis_string,i);
+      char * buf=new char[nthis_string+1];
+      MPI_Recv(buf,nthis_string,MPI_CHAR, i, 0, MPI_Comm_grp, & status);
+      buf[nthis_string]='\0';
+      os << ", " << buf;
+      delete [] buf;
+    }
+    os << "]";
+  }
+  else {
+    MPI_Send(nthis_string,0);
+    //we know that MPI_Send obeys const-ness, but the interfaces are not clean 
+    // and so...casting!
+    MPI_Send((char *) walkstr.c_str(),nthis_string, MPI_CHAR, 0,0,MPI_Comm_grp);
+  }
+#else
+  ofstream os(tmpfilename.c_str());
+  os.precision(15);
+  os << "[";
+  for(int i=0; i< nconfigs; i++) {
+    if(i!=0) { os << ", "; }
+    configs(i).write(os,false);
+  }
+  os << "]";
+  os.close();
+#endif
+  time_t endtime;
+  time(&endtime);
+  if(mpi_info.node==1) {
+    debug_write(cout, "Write took ", difftime(endtime, starttime), " seconds\n");
+  }
+}
+
+
 void write_configurations_maximize_yaml(string & filename, Array1 <Maximize_config> configs) { 
   int nconfigs=configs.GetDim(0);
   time_t starttime;
@@ -404,7 +481,7 @@ void write_configurations_maximize_yaml(string & filename, Array1 <Maximize_conf
   stringstream os;
   os.precision(15);
   for(int i=0; i< nconfigs; i++) {
-     configs(i).write(os);
+     configs(i).write(os,false);
   }
 
   string walkstr=os.str();
@@ -429,20 +506,20 @@ void write_configurations_maximize_yaml(string & filename, Array1 <Maximize_conf
     // and so...casting!
     MPI_Send((char *) walkstr.c_str(),nthis_string, MPI_CHAR, 0,0,MPI_Comm_grp);
   }
-  #else
-    ofstream os(tmpfilename.c_str());
-    os.precision(15);
-    os << "results:" << endl;
-    for(int i=0; i< nconfigs; i++) {
-      configs(i).write(os);
-    }
-    os.close();
-  #endif
-    time_t endtime;
-    time(&endtime);
-    if(mpi_info.node==1) {
-      debug_write(cout, "Write took ", difftime(endtime, starttime), " seconds\n");
-    }
+#else
+  ofstream os(tmpfilename.c_str());
+  os.precision(15);
+  os << "results:" << endl;
+  for(int i=0; i< nconfigs; i++) {
+    configs(i).write(os,false);
+  }
+  os.close();
+#endif
+  time_t endtime;
+  time(&endtime);
+  if(mpi_info.node==1) {
+    debug_write(cout, "Write took ", difftime(endtime, starttime), " seconds\n");
+  }
 }
 
 //----------------------------------------------------------------------
@@ -460,7 +537,7 @@ void write_configurations_maximize(string & filename,
   os.precision(15);
   for(int i=0; i< nconfigs; i++) {
      //os << " walker { \n";
-     configs(i).write(os);
+     configs(i).write(os,false);
      //os << " } \n";
    }
 
@@ -498,7 +575,7 @@ void write_configurations_maximize(string & filename,
     os.precision(15);
     for(int i=0; i< nconfigs; i++) {
       //os << " walker { \n";
-      configs(i).write(os);
+      configs(i).write(os,false);
       //os << " } \n";
     }
     os.close();
@@ -511,24 +588,56 @@ void write_configurations_maximize(string & filename,
 }
 
 //---------------------------------------------------------------------
-void Maximize_config::write(ostream & os) {
-  
-  os << "- " << "psi: " << logpsi << endl;
-  os << "  " << "energy: " << energy << endl;
-  os << "  " << "config: " << endl;
+//YAML format
+//void Maximize_config::write(ostream & os) {
+//  os << "- " << "psi: " << logpsi << endl;
+//  os << "  " << "energy: " << energy << endl;
+//  os << "  " << "config: " << endl;
+//  for(int e=0; e<nelectrons; e++) {
+//    os << "  - - " << config(e,0) << endl;
+//    for(int d=1; d<3; d++) {
+//      os << "    - " << config(e,d) << endl;
+//    }
+//  }
+//  os << "  " << "hessian: " << endl;
+//  for(int c=0; c<3*nelectrons; c++) {
+//    os << "  - - " << hessian(c,0) << endl;
+//    for(int d=1; d<3*nelectrons; d++) {
+//      os << "    - " << hessian(c,d) << endl;
+//    }
+//  }
+//}
+
+// JSON format
+void Maximize_config::write(ostream & os,bool write_hessian) {
+  os << "{";
+  os << "\"psi\": " << logpsi;
+  os << "," << "\"energy\": " << energy;
+  os << "," << "\"config\": " << "[";
   for(int e=0; e<nelectrons; e++) {
-    os << "  - - " << config(e,0) << endl;
-    for(int d=1; d<3; d++) {
-      os << "    - " << config(e,d) << endl;
+    if(e!=0) { os << ", "; }
+    os << "[";
+    for(int d=0; d<3; d++) {
+      if(d!=0) { os << ", "; }
+      os << config(e,d); 
     }
+    os << "]";
   }
-  os << "  " << "hessian: " << endl;
-  for(int c=0; c<3*nelectrons; c++) {
-    os << "  - - " << hessian(c,0) << endl;
-    for(int d=1; d<3*nelectrons; d++) {
-      os << "    - " << hessian(c,d) << endl;
+  os << "]";
+  if(write_hessian){
+    os << "," << "\"hessian\": " << "[";
+    for(int c=0; c<3*nelectrons; c++) {
+      if(c!=0) { os << ", "; }
+      os << "[";
+      for(int d=0; d<3*nelectrons; d++) {
+        if(d!=0) { os << ", "; }
+        os << hessian(c,d); 
+      }
+      os << "]";
     }
+    os << "]";
   }
+  os << "}";
 }
 
 void Maximize_config::read(istream & is) {}
