@@ -215,7 +215,7 @@ public:
       doublevar fbase=grad(0);
       doublevar tol = 1e-12;
       doublevar outer_tol = tol*10; // make outer loop tolerance looser than inner
-      doublevar bracket_tstep,last_func=fbase;
+      doublevar bracket_tstep=0.0,last_func=fbase;
       //bracket the minimum in this direction (in 1D units of tstep) for bisection method
       for(doublevar tstep=1e-8; tstep < 20.0; tstep*=2.0) {
         
@@ -316,7 +316,7 @@ public:
   }
   
   //-----------------------------------------
-  void calc_hessian(double * x, Array2 <doublevar> & hessian, int n, double h) {
+  void calc_hessian(double * x, Array2 <doublevar> & hessian, int n, double h=1e-3) {
     Array1 <doublevar> grad_plus(n+1);
     Array1 <doublevar> grad_minus(n+1);
     Array1 <doublevar> xnew(n+1);
