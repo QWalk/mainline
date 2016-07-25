@@ -8,6 +8,8 @@ from crystal2qmc import convert_crystal
 import subprocess as sub
 import numpy as np
 import json
+import yaml
+import time
 
 # If you need the swap_endian option, you need to set this to the correct location.
 swap_endian_exe = "/home/busemey2/bin/swap_endian"
@@ -790,47 +792,55 @@ class QWalkRunMaximize:
   def __init__(self,submitter):
     self._submitter = submitter
 
-  def make_basename(self, k, n, w, s):
-    return "qw_%i.%s.n%i"%(k,w,n)
+  #def make_basename(self, k, n, w):
+  #  return "qw_%i.%s.n%i"%(k,w,n)
+  
+  def gen_basename(self,k,n,jast,opt="variance"):
+    return "qw_%i_%s_%i_%s"%(k,jast,n,opt)
 
-  def make_kname(self, k, s):
+  def make_kname(self, k):
     return "qw_%i"%k
 
 #-----------------------------------------------
   def run(self, job_record, restart=False):
-    qmc_options = job_record['qmc']
-    nconfiglist = qmc_options['maximize']['nconfig']
-    w = qmc_options['maximize']['trialwf']
-    s = qmc_options['maximize']['system']
-
-    #choose which wave function to use
-    if not restart:
-      if qmc_options['dmc']['optimizer']=='variance':
-        os.system("separate_jastrow qw_0.opt.wfout > opt.jast")
-      elif qmc_options['dmc']['optimizer']=='energy':
-        os.system("separate_jastrow qw_0.enopt.wfout > opt.jast")
-
-    depfns = []
-    inpfns = []
+    options=job_record['qmc']['maximize']
     kpts=self.get_kpts(job_record)
 
-    for k in kpts:
-      for n in nconfiglist:
-          kname = self.make_kname(k, s)
-          basename = self.make_basename(k, n, w, s)
-          f = open(basename+".max",'w')
-          f.write(self.maximizeinput(k, n, w, s))
-          f.close()
-          depfns.extend([basename+".max","opt.jast",kname+'.sys',kname+'.slater',kname+'.orb','qw.basis'])
-          if restart:
-            depfns.extend([basename+".max.config",basename+".max.log"])
-          inpfns.append(basename+".max")
+    #choose which wave function to use
+    #if not restart:
+    #  if qmc_options['dmc']['optimizer']=='variance':
+    #    os.system("separate_jastrow qw_0.opt.wfout > opt.jast")
+    #  elif qmc_options['dmc']['optimizer']=='energy':
+    #    os.system("separate_jastrow qw_0.enopt.wfout > opt.jast")
 
-    qid = self._submitter.execute(
+    infiles = [] # Dependencies.
+    inpfns = [] # MAXIMIZE inputs
+
+    for k in kpts:
+      for n in options['nconfig']:
+        for jast in options['jastrow']:
+          for opt in options['optimizer']:
+            kname="qw_%i"%k
+            basename=self.gen_basename(k,n,jast,opt)
+            f = open(basename+".max",'w')
+            f.write(self.maximizeinput(k,n,jast,opt))
+            f.close()
+            infiles.extend([basename+".max",
+                            "opt.jast",
+                            kname+'.sys',
+                            kname+'.slater',
+                            kname+'.orb',
+                            'qw.basis'])
+            if restart:
+              infiles.extend([basename+".max.config",basename+".max.log"])
+            inpfns.append(basename+".max")
+
+    self._submitter.execute(
       job_record,
-      depfns,
-      inpfns, # Actual MAXIMIZE inputs
-      "qw.max.sdout")
+      infiles, # Dependencies. 
+      inpfns, # MAXIMIZE inputs
+      "qw.max.sdout",
+      self._name_)
 
     return 'running'
 
@@ -840,26 +850,23 @@ class QWalkRunMaximize:
     kpt_num=[]
     for kp in kpts:
       kpt_num.append(int(re.findall(r'\d+',kp)[0]))
-    return kpt_num
+    #return kpt_num
+    return [0] # only run k=0 for now
 
 #-----------------------------------------------
-  def maximizeinput(self, k, nconfig, wf, sys):
+  def maximizeinput(self, k, n, jast, opt):
     outlist = [
       "method { MAXIMIZE "+
-      "NCONFIG %i "%nconfig+
-      "}"]
-    outlist.append("include %s.sys"%self.make_kname(k,sys))
-
-    if wf == "hf" or wf == "slater":
-      outlist.append("trialfunc { include %s.slater }"%self.make_kname(k,sys))
-    else:
-      #outlist.append("trialfunc { include qw_0.opt.wfout }")
-      outlist += [
-        "trialfunc { slater-jastrow",
-        "wf1 { include %s.slater } "%self.make_kname(k,sys),
-        "wf2 { include opt.jast }",
-        "}"
+      "NCONFIG %i "%n+
+      "}"
       ]
+    outlist.append("include qw_%i.sys"%k)
+
+    if jast=="none" or jast=='':
+      outlist.append("trialfunc { include qw_%i.slater }"%k)
+    else:
+      opt_trans={"energy":"enopt","variance":"opt"}
+      outlist.append("trialfunc { include qw_%i.%s.%s.wfout }"%(k,jast,opt_trans[opt] ))
 
     outstr = '\n'.join(outlist)
     return outstr
@@ -875,76 +882,102 @@ class QWalkRunMaximize:
 
 #-----------------------------------------------
   def extract_data(self,logfilename):
-    data = np.loadtxt(logfilename,skiprows=1)
-    amp = data[:,-1]
-    locE = data[:,-2]
-    conf = data[:,:-2]
+    amp = []
+    locE = []
+    conf = []
+    if os.path.isfile(logfilename):
+      data = np.loadtxt(logfilename,skiprows=1)
+      amp = data[:,-1].tolist()
+      locE = data[:,-2].tolist()
+      conf = data[:,:-2].tolist()
+      
     return amp, locE, conf
 
 #-----------------------------------------------
   def collect_runs(self,job_record):
-    ret=[]
-    w = job_record['qmc']['maximize']['trialwf']
-    kpts=self.get_kpts(job_record)
+    print_progress = True
+    if print_progress: 
+      t = time.time()
+      print("Time",0,"Starting timer for maximize collect_runs method")
 
+    ret=[]
+    options=job_record['qmc']['maximize']
+    kpts=self.get_kpts(job_record)
+    
     for k in kpts:
-      for n in job_record['qmc']['maximize']['nconfig']:
-          logfilename = self.make_basename(k, n, w, s)+".max.table"
-          entry = {}
-          entry['nconfig'] = n
-          amp, locE, conf = self.extract_data(logfilename)
-          entry['psi'] = amp.tolist()
-          entry['energies'] = locE.tolist()
-          entry['configs'] = conf.tolist()
-          ret.append(entry)
+      for n in options['nconfig']:
+        for jast in options['jastrow']:
+          for opt in options['optimizer']:
+            logfilename=self.gen_basename(k,n,jast,opt)+".max.json"
+            if os.path.isfile(logfilename):
+              if print_progress: print("Time",time.time()-t,'k',k,'nconfig',n,'jastrow',jast,'optimizer',opt)
+              entry = {}
+              entry['knum']=k
+              entry['nconfig']=n
+              entry['jastrow']=jast
+              entry['optimizer']=opt
+              #amp, locE, conf = self.extract_data(logfilename)
+              jsonfile = open(logfilename,'r')
+              if print_progress: print("Time",time.time()-t,"JSON file opened, loading dict...")
+              data = json.load(jsonfile)
+              if print_progress: print("Time",time.time()-t,"JSON data loaded")
+
+              entry['psi'] = [r['psi'] for r in data]
+              if print_progress: print("Time",time.time()-t,"Extracted psi list")
+              entry['energies'] = [r['energy'] for r in data]
+              if print_progress: print("Time",time.time()-t,"Extracted energy list")
+              entry['configs'] = [r['config'] for r in data]
+              if print_progress: print("Time",time.time()-t,"Extracted config list")
+              #entry['hessian'] = [r['hessian'] for r in data]
+              #if print_progress: print("Time",time.time()-t,"Extracted hessian list")
+              
+              #l = [[r['psi'],r['energy'],r['config'],r['hessian']] for r in data]
+              #if print_progress: print("Time",time.time()-t,"Extracted list of all data, need to 'transpose'")
+              #[entry['psi'],entry['energies'],entry['configs'],entry['hessian']] = list(map(list,zip(*l)))
+              #if print_progress: print("Time",time.time()-t,"Reshaped into lists for each quantity")
+               
+              ret.append(entry)
     return ret
 
 #-----------------------------------------------
   def check_status(self,job_record):
-    # TODO does this function do what it's supposed to?
-    #results=self.collect_runs(job_record)
-
-    status='ok'
-
-    # TODO do we need something here?
-    #for e in results:
-      #print("energy check",e['knum'],e['energy'])
-
-      #if e['energy'][1] >  job_record['qmc']['dmc']['target_error']:
-      #  status='not_finished'
-    #print("initial status",status)
-    #if status=='ok':
-    #  return 'ok'
-
-    w = job_record['qmc']['maximize']['trialwf']
-    s = job_record['qmc']['maximize']['system']
+    
+    options=job_record['qmc']['maximize']
     kpts=self.get_kpts(job_record)
+    infns = [] #MAXIMIZE inputs
     outfiles=[]
     for k in kpts:
-      for n in job_record['qmc']['maximize']['nconfig']:
-          basename = self.make_basename(k, n, w, s)
-          outfiles.extend([basename+".max.table",
-                          basename+".max.log",
-                          basename+".max.config",
-                          basename+".max.o"])
+      for n in options['nconfig']:
+        for jast in options['jastrow']:
+          for opt in options['optimizer']:
+            infns.append(self.gen_basename(k,n,jast,opt))
+            #basename = self.make_basename(k, n, w)
+            #outfiles.extend([basename+".max.table",
+            #                basename+".max.log",
+            #                basename+".max.config",
+            #                basename+".max.o"])
 
-    self._submitter.transfer_output(job_record, outfiles)
+    #Check on the submitter. If still running report that.
     status=self._submitter.status(job_record,self._name_)
     print("status",status)
-    if status=='running':
-      return status
+    if 'running' in status:
+      return 'running'
 
+    #If not running, try to transfer files.
+    self._submitter.transfer_output(job_record, infns)
 
-    if not os.path.isfile(outfiles[0]):
-      return 'not_started'
+    #Now check on the runs
+    ret=self.collect_runs(job_record)
+    if len(ret)==0:
+      return "not_started"
+    if len(ret) != len(infns):
+      print("There are no jobs running and not enough .json files. Not sure what's going on.")
+      quit()
+    return 'ok'
 
-    results=self.collect_runs(job_record)
-    status='ok'
-    # TODO do we need something here?
-    #for e in results:
-      #if e['energy'][1] >  job_record['qmc']['dmc']['target_error']:
-      #  status='not_finished'
-    return status
+#-----------------------------------------------
+  def resume(self,job_record):
+    return self.run(job_record,restart=True)
 
 #-----------------------------------------------
   def retry(self,job_record):

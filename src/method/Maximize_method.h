@@ -62,14 +62,36 @@ public:
   }
 
 private:
-  void maximize(Sample_point * sample,Wavefunction * wf,Config_save_point & pt);
+  void maximize(Sample_point * sample,Wavefunction * wf,Config_save_point & pt,Array2 <doublevar> & hessian);
   int nconfig;
+  int nconfigs_per_node;
   string guidetype;
   Guiding_function * guidewf;
   Pseudopotential * pseudo;
   System * sys;
   Wavefunction_data * wfdata;
+  //void calc_hessian(double * x, Array2 <doublevar> & hessian, int n);
 };
+
+struct Maximize_config {
+  int nelectrons;
+  Array2 <doublevar> config;
+  Array2 <doublevar> hessian;
+  doublevar logpsi;
+  doublevar energy;
+  
+  Maximize_config() {
+    nelectrons=0;
+  }
+  void mpiSend(int node);
+  void mpiReceive(int node);
+  void read(istream & is);
+  void write(ostream & os,bool write_hessian);
+};
+
+void write_configurations_maximize(string & filename, Array1 <Maximize_config> configs);
+void write_configurations_maximize_yaml(string & filename, Array1 <Maximize_config> configs);
+void write_configurations_maximize_json(string & filename, Array1 <Maximize_config> configs);
 
 #endif //MAXIMIZE_METHOD_H_INCLUDED
 //------------------------------------------------------------------------
