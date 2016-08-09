@@ -38,6 +38,12 @@ class Program_options;
 \brief
 Find the maxima in either the wave function or the local energy.
 */
+
+struct Hessian_step {
+  Array2 <doublevar> hessian;
+  doublevar step;
+};
+
 class Maximize_method :public Qmc_method {
 public:
 
@@ -63,6 +69,7 @@ public:
 
 private:
   void maximize(Sample_point * sample,Wavefunction * wf,Config_save_point & pt,Array2 <doublevar> & hessian);
+  void hessian_vary_step(Sample_point * sample,Wavefunction * wf,Config_save_point & pt,Array1 <Hessian_step> & hessian_steps);
   int nconfig;
   int nconfigs_per_node;
   string guidetype;
@@ -89,6 +96,7 @@ struct Maximize_config {
   void write(ostream & os,bool write_hessian);
 };
 
+void write_hessian_vary_step_json(string & outfilename, Array1 <Hessian_step> hessian_steps,Array2 <doublevar> config, doublevar logpsi);
 void write_configurations_maximize(string & filename, Array1 <Maximize_config> configs);
 void write_configurations_maximize_yaml(string & filename, Array1 <Maximize_config> configs);
 void write_configurations_maximize_json(string & filename, Array1 <Maximize_config> configs);

@@ -79,7 +79,6 @@ void Maximize_method::run(Program_options & options, ostream & output) {
   int nelectrons=sample->electronSize();
   Properties_gather mygather;
   
-  int count = 1;
   Array2 <doublevar> tempconfig(nelectrons,3);
   Array2 <doublevar> temphessian(3*nelectrons,3*nelectrons);
   
@@ -115,6 +114,14 @@ void Maximize_method::run(Program_options & options, ostream & output) {
   string outfilename=options.runid+".json";
   write_configurations_maximize_json(outfilename, maximize_config);
   
+  // Hessian steps
+  // write Hessians calculated with different step sizes for the first configuration
+  // int nsteps=10;
+  // Array1 <Hessian_step> hessian_steps(nsteps);
+  // hessian_vary_step(sample,wf,config_pos(0),hessian_steps);
+  // write_hessian_vary_step_json(outfilename, hessian_steps,maximize_config(0).config,maximize_config(0).logpsi);
+  ////
+
   delete wf;
   delete sample;
 }
@@ -206,7 +213,7 @@ public:
     Array1 <doublevar> grad(n+1);
     //Array1 <doublevar> xnew(n+1);
     int max_it = 100;
-    int max_big_it = 10000;
+    int max_big_it = 200;
     for(int big_it=0; big_it < max_big_it; big_it++) {
       //find the direction of the gradient at x
       dfunc(x,grad.v);
@@ -218,7 +225,6 @@ public:
       doublevar bracket_tstep=0.0,last_func=fbase;
       //bracket the minimum in this direction (in 1D units of tstep) for bisection method
       for(doublevar tstep=1e-8; tstep < 20.0; tstep*=2.0) {
-        
         doublevar f=eval_tstep(x,tstep,grad,n);
         cout << "tstep " << tstep << " func " << f << " fbase " << fbase << endl;
         if(f > fbase or f > last_func) {
@@ -235,10 +241,6 @@ public:
       doublevar af=fbase,
       bf=eval_tstep(x,b,grad,n),
       cf=eval_tstep(x,c,grad,n);
-      //if(af-bf<tolbf and cf-bf<tolbf and bf-af<tolbf and bf-cf<tolbf){
-      //  break; //exit big loop if there is small change in the direction of gradient 
-      //}
-      //(grad psi)/psi = grad (log psi), small change in grad direction ( var grad is grad(log psi))
       if(gradlen < outer_tol) {break;} //Exit big loop if (grad psi)/psi is small 
       cout << "first step  a,b,c " << a << " " << b << "  " << c
       << " funcs " << af << " " << bf << " " << cf << endl;
@@ -254,8 +256,10 @@ public:
         //check if the function is smaller at d than at b to choose next bracket
         if(df < bf) {
           if( (c-b) > (b-a) ) {
-            // How to check tolerance: log(1+x) ~ x. Want to make sure to check relative change in psi
+            // How to check tolerance: Want to make sure to check relative change in psi. 
+            // grad psi / psi = grad log psi ~ (log psi_a-log psi_b)/(a-b) ~ log(psi_a/psi_b)/(a-b) ~ (psi_a-psi_b)/psi_b/(a-b) (since log(1+x) ~ x).
             //(af-bf) = log psi_a - log psi_b = log(psi_a/psi_b) ~ (psi_a-psi_b)/psi_b < tol
+            //gradlen is abs(grad) at start, timesteps a, b, c, d are in units of grad, need to multiply to get actual distance a-b.
             unit = gradlen*(b-a);
             if(af/unit-bf/unit<tol and bf/unit-af/unit<tol) { cout << it << " (af-bf)/(b-a)=" << af/unit-bf/unit << endl; break; }
             a=b;
@@ -301,30 +305,55 @@ public:
         x[i]=x[i]-best_tstep*grad[i];
 
       if(big_it==max_big_it-1) {
-        doublevar grad_squared = 0;
-        for (int i=1;i<n;i++){
-          grad_squared += grad(i)*grad(i);
-        }
-        cout << "Warning: outer loop did not reach tolerance. |grad| = " << sqrt(grad_squared) << endl;
+        newton_iteration(x, n, 2);
+        cout << "Warning: outer loop did not reach tolerance." << endl;
       }
     }
   }
-  //-----------------------------------------
   
+  //-----------------------------------------
+  void newton_iteration(double * x, int n, int nit=1) {
+    Array2 <doublevar> hessian(n,n);
+    Array2 <doublevar> inverse_hessian(n,n);
+    Array1 <doublevar> grad(n+1);
+    Array1 <doublevar> delta_x(n+1);
+    for (int it=0; it<=nit; it++) {
+      doublevar psi_error = 0;
+      dfunc(x,grad.v);
+      calc_hessian(x, hessian, n, 1e-6);
+      InvertMatrix(hessian, inverse_hessian, n);
+      doublevar grad_squared = 0, delta_x_squared = 0;
+      for (int i=1;i<=n;i++){
+          delta_x(i)=0;
+        for (int j=1;j<=n;j++) {
+          delta_x(i) += inverse_hessian(i-1,j-1)*grad(j); // Estimate x error: dx = H_inv * g
+          psi_error += 0.5*grad(i)*inverse_hessian(i-1,j-1)*grad(j); // Estimate psi error: dpsi = g.T * x / 2 = g.T * H_inv * g / 2
+        }
+        grad_squared += grad(i)*grad(i);
+        delta_x_squared += delta_x(i)*delta_x(i);
+      }
+      cout << "newton" << it << ", |grad| = " << sqrt(grad_squared) << ", psi error = " << psi_error << ", x error = " << sqrt(delta_x_squared) << endl;
+      if(it<nit){ // don't update x on the last step, so that the ouput represents the final estimated error (and not one that has been corrected)
+        for(int i=1; i<=n; i++)
+          x[i]=x[i]-delta_x(i);
+      }
+    }
+  }
+
+  //-----------------------------------------
   void iteration_print(double f, double gg, double tol,  int itn) {
     cout << "It " << endl;
   }
   
   //-----------------------------------------
-  void calc_hessian(double * x, Array2 <doublevar> & hessian, int n, double h=1e-3) {
+  void calc_hessian(double * x, Array2 <doublevar> & hessian, int n, double h=1e-6) {
     Array1 <doublevar> grad_plus(n+1);
     Array1 <doublevar> grad_minus(n+1);
     Array1 <doublevar> xnew(n+1);
     if(h<=0) { h = 1e-3; } // default step size 
     
-    for(int i=1; i<=n; i++) {
+    for(int i=1; i<=n; i++) 
       xnew(i)=x[i];
-    }
     
     for(int i=1; i<=n; i++) {
       // forward step
@@ -360,9 +389,9 @@ void Maximize_method::maximize(Sample_point * sample,Wavefunction * wf,Config_sa
   maximizer.sample=sample;
   maximizer.system=sys;
 
+  int count=1;
   Array1 <doublevar> allpos(nelectrons*3+1);
   Array1 <doublevar> epos(3);
-  int count=1;
   for(int e=0; e< nelectrons; e++) {
     sample->getElectronPos(e,epos);
     for(int d=0; d< 3; d++) { 
@@ -378,37 +407,86 @@ void Maximize_method::maximize(Sample_point * sample,Wavefunction * wf,Config_sa
 }
 
 //----------------------------------------------------------------------
+
+void Maximize_method::hessian_vary_step(Sample_point * sample,Wavefunction * wf,Config_save_point & pt,Array1 <Hessian_step> & hessian_steps) { 
+  int nelectrons=sample->electronSize();
+  int nsteps=hessian_steps.GetDim(0);
+  pt.restorePos(sample);
+  Maximize_fn maximizer(nelectrons*3,1,1e-12,1000,1);
+  maximizer.wf=wf;
+  maximizer.wfdata=wfdata;
+  maximizer.sample=sample;
+  maximizer.system=sys;
+
+  int count=1;
+  Array2 <doublevar> temphessian(nelectrons*3,nelectrons*3);
+  Array1 <doublevar> allpos(nelectrons*3+1);
+  Array1 <doublevar> epos(3);
+  for(int e=0; e< nelectrons; e++) {
+    sample->getElectronPos(e,epos);
+    for(int d=0; d< 3; d++) { 
+      allpos(count++)=epos(d);
+    }
+  }
+  // compute hessians using different step sizes
+  for(int i=0;i<nsteps;i++) {
+    hessian_steps(i).step = pow(10.0,-i-1);
+    maximizer.calc_hessian(allpos.v,temphessian,nelectrons*3,hessian_steps(i).step);
+    hessian_steps(i).hessian = temphessian;
+  }
+}
+
+//----------------------------------------------------------------------
   
 int Maximize_method::showinfo(ostream & os) { 
   return 1;
 }
 
 //----------------------------------------------------------------------
-//void Maximize_method::calc_hessian(double * x, Array2 <doublevar> & hessian, int n) {
-//  Array1 <doublevar> grad_plus(n+1);
-//  Array1 <doublevar> grad_minus(n+1);
-//  Array1 <doublevar> xnew(n+1);
-//  double h = 1e-3; // step size
-//  
-//  for(int i=1; i<=n; i++) {
-//    xnew(i)=x[i];
-//  }
-//  
-//  for(int i=1; i<=n; i++) {
-//    // forward step
-//    xnew(i) = x[i] + h;
-//    dfunc(xnew,grad_plus.v);
-//    // backward step
-//    xnew(i) = x[i] - h;
-//    dfunc(xnew,grad_minus.v);
-//    // reset position
-//    xnew(i) = x[i];
-//    // compute derivative
-//    for(j=1; j<=n; j++) {
-//      hessian(i-1,j-1) = (grad_plus(j) - grad_minus(j)) / (2*h)
-//    }   
-//  }
-//}
+void write_hessian_vary_step_json(string & outfilename, Array1 <Hessian_step> hessian_steps,Array2 <doublevar> config, doublevar logpsi) {
+  int nsteps = hessian_steps.GetDim(0);
+  int nelectrons = config.GetDim(0);
+  // write to file
+  ofstream os(outfilename.c_str());
+  os.precision(15);
+  os << "[{";
+  os << "\"psi\": " << logpsi << ", ";
+  os << "\"config\": " << "[";
+  for(int e=0; e<nelectrons; e++) {
+    if(e!=0) { os << ", "; }
+    os << "[";
+    for(int d=0; d<3; d++) {
+      if(d!=0) { os << ", "; }
+      os << config(e,d); 
+    }
+    os << "]";
+  }
+  os << "], ";
+  os << "\"steps\": " << "[";
+  for(int i=0;i<nsteps;i++) {
+    if(i!=0) { os << ", "; }
+    os << hessian_steps(i).step;
+  }
+  os << "], ";
+  os << "\"hessians\": " << "[";
+  for(int i=0;i<nsteps;i++) {
+    if(i!=0) { os << ", "; }
+    os << "[";
+    for(int j=0;j<3*nelectrons;j++) {
+      if(j!=0) { os << ", "; }
+      os << "[";
+      for(int k=0;k<3*nelectrons;k++) {
+        if(k!=0) { os << ", "; }
+          os << hessian_steps(i).hessian(j,k);
+      }
+      os << "]";
+    }
+    os << "]";
+  }
+  os << "]";
+  os << "}]";
+  os.close();
+}
 
 //----------------------------------------------------------------------
 void write_configurations_maximize_json(string & filename, Array1 <Maximize_config> configs) { 
@@ -643,3 +721,4 @@ void Maximize_config::write(ostream & os,bool write_hessian) {
 void Maximize_config::read(istream & is) {}
 void Maximize_config::mpiSend(int node) {}
 void Maximize_config::mpiReceive(int node) {}
+
