@@ -68,7 +68,7 @@ void Maximize_method::run(Program_options & options, ostream & output) {
   wfdata->generateWavefunction(wf);
   sample->attachObserver(wf);
   
-  Wf_return wfret(1,2);
+  Wf_return lap(1,5);
 
   Array1 <Config_save_point> config_pos(nconfigs_per_node);
   Array1 <Maximize_config> maximize_config(nconfigs_per_node);
@@ -80,7 +80,10 @@ void Maximize_method::run(Program_options & options, ostream & output) {
   Properties_gather mygather;
   
   Array2 <doublevar> tempconfig(nelectrons,3);
+  Array1 <doublevar> tempgrad(3*nelectrons);
   Array2 <doublevar> temphessian(3*nelectrons,3*nelectrons);
+  Array2 <doublevar> inverse_hessian(3*nelectrons,3*nelectrons);
+  
   
   for(int i=0; i < nconfigs_per_node; i++) { 
     stringstream tableout;
@@ -89,7 +92,6 @@ void Maximize_method::run(Program_options & options, ostream & output) {
       sample->getElectronPos(e,epos);
       for(int d=0; d< 3; d++) {
         tempconfig(e,d) = epos(d);
-        //tableout << epos(d) << " ";
       }
     }
 
@@ -97,16 +99,30 @@ void Maximize_method::run(Program_options & options, ostream & output) {
     mygather.gatherData(pt, pseudo, sys, wfdata, wf, 
                             sample, &guidewf);
     
-    wf->getVal(wfdata,0,wfret);
-    
-    //tableout << pt.energy(0) << " ";
-    //tableout << wfret.amp(0,0) << endl;
-    
+    // find gradient
+    int count=0;
+    doublevar psi_error=0;
+    for(int e=0; e< nelectrons; e++) { 
+      wf->getLap(wfdata,e,lap);
+      for(int d=0; d< 3; d++) {
+        doublevar grad=-lap.amp(0,d+1);
+        tempgrad[count++]=grad;
+      }
+    }
+    // estimate error in psi by 0.5 * g.T * H_inv * g
+    InvertMatrix(temphessian, inverse_hessian, 3*nelectrons);
+    for(int j=0; j<3*nelectrons; j++) {
+      for(int k=0; k<3*nelectrons; k++) {
+        psi_error += 0.5*tempgrad(j)*inverse_hessian(j,k)*tempgrad(k);
+      }
+    }
+
     maximize_config(i).nelectrons = nelectrons;
-    maximize_config(i).logpsi = wfret.amp(0,0);
+    maximize_config(i).logpsi = lap.amp(0,0);
     maximize_config(i).energy = pt.energy(0);
     maximize_config(i).config = tempconfig;
     maximize_config(i).hessian= temphessian;
+    maximize_config(i).error = psi_error;
      
     config_pos(i).write(cout);
   }
@@ -690,6 +706,7 @@ void write_configurations_maximize(string & filename,
 void Maximize_config::write(ostream & os,bool write_hessian) {
   os << "{";
   os << "\"psi\": " << logpsi;
+  os << "," << "\"error\": " << error;
   os << "," << "\"energy\": " << energy;
   os << "," << "\"config\": " << "[";
   for(int e=0; e<nelectrons; e++) {

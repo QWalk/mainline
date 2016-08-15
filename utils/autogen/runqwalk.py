@@ -924,6 +924,8 @@ class QWalkRunMaximize:
 
               entry['psi'] = [r['psi'] for r in data]
               if print_progress: print("Time",time.time()-t,"Extracted psi list")
+              entry['error'] = [r['error'] for r in data]
+              if print_progress: print("Time",time.time()-t,"Extracted error list")
               entry['energies'] = [r['energy'] for r in data]
               if print_progress: print("Time",time.time()-t,"Extracted energy list")
               entry['configs'] = [r['config'] for r in data]

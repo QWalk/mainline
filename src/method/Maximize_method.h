@@ -85,6 +85,7 @@ struct Maximize_config {
   Array2 <doublevar> config;
   Array2 <doublevar> hessian;
   doublevar logpsi;
+  doublevar error;
   doublevar energy;
   
   Maximize_config() {
