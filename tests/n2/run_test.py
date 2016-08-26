@@ -58,11 +58,9 @@ for k,v in success.items():
   print(k,v)
 
 fieldnames = ['method','quantity','system','description','passed','result','error','reference','err_ref']
-if not os.path.exists('../report.csv'):
-  with open('../report.csv','w') as csvfile:
-    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-    writer.writerow(dict(zip(fieldnames,fieldnames)))
-with open('../report.csv','a') as csvfile:
+with open('report.csv','a') as csvfile:
+  writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+  writer.writerow(dict(zip(fieldnames,fieldnames)))
   writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
   writer.writerows(reports)
 
