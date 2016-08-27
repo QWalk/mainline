@@ -3,24 +3,10 @@ from __future__ import print_function
 import subprocess
 import json
 import sys
-import csv
 import os
 
 sys.path.append("../")
 from qwtest import *
-QW="../../bin/qwalk"
-GOS="../../bin/gosling"
-
-def check_errorbars(a,b,berr,sigma=3):
-  if abs(a-b)/berr > sigma:
-    return False
-  return True
-
-def check_sane(a,b,berr,sigma=3):
-  if berr > 0.1:
-    return False
-  return True
-
 
 reports=[]
 
@@ -69,7 +55,6 @@ for k in ref_data.keys():
 allsuc=[]
 for k,v in success.items():
   allsuc.append(v)
-  print(k,v)
 
 print("""###########################################
 Checking DMC for the H atom. 
@@ -100,21 +85,11 @@ report['passed']=success['total_energy']
 
 reports.append(report)
 
-print("Exact: -0.5")
-print("Data: ",dat['properties']['total_energy']['value'][0],"+/-",dat['properties']['total_energy']['error'][0])
+print_results(reports)
+save_results(reports)
 
-fieldnames = ['method','quantity','system','description','passed','result','error','reference','err_ref']
-with open('report.csv','w') as csvfile:
-  writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-  writer.writerow(dict(zip(fieldnames,fieldnames)))
-  writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-  writer.writerows(reports)
+for k,v in success.items():
+  allsuc.append(v)
 
 if False in allsuc:
   exit(1)
-
-if not success['total_energy']:
-  print("FAILED")
-  exit(1)
-print("PASSED")
-exit(0)

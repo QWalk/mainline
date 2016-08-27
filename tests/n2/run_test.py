@@ -3,7 +3,6 @@ from __future__ import print_function
 import subprocess
 import json
 import sys
-import csv
 import os
 
 sys.path.append("../")
@@ -52,18 +51,12 @@ for k in ref_data.keys():
     report['passed']=False
   reports.append(report)
 
+print_results(reports)
+save_results(reports)
+
 allsuc=[]
 for k,v in success.items():
   allsuc.append(v)
-  print(k,v)
-
-fieldnames = ['method','quantity','system','description','passed','result','error','reference','err_ref']
-with open('report.csv','a') as csvfile:
-  writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-  writer.writerow(dict(zip(fieldnames,fieldnames)))
-  writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-  writer.writerows(reports)
 
 if False in allsuc:
   exit(1)
-

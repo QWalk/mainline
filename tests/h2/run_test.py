@@ -4,7 +4,6 @@ import subprocess
 import json
 import sys
 import math
-import csv
 import os
 
 sys.path.append("../")
@@ -44,24 +43,15 @@ report['error']=run_data[1]
 report['reference']=ref_data[0]
 report['err_ref']=ref_data[1]
 
-print("Reference data:",ref_data)
-print("This run:",run_data)
-
 #I added a factor of 2 fudge factor to account for differences in optimization.
 success['total_energy']=check_errorbars(ref_data[0],run_data[0],2.*math.sqrt(ref_data[1]**2+run_data[1]**2))
 report['passed']=success['total_energy']
 
 reports.append(report)
 
-fieldnames = ['method','quantity','system','description','passed','result','error','reference','err_ref']
-with open('report.csv','w') as csvfile:
-  writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-  writer.writerow(dict(zip(fieldnames,fieldnames)))
-  writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-  writer.writerows(reports)
+print_results(reports)
+save_results(reports)
 
 if success['total_energy']:
-  print("PASSED")
   sys.exit(0)
-print("FAILED")
 sys.exit(1)
