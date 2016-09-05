@@ -56,9 +56,10 @@ The reference is the exact result.
 
 ref_data={'total_energy':[-0.5,0.0] }
 systems={'total_energy':'h'}
-methods={'total_energy':'vmc'}
-descriptions={'total_energy':'Checking VMC and Slater determinant for the H atom. This tests the orbital evaluation routine and the VMC method. The reference is the Hartree-Fock result from GAMESS.'}
+methods={'total_energy':'dmc'}
+descriptions={'Checking DMC for the H atom.  This tests the basic DMC algorithm.  The reference is the exact result.'}
 sigmas={'total_energy':3.0}
+
 
 try:
   subprocess.check_output(['rm','qw.dmc.log','qw.dmc.config'])
