@@ -31,12 +31,12 @@ for k in ref_data.keys():
   descriptions[k]='Checking VMC and Slater determinant for the H atom. This tests the orbital evaluation routine and the VMC method. The reference is the Hartree-Fock result from GAMESS.'
   sigmas[k]=3.0
 
-try:
-  subprocess.check_output(['rm','qw.hf.log','qw.hf.config'])
-except:
-  pass
+# try:
+#   subprocess.check_output(['rm','qw.hf.log','qw.hf.config'])
+# except:
+#   pass
 
-subprocess.check_output([QW,'qw.hf'])
+# subprocess.check_output([QW,'qw.hf'])
 
 json_str=subprocess.check_output([GOS,'-json','qw.hf.log'])
 dat=json.loads(json_str)
@@ -57,16 +57,15 @@ The reference is the exact result.
 ref_data={'total_energy':[-0.5,0.0] }
 systems={'total_energy':'h'}
 methods={'total_energy':'dmc'}
-descriptions={'Checking DMC for the H atom.  This tests the basic DMC algorithm.  The reference is the exact result.'}
+descriptions={'total_energy':'Checking DMC for the H atom.  This tests the basic DMC algorithm.  The reference is the exact result.'}
 sigmas={'total_energy':3.0}
 
-
-try:
-  subprocess.check_output(['rm','qw.dmc.log','qw.dmc.config'])
-except:
-  pass
-
-subprocess.check_output([QW,'qw.dmc'])
+# try:
+#   subprocess.check_output(['rm','qw.dmc.log','qw.dmc.config'])
+# except:
+#   pass
+# 
+# subprocess.check_output([QW,'qw.dmc'])
 
 json_str=subprocess.check_output([GOS,'-json','qw.dmc.log'])
 dat=json.loads(json_str)
