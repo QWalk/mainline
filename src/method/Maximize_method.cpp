@@ -229,14 +229,14 @@ public:
     Array1 <doublevar> grad(n+1);
     //Array1 <doublevar> xnew(n+1);
     int max_it = 100;
-    int max_big_it = 200;
+    int max_big_it = 400;
     for(int big_it=0; big_it < max_big_it; big_it++) {
       //find the direction of the gradient at x
       dfunc(x,grad.v);
       doublevar gradlen = grad_abs(grad,n);
       doublevar unit;
       doublevar fbase=grad(0);
-      doublevar tol = 1e-12;
+      doublevar tol = 1e-9;
       doublevar outer_tol = tol*10; // make outer loop tolerance looser than inner
       doublevar bracket_tstep=0.0,last_func=fbase;
       //bracket the minimum in this direction (in 1D units of tstep) for bisection method
@@ -321,10 +321,10 @@ public:
         x[i]=x[i]-best_tstep*grad[i];
 
       if(big_it==max_big_it-1) {
-        newton_iteration(x, n, 2);
         cout << "Warning: outer loop did not reach tolerance." << endl;
       }
     }
+    newton_iteration(x, n, 2);
   }
   
   //-----------------------------------------
