@@ -477,22 +477,39 @@ class QWalkRunVMC:
 
 #-----------------------------------------------
   def vmcinput(self,k,jast,opt,nblock):
+    #outlist = [
+    #    "method { VMC ",
+    #    "nblock %i"%nblock,
+    #  ]
+    #opt_trans={"energy":"enopt","variance":"opt"}
+    #jast_inp=extract_jastrow(open("qw_0.%s.%s.wfout"%(jast,opt_trans[opt])))
+    #outlist += [
+    #    "}",
+    #    "include qw_%i.sys"%k,
+    #    "trialfunc { slater-jastrow ",
+    #       "wf1 { include qw_%i.slater } "%(k),
+    #       "wf2 { ",
+    #      jast_inp,
+    #    " } ",
+    #    "}"
+    #  ]
+    #outstr = '\n'.join(outlist)
+    #return outstr
     outlist = [
-        "method { VMC ",
-        "nblock %i"%nblock,
+      "method { VMC nblock %i }"%nblock,
+      "include qw_%i.sys"%k
       ]
-    opt_trans={"energy":"enopt","variance":"opt"}
-    jast_inp=extract_jastrow(open("qw_0.%s.%s.wfout"%(jast,opt_trans[opt])))
-    outlist += [
-        "}",
-        "include qw_%i.sys"%k,
+    if jast=="none" or jast=='':
+      outlist.append("trialfunc { include qw_%i.slater }"%k)
+    else:
+      opt_trans={"energy":"enopt","variance":"opt"}
+      jast_inp=extract_jastrow(open("qw_0.%s.%s.wfout"%(jast,opt_trans[opt])))
+      outlist += [
         "trialfunc { slater-jastrow ",
-           "wf1 { include qw_%i.slater } "%(k),
-           "wf2 { ",
-          jast_inp,
-        " } ",
+        "  wf1 { include qw_%i.slater }"%(k),
+        "  wf2 { ", jast_inp, " } ",
         "}"
-      ]
+        ]
     outstr = '\n'.join(outlist)
     return outstr
 
@@ -557,7 +574,7 @@ class QWalkRunVMC:
       if r['results']['properties']['total_energy']['error'][0] < thresh:
         statuses.append("ok")
       else:
-        status.append("not_finished")
+        statuses.append("not_finished")
     #Finally, decide what to do
     if len(set(statuses))==1:
       return statuses[0]
@@ -572,6 +589,9 @@ class QWalkRunVMC:
   def retry(self,job_record):
     return self.run(job_record,restart=True)
 
+#-----------------------------------------------
+  def resume(self,job_record):
+    return self.run(job_record,restart=True)
 
 #-----------------------------------------------
   def output(self,job_record):
@@ -895,7 +915,7 @@ class QWalkRunMaximize:
 
 #-----------------------------------------------
   def collect_runs(self,job_record):
-    print_progress = True
+    print_progress = False
     if print_progress: 
       t = time.time()
       print("Time",0,"Starting timer for maximize collect_runs method")
