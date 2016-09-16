@@ -42,6 +42,7 @@ class Average_ekt:public Average_generator {
 			 System * sys, Sample_point * sample);
   virtual void read(vector <string> & words);
   virtual void write_summary(Average_return &,Average_return &, ostream & os);
+  virtual void joutput(Array2 <dcomplex> &obdm, ostream & os);
   virtual void jsonOutput(Average_return &,Average_return &, ostream & os);
   virtual ~Average_ekt() { 
     if(momat) delete momat;
