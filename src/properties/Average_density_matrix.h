@@ -71,6 +71,8 @@ class Average_tbdm_basis:public Average_generator {
 
   void jsontbdmvalHelper(Average_return & avg,tbdm_t tbdm,ostream & os);
   void jsontbdmerrHelper(Average_return & avg,Average_return & err,tbdm_t tbdm,ostream & os);
+  void jobdmoutput(Array2 <dcomplex> &obdm, ostream & os);
+  void jdgoutput(string s, int indx,  Average_return &avg1, Average_return &avg2, ostream & os);
   
   Array1 <Array1 <int> > occupations;
   Array1 < Array1 <doublevar> > saved_r;
