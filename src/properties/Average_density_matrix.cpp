@@ -1032,8 +1032,9 @@ void Average_tbdm_basis::jsonOutput(Average_return &avg,Average_return &err, ost
   os << "]," << endl;
   os << "\"down_err\":["<< endl;
   jobdmoutput(obdm_down_err,os);
-  os << "]" << endl;
-  os << "}," << endl;
+  os << "]" << endl << "}";
+  if(eval_tbdm) os << ",";
+  os  << endl;
   
   if(eval_tbdm) {
     os << "\"tbdm\":{" << endl;
