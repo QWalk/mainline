@@ -82,11 +82,11 @@ private:
 
 struct Maximize_config {
   int nelectrons;
-  Array2 <doublevar> config;
+  Array2 <doublevar> config, config_init;
   Array2 <doublevar> hessian;
-  doublevar logpsi;
+  doublevar logpsi, logpsi_init;
   doublevar error;
-  doublevar energy;
+  doublevar energy, energy_init;
   
   Maximize_config() {
     nelectrons=0;

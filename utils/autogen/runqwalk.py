@@ -952,6 +952,9 @@ class QWalkRunMaximize:
               if print_progress: print("Time",time.time()-t,"Extracted config list")
               #entry['hessian'] = [r['hessian'] for r in data]
               #if print_progress: print("Time",time.time()-t,"Extracted hessian list")
+              entry['psi_init'] = [r['psi_init'] for r in data]
+              entry['energies_init'] = [r['energy_init'] for r in data]
+              entry['configs_init'] = [r['config_init'] for r in data]
               
               #l = [[r['psi'],r['energy'],r['config'],r['hessian']] for r in data]
               #if print_progress: print("Time",time.time()-t,"Extracted list of all data, need to 'transpose'")

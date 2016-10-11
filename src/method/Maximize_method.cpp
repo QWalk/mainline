@@ -87,7 +87,27 @@ void Maximize_method::run(Program_options & options, ostream & output) {
   
   for(int i=0; i < nconfigs_per_node; i++) { 
     stringstream tableout;
-    maximize(sample,wf,config_pos(i),temphessian);
+    
+    // Get initial info
+    for(int e=0; e< nelectrons; e++) {
+      sample->getElectronPos(e,epos);
+      for(int d=0; d< 3; d++) {
+        tempconfig(e,d) = epos(d);
+      }
+    }
+
+    Properties_point pt0;
+    mygather.gatherData(pt0, pseudo, sys, wfdata, wf, 
+                            sample, &guidewf);
+    
+    maximize_config(i).logpsi_init = pt0.wf_val.amp(0,0);
+    maximize_config(i).energy_init = pt0.energy(0);
+    maximize_config(i).config_init = tempconfig;
+    
+    // Maximize Sample
+    //maximize(sample,wf,config_pos(i),temphessian);
+    
+    // Get maximized info
     for(int e=0; e< nelectrons; e++) {
       sample->getElectronPos(e,epos);
       for(int d=0; d< 3; d++) {
@@ -102,6 +122,7 @@ void Maximize_method::run(Program_options & options, ostream & output) {
     // find gradient
     int count=0;
     doublevar psi_error=0;
+    wf->updateLap(wfdata,sample);
     for(int e=0; e< nelectrons; e++) { 
       wf->getLap(wfdata,e,lap);
       for(int d=0; d< 3; d++) {
@@ -110,12 +131,12 @@ void Maximize_method::run(Program_options & options, ostream & output) {
       }
     }
     // estimate error in psi by 0.5 * g.T * H_inv * g
-    InvertMatrix(temphessian, inverse_hessian, 3*nelectrons);
-    for(int j=0; j<3*nelectrons; j++) {
-      for(int k=0; k<3*nelectrons; k++) {
-        psi_error += 0.5*tempgrad(j)*inverse_hessian(j,k)*tempgrad(k);
-      }
-    }
+    // InvertMatrix(temphessian, inverse_hessian, 3*nelectrons);
+    // for(int j=0; j<3*nelectrons; j++) {
+    //   for(int k=0; k<3*nelectrons; k++) {
+    //     psi_error += 0.5*tempgrad(j)*inverse_hessian(j,k)*tempgrad(k);
+    //   }
+    // }
 
     maximize_config(i).nelectrons = nelectrons;
     maximize_config(i).logpsi = lap.amp(0,0);
@@ -229,7 +250,7 @@ public:
     Array1 <doublevar> grad(n+1);
     //Array1 <doublevar> xnew(n+1);
     int max_it = 100;
-    int max_big_it = 400;
+    int max_big_it = 500;
     for(int big_it=0; big_it < max_big_it; big_it++) {
       //find the direction of the gradient at x
       dfunc(x,grad.v);
@@ -314,7 +335,7 @@ public:
         }
       }
       cout << "last step b-a,c-b " << b-a << " " << c-b
-      << " func diffs " << af-bf << " " << cf-bf << " " << endl;
+      << " func diffs " << (af-bf)/((b-a)*gradlen) << " " << (cf-bf)/((c-b)*gradlen) << " " << endl;
       //finished bisection search, minimum at b; compute x for tstep b
       doublevar best_tstep=b;
       for(int i=1; i<=n; i++)
@@ -324,7 +345,7 @@ public:
         cout << "Warning: outer loop did not reach tolerance." << endl;
       }
     }
-    newton_iteration(x, n, 2);
+    newton_iteration(x, n, 4);
   }
   
   //-----------------------------------------
@@ -706,8 +727,10 @@ void write_configurations_maximize(string & filename,
 void Maximize_config::write(ostream & os,bool write_hessian) {
   os << "{";
   os << "\"psi\": " << logpsi;
+  os << "," << "\"psi_init\": " << logpsi_init;
   os << "," << "\"error\": " << error;
   os << "," << "\"energy\": " << energy;
+  os << "," << "\"energy_init\": " << energy_init;
   os << "," << "\"config\": " << "[";
   for(int e=0; e<nelectrons; e++) {
     if(e!=0) { os << ", "; }
@@ -715,6 +738,17 @@ void Maximize_config::write(ostream & os,bool write_hessian) {
     for(int d=0; d<3; d++) {
       if(d!=0) { os << ", "; }
       os << config(e,d); 
+    }
+    os << "]";
+  }
+  os << "]";
+  os << "," << "\"config_init\": " << "[";
+  for(int e=0; e<nelectrons; e++) {
+    if(e!=0) { os << ", "; }
+    os << "[";
+    for(int d=0; d<3; d++) {
+      if(d!=0) { os << ", "; }
+      os << config_init(e,d); 
     }
     os << "]";
   }
