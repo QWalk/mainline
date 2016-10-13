@@ -92,26 +92,27 @@ void Lowdin_method::run(Program_options & options, ostream & output) {
   Array1 <doublevar> eigenvals(nmo);
   Array2 <doublevar> eigenvecs(nmo,nmo);
   EigenSystemSolverRealSymmetricMatrix(S,eigenvals,eigenvecs);
+  output << "Overlap matrix " << endl;
   for(int i=0; i < nmo; i++) { 
     for(int j=0; j< nmo; j++) { 
       if(fabs(S(i,j)) < threshold) S(i,j)=0.0;
-      cout << setw(15) << S(i,j);
+      output << setw(15) << S(i,j);
     }
-    cout << endl;
+    output << endl;
   }
       
   Array2<doublevar> eigenvec_inverse(nmo,nmo);
   InvertMatrix(eigenvecs,eigenvec_inverse,nmo);
-  cout << "Eigenvectors" << endl;
+  output << "Eigenvectors" << endl;
   for(int i=0; i < nmo; i++) { 
     for(int j=0; j< nmo; j++) { 
-      cout << setw(15) << eigenvecs(i,j);
+      output << setw(15) << eigenvecs(i,j);
     }
-    cout << endl;
+    output << endl;
   }
-  cout << "Eigenvalues" << endl;
-  for(int i=0; i< nmo; i++) cout << eigenvals(i) << " " ;
-  cout << endl;
+  output << "Eigenvalues" << endl;
+  for(int i=0; i< nmo; i++) output << eigenvals(i) << " " ;
+  output << endl;
 
   for(int i=0; i< nmo; i++) { 
     if(eigenvals(i) < 0) 
@@ -126,13 +127,13 @@ void Lowdin_method::run(Program_options & options, ostream & output) {
     }
   }
   MultiplyMatrices(eigenvecs,eigenvec_inverse,Rtot,nmo);
-  cout << "Rotation" << endl;
+  output << "Rotation" << endl;
   for(int i=0; i < nmo; i++) { 
     for(int j=0; j< nmo; j++) { 
       if(fabs(Rtot(i,j)) < threshold) Rtot(i,j)=0.0;
-      cout << setw(15) << Rtot(i,j);
+      output << setw(15) << Rtot(i,j);
     }
-    cout << endl;
+    output << endl;
   }
   Array1 <int> allorbs(nmo);
   for(int i=0; i< nmo; i++) allorbs(i)=i;

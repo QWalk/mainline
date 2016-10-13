@@ -401,6 +401,16 @@ void read_array(istream & is, int n, Array1 <T> & a) {
     is >> a(i);
 }
 
+template <class T>
+void write_json(ostream & os, const Array1 <T> & a) {
+  int size=a.GetDim(0);
+  os << "[";
+  for(int i=0; i< size-1; i++) {
+    os << a[i] << ",";
+  }
+  os << a[size-1] << "]";
+}
+
 //#####################################################################
 
 template <class T>

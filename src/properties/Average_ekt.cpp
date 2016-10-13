@@ -758,17 +758,39 @@ void Average_ekt::write_summary(Average_return &avg,Average_return &err, ostream
   for(int i=0; i< nmo; i++) trace+=obdm_down(i,i);
   os << " down: " << trace << endl;
 }
-//------------------------------------------------------------------
 
+
+//------------------------------------------------------------------
+void Average_ekt::joutput(Array2 <dcomplex> &obdm, ostream & os) {
+  
+  for(int i=0; i< nmo ; i++) {
+    os << "[";
+    for(int j=0; j<nmo; j++) {
+      if(complex_orbitals) {
+        if(j==nmo-1) os << "["<< obdm(i,j).real() <<","<< obdm(i,j).imag()<<"]";
+        else  os << "["<< obdm(i,j).real() <<","<< obdm(i,j).imag()<<"],";
+      }
+      else {
+        if(j==nmo-1) os << obdm(i,j).real();
+        else os << obdm(i,j).real() << ",";
+      }
+    }
+    if(i==nmo-1) os << "]" << endl;
+    else os <<"]," << endl;
+  }
+}
+
+
+//-----------------------------------------------------------------
 void Average_ekt::jsonOutput(Average_return &avg,Average_return &err, ostream & os) {
-    
+  
   Array2 <dcomplex> obdm_up(nmo,nmo),obdm_down(nmo,nmo),
-         obdm_up_err(nmo,nmo),obdm_down_err(nmo,nmo),
-         cndc_up(nmo, nmo), cndc_down(nmo, nmo),
-         vlnc_up(nmo, nmo), vlnc_down(nmo, nmo),
-         cndc_up_err(nmo, nmo), cndc_down_err(nmo, nmo),
-         vlnc_up_err(nmo, nmo), vlnc_down_err(nmo, nmo);
-    
+  obdm_up_err(nmo,nmo),obdm_down_err(nmo,nmo),
+  cndc_up(nmo, nmo), cndc_down(nmo, nmo),
+  vlnc_up(nmo, nmo), vlnc_down(nmo, nmo),
+  cndc_up_err(nmo, nmo), cndc_down_err(nmo, nmo),
+  vlnc_up_err(nmo, nmo), vlnc_down_err(nmo, nmo);
+  
   os <<"\""<< avg.type << "\":{" << endl;
   os << "\"nmo\":" << nmo <<","<< endl;
   os << "\"states\":[";
@@ -801,90 +823,32 @@ void Average_ekt::jsonOutput(Average_return &avg,Average_return &err, ostream & 
         int index=nmo + place;
         obdm_up(i,j)=dcomplex(avg.vals(index),avg.vals(index+1))/norm;
         obdm_up_err(i,j)=dcomplex(err.vals(index),err.vals(index+1))/norm;
-                
+        
         index+=2*nmo*nmo;
         obdm_down(i,j)=dcomplex(avg.vals(index),avg.vals(index+1))/norm;
         obdm_down_err(i,j)=dcomplex(err.vals(index),err.vals(index+1))/norm;
         place+=2;
-        }
+      }
     }
     os << "\"obdm\":{" << endl;
     int colwidth=40;
     if(!complex_orbitals) colwidth=20;
+    
     os << "\"up\":["<< endl;
-    for(int i=0; i< nmo ; i++) {
-      os << "[";
-      for(int j=0; j<nmo; j++) {
-        if(complex_orbitals) {
-          if(j==nmo-1) os << "["<< obdm_up(i,j).real() <<","<< obdm_up(i,j).imag()<<"]";
-          else  os << "["<< obdm_up(i,j).real() <<","<< obdm_up(i,j).imag()<<"],";
-        }
-        else {
-          if(j==nmo-1) os << obdm_up(i,j).real();
-          else os << obdm_up(i,j).real() << ",";
-        }
-      }
-      if(i==nmo-1) os << "]" << endl;
-      else os <<"]," << endl;
-    }
+    joutput(obdm_up, os);
     os << "]," << endl;
-    
     os << "\"up_err\":["<< endl;
-    for(int i=0; i< nmo ; i++) {
-      os << "[";
-      for(int j=0; j<nmo; j++) {
-        if(complex_orbitals) {
-          if(j==nmo-1) os <<"["<<obdm_up_err(i,j).real() <<","<< obdm_up_err(i,j).imag()<<"]";
-          else os <<"["<< obdm_up_err(i,j).real() <<","<< obdm_up_err(i,j).imag()<<"],";
-        }
-        else {
-          if(j==nmo-1) os << obdm_up_err(i,j).real();
-          else os << obdm_up_err(i,j).real() << ",";
-        }
-      }
-      if(i==nmo-1) os << "]" << endl;
-      else os <<"]," << endl;
-    }
+    joutput(obdm_up_err, os);
     os << "]," << endl;
-    
     os << "\"down\":["<< endl;
-    for(int i=0; i< nmo ; i++) {
-      os << "[";
-      for(int j=0; j<nmo; j++) {
-        if(complex_orbitals) {
-          if(j==nmo-1) os << "["<< obdm_down(i,j).real() <<","<< obdm_down(i,j).imag()<<"]";
-          else  os << "["<< obdm_down(i,j).real() <<","<< obdm_down(i,j).imag()<<"],";
-        }
-        else {
-          if(j==nmo-1) os << obdm_down(i,j).real();
-          else os << obdm_down(i,j).real() << ",";
-        }
-      }
-      if(i==nmo-1) os << "]" << endl;
-      else os <<"]," << endl;
-    }
+    joutput(obdm_down, os);
     os << "]," << endl;
-    
     os << "\"down_err\":["<< endl;
-    for(int i=0; i< nmo ; i++) {
-      os << "[";
-      for(int j=0; j<nmo; j++) {
-        if(complex_orbitals) {
-          if(j==nmo-1) os <<"["<< obdm_down_err(i,j).real() <<","<< obdm_down_err(i,j).imag()<<"]";
-          else os << "[" << obdm_down_err(i,j).real() <<","<< obdm_down_err(i,j).imag()<<"],";
-        }
-        else {
-          if(j==nmo-1) os << obdm_down_err(i,j).real();
-          else os << obdm_down_err(i,j).real() << ",";
-        }
-      }
-      if(i==nmo-1) os << "]" << endl;
-      else os <<"]," << endl;
-    }
+    joutput(obdm_down_err, os);
     os << "]" << endl;
     os << "}," << endl;
   }
-    
+  
   if (eval_valence) {
     dcomplex i_c(0.,1.);
     int place=0;
@@ -894,92 +858,33 @@ void Average_ekt::jsonOutput(Average_return &avg,Average_return &err, ostream & 
         int index=nmo+4*nmo*nmo + place;
         vlnc_up(i,j)=dcomplex(avg.vals(index),avg.vals(index+1))/norm;
         vlnc_up_err(i,j)=dcomplex(err.vals(index),err.vals(index+1))/norm;
-                
+        
         index+=2*nmo*nmo;
         vlnc_down(i,j)=dcomplex(avg.vals(index),avg.vals(index+1))/norm;
         vlnc_down_err(i,j)=dcomplex(err.vals(index),err.vals(index+1))/norm;
         place+=2;
-        }
+      }
     }
-        
+    
     os << "\"valence\":{" << endl;
     int colwidth=40;
     if(!complex_orbitals) colwidth=20;
     
     os << "\"up\":["<< endl;
-    for(int i=0; i< nmo ; i++) {
-      os << "[";
-      for(int j=0; j<nmo; j++) {
-        if(complex_orbitals) {
-          if(j==nmo-1) os << "["<< vlnc_up(i,j).real() <<","<< vlnc_up(i,j).imag()<<"]";
-          else  os << "["<< vlnc_up(i,j).real() <<","<< vlnc_up(i,j).imag()<<"],";
-        }
-        else {
-          if(j==nmo-1) os << vlnc_up(i,j).real();
-          else os << vlnc_up(i,j).real() << ",";
-        }
-      }
-      if(i==nmo-1) os << "]" << endl;
-      else os <<"]," << endl;
-    }
+    joutput(vlnc_up, os);
     os << "]," << endl;
-    
     os << "\"up_err\":["<< endl;
-    for(int i=0; i< nmo ; i++) {
-      os << "[";
-      for(int j=0; j<nmo; j++) {
-        if(complex_orbitals) {
-          if(j==nmo-1) os <<"["<<vlnc_up_err(i,j).real() <<","<< vlnc_up_err(i,j).imag()<<"]";
-          else os <<"["<< vlnc_up_err(i,j).real() <<","<< vlnc_up_err(i,j).imag()<<"],";
-        }
-        else {
-          if(j==nmo-1) os << vlnc_up_err(i,j).real();
-          else os << vlnc_up_err(i,j).real() << ",";
-        }
-      }
-      if(i==nmo-1) os << "]" << endl;
-      else os <<"]," << endl;
-    }
+    joutput(vlnc_up_err, os);
     os << "]," << endl;
-        
     os << "\"down\":["<< endl;
-    for(int i=0; i< nmo ; i++) {
-      os << "[";
-      for(int j=0; j<nmo; j++) {
-        if(complex_orbitals) {
-          if(j==nmo-1) os << "["<< vlnc_down(i,j).real() <<","<< vlnc_down(i,j).imag()<<"]";
-          else  os << "["<< vlnc_down(i,j).real() <<","<< vlnc_down(i,j).imag()<<"],";
-        }
-        else {
-          if(j==nmo-1) os << vlnc_down(i,j).real();
-          else os << vlnc_down(i,j).real() << ",";
-        }
-      }
-      if(i==nmo-1) os << "]" << endl;
-      else os <<"]," << endl;
-    }
+    joutput(vlnc_down, os);
     os << "]," << endl;
-        
     os << "\"down_err\":["<< endl;
-    for(int i=0; i< nmo ; i++) {
-      os << "[";
-      for(int j=0; j<nmo; j++) {
-        if(complex_orbitals) {
-          if(j==nmo-1) os <<"["<< vlnc_down_err(i,j).real() <<","<< vlnc_down_err(i,j).imag()<<"]";
-          else os << "[" << vlnc_down_err(i,j).real() <<","<< vlnc_down_err(i,j).imag()<<"],";
-        }
-        else {
-          if(j==nmo-1) os << vlnc_down_err(i,j).real();
-          else os << vlnc_down_err(i,j).real() << ",";
-        }
-      }
-      if(i==nmo-1) os << "]" << endl;
-      else os <<"]," << endl;
-    }
+    joutput(vlnc_down_err, os);
     os << "]" << endl;
     os << "}," << endl;
   }
-    
+  
   if (eval_conduction) {
     dcomplex i_c(0.,1.);
     int place=0;
@@ -989,101 +894,33 @@ void Average_ekt::jsonOutput(Average_return &avg,Average_return &err, ostream & 
         int index=nmo + 8*nmo*nmo + place;
         cndc_up(i,j)=dcomplex(avg.vals(index),avg.vals(index+1))/norm;
         cndc_up_err(i,j)=dcomplex(err.vals(index),err.vals(index+1))/norm;
-                
+        
         index+=2*nmo*nmo;
         cndc_down(i,j)=dcomplex(avg.vals(index),avg.vals(index+1))/norm;
         cndc_down_err(i,j)=dcomplex(err.vals(index),err.vals(index+1))/norm;
         place+=2;
-        }
+      }
     }
-        
+    
     os << "\"conduction\":{" << endl;
     int colwidth=40;
     if(!complex_orbitals) colwidth=20;
-       
-    os << "\"up\":["<< endl;
-    for(int i=0; i< nmo ; i++) {
-      os << "[";
-      for(int j=0; j<nmo; j++) {
-        if(complex_orbitals) {
-          if(j==nmo-1) os << "["<< cndc_up(i,j).real() <<","<< cndc_up(i,j).imag()<<"]";
-          else  os << "["<< cndc_up(i,j).real() <<","<< cndc_up(i,j).imag()<<"],";
-        }
-        else {
-          if(j==nmo-1) os << cndc_up(i,j).real();
-          else os << cndc_up(i,j).real() << ",";
-        }
-      }
-      if(i==nmo-1) os << "]" << endl;
-      else os <<"]," << endl;
-    }
-    os << "]," << endl;
-        
-    os << "\"up_err\":["<< endl;
-    for(int i=0; i< nmo ; i++) {
-      os << "[";
-      for(int j=0; j<nmo; j++) {
-        if(complex_orbitals) {
-          if(j==nmo-1) os <<"["<<cndc_up_err(i,j).real() <<","<< cndc_up_err(i,j).imag()<<"]";
-          else os <<"["<< cndc_up_err(i,j).real() <<","<< cndc_up_err(i,j).imag()<<"],";
-        }
-        else {
-          if(j==nmo-1) os << cndc_up_err(i,j).real();
-          else os << cndc_up_err(i,j).real() << ",";
-        }
-      }
-      if(i==nmo-1) os << "]" << endl;
-      else os <<"]," << endl;
-    }
-    os << "]," << endl;
-        
-        
-    os << "\"down\":["<< endl;
-    for(int i=0; i< nmo ; i++) {
-      os << "[";
-      for(int j=0; j<nmo; j++) {
-        if(complex_orbitals) {
-          if(j==nmo-1) os << "["<< cndc_down(i,j).real() <<","<< cndc_down(i,j).imag()<<"]";
-          else  os << "["<< cndc_down(i,j).real() <<","<< cndc_down(i,j).imag()<<"],";
-        }
-        else {
-          if(j==nmo-1) os << cndc_down(i,j).real();
-          else os << cndc_down(i,j).real() << ",";
-        }
-      }
-      if(i==nmo-1) os << "]" << endl;
-      else os <<"]," << endl;
-    }
-    os << "]," << endl;
     
+    os << "\"up\":["<< endl;
+    joutput(cndc_up, os);
+    os << "]," << endl;
+    os << "\"up_err\":["<< endl;
+    joutput(cndc_up_err, os);
+    os << "]," << endl;
+    os << "\"down\":["<< endl;
+    joutput(cndc_down, os);
+    os << "]," << endl;
     os << "\"down_err\":["<< endl;
-    for(int i=0; i< nmo ; i++) {
-      os << "[";
-      for(int j=0; j<nmo; j++) {
-        if(complex_orbitals) {
-          if(j==nmo-1) os <<"["<< cndc_down_err(i,j).real() <<","<< cndc_down_err(i,j).imag()<<"]";
-          else os << "[" << cndc_down_err(i,j).real() <<","<< cndc_down_err(i,j).imag()<<"],";
-        }
-        else {
-          if(j==nmo-1) os << cndc_down_err(i,j).real();
-          else os << cndc_down_err(i,j).real() << ",";
-        }
-      }
-      if(i==nmo-1) os << "]" << endl;
-      else os <<"]," << endl;
-    }
+    joutput(cndc_down_err, os);
     os << "]" << endl;
     os << "}" << endl;
   }
- 
-  //dcomplex trace=0;
-  //for(int i=0;i< nmo; i++) trace+=obdm_up(i,i);
-  //os << "\"Trace of the obdm\":{" << endl;
-  //os << "\"up\":[" << trace.real()<< "," << trace.imag()<<"]" << "," << endl;
-  //trace=0;
-  //for(int i=0; i< nmo; i++) trace+=obdm_down(i,i);
-  //os << "\"down\":[" << trace.real()<< "," << trace.imag()<<"]" << endl;
-  //os << "}" << endl;
+  
   os << "}" << endl;
 }
 
