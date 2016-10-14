@@ -68,7 +68,7 @@ public:
   }
 
 private:
-  void maximize(Sample_point * sample,Wavefunction * wf,Config_save_point & pt,Array2 <doublevar> & hessian);
+  void maximize(Sample_point * sample,Wavefunction * wf,Array2 <doublevar> & hessian);
   void hessian_vary_step(Sample_point * sample,Wavefunction * wf,Config_save_point & pt,Array1 <Hessian_step> & hessian_steps);
   int nconfig;
   int nconfigs_per_node;

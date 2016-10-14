@@ -83,9 +83,10 @@ void Maximize_method::run(Program_options & options, ostream & output) {
   Array1 <doublevar> tempgrad(3*nelectrons);
   Array2 <doublevar> temphessian(3*nelectrons,3*nelectrons);
   Array2 <doublevar> inverse_hessian(3*nelectrons,3*nelectrons);
-  
+  pseudo->setDeterministic(1); 
   
   for(int i=0; i < nconfigs_per_node; i++) { 
+    config_pos(i).restorePos(sample);
     stringstream tableout;
     
     // Get initial info
@@ -105,7 +106,7 @@ void Maximize_method::run(Program_options & options, ostream & output) {
     maximize_config(i).config_init = tempconfig;
     
     // Maximize Sample
-    //maximize(sample,wf,config_pos(i),temphessian);
+    maximize(sample,wf,temphessian);
     
     // Get maximized info
     for(int e=0; e< nelectrons; e++) {
@@ -417,9 +418,8 @@ public:
 
 //----------------------------------------------------------------------
 
-void Maximize_method::maximize(Sample_point * sample,Wavefunction * wf,Config_save_point & pt,Array2 <doublevar> & hessian) { 
+void Maximize_method::maximize(Sample_point * sample,Wavefunction * wf,Array2 <doublevar> & hessian) { 
   int nelectrons=sample->electronSize();
-  pt.restorePos(sample);
   Maximize_fn maximizer(nelectrons*3,1,1e-12,1000,1);
   maximizer.wf=wf;
   maximizer.wfdata=wfdata;
@@ -439,8 +439,6 @@ void Maximize_method::maximize(Sample_point * sample,Wavefunction * wf,Config_sa
   maximizer.maccheckgrad(allpos.v,nelectrons*3,0.001,nelectrons*3);
   maximizer.macoptII(allpos.v,nelectrons*3);  
   maximizer.calc_hessian(allpos.v,hessian,nelectrons*3);
-
-  pt.savePos(sample);
 }
 
 //----------------------------------------------------------------------
