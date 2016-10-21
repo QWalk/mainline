@@ -347,7 +347,7 @@ public:
         cout << "node" << mpi_info.node << " " << "Warning: outer loop did not reach tolerance." << endl;
       }
     }
-    newton_iteration(x, n, 4);
+    newton_iteration(x, n, 3);
   }
   
   //-----------------------------------------
