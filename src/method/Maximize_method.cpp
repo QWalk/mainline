@@ -132,12 +132,12 @@ void Maximize_method::run(Program_options & options, ostream & output) {
       }
     }
     // estimate error in psi by 0.5 * g.T * H_inv * g
-    // InvertMatrix(temphessian, inverse_hessian, 3*nelectrons);
-    // for(int j=0; j<3*nelectrons; j++) {
-    //   for(int k=0; k<3*nelectrons; k++) {
-    //     psi_error += 0.5*tempgrad(j)*inverse_hessian(j,k)*tempgrad(k);
-    //   }
-    // }
+    InvertMatrix(temphessian, inverse_hessian, 3*nelectrons);
+    for(int j=0; j<3*nelectrons; j++) {
+      for(int k=0; k<3*nelectrons; k++) {
+        psi_error += 0.5*tempgrad(j)*inverse_hessian(j,k)*tempgrad(k);
+      }
+    }
 
     maximize_config(i).nelectrons = nelectrons;
     maximize_config(i).logpsi = lap.amp(0,0);
@@ -252,35 +252,36 @@ public:
     //Array1 <doublevar> xnew(n+1);
     int max_it = 100;
     int max_big_it = 500;
+    doublevar tol = 1e-9;
+    doublevar outer_tol = tol*10; // make outer loop tolerance looser than inner
     for(int big_it=0; big_it < max_big_it; big_it++) {
       //find the direction of the gradient at x
       dfunc(x,grad.v);
       doublevar gradlen = grad_abs(grad,n);
+      if (gradlen < outer_tol){cout << "node " << mpi_info.node << " gradient " << gradlen << endl; break;}
       doublevar unit;
       doublevar fbase=grad(0);
-      doublevar tol = 1e-9;
-      doublevar outer_tol = tol*10; // make outer loop tolerance looser than inner
       doublevar bracket_tstep=0.0,last_func=fbase;
       //bracket the minimum in this direction (in 1D units of tstep) for bisection method
       for(doublevar tstep=1e-8; tstep < 20.0; tstep*=2.0) {
         doublevar f=eval_tstep(x,tstep,grad,n);
-        cout << "tstep " << tstep << " func " << f << " fbase " << fbase << endl;
+        //cout << "node" << mpi_info.node << " " << "tstep " << tstep << " func " << f << " fbase " << fbase << endl;
         if(f > fbase or f > last_func) {
           bracket_tstep=tstep;
           break;
         }
         else last_func=f;
       }
+      cout << "node" << mpi_info.node << " " << "bracket_tstep " << bracket_tstep << " gradlen " << gradlen << endl;
+      if (bracket_tstep==0){cout << "node " << mpi_info.node << " gradient too small, exiting loop" << endl; break;}
       
-      cout << "bracket_tstep " << bracket_tstep << endl;
       //bisection method works best using the golden ratio
       doublevar resphi=2.-(1.+sqrt(5.))/2.;
       doublevar a=0, b=resphi*bracket_tstep, c=bracket_tstep;
       doublevar af=fbase,
       bf=eval_tstep(x,b,grad,n),
       cf=eval_tstep(x,c,grad,n);
-      if(gradlen < outer_tol) {break;} //Exit big loop if (grad psi)/psi is small 
-      cout << "first step  a,b,c " << a << " " << b << "  " << c
+      cout << "node" << mpi_info.node << " " << "first step  a,b,c " << a << " " << b << "  " << c
       << " funcs " << af << " " << bf << " " << cf << endl;
       //bisection method iteration, (a, b, c)
       for(int it=0; it < max_it; it++) {
@@ -299,7 +300,7 @@ public:
             //(af-bf) = log psi_a - log psi_b = log(psi_a/psi_b) ~ (psi_a-psi_b)/psi_b < tol
             //gradlen is abs(grad) at start, timesteps a, b, c, d are in units of grad, need to multiply to get actual distance a-b.
             unit = gradlen*(b-a);
-            if(af/unit-bf/unit<tol and bf/unit-af/unit<tol) { cout << it << " (af-bf)/(b-a)=" << af/unit-bf/unit << endl; break; }
+            if((af-bf)/unit<tol and (bf-af)/unit<tol or unit<1e-15) { cout << "node " << mpi_info.node << " break step " << it << " (af-bf)/(b-a)=" << af/unit-bf/unit << endl; break; }
             a=b;
             af=bf;
             b=d;
@@ -307,7 +308,7 @@ public:
           }
           else {
             unit = gradlen*(c-b);
-            if(cf/unit-bf/unit<tol and bf/unit-cf/unit<tol) { cout << it << " (cf-bf)/(c-b)=" << cf/unit-bf/unit << endl; break; }
+            if((cf-bf)/unit<tol and (bf-cf)/unit<tol or unit<1e-15) { cout << "node " << mpi_info.node << " break step " << it << " (cf-bf)/(c-b)=" << cf/unit-bf/unit << endl; break; }
             c=b;
             cf=bf;
             b=d;
@@ -318,24 +319,24 @@ public:
         else {
           if( (c-b) > (b-a) ) {
             unit = gradlen*(c-d);
-            if(cf/unit-df/unit<tol and df/unit-cf/unit<tol) { cout << it << " (df-cf)/(d-c)=" << df/unit-cf/unit << endl; break; }
+            if((cf-df)/unit<tol and (df-cf)/unit<tol or unit<1e-15) { cout << "node " << mpi_info.node << " break step " << it << " (df-cf)/(d-c)=" << df/unit-cf/unit << endl; break; }
             c=d;
             cf=df;
           }
           else {
             unit = gradlen*(d-a);
-            if(af/unit-df/unit<tol and df/unit-af/unit<tol) { cout << it << " (af-df)/(d-a)=" << af/unit-df/unit << endl; break; }
+            if((af-df)/unit<tol and (df-af)/unit<tol or unit<1e-15) { cout << "node " << mpi_info.node << " break step " << it << " (af-df)/(d-a)=" << af/unit-df/unit << endl; break; }
             a=d;
             af=df;
           }
         }
-        cout << "step " << it << " a,b,c " << a << " " << b << "  " << c
-        << " funcs " << af << " " << bf << " " << cf << endl;
+        //cout << "node" << mpi_info.node << " " << "step " << it << " a,b,c " << a << " " << b << "  " << c
+        //<< " funcs " << af << " " << bf << " " << cf << endl;
         if(it==max_it-1) {
-          cout << "Warning: inner loop did not reach tolerance" << endl;
+          cout << "node" << mpi_info.node << " " << "Warning: inner loop did not reach tolerance" << endl;
         }
       }
-      cout << "last step b-a,c-b " << b-a << " " << c-b
+      cout << "node" << mpi_info.node << " " << "last step b-a,c-b " << b-a << " " << c-b
       << " func diffs " << (af-bf)/((b-a)*gradlen) << " " << (cf-bf)/((c-b)*gradlen) << " " << endl;
       //finished bisection search, minimum at b; compute x for tstep b
       doublevar best_tstep=b;
@@ -343,7 +344,7 @@ public:
         x[i]=x[i]-best_tstep*grad[i];
 
       if(big_it==max_big_it-1) {
-        cout << "Warning: outer loop did not reach tolerance." << endl;
+        cout << "node" << mpi_info.node << " " << "Warning: outer loop did not reach tolerance." << endl;
       }
     }
     newton_iteration(x, n, 4);
@@ -370,7 +371,8 @@ public:
         grad_squared += grad(i)*grad(i);
         delta_x_squared += delta_x(i)*delta_x(i);
       }
-      cout << "newton" << it << ", |grad| = " << sqrt(grad_squared) << ", psi error = " << psi_error << ", x error = " << sqrt(delta_x_squared) << endl;
+      cout << "node" << mpi_info.node << " " << "newton" << it << ", |grad| = " << sqrt(grad_squared);
+      cout << ", psi error = " << psi_error << ", x error = " << sqrt(delta_x_squared) << endl;
       if(it<nit){ // don't update x on the last step, so that the ouput represents the final estimated error (and not one that has been corrected)
         for(int i=1; i<=n; i++)
           x[i]=x[i]-delta_x(i);
