@@ -1,4 +1,4 @@
-method { linear total_nstep 4000  } 
+method { linear total_nstep 10000  } 
 
 include qw.sys
 

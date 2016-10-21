@@ -523,8 +523,8 @@ void Linear_optimization_method::wavefunction_derivative(
   en.Resize(2);
   en(0)=final.avg(Properties_types::total_energy,0);
   en(1)=sqrt(final.err(Properties_types::total_energy,0));
-  //S(0,0)=1;
-  S(0,0)=deriv_avg.vals(3*n+3*n*n);
+  S(0,0)=1;
+  //S(0,0)=deriv_avg.vals(3*n+3*n*n);
   for(int i=0; i < n; i++) { 
     S(0,i+1)=0.0;
     S(i+1,0)=0.0;
