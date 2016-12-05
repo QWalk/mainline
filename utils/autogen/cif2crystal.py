@@ -170,7 +170,7 @@ def basis_section(struct,params=[0.2,2,3],initial_charges={},library_directory="
 def cif2geom(cif):
   parser=CifParser.from_string(cif)
   struct=parser.get_structures()[0]
-  primstruct=struct.get_primitive_structure()
+  primstruct=struct
   lat=primstruct.as_dict()['lattice']
   sites=primstruct.as_dict()['sites']
   geomlines=["CRYSTAL","0 0 0","1","%g %g %g %g %g %g"%\

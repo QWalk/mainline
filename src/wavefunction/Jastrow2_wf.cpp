@@ -1563,8 +1563,7 @@ void Jastrow2_wf::restoreUpdate(Sample_point * sample, int e1, int e2, Wavefunct
 
 //Note that one could implement this as updates to improve speed further.
 int Jastrow2_wf::getParmDeriv(Wavefunction_data *wfdata , Sample_point * sample,
-                               Parm_deriv_return & parm_deriv) { 
-  //cout <<"start:  Jastrow2_wf::getParmDeriv "<<endl;
+                               Parm_deriv_return & parm_deriv) {
   sample->updateEEDist();
   sample->updateEIDist();
   //we're not going to support nonlinear parameters for the first iteration of this.
@@ -1582,8 +1581,9 @@ int Jastrow2_wf::getParmDeriv(Wavefunction_data *wfdata , Sample_point * sample,
   parm_deriv.val_gradient=0.0;
   
   for(int g=0; g< ng; g++) {
-    if(parent->group(g).hasOneBody()) { 
+    if(parent->group(g).hasOneBody() and parent->group(g).one_body.nparms() > 0 ) {
       Parm_deriv_return tmp_parm;
+      
       parent->group(g).one_body.getParmDeriv(eibasis_save(g),tmp_parm);
       extend_parm_deriv(parm_deriv,tmp_parm);
     }
@@ -1600,18 +1600,17 @@ int Jastrow2_wf::getParmDeriv(Wavefunction_data *wfdata , Sample_point * sample,
         }
       }
     }
-    if(parent->group(g).hasTwoBody()) { 
+    if(parent->group(g).hasTwoBody() and parent->group(g).two_body->nparms() > 0 ) {
       Parm_deriv_return tmp_parm;
       parent->group(g).two_body->getParmDeriv(eetotal,tmp_parm);
       extend_parm_deriv(parm_deriv,tmp_parm);
     }
 
-    if(parent->group(g).hasThreeBody()) { 
+    if(parent->group(g).hasThreeBody() and parent->group(g).three_body.nparms() > 0 ) {
       Parm_deriv_return tmp_parm;
       parent->group(g).three_body.getParmDeriv(eibasis_save(g),eetotal,tmp_parm);
       extend_parm_deriv(parm_deriv,tmp_parm);
     }
-
     //retparm=tmp_parm;
     /*
     Array3 <doublevar> eionbasis(nelectrons,parent->natoms, maxeibasis,5); //for 3-body terms
@@ -1688,11 +1687,10 @@ int Jastrow2_wf::getParmDeriv(Wavefunction_data *wfdata , Sample_point * sample,
   
   int np=parent->nparms();
   for(int i=0; i< np; i++) { 
-    for(int j=0; j< np; j++) { 
+    for(int j=0; j< np; j++) {
       parm_deriv.hessian(i,j)=parm_deriv.gradient(i)*parm_deriv.gradient(j);
     }
   }
-  
   return 1;
 }
 
