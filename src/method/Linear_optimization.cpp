@@ -526,15 +526,15 @@ void Linear_optimization_method::wavefunction_derivative(
   S(0,0)=1;
   //S(0,0)=deriv_avg.vals(3*n+3*n*n);
   for(int i=0; i < n; i++) { 
-    //S(0,i+1)=0.0;
-    //S(i+1,0)=0.0;
-    S(0,i+1)=deriv_avg.vals(n+i);
-    S(i+1,0)=deriv_avg.vals(n+i);
+    S(0,i+1)=0.0;
+    S(i+1,0)=0.0;
+    //S(0,i+1)=deriv_avg.vals(n+i);
+    //S(i+1,0)=deriv_avg.vals(n+i);
   }
   for(int i=0; i< n; i++) { 
     for(int j=0; j< n; j++) { 
-      //S(i+1,j+1)=(deriv_avg.vals(3*n+i*n+j)-deriv_avg.vals(n+i)*deriv_avg.vals(n+j))/s_renorm;
-      S(i+1,j+1)=deriv_avg.vals(3*n+i*n+j);
+      S(i+1,j+1)=deriv_avg.vals(3*n+i*n+j)-deriv_avg.vals(n+i)*deriv_avg.vals(n+j);
+      //S(i+1,j+1)=deriv_avg.vals(3*n+i*n+j);
     }
   }
   for(int i=0; i< n; i++) { 
@@ -542,24 +542,24 @@ void Linear_optimization_method::wavefunction_derivative(
   }
   H(0,0)=en(0);
   for(int i=0; i < n; i++) { 
-    //H(i+1,0)=deriv_avg.vals(i)-en(0)*deriv_avg.vals(n+i);
-    //H(0,i+1)=H(i+1,0)+deriv_avg.vals(2*n+i);
-    H(i+1,0)=deriv_avg.vals(i);
-    H(0,i+1)=deriv_avg.vals(2*n+i);
+    H(i+1,0)=deriv_avg.vals(i)-en(0)*deriv_avg.vals(n+i);
+    H(0,i+1)=H(i+1,0)+deriv_avg.vals(2*n+i);
+    //H(i+1,0)=deriv_avg.vals(i);
+    //H(0,i+1)=deriv_avg.vals(2*n+i);
   }
   
   for(int i=0; i< n; i++) { 
     for(int j=0; j< n; j++) { 
       //int indx=3*n+2*n*n+i*n+j;
 
-      H(i+1,j+1)=deriv_avg.vals(3*n+2*n*n+i*n+j);
-     // H(i+1,j+1)=deriv_avg.vals(3*n+n*n+i*n+j)
-     //   -deriv_avg.vals(n+i)*deriv_avg.vals(j)
-     //   -deriv_avg.vals(n+j)*deriv_avg.vals(i)
-     //   +deriv_avg.vals(n+i)*deriv_avg.vals(n+j)*en(0)
-     //   +deriv_avg.vals(3*n+2*n*n+i*n+j)
-     //   -deriv_avg.vals(2*n+j)*deriv_avg.vals(n+i);
-      
+     // H(i+1,j+1)=deriv_avg.vals(3*n+2*n*n+i*n+j);
+      H(i+1,j+1)=deriv_avg.vals(3*n+n*n+i*n+j)
+        -deriv_avg.vals(n+i)*deriv_avg.vals(j)
+        -deriv_avg.vals(n+j)*deriv_avg.vals(i)
+        +deriv_avg.vals(n+i)*deriv_avg.vals(n+j)*en(0)
+        +deriv_avg.vals(3*n+2*n*n+i*n+j)
+        -deriv_avg.vals(2*n+j)*deriv_avg.vals(n+i);
+     
     }
   }
         

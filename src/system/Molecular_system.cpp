@@ -445,11 +445,8 @@ int Molecular_system::getBounds(Array2 <doublevar> & latticevec,Array1<doublevar
   }
 
   for(int d=0; d< 3; d++) {
-   // minmax(2*d)-=4.0;
-   //minmax(2*d+1)+=4.0;
-    origin(d)=minmax(2*d)-4.0;
-    latticevec(d,d)=minmax(2*d+1)-origin(d)+4.0;
+    origin(d)=minmax(2*d)-8.0;
+    latticevec(d,d)=minmax(2*d+1)-origin(d)+8.0;
   }
-  cout << "getBounds done" << endl;
   return 1;
 }

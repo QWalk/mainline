@@ -24,7 +24,23 @@
 #include "Average_generator.h"
 #include "MO_matrix.h"
 
-//Evaluate the two-body density matrix on a basis.
+/*! 
+ Evaluate the two-body density matrix on a basis.
+ 
+ While you shouldn't depend on this, the information is serialized as follows:
+ [0:nmo] Basis normalization with respect to rho= sum phi_i^2
+ [nmo:nmo^2+nmo] Spin up 1-RDM
+ [nmo^2+nmo:2*nmo^2+nmo] Spin down 1-RDM
+ 
+ if 2-RDM is activated:
+ [2*nmo^2+nmo: nmo^4 + 2*nmo^2 + nmo] up up 2-RDM
+ and so on for up down, down up, and down down
+ 
+ If 2-RDM diagonal is activated:
+ [2*nmo^2+nmo: 3*nmo^2 + nmo] up up 2-RDM diagonal
+ and so on
+
+ */
 class Average_tbdm_basis:public Average_generator { 
  public:
   virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
@@ -37,6 +53,9 @@ class Average_tbdm_basis:public Average_generator {
   virtual void read(vector <string> & words);
   virtual void write_summary(Average_return &,Average_return &, ostream & os);
   virtual void jsonOutput(Average_return &,Average_return &, ostream & os);
+  
+  
+  
   virtual ~Average_tbdm_basis() { 
     if(momat) delete momat;
     if(cmomat) delete cmomat;
@@ -45,6 +64,20 @@ class Average_tbdm_basis:public Average_generator {
     momat=NULL;
     cmomat=NULL;
   }
+  
+  //Utility functions
+  int get_nmo() { return nmo; }
+  int get_val_size() {
+    int tot=nmo + 4*nmo*nmo; //1-RDM and norm
+    if(eval_tbdm) {
+      if(tbdm_diagonal)
+        tot+=12*nmo*nmo;
+      else
+        tot+=8*nmo*nmo*nmo*nmo;
+    }
+    return tot;
+  }
+  
  private:
   MO_matrix * momat;
   Complex_MO_matrix * cmomat;
