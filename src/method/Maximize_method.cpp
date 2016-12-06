@@ -147,6 +147,7 @@ void Maximize_method::run(Program_options & options, ostream & output) {
     maximize_config(i).error = psi_error;
      
     config_pos(i).write(cout);
+    cout << "node" << mpi_info.node << " " << "sample " << i << " of " << nconfigs_per_node << " finished" << endl; 
   }
   
   string outfilename=options.runid+".json";
@@ -272,7 +273,7 @@ public:
         }
         else last_func=f;
       }
-      cout << "node" << mpi_info.node << " " << "bracket_tstep " << bracket_tstep << " gradlen " << gradlen << endl;
+      cout << "node" << mpi_info.node << " " << "bracket_tstep " << bracket_tstep << " gradlen " << gradlen << " fbase=" << fbase << " f=" << last_func << " f-fbase=" << last_func-fbase << endl;
       if (bracket_tstep==0){cout << "node " << mpi_info.node << " gradient too small, exiting loop" << endl; break;}
       
       //bisection method works best using the golden ratio
@@ -300,7 +301,7 @@ public:
             //(af-bf) = log psi_a - log psi_b = log(psi_a/psi_b) ~ (psi_a-psi_b)/psi_b < tol
             //gradlen is abs(grad) at start, timesteps a, b, c, d are in units of grad, need to multiply to get actual distance a-b.
             unit = gradlen*(b-a);
-            if((af-bf)/unit<tol and (bf-af)/unit<tol or unit<1e-15) { cout << "node " << mpi_info.node << " break step " << it << " (af-bf)/(b-a)=" << af/unit-bf/unit << endl; break; }
+            if((af-bf)/unit<tol and (bf-af)/unit<tol or unit<1e-15) { cout << "node" << mpi_info.node << " break step " << it << " (af-bf)/(b-a)=" << af/unit-bf/unit << " unit=" << unit << endl; break; }
             a=b;
             af=bf;
             b=d;
@@ -308,7 +309,7 @@ public:
           }
           else {
             unit = gradlen*(c-b);
-            if((cf-bf)/unit<tol and (bf-cf)/unit<tol or unit<1e-15) { cout << "node " << mpi_info.node << " break step " << it << " (cf-bf)/(c-b)=" << cf/unit-bf/unit << endl; break; }
+            if((cf-bf)/unit<tol and (bf-cf)/unit<tol or unit<1e-15) { cout << "node" << mpi_info.node << " break step " << it << " (cf-bf)/(c-b)=" << cf/unit-bf/unit << " unit=" << unit << endl; break; }
             c=b;
             cf=bf;
             b=d;
@@ -319,13 +320,13 @@ public:
         else {
           if( (c-b) > (b-a) ) {
             unit = gradlen*(c-d);
-            if((cf-df)/unit<tol and (df-cf)/unit<tol or unit<1e-15) { cout << "node " << mpi_info.node << " break step " << it << " (df-cf)/(d-c)=" << df/unit-cf/unit << endl; break; }
+            if((cf-df)/unit<tol and (df-cf)/unit<tol or unit<1e-15) { cout << "node" << mpi_info.node << " break step " << it << " (df-cf)/(d-c)=" << df/unit-cf/unit << " unit=" << unit << endl; break; }
             c=d;
             cf=df;
           }
           else {
             unit = gradlen*(d-a);
-            if((af-df)/unit<tol and (df-af)/unit<tol or unit<1e-15) { cout << "node " << mpi_info.node << " break step " << it << " (af-df)/(d-a)=" << af/unit-df/unit << endl; break; }
+            if((af-df)/unit<tol and (df-af)/unit<tol or unit<1e-15) { cout << "node" << mpi_info.node << " break step " << it << " (af-df)/(d-a)=" << af/unit-df/unit << " unit=" << unit << endl; break; }
             a=d;
             af=df;
           }
