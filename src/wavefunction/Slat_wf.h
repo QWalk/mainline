@@ -570,6 +570,16 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
   derivatives.hessian.Resize(nparms, nparms);
   derivatives.gradderiv.Resize(nparms,tote,4);
   derivatives.val_gradient.Resize(tote,4);
+
+
+  Wf_return lap(1,5);
+  for(int e=0; e< tote; e++) {
+    getLap(wfdata,e,lap);
+    for(int d=1; d< 5; d++) {
+      derivatives.val_gradient(e,d-1)=lap.amp(0,d);
+    }
+  }
+  
   if(parent->optimize_mo) {
     error("don't support optimizing mo yet");
   }
@@ -609,11 +619,6 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
       }
     }
 
-    for(int e=0; e< tote; e++) {
-      for(int d=1; d< 5; d++) {
-        derivatives.val_gradient(e,d-1)=totgrads(e,d).val();
-      }
-    }
     //---------------
     int det=parent->CSF(0).GetDim(0)-1;
     derivatives.gradderiv=0.0;
@@ -652,13 +657,6 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
   else { 
     derivatives.gradient=0;
     derivatives.hessian=0;
-    Wf_return lap(1,5);
-    for(int e=0; e< tote; e++) {
-      getLap(wfdata,e,lap);
-      for(int d=1; d< 5; d++) {
-        derivatives.val_gradient(e,d-1)=lap.amp(0,d);
-      }
-    }
     return 1;
   }
   
