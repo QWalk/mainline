@@ -105,7 +105,7 @@ int Test_method::showinfo(ostream & os)
 
 
 void check_numbers(doublevar num1,doublevar num2, ostream & os,
-		   doublevar tol=1e-5) { 
+		   doublevar tol=1e-2) {
   string ok="OK";
   
   //make sure you are not divinding by zero
@@ -298,7 +298,7 @@ void Test_method::testParmDeriv(Wavefunction * mywf, Sample_point * sample){
   cout <<"#######################################################\n";
   cout <<" Checking ParmDeriv for "<<nparms<<" parameters"<<endl;
   cout <<"#######################################################\n";
-  doublevar del=1e-6;
+  doublevar del=1e-8;
 
   Array1 <Wf_return> base_wfval(nelectrons),test_wfval(nelectrons);
   Parm_deriv_return wfders;

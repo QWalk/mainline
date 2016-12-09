@@ -1,0 +1,8 @@
+method { test TEST_PARMS_DERS { }  } 
+
+include qw.sys
+
+trialfunc { slater-jastrow
+  wf1 { include qw.slater }
+  wf2 { include jast2.wfin } 
+}

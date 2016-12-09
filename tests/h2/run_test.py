@@ -11,6 +11,18 @@ from qwtest import *
 reports=[]
 allsuc=[]
 
+print(""" Testing derivatives """)
+
+
+test_str=str(subprocess.check_output([QW,'qw.testder']))
+
+if test_str.count("FAILED") > 4:
+  print("Failed")
+else:
+  print("Succeeded")
+
+
+
 print("""###########################################
 Checking the linear method for the H2 molecule. 
 This tests the LINEAR method, the Jastrow factor, analytic parameter derivatives..
