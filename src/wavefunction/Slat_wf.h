@@ -607,7 +607,7 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
     detsum.logval*=-1;
     derivatives.gradient=0.0;
     derivatives.gradderiv=0.0;
-    //---------------  Assign the value gradient
+    //---------------  set up temporary variables
     for(int e=0; e< tote; e++) {
       for(int d=1; d< 5; d++) { 
 
