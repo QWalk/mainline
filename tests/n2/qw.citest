@@ -1,0 +1,18 @@
+method { test test_parms_ders { } }
+
+include qw.sys
+
+trialfunc {
+  SLATER
+  ORBITALS {
+  CUTOFF_MO
+    MAGNIFY 1
+    NMO 8
+    ORBFILE qw.orb
+    INCLUDE qw.basis
+    CENTERS { USEGLOBAL }
+  }
+  optimize_det
+  include cidet
+}
+

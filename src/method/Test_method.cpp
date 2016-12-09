@@ -299,7 +299,7 @@ void Test_method::testParmDeriv(Wavefunction * mywf, Sample_point * sample){
   cout <<" Checking ParmDeriv for "<<nparms<<" parameters"<<endl;
   cout <<"#######################################################\n";
   doublevar del=1e-8;
-
+  
   Array1 <Wf_return> base_wfval(nelectrons),test_wfval(nelectrons);
   Parm_deriv_return wfders;
   if(testhessian)
@@ -308,7 +308,6 @@ void Test_method::testParmDeriv(Wavefunction * mywf, Sample_point * sample){
     wfders.need_hessian=0;
   Parm_deriv_return wfders_tmp;
   wfders_tmp.need_hessian=0;
-
   mywf->updateLap(wfdata, sample);
   for(int e=0; e< nelectrons; e++) { 
     base_wfval(e).Resize(1,5);
