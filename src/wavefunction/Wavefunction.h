@@ -70,8 +70,8 @@ typedef complex <doublevar> dcomplex;
 struct Parm_deriv_return { 
   int need_hessian;
   int need_lapderiv;
-  int nparms_start,nparms_end;
-  Array1 <doublevar> gradient;
+  //int nparms_start,nparms_end;
+  Array1 <doublevar> gradient;//!< of the wave function: DPsi/Psi
   Array2 <doublevar> hessian;  
   Array3 <doublevar> gradderiv; //Parameter derivative of the gradient of the wave function
   //indices are (parameter,electron,[gradx,grady,gradz,lap])
@@ -79,7 +79,6 @@ struct Parm_deriv_return {
   Parm_deriv_return() {
     need_hessian=0;
     need_lapderiv=0;
-    nparms_start=nparms_end=0;
   }
 };
 

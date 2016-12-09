@@ -81,12 +81,6 @@ void Test_method::read(vector <string> words,
       testhessian=1;
     else
       testhessian=0;
-    if(!readvalue(derstxt, pos=0, nparms_start, "NPARMS_START"))
-      nparms_start=0;
-    if(!readvalue(derstxt, pos=0, nparms_end, "NPARMS_END"))
-      nparms_end=wfdata->nparms();
-    if(nparms_start>=wfdata->nparms() || nparms_end > wfdata->nparms())
-      error("Invalid NPARMS_START/NPARMS_END supplied");
   }
   else{
     parms_ders=0;
@@ -300,7 +294,7 @@ void Test_method::run(Program_options & options, ostream & output)
 
 
 void Test_method::testParmDeriv(Wavefunction * mywf, Sample_point * sample){
-  int nparms=nparms_end-nparms_start; 
+  int nparms=wfdata->nparms();
   cout <<"#######################################################\n";
   cout <<" Checking ParmDeriv for "<<nparms<<" parameters"<<endl;
   cout <<"#######################################################\n";
@@ -312,12 +306,8 @@ void Test_method::testParmDeriv(Wavefunction * mywf, Sample_point * sample){
     wfders.need_hessian=1;
   else
     wfders.need_hessian=0;
-  wfders.nparms_start=nparms_start;
-  wfders.nparms_end=nparms_end;
   Parm_deriv_return wfders_tmp;
   wfders_tmp.need_hessian=0;
-  wfders_tmp.nparms_start=nparms_start;
-  wfders_tmp.nparms_end=nparms_end;
 
   mywf->updateLap(wfdata, sample);
   for(int e=0; e< nelectrons; e++) { 
@@ -334,10 +324,11 @@ void Test_method::testParmDeriv(Wavefunction * mywf, Sample_point * sample){
 
   cout << "finite diff   analytic\n";
   for (int i=0;i<nparms;i++){
-    temp_parms(i+nparms_start)+=del;
+    temp_parms(i)+=del;
     //set new parameters
     wfdata->setVarParms(temp_parms);
     mywf->updateLap(wfdata, sample);
+    mywf->notify(all_electrons_move,0);
     for(int e=0; e< nelectrons; e++) 
       mywf->getLap(wfdata, e, test_wfval(e));
     mywf->getParmDeriv(wfdata, sample,  wfders_tmp);
@@ -345,10 +336,10 @@ void Test_method::testParmDeriv(Wavefunction * mywf, Sample_point * sample){
       *exp(test_wfval(0).amp(0,0)-base_wfval(0).amp(0,0));
     Psi(i)=psi;
     doublevar derivative=(psi-1)/del;
-    cout <<" derivative check for "<<i+1<<"-th parameter"<<endl;
+    cout <<" derivative check for parameter "<< i<< endl;
     check_numbers(derivative,wfders.gradient(i),cout);
 
-    cout << "Laplacian derivative check: size " << wfders.gradderiv.GetDim(0)
+    cout << "Gradient and laplacian check: size " << wfders.gradderiv.GetDim(0)
       << " " << wfders.gradderiv.GetDim(1) << " " << wfders.gradderiv.GetDim(2) << endl;
     for(int e=0; e< nelectrons; e++) { 
       for(int d=1; d< 5; d++) { 
@@ -364,8 +355,7 @@ void Test_method::testParmDeriv(Wavefunction * mywf, Sample_point * sample){
         check_numbers(hessian_wf,wfders.hessian(i,j),cout);
       }
     }
-    //cout <<" actuall "<<(temp_parms(i+nparms_start)-orig_parms(i+nparms_start))<<"  virtual: "<<del<<endl;
-    temp_parms(i+nparms_start)-=del; 
+    temp_parms(i)-=del;
   }//end of loop over i
   
 

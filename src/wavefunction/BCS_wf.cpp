@@ -676,8 +676,8 @@ int BCS_wf::getParmDeriv(Wavefunction_data *wfdata , Sample_point * sample,
   //     << endl ;
   
   int nparms_full=parent->nparms();
-  int nparms_start=parm_derivatives.nparms_start;
-  int nparms_end=parm_derivatives.nparms_end;
+  int nparms_start=0;
+  int nparms_end=nparms_full;
   int nparms=nparms_end-nparms_start;
   
   parm_derivatives.gradient.Resize(nparms);

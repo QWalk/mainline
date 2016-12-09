@@ -563,9 +563,7 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
     inverseStale=0;
   }
   
-  int nparms_start=derivatives.nparms_start;
-  int nparms_end=derivatives.nparms_end;
-  int nparms=nparms_end-nparms_start;
+  int nparms=parent->nparms();
   int tote=nelectrons(0)+nelectrons(1);
   
   derivatives.gradient.Resize(nparms);
@@ -622,29 +620,24 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
     int counter=0;
     derivatives.gradderiv=0.0;
     for(int csf=0; csf < parent->ncsf; csf++) { 
-      if(csf > nparms_start && csf <= nparms_end ){
-        for(int j=1;j<parent->CSF(csf).GetDim(0);j++){
-          int det=counter;
-          doublevar coeff=parent->CSF(csf)(j);
-          int index=csf-1-nparms_start;
-          log_value<doublevar> thisdet=detVal(0,det,0)*detVal(0,det,1);
-          derivatives.gradient(index)+=
-            coeff*thisdet.val();
-          for(int e=0; e< tote; e++) { 
-            for(int d=1; d< 5; d++) { 
-              derivatives.gradderiv(index,e,d-1)+=coeff
-                *(detgrads(det,e,d).val()-totgrads(e,d).val()*thisdet.val())*detsum.val();
-              //cout << "coeff " << coeff << " detgrad " << detgrads(det,e,d).val()
-              //  << " totgrad " << totgrads(e,d).val() << " thisdet " << thisdet.val()
-              //  << " detsum " << detsum.val() << endl;
-              //cout << "deriv " << derivatives.gradderiv(index,e,d-1) << endl;
-            }
+      for(int j=1;j<parent->CSF(csf).GetDim(0);j++){
+        int det=counter;
+        doublevar coeff=parent->CSF(csf)(j);
+        int index=csf-1;
+        log_value<doublevar> thisdet=detVal(0,det,0)*detVal(0,det,1);
+        derivatives.gradient(index)+=
+        coeff*thisdet.val();
+        for(int e=0; e< tote; e++) {
+          for(int d=1; d< 5; d++) {
+            derivatives.gradderiv(index,e,d-1)+=coeff
+            *(detgrads(det,e,d).val()-totgrads(e,d).val()*thisdet.val())*detsum.val();
+            //cout << "coeff " << coeff << " detgrad " << detgrads(det,e,d).val()
+            //  << " totgrad " << totgrads(e,d).val() << " thisdet " << thisdet.val()
+            //  << " detsum " << detsum.val() << endl;
+            //cout << "deriv " << derivatives.gradderiv(index,e,d-1) << endl;
           }
-          counter++;
         }
-      }
-      else{
-        counter+=parent->CSF(csf).GetDim(0)-1;
+        counter++;
       }
     }
     for(int csf=0; csf< nparms; csf++) {
@@ -663,6 +656,13 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
   else { 
     derivatives.gradient=0;
     derivatives.hessian=0;
+    Wf_return lap(1,5);
+    for(int e=0; e< tote; e++) {
+      getLap(wfdata,e,lap);
+      for(int d=1; d< 5; d++) {
+        derivatives.val_gradient(e,d-1)=lap.amp(0,d);
+      }
+    }
     return 1;
   }
   

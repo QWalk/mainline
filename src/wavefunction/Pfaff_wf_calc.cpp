@@ -1315,8 +1315,8 @@ int Pfaff_wf::getParmDeriv(Wavefunction_data *  wfdata,
 			   Parm_deriv_return & derivatives){
 
   int nparms_full=parent->nparms();
-  int nparms_start=derivatives.nparms_start;
-  int nparms_end=derivatives.nparms_end;
+  int nparms_start=0;
+  int nparms_end=nparms_full;
   int nparms=nparms_end-nparms_start;
   if(nparms_end > nparms_full)
     error("nparms_end > nparms_full in Pfaff_wf::getParmDeriv");

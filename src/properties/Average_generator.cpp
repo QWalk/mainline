@@ -1266,8 +1266,6 @@ void Average_linear_derivative::evaluate(Wavefunction_data * wfdata, Wavefunctio
   if(!wfdata->supports(parameter_derivatives))
     error("Wavefunction needs to supports analytic parameter derivatives");
   
-  derivatives.nparms_start=0;
-  derivatives.nparms_end=wfdata->nparms();
   derivatives.need_hessian=0;
 
   int ndim=wfdata->nparms();
@@ -1358,8 +1356,6 @@ void Average_linear_delta_derivative::evaluate(Wavefunction_data * wfdata, Wavef
   if(!wfdata->supports(parameter_derivatives))
     error("Wavefunction needs to supports analytic parameter derivatives");
   
-  derivatives.nparms_start=0;
-  derivatives.nparms_end=wfdata->nparms();
   derivatives.need_hessian=0;
 
   int ndim=wfdata->nparms();
@@ -1950,7 +1946,6 @@ void Average_wf_parmderivs::evaluate(Wavefunction_data * wfdata, Wavefunction * 
   Parm_deriv_return deriv;
   deriv.need_hessian=0;
   int nparms=wfdata->nparms();
-  deriv.nparms_end=nparms;
   avg.type="wf_parmderivs";
   if(!wf->getParmDeriv(wfdata, sample,deriv)) { 
     error("WF needs to support parmderivs for now.");

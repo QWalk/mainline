@@ -71,8 +71,6 @@ public:
   int plot_cusp;
   int parms_ders;
   int testhessian;
-  int nparms_start;
-  int nparms_end;
 };
 
 #endif //TEST_METHOD_H_INCLUDED

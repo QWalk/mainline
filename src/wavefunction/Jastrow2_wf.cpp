@@ -1581,6 +1581,7 @@ int Jastrow2_wf::getParmDeriv(Wavefunction_data *wfdata , Sample_point * sample,
   parm_deriv.val_gradient=0.0;
   
   for(int g=0; g< ng; g++) {
+    
     if(parent->group(g).hasOneBody() and parent->group(g).one_body.nparms() > 0 ) {
       Parm_deriv_return tmp_parm;
       
@@ -1611,78 +1612,11 @@ int Jastrow2_wf::getParmDeriv(Wavefunction_data *wfdata , Sample_point * sample,
       parent->group(g).three_body.getParmDeriv(eibasis_save(g),eetotal,tmp_parm);
       extend_parm_deriv(parm_deriv,tmp_parm);
     }
+    
     //retparm=tmp_parm;
-    /*
-    Array3 <doublevar> eionbasis(nelectrons,parent->natoms, maxeibasis,5); //for 3-body terms
-    Array3 <doublevar> eibasis(parent->natoms, maxeibasis ,5);
-    if(parent->group(g).hasOneBody() || parent->group(g).hasThreeBody()) { 
-      Parm_deriv_return tmp_parm;
-      int np=parent->group(g).one_body.nparms();
-      tmp_parm.gradient.Resize(np);
-      tmp_parm.gradient=0;
-      tmp_parm.hessian.Resize(np,np);
-      tmp_parm.hessian=0;
-      for(int e=0; e< nelectrons; e++) { 
-        parent->group(g).updateEIBasis(e,sample,eibasis);
-        for(int at=0; at< parent->natoms; at++) { 
-          for(int b=0; b < maxeibasis; b++) { 
-            eionbasis(e,at,b)=eibasis(at,b,0);
-          }
-        }
-        parent->group(g).one_body.getParmDeriv(e,eibasis,tmp_parm);
-      }
-      for(int i=0; i< np; i++) tmp_parm.hessian(i,i)=tmp_parm.gradient(i)*tmp_parm.gradient(i);
-      extend_parm_deriv(retparm,tmp_parm);
-    }
     
-    Array3 <doublevar> eetotal(nelectrons, nelectrons, maxeebasis);
-    eetotal=-1;
-    Array3 <doublevar> eebasis(nelectrons, maxeebasis, 5);
-    for(int e=0; e< nelectrons; e++) { 
-      parent->group(g).updateEEBasis(e,sample, eebasis);
-      for(int j=0; j< e; j++) { 
-        for(int b=0; b< maxeebasis; b++) {
-          eetotal(j,e,b)=eebasis(j,b,0);
-        }
-      }
-    }
-    //this part should be redone so that we can do updates instead of 
-    //just calculating everything from scratch.
-    if(parent->group(g).hasTwoBody()&& parent->group(g).two_body->nparms()) { 
-      Parm_deriv_return tmp_parm;
-      int np=parent->group(g).two_body->nparms();
-      tmp_parm.gradient.Resize(np);
-      tmp_parm.hessian.Resize(np,np);
-      tmp_parm.gradient=0;
-      tmp_parm.hessian=0;
 
-      parent->group(g).two_body->getParmDeriv(eetotal, tmp_parm);
-      extend_parm_deriv(retparm,tmp_parm);
-    }
     
-    
-    if(parent->group(g).hasThreeBody() && parent->group(g).three_body.nparms()) { 
-      Parm_deriv_return tmp_parm;
-      int np=parent->group(g).three_body.nparms();
-      tmp_parm.gradient.Resize(np);
-      tmp_parm.hessian.Resize(np,np);
-      tmp_parm.gradient=0;
-      tmp_parm.hessian=0;
-      parent->group(g).three_body.getParmDeriv(eionbasis,eetotal, tmp_parm);
-      extend_parm_deriv(retparm,tmp_parm);
-    }
-
-    if(parent->group(g).hasThreeBodySpin() && parent->group(g).three_body_diffspin.nparms()) { 
-      Parm_deriv_return tmp_parm;
-      int np=parent->group(g).three_body_diffspin.nparms();
-      tmp_parm.gradient.Resize(np);
-      tmp_parm.hessian.Resize(np,np);
-      tmp_parm.gradient=0;
-      tmp_parm.hessian=0;
-      parent->group(g).three_body_diffspin.getParmDeriv(eionbasis,eetotal, tmp_parm);
-      extend_parm_deriv(retparm,tmp_parm);
-    }
-    */
   }
   
   int np=parent->nparms();
@@ -2065,7 +1999,7 @@ void create_parm_deriv(const Array3 <doublevar> & func,
     parm_deriv.hessian(i,i)=parm_deriv.gradient(i)*parm_deriv.gradient(i);
   
   //Form the derivatives of the electronic gradients
-  parm_deriv.gradderiv.Resize(np,nelectrons,5);
+  parm_deriv.gradderiv.Resize(np,nelectrons,4);
   for(int p=0; p < np; p++) { 
     for(int e=0; e< nelectrons; e++) { 
       for(int d=0; d< 4; d++) { 
