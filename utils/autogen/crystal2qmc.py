@@ -555,6 +555,7 @@ def write_sys(lat_parm,basis,eigsys,pseudo,ions,kpt,base="qwalk",kfmt='coord'):
 def write_jast2(lat_parm,ions,base="qwalk"):
   basis_cutoff = find_basis_cutoff(lat_parm)
   atom_types = [periodic_table[eidx-200-1] for eidx in ions['atom_nums']]
+  atom_types=set(atom_types)
   outlines = [
       "jastrow2",
       "group {",
