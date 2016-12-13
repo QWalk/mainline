@@ -457,11 +457,13 @@ int Cubic_spline::readbasis(vector <string> & words,unsigned int & pos,
             norm=sqrt(2.*feg2*fac/3.);
             break;
           case sym_5D:
+          case sym_D_siesta:
           case sym_6D:
             norm=sqrt(2.*feg*feg2*fac/15.);
             break;
           case sym_7F:
           case sym_7F_crystal://CRYSTAL F orbital
+          case sym_F_siesta:
           case sym_10F:
             norm=sqrt(2.*feg2*feg2*fac/105.);
             break;
@@ -487,11 +489,13 @@ int Cubic_spline::readbasis(vector <string> & words,unsigned int & pos,
             norm=1/sqrt(3.0);
             break;
           case sym_5D:
+          case sym_D_siesta:
           case sym_6D:
             norm=1/sqrt(5.0);
             break;
           case sym_7F:
           case sym_7F_crystal://CRYSTAL F orbital
+          case sym_F_siesta:
           case sym_10F:
             norm=1/sqrt(7.0);
             break;
@@ -534,11 +538,13 @@ int Cubic_spline::readbasis(vector <string> & words,unsigned int & pos,
             p=2;
             break;
           case sym_5D:
+          case sym_D_siesta:
           case sym_6D:
             p=3;
             break;
           case sym_7F:
-	  case sym_7F_crystal://CRYSTAL F orbital
+          case sym_7F_crystal://CRYSTAL F orbital
+          case sym_F_siesta:
           case sym_10F:
             p=4;
             break;
@@ -767,7 +773,7 @@ void Cubic_spline::assign_indiv_symmetries() {
         indiv_symmetry(totfunc++)=isym_F0;
         indiv_symmetry(totfunc++)=isym_Fp1;
         indiv_symmetry(totfunc++)=isym_Fp2;
-        indiv_symmetry(totfunc++)=isym_Fp3;
+        indiv_symmetry(totfunc++)=isym_Fp3mod;
         break;
       default:
         error("unknown symmetry type: ", symmetry(funcNum));
