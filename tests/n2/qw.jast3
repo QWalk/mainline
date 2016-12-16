@@ -18,7 +18,7 @@ GROUP {
  TWOBODY { 
   COEFFICIENTS { 0 0 0 } 
  }
- THREEBODY { 
-  COEFFICIENTS { N 0 0 0 0 0 0 0 0  0 0 0 0 } 
- }
+# THREEBODY { 
+#  COEFFICIENTS { N 0 0 0 0 0 0 0 0  0 0 0 0 } 
+# }
 }

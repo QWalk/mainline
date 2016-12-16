@@ -36,14 +36,14 @@ void Linear_optimization_method::read(vector <string> words,
   if(!readvalue(words,pos=0,sig_H_threshold,"SIG_H_THRESHOLD"))
     sig_H_threshold=0.5;
   if(!readvalue(words,pos=0,minimum_psi0,"MINIMUM_PSI0"))
-    minimum_psi0=0.95;
+    minimum_psi0=0.99;
   if(!readvalue(words, pos=0, max_vmc_nstep, "MAX_VMC_NSTEP"))
-    max_vmc_nstep=8*vmc_nstep;
+    max_vmc_nstep=2*vmc_nstep;
   if(!readvalue(words, pos=0, max_nconfig_eval, "MAX_FIT_NCONFIG"))
     max_nconfig_eval=8*nconfig_eval;
   
   if(!readvalue(words, pos=0, max_nconfig_eval, "MAX_ZERO_ITERATIONS"))
-    max_zero_iterations=3;
+    max_zero_iterations=2;
 
   allocate(options.systemtext[0],  sys);
   sys->generatePseudo(options.pseudotext, pseudo);
@@ -183,8 +183,8 @@ doublevar find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
   int min_eigenval=W(0).real();
   
   for(int i=0; i< n; i++) { 
-    single_write(cout,"eigenvalue ",i," ");
-    single_write(cout,W(i),"\n");
+   // single_write(cout,"eigenvalue ",i," ");
+   // single_write(cout,W(i),"\n");
     if(W(i).real() < min_eigenval) { 
       min_index=i;
       min_eigenval=W(i).real();
@@ -192,12 +192,13 @@ doublevar find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
   }
 
   Array1 <doublevar> dp(n);
-  single_write(cout,"initial eigenvector ");
+ // single_write(cout,"eigenvector ");
   for(int i=0; i < n; i++) { 
     dp(i)=VL(min_index,i);
-    single_write(cout,dp(i)," ");
+  //  single_write(cout,dp(i)," ");
   }
-  single_write(cout,"\n");
+  //single_write(cout,"\n");
+  //single_write(cout,"eigenvalue ",min_eigenval,"\n");
 
   doublevar dp0=dp(0);
   for(int i=1; i< n; i++) dp(i)/=dp(0);
@@ -213,6 +214,8 @@ doublevar find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
     }
   }
   D=sqrt(D);
+  norm=0.0;
+  
   for(int i=1; i< n;  i++) { 
     doublevar num_sum=0.0;
     doublevar denom_sum=0.0;
@@ -227,7 +230,7 @@ doublevar find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
         /(xi*D+(1-xi)*(1+denom_sum));
     else norm(i)=0.0;
   }
-
+  
 
 
 
@@ -239,7 +242,7 @@ doublevar find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
 
   delta_alpha.Resize(n-1);
   for(int i=0; i< n-1; i++) { 
-    if(!linear(i-1))
+    if(!linear(i))
       delta_alpha(i)=dp(i+1)/(1-renorm_dp);
     else delta_alpha(i)=dp(i+1);
   }
@@ -254,55 +257,83 @@ doublevar find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
 
 doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S, 
     Array2 <doublevar> & Sinv, Array2 <doublevar> & H, Array1 <doublevar> & alpha) { 
-  vector<doublevar> stabilization;
-  stabilization.push_back(0.0);
-  stabilization.push_back(0.0);
-  stabilization.push_back(1.0);
-  stabilization.push_back(10.0);
-  int nstabil=stabilization.size();
   Array1 <bool> linear;
   wfdata->linearParms(linear);
-  Array1 <Array1 <doublevar> > alphas(nstabil);
-  alphas(0)=alpha;
- /* 
-  for(int i=1; i< nstabil; i++) { 
-    find_directions(S,Sinv,H,alphas(i),stabilization[i],linear);
-    //cout << "assigning alpha" << alphas(i).GetDim(0) << " " << alpha.GetDim(0) << endl;
-    for(int j=0; j< alpha.GetDim(0); j++) { 
-      alphas(i)(j)+=alpha(j);
-    }
-  }
-  */
-  Array1 <bool> fake_linear=linear;
-  fake_linear=true;
-  doublevar prop_psi0=find_directions(S,Sinv,H,alphas(1),0.0,fake_linear);
+  //int nstabil_max=100;
+  //Array1 <Array1 <doublevar> > alphas_tmp(nstabil_max);
+  Array1 <doublevar> alpha_tmp;
+  alpha_tmp=alpha;
+  doublevar prop_psi0=find_directions(S,Sinv,H,alpha_tmp,0.0,linear);
   doublevar stabil=0.0001;
-  while(prop_psi0 < minimum_psi0) { 
-    prop_psi0=find_directions(S,Sinv,H,alphas(1),stabil,fake_linear);
+  //int nstabil=1;
+  vector <doublevar> acc_stabils;
+  
+  doublevar stabilmax=2.0*fabs(H(0,0));
+  cout << "stabil max " << stabilmax << endl;
+  for(doublevar stabil=0.0; stabil<stabilmax; stabil+=stabilmax/20) { 
+    prop_psi0=find_directions(S,Sinv,H,alpha_tmp,stabil,linear);
     single_write(cout,"prop_psi0 ",prop_psi0);
     single_write(cout," stabil ", stabil,"\n");
-    stabil*=10.;
+    if(prop_psi0 > 0.2) { 
+      acc_stabils.push_back(stabil);
+    }
+  }
+  /*
 
+  while(prop_psi0 < minimum_psi0) { 
+    prop_psi0=find_directions(S,Sinv,H,alpha_tmp,stabil,linear);
+    single_write(cout,"prop_psi0 ",prop_psi0);
+    single_write(cout," stabil ", stabil,"\n");
+    if(prop_psi0 > 0.5) { 
+      acc_stabils.push_back(stabil);
+    }
+    
+    stabil*=1.01;
+  }
+  */
+  
+  /*
+  int nstabil=50;
+  doublevar dstabil=stabil/nstabil;
+  for(int i=0; i< nstabil; i++) {
+    stabil=dstabil*i;
+    prop_psi0=find_directions(S,Sinv,H,alpha_tmp,stabil,linear);
+    cout << "finding stabil " << stabil << " psi0 " << prop_psi0 << endl;
+    if(prop_psi0 > 0.5) { 
+      acc_stabils.push_back(stabil);
+    }
+  }  */
+  cout << "there " << endl;
+  int nstabil=acc_stabils.size();
+  Array1 <Array1 <doublevar> > alphas(nstabil+1);
+  alphas(0)=alpha;
+  for(int i=0; i < nstabil; i+=1) { 
+    prop_psi0=find_directions(S,Sinv,H,alphas(i+1),acc_stabils[i],linear);  
+    cout << "i " << i << " " << acc_stabils[i] << " prop_psi0 " << prop_psi0 << endl;
+    
   }
 
-  for(int i=2; i < nstabil; i++) alphas(i)=alphas(1);
-  vector<doublevar> rescale;
-  rescale.push_back(0.0);
-  rescale.push_back(0.5);
-  rescale.push_back(1.0);
-  rescale.push_back(1.5);
-  for(int i=1; i< nstabil; i++) { 
+  cout << "here" << endl;
+  for(int i=1; i< nstabil+1; i++) { 
     for(int j=0; j< alpha.GetDim(0); j++) { 
-      if(!linear(j)) alphas(i)(j)*=rescale[i];
       alphas(i)(j)+=alpha(j);
     }
   }
-
+  
   Array2 <doublevar> energies_corr2(nstabil,2);
   bool significant_stabil=false;
   while(!significant_stabil) { 
 //    significant_stabil=true;
     correlated_evaluation(alphas,0,energies_corr2);
+    for(int n=0; n< nstabil; n++) { 
+      cout << "alpha ";
+      for(int i=0; i< alpha.GetDim(0); i++) { 
+        cout << alphas(n)(i) << " ";
+      }
+      cout << endl;
+      cout << "energy " << energies_corr2(n,0) << " +/- " << energies_corr2(n,1) << endl;
+    }
+
     for(int n=1; n< nstabil; n++) {
       doublevar diff=energies_corr2(n,0)-energies_corr2(0,0);
       if( fabs(diff)/energies_corr2(n,1) > 3.0) {
@@ -328,7 +359,7 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   doublevar min_en=energies_corr2(0,0);
   int min_alpha=0;
   for(int n=0; n< nstabil; n++) { 
-    single_write(cout,stabilization[n]," ",energies_corr2(n,0),"\n");
+//single_write(cout,stabilization[n]," ",energies_corr2(n,0),"\n");
     if(energies_corr2(n,0) < min_en
         && fabs(energies_corr2(n,0))/energies_corr2(n,1) > 2.0 ) { 
       min_en=energies_corr2(n,0);
@@ -537,13 +568,13 @@ void Linear_optimization_method::wavefunction_derivative(
       //S(i+1,j+1)=deriv_avg.vals(3*n+i*n+j);
     }
   }
-  for(int i=0; i< n; i++) { 
-    if(fabs(S(i+1,i+1)) < 1e-15) S(i+1,i+1)=1.0;
-  }
+  //for(int i=0; i< n; i++) { 
+  //  if(fabs(S(i+1,i+1)) < 1e-15) S(i+1,i+1)=1.0;
+  //}
   H(0,0)=en(0);
   for(int i=0; i < n; i++) { 
-    H(i+1,0)=deriv_avg.vals(i)-en(0)*deriv_avg.vals(n+i);
-    H(0,i+1)=H(i+1,0)+deriv_avg.vals(2*n+i);
+    H(i+1,0)=2*(deriv_avg.vals(i)-en(0)*deriv_avg.vals(n+i));
+    H(0,i+1)=2*(H(i+1,0)+deriv_avg.vals(2*n+i));
     //H(i+1,0)=deriv_avg.vals(i);
     //H(0,i+1)=deriv_avg.vals(2*n+i);
   }
