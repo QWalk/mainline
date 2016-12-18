@@ -1633,8 +1633,70 @@ void GeneralizedEigenSystemSolverRealGeneralMatrices(Array2 < doublevar > & Ain,
   error("need LAPACK for eigensystem solver for general matrices");
 #endif //END OF NO LAPACK
 }
+//-----------------------------------------------------------
 
+void DGGEV(Array2 <doublevar> & A, Array2 <doublevar> & B,
+           Array1 <dcomplex> & alpha, 
+           Array2 <doublevar> & VL, Array2 <doublevar> & VR) {
+  int N=A.dim[0];
+  Array2 <doublevar> A_tmp=A;
+  Array2 <doublevar> B_tmp=B;
+  Array1<doublevar> alphar(N),alphai(N),beta(N);
 
+  //Translate between row and column ordering (Fortran)
+  for(int i=0; i< N; i++) { 
+    for(int j=0; j< N; j++) { 
+      A_tmp(i,j)=A(j,i);
+      B_tmp(i,j)=B(j,i);
+    }
+  }
+  VL.Resize(N,N);
+  VR.Resize(N,N);
+  alpha.Resize(N);
+  int lda=N, ldb=N,LWORK=10*N,ldvl=N,ldvr=N;
+  Array1 <doublevar> WORK(LWORK);
+  int info;
+#ifdef USE_LAPACK
+  char * optionN="N";
+  char * optionV="V";
+  dggev_(optionV,optionV,&N,A_tmp.v,&lda,B_tmp.v,&ldb,
+         alphar.v,alphai.v,beta.v,
+         VL.v,&ldvl,VR.v,&ldvr,
+         WORK.v,&LWORK,&info);
+  alpha.Resize(N);
+  for(int i=0; i< N; i++) { 
+    alpha(i)=dcomplex(alphar(i)/beta(i),alphai(i)/beta(i));
+  }
+  
+  //cout << "A " << endl;
+  //for(int i=0; i < N; i++) { 
+  //  for(int j=0; j< N; j++) { 
+  //    cout << A(i,j) << " ";
+  //  }
+  //  cout << endl;
+  //}
+  //cout << "B " << endl;
+  //for(int i=0; i < N; i++) { 
+  //  for(int j=0; j< N; j++) { 
+  //    cout << B(i,j) << " ";
+  //  }
+  //  cout << endl;
+  //}
+  //cout << "VR " << endl;
+  //for(int i=0; i < N; i++) { 
+  //  for(int j=0; j< N; j++) { 
+  //    cout << VR(i,j) << " ";
+  //  }
+  //  cout << endl;
+  //}
+  
+#else //IF NO LAPACK
+  error("need LAPACK for eigensystem solver for general matrices");
+#endif //END OF NO LAPACK
+
+}
+
+//-----------------------------------------------------------
 
 
 void Jacobi(const Array2 < dcomplex > & Ain, Array1 <doublevar> & evals, Array2 < dcomplex > & evecs)

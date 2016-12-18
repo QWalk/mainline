@@ -68,9 +68,6 @@ void generate_sample(Sample_point * sample,
     while(!have_moved_enough) { 
       for(int e=0; e< nelectrons; e++) { 
         int acc=sampler.sample(e,sample,wf,wfdata,guidewf,dinfo,timestep);
-// Adjusting the timestep here biases the walk slighly.
-//        if(dinfo.acceptance > target_acceptance) timestep+=tstep_delta;
-//        else timestep-=tstep_delta;
         if(acc>0) nmoves(e)++;
       }
       have_moved_enough=true;
