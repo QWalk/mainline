@@ -603,17 +603,17 @@ void Linear_optimization_method::wavefunction_derivative(
       //S(i+1,j+1)=deriv_avg.vals(3*n+i*n+j);
     }
   }
-  for(int i=0; i< n+1; i++) { 
-    cout <<"S-- ";
-    for(int j=0; j< n+1; j++) { 
-      cout << S(i,j) << " ";
-    }
-    cout << endl;
-  }
+//  for(int i=0; i< n+1; i++) { 
+//    cout <<"S-- ";
+//    for(int j=0; j< n+1; j++) { 
+//      cout << S(i,j) << " ";
+//    }
+//    cout << endl;
+//  }
   H(0,0)=en(0);
   for(int i=0; i < n; i++) { 
-    H(i+1,0)=2*(deriv_avg.vals(i)-en(0)*deriv_avg.vals(n+i));
-    H(0,i+1)=2*(H(i+1,0)+deriv_avg.vals(2*n+i));
+    H(i+1,0)=(deriv_avg.vals(i)-en(0)*deriv_avg.vals(n+i));
+    H(0,i+1)=(H(i+1,0)+deriv_avg.vals(2*n+i));
     //H(i+1,0)=deriv_avg.vals(i);
     //H(0,i+1)=deriv_avg.vals(2*n+i);
   }
