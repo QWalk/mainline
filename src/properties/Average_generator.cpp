@@ -585,7 +585,7 @@ void Average_twobody_correlation::jsonOutput(Average_return & avg,Average_return
   
   os << "\"unlike_err\":[" << endl;
   for(int i=0; i< npoints; i++) {
-    os << err.vals(i);
+    os << err.vals(i+npoints);
     if( i<npoints-1) os << ",";
   }
   os << endl;
