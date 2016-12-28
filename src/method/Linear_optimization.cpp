@@ -165,8 +165,8 @@ doublevar find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
     Array1 <bool> & linear) { 
   int n=S.GetDim(0);
   assert(S.GetDim(1)==n);
-  assert(H.GetDim(0)==n);
-  assert(H.GetDim(1)==n);
+  assert(Hin.GetDim(0)==n);
+  assert(Hin.GetDim(1)==n);
   Array2 <doublevar> H=Hin;
   //Sinv.Resize(n,n);
   for(int i=1; i< n; i++) H(i,i)+=stabilization;
