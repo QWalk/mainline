@@ -1,0 +1,8 @@
+title: QWalk
+description: Quantum Monte Carlo for electrons in real materials
+google_analytics: 
+show_downloads: true
+theme: jekyll-theme-slate
+
+gems:
+  - jekyll-mentions
