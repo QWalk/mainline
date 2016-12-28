@@ -115,6 +115,10 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
     }
   }
 
+  if(fabs(CSF(0)(0)) < 1e-10)
+    error("Cannot deal with the first CSF having zero weight.");
+      
+
   //no sorting when ndet=1;
   if( ndet==1 && sort)
     sort=0;
