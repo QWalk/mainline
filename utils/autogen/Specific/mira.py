@@ -5,7 +5,7 @@ import os
 
 class LocalMiraSubmitter(LocalSubmitter):
   """Abstract submission class. Defines interaction with the queuing system."""
-  def __init__(self,time='72:00:00',nn=1,np='allprocs',mode=32,queue='batch'):
+  def __init__(self,time='72:00:00',nn=1,np='allprocs',mode=16,queue='batch'):
     """ Initialize a submitter object. 
 
     This part should contain all parts of calculation that user should care
@@ -19,24 +19,31 @@ class LocalMiraSubmitter(LocalSubmitter):
 
   def _job_status(self,queue_id):
     status = "unknown"
+    queue_id=str(queue_id)
     print("Queue id",queue_id)
+    qstat=None
+    if 'campuscluster' in queue_id:
+      return 'finished'
     try:
-      qstat = sub.check_output(
+      qstat_out = sub.check_output(
           "qstat %s"%queue_id, shell=True
-        ).split('\n')[-2].split()[4]
+        ).decode().split('\n')
+      if(len(qstat_out) > 2):
+        qstat=qstat_out[-2].split()[4]
+      print(qstat)
     except sub.CalledProcessError:
-      print("Called process error")
+      #print("Called process error")
       return "unknown"
     if qstat == "running" or qstat == "queued":
       print("Found running")
       return "running"
-    if qstat == "C" or qstat == "E":
+    if qstat == "exiting" or qstat == "killed":
       print("Found finished")
       return "finished"
     return status
 
   def _job_cancel(self,queue_id):
-    print "Cancel was called, but not implemented"
+    print("Cancel was called, but not implemented")
 
 class LocalMiraCrystalSubmitter(LocalMiraSubmitter):
   """Fully defined submission class. Defines interaction with specific
@@ -83,16 +90,17 @@ class LocalMiraDMCSubmitter(LocalMiraSubmitter):
     nproc=512*self.nn
     qsub = []
     qsub.append('qsub')
-    qsub.append('-q prod')
-    qsub.append('-A SuperMatSim')
+#    qsub.append('-q prod')
+    qsub.append('-A '+self.queue)
     qsub.append('-t {time}'.format(time=time))
     qsub.append('-n {nproc}'.format(nproc=nproc))
     qsub.append('--mode c%d'%self.mode)
     qsub.append('-o {outfn}'.format(outfn=outfn))
+    qsub.append('--jobname {jobname}'.format(jobname=jobname))
     qsub.append('~/bin/qwalk')
     qsub += inpfns
     qin = ' '.join(qsub)
     print(qin); qid = None
-    qid = sub.check_output(qin,shell=True)
-    print "Submitted as %s"%qid
-    return qid
+    qid = sub.check_output(qin,shell=True).decode().strip()
+    print("Submitted as %s"%qid)
+    return [qid]
