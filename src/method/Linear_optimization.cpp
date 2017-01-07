@@ -276,14 +276,19 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   Array1 <doublevar> alpha_tmp;
   alpha_tmp=alpha;
   doublevar stabilmax=3.0*fabs(H(0,0));
+  vector <doublevar> acc_stabils;
   
   doublevar psi_0_min=find_directions(S,Sinv,H,alpha_tmp,0.0,linear);
   doublevar psi_0_max=find_directions(S,Sinv,H,alpha_tmp,stabilmax,linear);
   psi_0_min=max(psi_0_min,minimum_psi0);
   if(psi_0_min > psi_0_max) { 
-    error("In LINEAR, encountered psi_0_min > psi_0_max. Perhaps you should increase TOTAL_NSTEP?");
+    if(psi_0_min > 0.95) { 
+      single_write(cout,"Found psi_0_min > 0.95, so going forward with just that.");
+      acc_stabils.push_back(0.0);
+    }
+    else 
+      error("In LINEAR, encountered psi_0_min > psi_0_max. Perhaps you should increase TOTAL_NSTEP?",psi_0_min,psi_0_max);
   }
-  vector <doublevar> acc_stabils;
 
   doublevar step=(psi_0_max-psi_0_min)/5;
   doublevar tol=step/10;
@@ -300,46 +305,15 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
       else bracket_below=guesstab;
       //cout << "psi0 " << psi0 << " guesstab " << guesstab << " guesspsi " << guesspsi 
       //     << " brackets " << bracket_below << " " << bracket_above << endl;
-      if(++count > 100) error("In Linear_optimization::line_minimization: took more than 100 iterations to find sample. Something must be wrong.");
+      if(++count > 100) { 
+        single_write(cout,"In Linear_optimization::line_minimization: took more than 100 iterations to find sample. Giving up.");
+        break;
+      }
     } while(fabs(guesspsi-psi0) > tol);
     acc_stabils.push_back(guesstab);
   }
-  //cout << "stabil max " << stabilmax << endl;
-  //for(doublevar stabil=0.0; stabil<stabilmax; stabil+=stabilmax/500) { 
-  //  prop_psi0=find_directions(S,Sinv,H,alpha_tmp,stabil,linear);
-  //  single_write(cout,"prop_psi0 ",prop_psi0);
-  //  single_write(cout," stabil ", stabil,"\n");
-  //  if(prop_psi0 > 0.5) { 
-  //    acc_stabils.push_back(stabil);
-  //  }
-  //  if(acc_stabils.size() > 10) break;
-  //}
 
-  /*
 
-  while(prop_psi0 < minimum_psi0) { 
-    prop_psi0=find_directions(S,Sinv,H,alpha_tmp,stabil,linear);
-    single_write(cout,"prop_psi0 ",prop_psi0);
-    single_write(cout," stabil ", stabil,"\n");
-    if(prop_psi0 > 0.5) { 
-      acc_stabils.push_back(stabil);
-    }
-    
-    stabil*=1.01;
-  }
-  */
-  
-  /*
-  int nstabil=50;
-  doublevar dstabil=stabil/nstabil;
-  for(int i=0; i< nstabil; i++) {
-    stabil=dstabil*i;
-    prop_psi0=find_directions(S,Sinv,H,alpha_tmp,stabil,linear);
-    cout << "finding stabil " << stabil << " psi0 " << prop_psi0 << endl;
-    if(prop_psi0 > 0.5) { 
-      acc_stabils.push_back(stabil);
-    }
-  }  */
   int nstabil=acc_stabils.size()+1;
   Array1 <Array1 <doublevar> > alphas(nstabil);
   alphas(0)=alpha;
