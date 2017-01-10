@@ -280,15 +280,15 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   
   doublevar psi_0_min=find_directions(S,Sinv,H,alpha_tmp,0.0,linear);
   doublevar psi_0_max=find_directions(S,Sinv,H,alpha_tmp,stabilmax,linear);
-  psi_0_min=max(psi_0_min,minimum_psi0);
   if(psi_0_min > psi_0_max) { 
-    if(psi_0_min > 0.95) { 
+    if(psi_0_min > minimum_psi0) { 
       single_write(cout,"Found psi_0_min > 0.95, so going forward with just that.");
       acc_stabils.push_back(0.0);
     }
     else 
       error("In LINEAR, encountered psi_0_min > psi_0_max. Perhaps you should increase TOTAL_NSTEP?",psi_0_min,psi_0_max);
   }
+  psi_0_min=max(psi_0_min,minimum_psi0);
 
   doublevar step=(psi_0_max-psi_0_min)/5;
   doublevar tol=step/10;
