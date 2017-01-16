@@ -8,6 +8,7 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
   int f=0;
   int nfunc=1;
   ndet=in_ndet;
+  notactive=0;
 
   //Occupied list sizes
   Nocc.Resize(ndet,2);
@@ -286,7 +287,6 @@ void Orbital_rotation::writeinput(string & indent, ostream & os){
         tmptheta(det,s)=0;
       }
       int k,l;
-      int q=0;
       for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++){
         getind(i+offset,det,s,k,l);
         if(isactive(i+offset))
