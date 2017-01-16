@@ -44,10 +44,10 @@ private:
   Array1<Array1<int> >activetotoccupation; //Totoccupation but also including Active Space orbitals!
   Array1<int> isactive; //Which parameters are active and which arent
 
-  int ndet;        //Number of determinants
-  int notactive; //Total number of inactive parameters 
+  int ndet;            //Number of determinants
+  int notactive;       //Total number of inactive parameters 
   void setTheta(void); //Set theta matrix based on parms 
-  void setRvar(void); //Rvar=exp(theta)
+  void setRvar(void);  //Rvar=exp(theta)
   void getind(int n,int& det,int& s,int& i,int& j); //Get index of parameter n
 };
 
