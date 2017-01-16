@@ -34,6 +34,7 @@
 #Other things
 *.html
 *-Darwin
+src/obj/*
 src/latex/*
 src/html/*
 bin/*
