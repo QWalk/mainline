@@ -1,0 +1,33 @@
+/*! \page DynamicsDoc Dynamics
+
+\section description Description
+
+A dynamics generator for monte carlo processes.  Different dynamics
+are currently somewhat experimental, but the splitting rejection
+method is relatively stable, so I'll list it here. (Keyword SPLIT)  The
+defaults are close to the optimal ones, so it's best to leave this alone
+unless you know what you're doing.
+
+For all-electron atoms, it is best to use the algorithm of Umrigar,
+Nightingale, and Runge,
+<a href="http://dx.doi.org/10.1063/1.465195">J. Chem. Phys. <b>99</b>, 2865
+(1993)</a>, chosen by dynamics { UNR } in the method section. 
+
+\section options Options
+
+
+\subsection optopt Optional
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b> Default </b> 
+     <td> <b>Description</b>
+<tr> <td> DEPTH  <td> Integer <td> 1 <td> How many times to try to make a step.
+<tr> <td> DIVIDER  <td> Float <td>  1.0 <td> 
+<tr> <td> DRIFT_TYPE <td> String <td> CYRUS <td> The drift limiter.  Can be either CYRUS or CUTOFF.  Note that DMC is much less efficient when used with a CUTOFF
+limiter.
+</table>
+
+\subsection expopt Experimental 
+
+
+*/

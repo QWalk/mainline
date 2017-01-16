@@ -1,0 +1,37 @@
+type: Entry
+name: PLOT
+keyword: PLOT
+is_a: Method
+title: Plot orbitals
+related: []
+description: > 
+  The PLOT method simply plots the one-particle orbitals and density
+  of a trial function. These are output in Gaussian CUBE file format.
+  The density, equal to the sum of squares of the orbitals, is also printed.
+  This may or may not correspond to the actual electron density of the Slater
+  determinant, depending on what orbitals were selected.
+
+  There are some useful Python functions to manipulate CUBE files in qwalk/utils/readcube.py
+  
+
+required: 
+  - keyword: ORBITALS
+    type: section
+    description: A section for [molecular orbitals](Orbital).
+optional: 
+  - keyword: RESOLUTION
+    type: float
+    default: 0.2
+    description: The resolution in Bohrs. Smaller is better resolution.
+  - keyword: PLOTORBITALS
+    type: section
+    default: all orbitals
+    description: Which orbitals to plot. The first orbital starts at 1.
+  - keyword: MINMAX
+    type: section
+    default: special
+    description: > 
+      { xmin xmax ymin ymax zmin zmax }.  
+      By default, this is automatically set to include the entire system with some padding.
+
+

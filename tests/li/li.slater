@@ -1,0 +1,22 @@
+SLATER
+ORBITALS{
+  BASFUNC_MO
+  MAGNIFY 1
+  NMO 3
+  ORBFILE c.orb
+  INCLUDE c.basis
+  CENTERS { USEGLOBAL }
+}
+
+DETWT { 1.0 }
+STATES {
+  1 10                      
+  2      
+}
+
+OPTIMIZE_MO
+OPTIMIZE_DATA{
+  ACTIVE_SPACE_U { 1 10 4 }
+  ACTIVE_SPACE_D { 2 1 }
+  INIT_PARMS { -0.4 0.1 0.3 }
+}

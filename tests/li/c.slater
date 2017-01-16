@@ -1,0 +1,24 @@
+  SLATER 
+  ORBITALS {
+  CUTOFF_MO
+    MAGNIFY 1
+    INCLUDE c.basis
+    NMO 10 
+    ORBFILE c.orb
+    CENTERS { USEGLOBAL } 
+  }
+
+  DETWT { 1.0 } 
+  STATES {
+     #Spin up orbitals
+   1 10    
+     #Spin down orbitals 
+   2  }
+
+   OPTIMIZE_MO
+   OPTIMIZE_DATA{
+    ACTIVE_SPACE_U { 1 10 4 }
+    ACTIVE_SPACE_D { 2 1 }
+    INIT_PARMS { -0.4 0.1 0.3 }
+   
+   }

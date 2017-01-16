@@ -1,0 +1,105 @@
+/*! \page BCS_wfDoc BCS
+
+Keyword: BCS
+
+\section description Description
+
+Projections of the BCS wave function on a subspace of fixed number of
+particles. It has a form of a determinant of a pair orbital 
+\f$ \phi({\bf r}_i,{\bf r}_j) \f$,
+\f[
+\Psi({\bf r}_{1\uparrow},\ldots,{\bf r}_{N\uparrow},
+     {\bf r}_{1\downarrow},\ldots,{\bf r}_{N\downarrow})
+=\det\left[ \begin{array}{ccc}
+\phi({\bf r}_1,{\bf r}_1)             & \cdots & \phi({\bf r}_{N\uparrow},{\bf r}_1)\\
+\vdots                                & \ddots & \vdots \\
+\phi({\bf r}_1,{\bf r}_{N\downarrow}) & \cdots & \phi({\bf r}_{N\uparrow},{\bf r}_{N\downarrow})
+\end{array}\right] .
+\f]
+Only spin-unpolarized situations, \f$ N\uparrow = N\downarrow \f$,
+can be accomodated. Moreover, BCS wave function is implemented <i>only
+for homogeneous systems</i>, where the pair orbital depends only on
+a single vector, i.e., the distance of the two particles,
+\f$ \phi({\bf r}_i,{\bf r}_j) = \phi({\bf r}_i-{\bf r}_j) \f$. For
+description of more general cases see \ref Pfaff_wfDoc wave function.
+
+\section options Options
+
+\subsection reqopt Required 
+
+<table>
+<tr> <th> Option <th> Type <th> Description
+<tr> <td> PAIR_ORBITAL <td> Section <td> A section containing
+definition of one or several \ref Jastrow_groupDoc s that construct the
+pair orbital \f$ \phi({\bf r}_i-{\bf r}_j) \f$ in the same way as the \ref
+Jastrow2_wfDoc factor is constructed. Only two-body terms are taken
+into account, others are ignored.
+</table>
+
+\subsection optopt Optional
+
+None.
+
+\section examples Examples
+
+A very simple case where the pair orbital is a linear combination of
+just two \ref Poly_pade_functionDoc s.
+
+<pre>
+BCS
+PAIR_ORBITAL { 
+  JASTROW2
+  GROUP { 
+    TWOBODY { 
+      COEFFICIENTS { 1.0 1.0  } 
+    } 
+    EEBASIS { 
+      EE
+      POLYPADE
+      RCUT 12.1877
+      BETA0 -0.8
+      NFUNC 2
+    }
+  }
+}
+</pre>
+
+A more involved example where the pair orbital is constructed as a
+linear combination of two shells of plane waves. \ref
+Basis_GroupsDoc construct is utilized to enforce isotropic orbital and
+to reduce the number of parameters to just two.
+
+<pre>
+BCS
+PAIR_ORBITAL { 
+  JASTROW2
+  GROUP { 
+    TWOBODY { 
+      COEFFICIENTS { 1.0 1.0 } 
+    } 
+    EEBASIS { 
+      EE
+      BASIS_GROUPS
+      BASIS_GROUP { 
+        EE
+        PLANEWAVE
+        GVECTOR { 
+          0.0       0.0      0.0
+        }
+      }
+      BASIS_GROUP { 
+        EE
+        PLANEWAVE
+        GVECTOR { 
+          0.0       0.0       0.257638
+          0.257638  0.0       0.0
+          0.0       0.257638  0.0
+        }
+      }
+    }
+  }
+}
+</pre>
+
+
+*/

@@ -1,0 +1,6 @@
+SYSTEM { MOLECULE 
+  NSPIN { 1  0 } 
+ATOM { H  1  COOR 0   0   0 } 
+}
+
+

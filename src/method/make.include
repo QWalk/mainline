@@ -1,0 +1,30 @@
+
+MY_SOURCES:= \
+          Determinant_select_method.cpp \
+  Dmc_method.cpp \
+        Generate_sample.cpp \
+	Rndmc_method.cpp \
+        Energy_slice.cpp \
+	Force_fitter.cpp \
+        Linear_optimization.cpp \
+        Localize_method.cpp \
+	Lowdin_method.cpp \
+	Maximize_method.cpp \
+	Nodes_method.cpp \
+        Shdmc_method.cpp \
+	Optimize_method.cpp \
+	Plot_method.cpp \
+        Plot1d_method.cpp \
+        Postprocess_method.cpp \
+	Qmc_method.cpp \
+	Reptation_method.cpp \
+        Rotate_orbs.cpp \
+	Split_sample.cpp \
+	Test_method.cpp \
+	Vmc_method.cpp  \
+        Wannier_method.cpp
+
+
+SOURCES:= $(SOURCES) $(addprefix method/,$(MY_SOURCES))
+
+

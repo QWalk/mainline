@@ -1,0 +1,19 @@
+include c.sys
+trialfunc { slater-jastrow
+wf1 { include c.pfaff } 
+wf2 { include c.jast2 } 
+ }
+
+method { VMC nconfig 2000 nstep 10 nblock 10 timestep 1.0 storeconfig ch4.config } 
+
+method { OPTIMIZE2 nconfig 2000 readconfig ch4.config minfunction MIXED}
+
+method { VMC nconfig 2000 nstep 10 nblock 10 timestep 1.0
+storeconfig ch4.config readconfig ch4.config label vmc_opt }
+
+
+method { OPTIMIZE2 nconfig 2000 readconfig ch4.config minfunction MIXED}
+
+method { VMC nconfig 2000 nstep 10 nblock 10 timestep 1.0
+storeconfig ch4.config readconfig ch4.config label vmc_opt2 }
+

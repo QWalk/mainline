@@ -1,0 +1,72 @@
+type: Entry
+name: VMC
+keyword: VMC
+is_a: Method
+title: Variational Monte Carlo
+description: >
+    Evaluates the expectation value \( \langle \Psi | {\cal O} | \Psi \rangle \) stochastically.
+related:
+  - Average generator
+required: []
+optional:
+  - keyword: AVERAGE
+    type: section
+    default: empty
+    description: Section for an [Average generator](Average generator)
+
+  - keyword: NCONFIG
+    type: integer
+    default: 1
+    description: Number of sample points to use at one time per processor
+  
+  - keyword: NSTEP
+    type: integer
+    default: 100
+    description: Number of average points to take in a block.
+
+  - keyword: NBLOCK
+    type: integer
+    default: 100
+    description: Number of blocks to take
+
+  - keyword: TIMESTEP
+    type: float
+    default: 1.0
+    description: > 
+      A measure of how large each Metropolis move should be.  
+      Adjust such that the acceptance ratio is somewhat greater than
+      0.5.  If this is not specified, then the timestep will automatically be adjusted.
+
+  - keyword: NDECORR
+    type: integer
+    default: 2 
+    description: >
+      Number of Metropolis steps to take before evaluating the energy.
+           Since VMC steps don't require an energy evaluation, this serves
+           to decorrelate the averaging points before doing an expensive
+           evaluation of the energy(mostly pseudopotentials).
+
+  - keyword: STORECONFIG
+    type: string
+    default: runid.config
+    description: Write the configurations to this file every block.  
+      
+  - keyword: READCONFIG  
+    type: string  
+    default: runid.config  
+    description: Read from a configuration file previously written by STORECONFIG. If this file is absent, then new configurations will be generated.
+
+  - keyword: DENSITY 
+    type: section
+    default: empty
+    description: Section for the evaluation of a density object
+advanced:
+  - keyword: GUIDETYPE
+    type: string
+    default: SUMSQUARES
+    description: Possible options include SUMSQUARES, FIRST. This only does anything if multiple wave functions are defined in the TRIALFUNC section.
+  - keyword: DYNAMICS
+    type: section
+    default: SPLIT
+    description: Choose a sampling strategy. Use UNR for all-electron calculations.
+

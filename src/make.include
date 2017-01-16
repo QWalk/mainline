@@ -1,0 +1,8 @@
+INCLUDEPATH:=-I$(DVLPATH)/basis_function \
+        -I$(DVLPATH)/macopt \
+        -I$(DVLPATH)/method \
+        -I$(DVLPATH)/orbitals \
+         -I$(DVLPATH)/program_utils\
+         -I$(DVLPATH)/properties \
+         -I$(DVLPATH)/system \
+         -I$(DVLPATH)/wavefunction

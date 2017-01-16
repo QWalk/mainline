@@ -1,0 +1,13 @@
+METHOD {
+  VMC
+}
+
+INCLUDE c.sys
+TRIALFUNC { 
+  #SLATER-JASTROW
+  #WF1 { INCLUDE c.slater }
+  #WF2 { INCLUDE c.jast2 }
+  include c.slater
+}
+
+

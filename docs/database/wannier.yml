@@ -1,0 +1,41 @@
+type: Entry
+name: WANNIER
+keyword: WANNIER
+is_a: Method
+title: Generate Wannier functions
+related: []
+description: >
+  This method attempts to minimize the spread of the orbitals in periodic boundary conditions. It accomplishes this by maximizing the following value
+  \[
+  \sum_i |z_{ij}|^2
+  \]
+  where the sum is over all orbitals, and 
+  \[
+  z_{ij}=\int{ \exp(-\vec{k_j}\cdot\vec{r}) \phi_i^2(\vec{r}) d\vec{r}},
+  \]
+  where the k's are the reciprocal lattice vectors.
+
+  The orbitals are optimized by rotating the orbitals
+  \[
+  {\boldsymbol \phi}_{new}=M{\boldsymbol \phi}.
+  \]
+  The matrix elements of M are allowed to be nonzero only between orbitals that are in the same ORB_GROUP.
+  
+required:
+  - keyword: ORBITALS
+    type: section
+    description: > 
+       A Molecular orbital section
+  - keyword: ORB_GROUP
+    type: section
+    description: > 
+      The orbitals listed in this orbital group are allowed to mix. Can list multiple sections to define multiple mixing sectors.
+optional: 
+  - keyword: RESOLUTION
+    type: float
+    default: 0.2
+    description: The pitch (in Bohrs) of the grid used for integration.
+  - keyword: OUT_ORB
+    type: string
+    default: runid+.orb
+    description: Where the rotated orbitals will be stored.

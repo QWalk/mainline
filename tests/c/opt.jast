@@ -1,0 +1,46 @@
+  JASTROW2
+  GROUP { 
+    TWOBODY_SPIN { 
+      FREEZE
+      LIKE_COEFFICIENTS { 0.25  0   } 
+      UNLIKE_COEFFICIENTS { 0  0.5   }  
+    } 
+    EEBASIS { 
+      EE
+      CUTOFF_CUSP
+      GAMMA 27.4041478466121
+      CUSP 1
+      CUTOFF 7.5
+    }
+    EEBASIS { 
+      EE
+      CUTOFF_CUSP
+      GAMMA 4.92841360264494
+      CUSP 1
+      CUTOFF 7.5
+    }
+  }
+  GROUP { 
+    ONEBODY { 
+      #FREEZE
+      COEFFICIENTS { C 0 0 } 
+    } 
+    TWOBODY {
+      #FREEZE
+      COEFFICIENTS { 0 } 
+    } 
+    EIBASIS { 
+      C
+      POLYPADE
+      RCUT 7.5
+      BETA0 -0.685588183353426
+      NFUNC 2
+    }
+    EEBASIS { 
+      EE
+      POLYPADE
+      RCUT 7.5
+      BETA0 1.86036220165454
+      NFUNC 1 
+    }
+  }

@@ -1,0 +1,14 @@
+type: Entry
+name: MANYBODY_POL
+is_a: Average generator
+title: Manybody polarization operator
+keyword: MANYBODY_POL
+related: []
+description: >
+  \( z_i=\left\langle \exp(-i{\mathbf k_i} \cdot {\mathbf X}) \right\rangle \), where \( {\mathbf X} = \sum_j {\mathbf r_j} \) and \( {\mathbf k_i} \) is a reciprocal vector of the supercell.
+
+  The magnitude of \( z_i \) is related to the localization length in the direction of the reciprocal lattice vector.
+  Its phase gives the center of charge in the unit cell.
+  
+required: []
+optional: []

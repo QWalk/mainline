@@ -1,0 +1,84 @@
+#!/usr/bin/env python
+from __future__ import print_function
+import subprocess
+import json
+import sys
+
+sys.path.append("../")
+from qwtest import *
+QW="../../bin/qwalk"
+GOS="../../bin/gosling"
+
+def check_errorbars(a,b,berr,sigma=3):
+  if abs(a-b)/berr > sigma:
+    return False
+  return True
+
+def check_sane(a,b,berr,sigma=3):
+  if berr > 0.1:
+    return False
+  return True
+
+print("""###########################################
+Checking VMC and Slater determinant for the H atom. 
+This tests the orbital evaluation routine and the VMC method.
+The reference is the Hartree-Fock result from GAMESS.
+################################################""")
+
+try:
+  subprocess.check_output(['rm','qw.hf.log','qw.hf.config'])
+except:
+  pass
+subprocess.check_output([QW,'qw.hf'])
+json_str=subprocess.check_output([GOS,'-json','qw.hf.log'])
+
+dat=json.loads(json_str)
+
+ref_data={'total_energy':-0.4998098113,
+          'kinetic':0.4997883996,
+          'potential':-0.9995982109
+          }
+
+
+success={}
+for k in ref_data.keys():
+  success[k]=check_errorbars(ref_data[k],
+                  dat['properties'][k]['value'][0],
+                  dat['properties'][k]['error'][0])
+for k in ref_data.keys():
+  success[k+'sane']=check_sane(ref_data[k],
+                  dat['properties'][k]['value'][0],
+                  dat['properties'][k]['error'][0])
+
+allsuc=[]
+for k,v in success.items():
+  allsuc.append(v)
+  print(k,v)
+if False in allsuc:
+  exit(1)
+
+
+print("""###########################################
+Checking DMC for the H atom. 
+This tests the basic DMC algorithm.
+The reference is the exact result.
+################################################""")
+try:
+  subprocess.check_output(['rm','qw.dmc.log','qw.dmc.config'])
+except:
+  pass
+subprocess.check_output([QW,'qw.dmc'])
+
+json_str=subprocess.check_output([GOS,'-json','qw.dmc.log'])
+dat=json.loads(json_str)
+
+en=dat['properties']['total_energy']['value'][0]
+err=dat['properties']['total_energy']['error'][0]
+
+print("Exact: -0.5")
+print("Data: ",en,"+/-",err)
+if not check_errorbars(-0.5,en,err):
+  print("FAILED")
+  exit(1)
+print("PASSED")
+exit(0)

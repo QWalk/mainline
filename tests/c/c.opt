@@ -1,0 +1,11 @@
+method { 
+  OPTIMIZE 
+  NCONFIG 500
+}
+
+include c.sys
+trialfunc { slater-jastrow
+  wf1 { include c.slater }
+  wf2 { include c.opt.jast2 }
+}
+

@@ -1,0 +1,28 @@
+{
+  "type":"Entry",
+  "name":"Optimize",
+  "is_a":"Method",
+  "keyword":"OPTIMIZE",
+  "title":"Optimize (Variance)",
+  "related":["Linear"],
+  "description":"On a fixed sample set, optimize one of a number of objective functions with respect to the wave function parameters.  Note that energy optimization using this method is typically not efficient or advised. This method is most useful to perform rough variance optimization of a Jastrow factor prior either to performing a DMC calculation or using the LINEAR method to optimize the energy.",
+  "required":[],
+  "optional":[
+    {"keyword":"READCONFIG","type":"String","default":"","description":"Read configurations from a file.  By default, QWalk will generate the configurations automatically."},
+    {"keyword":"ITERATIONS","type":"Integer","default":"30 ",
+     "description":"Number of optimization iterations."},
+    {"keyword":"EREF","type":"Float","default":"special","description":"A best guess at the optimized energy.  If you don't put this keyword, QWalk will make a good guess at the proper value, which should be good enough unless the system is rather large."},
+    {"keyword":"WFOUTPUT","type":"String","default":"runid.wfout",
+     "description":"Choose the filename to place an input deck for the final wavefunction and intermediate ones as the optimization continues."}
+    
+  ],
+  "experimental":[
+    {"keyword":"NCONFIG","type":"Integer","default":"Special","description":"Number of configurations per processor.  By default, QWalk will choose a total number close to 2048, spread across all processors."},
+    {"keyword":"USE_WEIGHTS","type":"Flag","default":"off",
+     "description":"Turn on correlated-sampling type reweighting"},
+    {"keyword":"MIXING","type":"Float","default":"0.95","description":"For MINFUNCTION MIXED, the mixing weight for energy contribution"},
+    {"keyword":"EXTENDED_WFOUTPUT","type":"Flag","default":"off",
+     "description":"Turn on printout of wavefunction after each step of optimization into a different file"}
+  ]    
+}
+

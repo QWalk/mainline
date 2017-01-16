@@ -1,0 +1,13 @@
+METHOD{
+  LINEAR 
+  TOTAL_NSTEP 2000
+}
+
+INCLUDE c.sys
+TRIALFUNC { 
+  #SLATER-JASTROW
+  #wf1 { INCLUDE c.slater } 
+  #wf2 { INCLUDE c.jast2 }
+  #INCLUDE opt.jast
+  include c.slater
+  }

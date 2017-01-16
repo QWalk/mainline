@@ -1,0 +1,78 @@
+
+$(OBJPATH)/%.o:basis_function/%.cpp
+	@echo ________________________________________________________________
+	@echo Compiling $<
+	[ -e $(DVLPATH)/obj ] || mkdir $(DVLPATH)/obj
+	[ -e $(OBJPATH) ] || mkdir $(OBJPATH)
+	$(CXX) -c $(DEBUG) $(CXXFLAGS) $(BLAS_INCLUDE) $(EINSPLINE_INCLUDE) $(CPPFLAGS) -o $@ $<
+
+$(OBJPATH)/%.o:macopt/%.cpp
+	@echo ________________________________________________________________
+	@echo Compiling $<
+	[ -e $(DVLPATH)/obj ] || mkdir $(DVLPATH)/obj
+	[ -e $(OBJPATH) ] || mkdir $(OBJPATH)
+	$(CXX) -c $(DEBUG) $(CXXFLAGS) $(BLAS_INCLUDE) $(EINSPLINE_INCLUDE) $(CPPFLAGS) -o $@ $<
+
+$(OBJPATH)/%.o:method/%.cpp
+	@echo ________________________________________________________________
+	@echo Compiling $<
+	[ -e $(DVLPATH)/obj ] || mkdir $(DVLPATH)/obj
+	[ -e $(OBJPATH) ] || mkdir $(OBJPATH)
+	$(CXX) -c $(DEBUG) $(CXXFLAGS) $(BLAS_INCLUDE) $(EINSPLINE_INCLUDE) $(CPPFLAGS) -o $@ $<
+
+$(OBJPATH)/%.o:orbitals/%.cpp
+	@echo ________________________________________________________________
+	@echo Compiling $<
+	[ -e $(DVLPATH)/obj ] || mkdir $(DVLPATH)/obj
+	[ -e $(OBJPATH) ] || mkdir $(OBJPATH)
+	$(CXX) -c $(DEBUG) $(CXXFLAGS) $(BLAS_INCLUDE) $(EINSPLINE_INCLUDE) $(CPPFLAGS) -o $@ $<
+
+$(OBJPATH)/%.o:program_utils/%.cpp
+	@echo ________________________________________________________________
+	@echo Compiling $<
+	[ -e $(DVLPATH)/obj ] || mkdir $(DVLPATH)/obj
+	[ -e $(OBJPATH) ] || mkdir $(OBJPATH)
+	$(CXX) -c $(DEBUG) $(CXXFLAGS) $(BLAS_INCLUDE) $(EINSPLINE_INCLUDE) $(CPPFLAGS) -o $@ $<
+
+$(OBJPATH)/%.o:properties/%.cpp
+	@echo ________________________________________________________________
+	@echo Compiling $<
+	[ -e $(DVLPATH)/obj ] || mkdir $(DVLPATH)/obj
+	[ -e $(OBJPATH) ] || mkdir $(OBJPATH)
+	$(CXX) -c $(DEBUG) $(CXXFLAGS) $(BLAS_INCLUDE) $(EINSPLINE_INCLUDE) $(CPPFLAGS) -o $@ $<
+
+$(OBJPATH)/%.o:system/%.cpp
+	@echo ________________________________________________________________
+	@echo Compiling $<
+	[ -e $(DVLPATH)/obj ] || mkdir $(DVLPATH)/obj
+	[ -e $(OBJPATH) ] || mkdir $(OBJPATH)
+	$(CXX) -c $(DEBUG) $(CXXFLAGS) $(BLAS_INCLUDE) $(EINSPLINE_INCLUDE) $(CPPFLAGS) -o $@ $<
+
+$(OBJPATH)/%.o:wavefunction/%.cpp
+	@echo ________________________________________________________________
+	@echo Compiling $<
+	[ -e $(DVLPATH)/obj ] || mkdir $(DVLPATH)/obj
+	[ -e $(OBJPATH) ] || mkdir $(OBJPATH)
+	$(CXX) -c $(DEBUG) $(CXXFLAGS) $(BLAS_INCLUDE) $(EINSPLINE_INCLUDE) $(CPPFLAGS) -o $@ $<
+
+$(OBJPATH)/%.o:pw2lcao/%.cpp
+	@echo ________________________________________________________________
+	@echo Compiling $<
+	[ -e $(DVLPATH)/obj ] || mkdir $(DVLPATH)/obj
+	[ -e $(OBJPATH) ] || mkdir $(OBJPATH)
+	$(CXX) -c $(DEBUG) $(CXXFLAGS) $(BLAS_INCLUDE) $(EINSPLINE_INCLUDE) $(CPPFLAGS) -o $@ $<
+
+astyle:
+	@echo ________________________________________________________________
+	@echo Pretty-printing the source...
+	astyle -s2  $(SRCPATH)/*.cpp $(INCLUDEPATH)/*.h
+
+$(DEPENDFILE) depend:$(SOURCES) 
+	@echo ________________________________________________________________
+	@echo Creating dependencies
+	[ -e $(DVLPATH)/obj ] || mkdir $(DVLPATH)/obj
+	[ -e $(OBJPATH) ] || mkdir $(OBJPATH)
+	set -e; $(DEPENDMAKER)  $(addprefix $(SRCPATH)/,$(SOURCES)) \
+		| sed 's/\(.*\)\.o[ :]*/$(subst /,\/,$(OBJPATH))\/\1.o $(subst .,\.,$(subst/,\/,$(DEPENDFILE))) : /g'\
+		> $(DEPENDFILE)
+

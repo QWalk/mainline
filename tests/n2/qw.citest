@@ -1,0 +1,15 @@
+method { 
+  test 
+  test_parms_ders { } 
+}
+
+include qw.sys
+
+trialfunc {
+  #SLATER-JASTROW               
+  #WF1 { include qw.slater }
+  #WF2 { include qw.jast3 }
+  include qw.slater
+}
+
+

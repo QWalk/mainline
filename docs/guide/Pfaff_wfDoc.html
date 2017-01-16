@@ -1,0 +1,153 @@
+/*! \page Pfaff_wfDoc Pfaffian
+
+Keyword: PFAFFIAN
+
+\section description Description
+
+A pfaffian (generalized determinant) or several pfaffians. 
+<br>
+\f[
+\Psi=\sum_i w_i \Psi_i
+\f]
+
+\f[
+\Psi_i={\rm pf}\left[ \begin{array}{ccc}
+{\boldsymbol \xi}^{\uparrow\uparrow}_i & 
+{\boldsymbol \Phi}^{\uparrow\downarrow}_i & 
+ {\boldsymbol\varphi}^{\uparrow}_i \\
+-{\boldsymbol \Phi}^{\uparrow\downarrow T}_i & 
+{\boldsymbol \xi}^{\downarrow\downarrow}_i &
+{\boldsymbol \varphi}^{\downarrow}_i \\
+-{\boldsymbol\varphi}^{\uparrow T}_i &
+ -{\boldsymbol\varphi}^{\downarrow T}_i &
+ 0 \;\; 
+\end{array}
+\right]
+\f]
+
+where submatrices \f$ \boldsymbol \xi \f$, \f$ \boldsymbol  \Phi \f$ and \f$ \boldsymbol \varphi \f$ are defined in \ref Pfaffian_groupDoc section
+and ordered according the ORBITAL_ORDER section.
+
+\section Example
+Pfaffian wave function for the ground state of carbon pseudo-atom :<br>
+<pre>
+PFAFFIAN
+  NPAIRS {  3  1  0  }
+  PFWT {  1  }
+  ORBITAL_ORDER {
+  1    1    1
+  1    1
+  1
+  }
+  PAIRING_ORBITAL {
+    ORBITALS_IN_PAIRING {  1  2  3  4  5  }
+    OPTIMIZE_PF {
+      NOCCUPIED 3
+      SINGLET_ALL
+    }
+    TRIPLET_UU_COEF {
+    0 0 0 0
+    1 0 0
+    0 0
+    0
+    }
+    TRIPLET_DD_COEF {
+    0 0 0 0
+    0 0 0
+    0 0
+    0
+    }
+    SINGLET_COEF {
+    1 0 0 0 0
+    0 0 0 0
+    0 0 0
+    0 0
+    0
+    }
+  }
+  ORBITALS {
+    CUTOFF_MO 
+    MAGNIFY 1 
+    INCLUDE c.basis 
+    NMO 5 
+    ORBFILE c.orb 
+    CENTERS { USEATOMS }
+    }
+  }
+</pre>
+
+\section options Options
+
+\subsection reqopt Required 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
+<tr> <td> NPAIRS  <td> Section <td> number of spin-up, spin-down and unpaired electrons (sum of these 3 numbers defines size of pfaffian matrix of size \f$ N \f$) 
+<tr> <td> PFWT  <td> Section <td> list of the weights of the pfaffians (defines also have many are there) 
+<tr> <td> PAIRING_ORBITAL  <td> Section <td> Section for \subpage Pfaffian_groupDoc
+<tr> <td> ORBITALS <td> Section <td> input for a \ref MO_matrixDoc
+</table>
+
+\subsection optopt Optional
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b> Default </b> <td> <b>Description</b>
+<tr> <td> ORBITAL_ORDER  <td> Section <td>  i-th pairing orbital for i-th pfaffian matrix 
+<td>Contains upper-diagonal of \f$ N \times N \f$ matrix of pairing occupation numbers
+<tr> <td> OPTIMIZE_PFWT <td> keyword <td> off <td> Optimize the pfaffian weights. 
+</table>
+
+
+*/
+
+/*! \page Pfaffian_groupDoc Pairing Orbital
+
+Keyword: PAIRING ORBITAL
+
+\section description Description
+
+Defines the coefficients of linear combinations of one-particle orbitals from which the pairing orbitals 
+are constructed. The normalization is everywhere such that sum of squares of independent coefficients is
+equal to 1.  
+
+\section options Options
+
+\subsection reqopt Required 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b><td> <b>Default</b> <td> <b>Description</b>
+<tr> <td> TRIPLET_UU_COEF <td> Section <td> All zero <td> \f$ N(N-1)/2 \f$ normalized coefficients for triplet spin-up spin-up pair of form: 
+\f$ \chi(1,2)= {1 \over \sqrt(2)} \sum_{i>j} a_{i,j}( \varphi_i(1)\varphi_j(2)- \varphi_j(1)\varphi_i(2))\f$
+<tr> <td> TRIPLET_DD_COEF <td> Section <td> All zero <td> same as above for spin-down case
+<tr> <td> SINGLET_COEF <td> Section <td> 1 on diagonal for all occupied orbitals, zero otherwise <td> \f$ N(N+1)/2 \f$ normalized coefficients 
+for singlet spin-up spin-down pair of form:
+\f$ \phi(1,2)= \sum_{i} s_{i,i} \varphi_i(1)\varphi_j(2) + {1 \over \sqrt(2)} \sum_{i>j} s_{i,j}( \varphi_i(1)\varphi_j(2)+\varphi_j(1)\varphi_i(2))\f$
+<tr> <td> UNPAIRED_COEF <td> Section <td> All zero <td> # of spin down \f$\times\f$ # normalized coefficients for unpaired electron orbital of form: 
+\f$ \varphi'_{i}(1)= \sum_{j} c_{i,j}\varphi_j(1)\f$
+</table>
+
+\subsection optopt Optional
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b> Default </b> <td> <b>Description</b>
+<tr> <td> ORBITALS_IN_PAIRING <td> Section <td> 1 to NMO <td> list of orbitals involved in pairing
+<tr> <td> OPTIMIZE_PF  <td> Section <td> empty <td> bellow are keywords used for determination of which pairing coefficients to be optimized
+<table>
+<tr> <td> <b>KEYWORD</b><td><b>Description</b>
+<tr> <td> TRIPLET_UU_DIAG <td> First off-diagonal triplet up up coefficients
+<tr> <td> TRIPLET_UU_ALL  <td> All triplet up up coefficients
+<tr> <td> TRIPLET_DD_DIAG <td> First off-diagonal triplet down down coefficients
+<tr> <td> TRIPLET_DD_ALL  <td> All triplet down down coefficients
+<tr> <td> SINGLET_DIAG <td> First off-diagonal triplet up up coefficients
+<tr> <td> SINGLET_ALL  <td> All singlet coefficients
+<tr> <td> NOCCUPIED <td> number of occupied orbs used with keyword VIRTUAL (default = number of up electrons)
+<tr> <td> TRIPLET_UU_VIRTUAL <td> same as above just for virtual orbitals
+<tr> <td> TRIPLET_UU_VIRTUAL_DIAG <td> same as above just for virtual orbitals
+<tr> <td> TRIPLET_DD_VIRTUAL <td> same as above just for virtual orbitals
+<tr> <td> TRIPLET_DD_VIRTUAL_DIAG <td> same as above just for virtual orbitals
+<tr> <td> SINGLET_VIRTUAL <td> same as above just for virtual orbitals
+<tr> <td> SINGLET_VIRTUAL_DIAG <td> same as above just for virtual orbitals
+</table>
+</table>
+
+*/

@@ -1,0 +1,54 @@
+type: Entry
+title: Periodic Hamiltonian 
+name: Periodic
+keyword: PERIODIC
+is_a: Hamiltonian
+description: >
+  A bulk material simulated with periodic or twisted boundary conditions.
+related: []
+required:
+  - keyword: NSPIN
+    type: section
+    description: Two integers, the first the number of spin up electrons and the second the number of spin down.
+  - keyword: ATOM
+    type: section
+    description: >
+       Add an atom to the system.  The format of 
+       the section is label  charge COOR x y z .  For example, a Lithium atom 
+       with atomic charge 3 at (.5, 0, -.5) would be ATOM \{ Li 3 COOR .5 0 -.5 \}.
+  - keyword: LATTICEVEC
+    type: section
+    description: >
+      Enforce the 
+      periodic boundary conditions as a parallelepiped, with three vectors specifying
+      the edges.  For example, a cubic cell with sides 1.0 a.u. is: <br>
+      LATTICEVEC { 
+       1.0 0.0 0.0 
+       0.0 1.0 0.0 
+       0.0 0.0 1.0 
+      }
+optional: 
+  - keyword: KPOINT
+    type: section
+    default: { 0 0 0 } 
+    description: >
+     Specify the k-point (i.e.,
+     boundary conditions) at which the trial wave function is
+     constructed. For instance, 0 selects periodic and 1
+     selects anti-periodic boundary condition along the
+     corresponding lattice vector.
+  - keyword: CUTOFF_DIVIDER
+    type: Float
+    default: 1.0
+    description: > 
+          Control how many unit cells to generate ghost 
+          centers around the simulation cell.  1 is one unit cell, 2 is one 
+          half a unit cell, and .5 is 2 unit cells. This will often be set correctly by the 
+          conversion program.
+  - keyword: EWALD_GMAX
+    type: integer
+    default: 200
+    description: > 
+        How far to search to generate the k-mesh for the Ewald summation. Only the vectors with significant weights are kept. If you have a cell with a lattice vector larger than around 300 Bohr, this may need to be increased.
+
+

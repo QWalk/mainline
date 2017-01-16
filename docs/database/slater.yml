@@ -1,0 +1,62 @@
+type: Entry
+name: Slater
+keyword: SLATER
+is_a: Wavefunction
+title: Slater determinant or sum of determinants
+description: >
+  A Slater determinant or linear combination of several determinants.
+  In this object, a determinant is actually a product of two determinants; one for spin up and one for spin down. 
+  \[ 
+    \Psi = \sum_i c_i \left|\phi_{j(i)}^\uparrow(r_k^\uparrow)\right|\left|\phi_{j(i)}^\downarrow(r_k^\downarrow)\right|
+  \]
+
+  The way to think about this is that the [orbital](Orbital) object provides a list of \( \phi_j \).
+  Each determinant \( i \) is defined by the set of orbitals it includes, which is given in STATES.
+  One can think of this as a vector \( {\mathbf j}_i \) for each determinant, with the first \( n_\uparrow \) elements giving the occupation of the up electrons, and the second \( n_\downarrow \) doing the same for the down electrons.
+  There is substantial flexibility in choosing the occupation of these orbitals, which is given in the tutorials.
+  If you are just interested in straightforward ground state calculations, then the converter will probably set this value correctly.
+
+
+required:
+  - keyword: DETWT
+    type: section
+    description: > 
+      List of the weights \( c_i \) of the determinants. This can be replaced with CSF.
+  - keyword: STATES
+    type: section
+    description: > 
+      List of the occupations of molecular orbitals, first spin up and then spin down. If there is more than one determinant, continue listing up and down occupations. See HOWTOs for methods to modify this section to select states.
+  - keyword: ORBITALS/CORBITALS
+    type: section
+    description: >
+      A Molecular Orbital section. 
+optional:
+  - keyword: NSPIN
+    type: section
+    default: same as in the [Hamiltonian](Hamiltonian)
+    description: Two integers, the first the number of up electrons, and the second the number of down electrons
+
+  - keyword: OPTIMIZE_DET
+    type: flag
+    default: off
+    description: Optimize the determinantal coefficients.  For a single determinant, this does nothing.
+      
+  - keyword: CSF
+    type: section
+    default: empty
+    description: > 
+       This replaces DETWT, and lists configuration state functions to reduce the number of variational parameters.  The format is CSF { overallweight  weightdet1 weightdet2 ... }.  Only the overall weight is optimized.  List a separate CSF section for each CSF.
+
+  
+  - keyword: CLARK_UPDATES
+    type: flag
+    default: special
+    description: Force Bryan Clark's updates (J. Chem. Phys 135, 244105 (2011)) of the determinant inverses and values.  By default, this is enabled when there is more than one determinant and more than 10 electrons.
+     
+  
+  - keyword: SHERMAN_MORRISON
+    type: flag
+    default: special
+    description: Force Sherman-Morrison updates of the determinant inverses and values.
+  
+     

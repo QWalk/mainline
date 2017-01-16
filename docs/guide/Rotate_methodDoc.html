@@ -1,0 +1,37 @@
+/*! \page Rotate_methodDoc Rotate orbitals
+
+Keyword: ROTATE_ORBS
+
+\section description Description
+
+Rotates a set of orbitals given a rotation matrix.  The code works on a subspace of orbitals defined by ORB_GROUP, and outputs only the rotated subset.  It essentially performs the operation
+\f[
+{\boldsymbol \phi}'=M{\boldsymbol \phi}
+\f]
+
+
+The matrix in the rotation file is a list of numbers in C-style indexing.  
+\section options Options
+
+\subsection reqopt Required 
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b>Description</b>
+
+<tr> <td> ORBITALS  <td> Section <td> A  \ref MO_matrixDoc section
+<tr> <td> ORB_GROUP  <td> Section <td> A list of the orbital numbers to be rotated.
+        
+</table>
+
+\subsection optopt Optional
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b> Default </b> 
+     <td> <b>Description</b>
+       <tr> <td> ROTATION <td> string <td> rotation <td> The location of the rotation matrix file.
+       <tr> <td> OUTPUT <td> string <td> runid+.orb <td> Where the rotated orbitals will be stored.
+
+</table>
+
+
+*/

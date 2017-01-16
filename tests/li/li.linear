@@ -1,0 +1,7 @@
+METHOD{
+  LINEAR
+  TOTAL_NSTEP 1000 
+}
+
+INCLUDE li.sys
+TRIALFUNC { INCLUDE c.slater }

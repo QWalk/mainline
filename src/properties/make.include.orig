@@ -1,0 +1,34 @@
+
+MY_SOURCES:= \
+<<<<<<< HEAD
+        Average_density_matrix.cpp \
+        Average_enmoment.cpp \
+	Average_generator.cpp \
+	Average_ekt.cpp	\
+        Average_region_fluctuation.cpp \
+	Properties.cpp \
+        Properties_point.cpp \
+        Properties_average.cpp \
+        Properties_gather.cpp \
+        Properties_block.cpp \
+	Space_warper.cpp \
+=======
+             Average_density_matrix.cpp \
+             Average_derivative_dm.cpp \
+             Average_enmoment.cpp \
+             Average_generator.cpp \
+             Average_ekt.cpp	\
+             Average_region_fluctuation.cpp \
+             Properties.cpp \
+             Properties_point.cpp \
+             Properties_average.cpp \
+             Properties_gather.cpp \
+             Properties_block.cpp \
+             Space_warper.cpp \
+>>>>>>> qwalk-devel/master
+
+
+
+SOURCES:= $(SOURCES) $(addprefix properties/,$(MY_SOURCES))
+
+

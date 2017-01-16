@@ -1,0 +1,32 @@
+type: Entry
+name: POSTPROCESS
+keyword: POSTPROCESS
+is_a: Method
+title: Postprocess trace files
+related: []
+description: > 
+  This method can evaluate operators on a trace file saved by DMC (or some other method).
+  The trace file is expected to be a binary file laid out simply as the positions of each  electron in (x,y,z) or der, followed by a single double that represents the weight of that walker.
+  The file should be in C binary format (that is, no headers as in Fortran).
+   
+required:
+  - keyword: READCONFIG
+    type: string
+    description: > 
+      The name of the trace file from SAVE_TRACE (DMC) to read from.
+optional: 
+  - keyword: AVERAGE
+    type: section
+    default: empty
+    description: Section for an [Average generator](Average generator)
+  - keyword: NOENERGY
+    type: flag
+    default: off
+    description: Do not calculate the energy of the walkers. This can improve the speed significantly.
+  - keyword: NSKIP
+    type: integer
+    default: 0
+    description: > 
+      Skip the first NSKIP configurations. This should be set to the number of warmup blocks times the number of configurations in the DMC run. The number of warmup blocks can be gotten by running gosling on the log file and counting how many blocks are thrown out. 
+
+     

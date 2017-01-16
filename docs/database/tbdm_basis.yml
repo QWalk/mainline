@@ -1,0 +1,58 @@
+type: Entry
+name: TBDM_BASIS
+keyword: TBDM_BASIS
+is_a: Average generator
+title: Two-body density matrix on a basis
+description: >
+  This  object evaluates the one and two-body reduced density matrix on a basis. 
+  The basis can be any set of functions that can be expressed in a \ref MO_matrixDoc object. 
+  Usually this will be a set of orbitals from a mean-field calculation.
+  The ORBITALS section can often be copied from the .slater file with no changes.
+
+  The output contains the states section and the density matrices.  One thing to keep in mind is that the density matrices are always labeled from 0 to nmo, where nmo is the number of orbitals in the STATES section.  
+
+example_input: >
+  method { VMC 
+    average { 
+       TBDM_BASIS
+       mode OBDM
+       states { 3 4 5 6 } 
+       orbitals {
+           CUTOFF_MO
+           MAGNIFY 1
+           NMO 8
+           ORBFILE qwalk.orb
+           INCLUDE qwalk.basis
+           CENTERS { USEATOMS } 
+       }
+     }
+  }
+  include qwalk.sys
+  trialfunc { include qwalk.slater } 
+required: 
+  - keyword: ORBITALS/CORBITALS
+    type: section
+    description: >
+       Input for a set of orbitals. When ORBITALS section is used,
+       a real-valued wave function is constructed.  When a CORBITALS section is used,
+       the orbitals will be complex-valued.
+optional:
+  - keyword: STATES
+    type: section
+    default: All the orbitals in the ORBITALS section.
+    description: A list of the orbitals on which you'd like to evaluate the density matrices.
+  - keyword: MODE
+    type: string
+    default: Evaluate all two-particle density matrix elements.
+    description: > 
+      Possible values are OBDM and TBDM_DIAGONAL. 
+experimental:
+  - keyword: NPOINTS
+    type: integer
+    default: 4
+    description: Number of auxilliary integration points to use.
+  - keyword: NSTEPS_SAMPLE
+    type: integer
+    default: 10 
+    desciption: Number of Monte Carlo steps to use to randomize the auxilliary integration points.
+

@@ -1,0 +1,135 @@
+{
+  "title": "QMCDBEntry",
+  "type": "object",
+  "properties": {
+    "supercell": {
+      "type": "array",
+      "format": "table",
+      "minItems":3,
+      "maxItems":3,
+      "default":[[1,0,0],[0,1,0],[0,0,1]],
+      "items":{
+         "type":"array",
+         "format":"table",
+         "minItems":3,
+         "maxItems":3,
+         "items":{
+            "type":"integer"
+          }
+       },
+       "description":"The supercell matrix."
+    },
+    "pseudopotential":{ 
+        "type":"string","default":"BFD","enum":["BFD"], 
+        "description":"The pseudopotential library to use."
+     },
+    "charge":{
+       "type":"integer","default":0,"description":"The total charge of the system"
+    },
+    "total_spin":{
+       "type":"integer","default":0,
+        "description":"The number of up electrons minus the number of down electrons"
+    },
+
+    "control":{
+       "type":"object",
+       "properties":{
+          "id":{"type":"string","default":"autogen_run"}
+       } 
+    },
+
+
+    "dft":{
+       "type":"object",
+       "properties":{
+          "functional":{ "type":"object",
+                    "properties":{
+                         "exchange":{"type":"string","default":"PBE"},
+                         "correlation":{"type":"string","default":"PBE"},
+                         "hybrid":{"type":"integer","default":25}
+                    },
+                    "description":""
+          },
+
+          "basis":{ "type":"array","minItems":3,"maxItems":3,"default":[0.2,3,2],
+                    "items":{"type":"number"},
+                    "description":"[lowest exponent,multiplicative factor, number of basis functions]"
+          },
+          "tolinteg":{"type":"array","minItems":4,"maxItems":4,"default":[8,8,8,8,12],
+                    "items":{"type":"integer"},
+                    "description":"TOLINTEG in CRYSTAL"
+          },
+          "kmesh":{"type":"array","minItems":3,"maxItems":3,"default":[8,8,8,8],
+                    "items":{"type":"integer"},
+                    "description":"K-point mesh"
+          },
+          "spin_polarized":{"type":"boolean","default":true},
+          "initial_spin":{"type":"array","default":[],
+                    "items":{"type":"integer"},
+                    "description":"Initial spins."
+          },
+          "initial_charges":{"type":"object","default":{},
+                    "description":"For example, O:-2,Mg:2."
+          },
+          "edifftol":{"type":"integer","default":9,
+                 "description":"Tolerance for SCF convergence"
+           },
+          "fmixing":{"type":"integer","default":99,
+                 "description":"Fock mixing. Larger is slower."
+           },
+          "broyden":{"type":"array","default":[0.01,60,8],
+                  "items":{"type":"number"},
+                 "description":"Broyden options. See CRYSTAL manual."
+           },
+          "maxcycle":{"type":"integer","default":200,
+                 "description":"Maximum number of SCF cycles."
+           },
+          "restart_from":{"type":"string","default":"",
+                 "description":"Restart from completed jobid"
+           }
+       } 
+    },
+
+    "qmc":{
+       "type":"object",
+       "properties":{
+          "dmc":{
+             "type":"object",
+             "properties":{
+                "timestep":{"type":"number","default":0.02},
+                "jastrow":{"type":"string","default":"twobody",
+                      "enum":["twobody","threebody"] },
+                "nblock":{"type":"integer","default":16},
+                "optimizer":{"type":"string","default":"variance",
+                      "enum":["variance","energy"] }, 
+                "localization":{"type":"array","default":["tmoves"],
+                      "items":{"type":"string","enum":["tmoves","local"]} },
+                "target_error":{"type":"number","default":0.01},
+                "kpoints":{"type":"string","default":"real",
+                     "enum":["real","all"]}
+              }
+           }, 
+
+
+          "variance_optimize":{
+             "type":"object",
+             "properties":{
+                "niterations":{"type":"integer","default":10},
+                "nruns":{"type":"integer","default":3}
+              }
+           }, 
+
+          "energy_optimize":{
+             "type":"object",
+             "properties":{
+                "threshold":{"type":"number","default":0.001}
+              }
+           } 
+
+
+
+       }
+     }
+
+  }
+}

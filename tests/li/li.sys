@@ -1,0 +1,5 @@
+SYSTEM {
+  MOLECULE
+  NSPIN { 2 1 }
+  ATOM { Li 3 COOR 0 0 0 }
+}

@@ -1,0 +1,23 @@
+SYSTEM { MOLECULE 
+  NSPIN { 5  5 } 
+ATOM { N  5  COOR 0   0   -1.60626709 } 
+ATOM { N  5  COOR 0   0   1.60626709 } 
+}
+
+
+PSEUDO { 
+  N
+  AIP 6 
+  BASIS { N
+   RGAUSSIAN 
+   OLDQMC { 
+0.0 2
+1  3  
+    2  6.99537  31.6972
+    1  9.235010000000001  5
+    3  7.6683  46.17505
+    2  7.34486  -30.18894
+   }
+  }
+}
+

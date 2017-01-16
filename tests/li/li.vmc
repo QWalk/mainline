@@ -1,0 +1,8 @@
+method{
+  VMC
+  NBLOCK 1000
+}
+INCLUDE li.sys
+TRIALFUNC{
+  INCLUDE li.slater
+}

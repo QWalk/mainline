@@ -1,0 +1,43 @@
+/*! \page g032qmcDoc Gaussian03 
+
+\section notes Notes on running Gaussian
+
+Options necessary: <br>
+<table>
+<tr> <td> iop(3/24=10) <td> Print gaussian functions
+<tr> <td> iop(3/18=1) <td> Print pseudopotentials
+<tr> <td> 6d 10f <td> Use 6d and 10f functions, which is what the converter was written for (this requirement could be removed in the future, if someone has the will)
+</table>
+
+Useful options
+<table>
+<tr> <td> pseudo=read <td> read in the pseudopotentials
+<tr> <td> gen <td> i.e., UHF/gen, etc.  Allows you to enter the 
+</table>
+
+For example, your com file may look like
+<pre>
+%chk=foo.chk
+#P B3LYP/gen 6d 10f scf opt test iop(3/24=10) iop(3/18=1) pseudo=read
+ ...
+</pre>
+After running g03 (g03 foo.com, for example), you must then format the
+check file as
+<pre>
+formchk foo.chk foo.fchk
+</pre>
+and finally you're ready to use the converter.
+
+\section description Description
+
+Basic usage: g032qmc -log foo.log fchk foo.fchk -out [outputoot]  <br>
+Additional options: <br>
+<table>
+<tr> <td> Option <td> Description 
+<tr> <td> -out [comfile] <td> Use [outputroot] as the base for the QWalk run.
+G032qmc will then create files like outputroot.slater, etc.
+<tr> <td> -h <td> print help message for more advanced usage
+</table>
+
+
+*/

@@ -1,0 +1,36 @@
+type: Entry
+name: PLOT1D
+keyword: PLOT1D
+is_a: Method
+title: Plot 1D functions in the wave function
+related: []
+description: > 
+  Searches given trial wave function and plots its one-dimensional
+  components. These are basically only one- and two-body terms in the
+  Jastrow factor (group resolved). However, since these
+  Jastrow_groups are used also as pair orbitals in the
+  BCS wave function and as backflow transformations, the
+  method is relatively widely applicable.
+
+  The method generates output file with suffix .plt1d (can be overridden
+  with optional keyword SUFFIX). Discretized independent variable
+  is the first column and then follow as many columns as plottable
+  components found in the wave function. Column description is also
+  included in the header of the output file. It looks something like
+
+      column description
+        distance
+        group 0, one-body, center LI
+        group 1, one-body, center LI
+
+required: []
+optional: 
+  - keyword: NGRID
+    type: integer
+    default: 100
+    description: Number of grid points to use for the plotting
+  - keyword: SUFFIX
+    type: string
+    default: plt1d
+    description: Suffix of the output file
+

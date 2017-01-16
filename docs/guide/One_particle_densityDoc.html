@@ -1,0 +1,34 @@
+/*! \page One_particle_densityDoc one-particle density
+
+Keyword: DENSITY
+
+\section description Description
+
+Collects the one-particle density 
+\f$ \rho(r)=\int dr_2...dr_N \Psi^2(r,r_2,...,r_N) \f$ and 
+stores it in the Gaussian cube file format readable by VMD or 
+other quantum chemistry visualization software.  
+
+\section options Options
+
+\subsection optopt Optional
+
+<table>
+<tr> <td> <b>Option</b> <td> <b>Type</b> <td> <b> Default </b> 
+     <td> <b>Description</b>
+<tr> <td> OUTPUTFILE <td> String <td> runid.cube <td> Choose the file name of the cube file.  If one the UP/DOWN options below are chosen, then this will default to runid.up.cube or runid.down.cube, as appropriate.
+<tr> <td> MIN  <td> Section <td> special <td> See MAX
+<tr> <td> MAX  <td> Section <td> special <td> If MIN and/or MAX is not given,
+and the system has open boundary conditions(that is, is a molecule),
+ they will be set to include all atoms.  If
+the system has periodic boundary conditions, then they will be set to the 
+smallest orthorhombic cell that includes the PBC cell.  
+<tr> <td> RESOLUTION <td> Float <td> .1 <td> Specifies the resolution of the 
+density accumulation in bohrs.  Larger resolutions will save on memory and
+the surfaces will look smoother, although the smooth_cube utility will 
+also improve the appearance of isosurfaces.
+<tr> <td> UP <td> Flag <td> off <td> Plot only the spin up electrons
+<tr><td> DOWN <td> Flag <td> off <td> Plot only the spin down electrons
+</table>
+
+*/

@@ -1,0 +1,23 @@
+
+MY_SOURCES:= gesqua.cpp \
+        Molecular_sample.cpp \
+	Molecular_system.cpp \
+	Particle_set.cpp \
+	Pbc_enforcer.cpp \
+	Periodic_sample.cpp \
+	Periodic_system.cpp \
+	Pseudopotential.cpp \
+	Ring_sample.cpp \
+	Ring_system.cpp \
+	Sample_point.cpp \
+        SHO_system.cpp \
+        SHO_sample.cpp \
+	System.cpp \
+        HEG_sample.cpp \
+        HEG_system.cpp
+
+
+SOURCES:= $(SOURCES) $(addprefix system/,$(MY_SOURCES))
+
+
+

@@ -1,0 +1,106 @@
+/*! \page PropertiesDoc Expectation values other than energy
+
+Keywords: AVERAGE, DENSITY and NONLOCAL_DENSITY
+
+\section description Description
+
+Three groups of operators are currently implemented.
+<ul>
+<li>AVERAGE: this the preferred framework for evaluation of
+expectation values. Results are written directly into the global
+log-file that is to be post-processed with gosling to obtain
+statistical error bars. AVERAGE contains both local and non-local
+operators. Note that although no error/warning is generated,
+the "center" estimator of a non-local operator in the \ref
+Reptation_methodDoc does not correspond to the pure estimator and it
+is, in general, rather useless number.
+<li>DENSITY: results are written to separate files for each
+operator. Only local operators are accessible via this
+keyword. Evaluation of error bars is not available.
+<li>NONLOCAL_DENSITY: analogous to DENSITY, but for non-local
+operators. Note that these are not available (and will be ignored)
+within \ref Reptation_methodDoc . As with DENSITY, evaluation of error
+bars is not available.
+</ul>
+
+<p>
+To evaluate an operator within a given method (VMC, DMC or RMC), include
+the following line into that method's input section
+</p>
+
+<pre>
+&lt;keyword> { &lt;operator> &lt;options of the selected operator> }
+</pre>
+
+<p>
+For simultaneous evaluation of several operators just repeat the above
+section for each operator to be evaluated.
+</p>
+
+\section options Options
+
+Keyword: AVERAGE
+<table>
+<tr><th>Operator</th><th>Description</th></tr>
+
+<tr><td>DIPOLE</td>
+<td>dipole moment</td></tr>
+
+<tr><td>SK</td>
+<td>electronic \subpage Structure_factorDoc in periodic systems, useful for
+estimation of Coulomb finite-size errors</td></tr>
+
+<tr><td>GR</td>
+<td>electronic pair correlation function</td></tr>
+
+<tr><td>MANYBODY_POL</td>
+<td>electric polarization</td></tr>
+
+<tr><td>LM</td>
+<td>\subpage Local_momentsDoc and local charges evaluated as integrals
+of the electron density inside muffin-tin spheres</td></tr>
+
+<tr><td>OBDM</td>
+<td>\subpage OBDMDoc one-body density matrix in homogeneous and isotropic
+systems</td></tr>
+
+<tr><td>TBDM</td>
+<td>projected \subpage TBDMDoc two-body density matrix in homogeneous and
+isotropic systems, useful for detection of BCS-like condensates</td></tr> 
+
+<tr><td>TBDM_BASIS</td>
+  <td>\subpage TBDM_BASISDoc  
+</td></tr> 
+
+<tr><td>EKT</td>
+  <td>\subpage EKTDoc Extended Koopmans Theorem
+</td></tr>
+    
+    
+<tr> <td> REGION_FLUCTUATION </td>
+<td> \subpage REGION_FLUCTUATIONDoc 
+</td> </tr>
+
+</table>
+
+
+Keyword: DENSITY
+<table>
+<tr><th>Operator</th><th>Description</th></tr>
+
+<tr><td>DENSITY</td>
+<td>\subpage One_particle_densityDoc evaluated on a 3D mesh</td></tr>
+
+</table>
+
+
+Keyword: NONLOCAL_DENSITY
+<p>No operator is currently evaluated using this framework.</p>
+
+
+\section related Related
+
+\subpage Local_density_accumulatorDoc
+
+
+*/

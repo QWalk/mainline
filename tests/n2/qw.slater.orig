@@ -1,0 +1,33 @@
+  SLATER 
+  ORBITALS {
+  CUTOFF_MO
+    MAGNIFY 1
+<<<<<<< HEAD
+    NMO 6 
+=======
+    NMO 5
+>>>>>>> qwalk-devel/master
+    ORBFILE qw.orb
+    INCLUDE qw.basis
+    CENTERS { USEGLOBAL } 
+  }
+
+  DETWT { 1.0 } 
+  STATES {
+     #Spin up orbitals
+<<<<<<< HEAD
+   2 3 4 5 6
+     #Spin down orbitals 
+   1 2 3 4 5   }
+
+   OPTIMIZE_MO
+   OPTIMIZE_DATA{
+    ACTIVE_SPACE_U { 2 3 4 5 6 1 }
+    ACTIVE_SPACE_D { 1 2 3 4 5 }
+    INIT_PARMS { 0 0 0 0 0 }
+   }
+=======
+   1 2 3 4 5 
+     #Spin down orbitals 
+   1 2 3 4 5   }
+>>>>>>> qwalk-devel/master

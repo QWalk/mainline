@@ -1,0 +1,10 @@
+METHOD { 
+  TEST
+  TEST_PARMS_DERS {  }
+}
+
+INCLUDE li.sys
+TRIALFUNC{
+  INCLUDE c.slater
+}
+
