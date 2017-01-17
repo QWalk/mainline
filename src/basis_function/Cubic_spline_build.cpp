@@ -62,6 +62,9 @@ string Cubic_spline::symmetry_lookup(symmetry_type s) {
      case sym_F_siesta:
        return string("7F_siesta");
        break;
+     case sym_9G_pyscf:   // pyscf g orbtials order
+       return string("9G_pyscf");
+       break;
    default:
        error("Cubic_spline::symmetry_lookup found unknown symmetry");
    }
@@ -90,6 +93,7 @@ int Cubic_spline::symmetry_lvalue(symmetry_type s) {
       return 3;
       break;
     case sym_9G:
+    case sym_9G_pyscf:
     case sym_15G:
       return 4;
       break;
@@ -125,6 +129,8 @@ Cubic_spline::symmetry_type Cubic_spline::symmetry_lookup(string & s) {
     return sym_D_siesta;
   if(caseless_eq(s,"7F_siesta"))
     return sym_F_siesta;  
+  if(caseless_eq(s,"9G_pyscf"))
+    return sym_9G_pyscf;
   error("I don't understand symmetry type ", s, "\nShould be S,P,D,etc.");
   return sym_S;
 }
@@ -299,6 +305,7 @@ int Cubic_spline::nfunc()
       totf+=15;
       break;
     case sym_9G:
+    case sym_9G_pyscf:
       totf+=9;
       break;
     default:
@@ -349,6 +356,7 @@ void Cubic_spline::findCutoffs()
       nrep=10;
       break;
     case sym_9G:
+    case sym_9G_pyscf:
       nrep=9;
       break;
     case sym_15G:
@@ -468,6 +476,7 @@ int Cubic_spline::readbasis(vector <string> & words,unsigned int & pos,
             norm=sqrt(2.*feg2*feg2*fac/105.);
             break;
           case sym_9G:
+          case sym_9G_pyscf:    // pyscf orbital
           case sym_15G:
             norm=sqrt(2.*feg2*feg2*feg*fac/945.); //Lubos-done
             break;
@@ -500,6 +509,7 @@ int Cubic_spline::readbasis(vector <string> & words,unsigned int & pos,
             norm=1/sqrt(7.0);
             break;
           case sym_9G:
+          case sym_9G_pyscf:    // pyscf orbital
           case sym_15G:
             norm=1/sqrt(9.0);
             break;
@@ -549,6 +559,7 @@ int Cubic_spline::readbasis(vector <string> & words,unsigned int & pos,
             p=4;
             break;
           case sym_9G:
+          case sym_9G_pyscf:
           case sym_15G:
             p=5;
             break;
@@ -732,6 +743,18 @@ void Cubic_spline::assign_indiv_symmetries() {
         indiv_symmetry(totfunc++)=isym_G6;
         indiv_symmetry(totfunc++)=isym_G7;
         indiv_symmetry(totfunc++)=isym_G8;
+        break;
+      case sym_9G_pyscf:
+        nfuncspline(funcNum)=9;
+        indiv_symmetry(totfunc++)=isym_G8;
+        indiv_symmetry(totfunc++)=isym_G6;
+        indiv_symmetry(totfunc++)=isym_G4;
+        indiv_symmetry(totfunc++)=isym_G2;
+        indiv_symmetry(totfunc++)=isym_G0;
+        indiv_symmetry(totfunc++)=isym_G1;
+        indiv_symmetry(totfunc++)=isym_G3;
+        indiv_symmetry(totfunc++)=isym_G5;
+        indiv_symmetry(totfunc++)=isym_G7;
         break;
       case sym_15G:
         nfuncspline(funcNum)=15;
