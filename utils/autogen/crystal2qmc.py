@@ -327,17 +327,19 @@ def find_basis_cutoff(lat_parm):
     return 7.5
 
 ###############################################################################
-def write_slater(basis,eigsys,kpt,base="qwalk",kfmt='coord'):
+def write_slater(basis,eigsys,kpt,base="qwalk",kfmt='coord',maxmo_spin=-1):
   if kfmt == 'int': kbase = base + '_' + "{}".format(eigsys['kpt_index'][kpt])
   else:             kbase = base + '_' + "{}{}{}".format(*kpt)
   ntot = basis['ntot']
   nmo  = basis['nmo']
   nup  = eigsys['nup']
   ndn  = eigsys['ndn']
+  if maxmo_spin < 0:
+    maxmo_spin=nmo
   uporbs = np.arange(nup)+1
   dnorbs = np.arange(ndn)+1
   if eigsys['nspin'] > 1:
-    dnorbs += nmo
+    dnorbs += maxmo_spin
   if eigsys['ikpt_iscmpx'][kpt]: orbstr = "corbitals"
   else:                          orbstr = "orbitals"
   uporblines = ["{:5d}".format(orb) for orb in uporbs]
@@ -423,34 +425,38 @@ def normalize_eigvec(eigsys,basis,kpt):
       
 ###############################################################################
 # This assumes you have called normalize_eigvec first! TODO better coding style?
-def write_orb(eigsys,basis,ions,kpt,base="qwalk",kfmt='coord'):
+def write_orb(eigsys,basis,ions,kpt,base="qwalk",kfmt='coord',maxmo_spin=-1):
   if kfmt == 'int':
     outf = open(base + '_' + "{}".format(eigsys['kpt_index'][kpt]) + ".orb",'w')
   else:
     outf = open(base + '_' + "{}{}{}".format(*kpt) + ".orb",'w')
+  if maxmo_spin < 0:
+    maxmo_spin=basis['nmo']
+    
   eigvecs_real = eigsys['eigvecs'][kpt]['real']
   eigvecs_imag = eigsys['eigvecs'][kpt]['imag']
+  print(len(eigvecs_real),eigvecs_real[0].shape)
   atidxs = np.unique(basis['atom_shell'])-1
   nao_atom = np.zeros(atidxs.size,dtype=int)
   for shidx in range(len(basis['nao_shell'])):
     nao_atom[basis['atom_shell'][shidx]-1] += basis['nao_shell'][shidx]
   #nao_atom = int(round(sum(basis['nao_shell']) / len(ions['positions'])))
   coef_cnt = 1
-  totnmo = basis['nmo'] * eigsys['nspin']
+  totnmo = maxmo_spin*eigsys['nspin'] #basis['nmo'] * eigsys['nspin']
   for moidx in np.arange(totnmo)+1:
     for atidx in atidxs+1:
       for aoidx in np.arange(nao_atom[atidx-1])+1:
         outf.write(" {:5d} {:5d} {:5d} {:5d}\n"\
             .format(moidx,aoidx,atidx,coef_cnt))
         coef_cnt += 1
-  coef_cnt -= 1 # Last increment doesn't count.
-  if coef_cnt != eigsys['nspin']*eigvecs_real[0].size:
-    error("Error: Number of coefficients not coming out correctly!\n"+\
-          "Counted: {0} \nAvailable: {1}"\
-          .format(coef_cnt,eigsys['nspin']*eigvecs_real[0].size),
-          "Debug Error")
-  eigreal_flat = [e.flatten() for e in eigvecs_real]
-  eigimag_flat = [e.flatten() for e in eigvecs_imag]
+  #coef_cnt -= 1 # Last increment doesn't count.
+  #if coef_cnt != eigsys['nspin']*eigvecs_real[0].size:
+  #  error("Error: Number of coefficients not coming out correctly!\n"+\
+  #        "Counted: {0} \nAvailable: {1}"\
+  #        .format(coef_cnt,eigsys['nspin']*eigvecs_real[0].size),
+  #        "Debug Error")
+  eigreal_flat = [e[0:maxmo_spin,:].flatten() for e in eigvecs_real]
+  eigimag_flat = [e[0:maxmo_spin,:].flatten() for e in eigvecs_imag]
   print_cnt = 0
   outf.write("COEFFICIENTS\n")
   for sidx in range(eigsys['nspin']):
@@ -692,7 +698,7 @@ def convert_crystal(
     base="qwalk",
     propoutfn="prop.in.o",
     kfmt='coord',
-    kset='complex'):
+    kset='complex',nvirtual=10):
   """
   Files are named by [base]_[kfmt option].sys etc.
   kfmt either 'int' or 'coord'.
@@ -714,7 +720,8 @@ def convert_crystal(
   basis['nmo']  = sum(basis['nao_shell']) # = nao
   eigsys['nup'] = int(round(0.5 * (basis['ntot'] + eigsys['totspin'])))
   eigsys['ndn'] = int(round(0.5 * (basis['ntot'] - eigsys['totspin'])))
-
+  
+  maxmo_spin=min(max(eigsys['nup'],eigsys['ndn'])+nvirtual,basis['nmo'])
   if (np.array(eigsys['kpt_coords']) >= 10).any():
     print("Cannot use coord kpoint format when SHRINK > 10.")
     print("Falling back on int format (old style).")
@@ -722,9 +729,9 @@ def convert_crystal(
  
   for kpt in eigsys['kpt_coords']:
     if eigsys['ikpt_iscmpx'][kpt] and kset=='real': continue
-    write_slater(basis,eigsys,kpt,base,kfmt)
+    write_slater(basis,eigsys,kpt,base,kfmt,maxmo_spin)
     normalize_eigvec(eigsys,basis,kpt)
-    write_orb(eigsys,basis,ions,kpt,base,kfmt)
+    write_orb(eigsys,basis,ions,kpt,base,kfmt,maxmo_spin)
     write_sys(lat_parm,basis,eigsys,pseudo,ions,kpt,base,kfmt)
     write_basis(basis,ions,base)
     write_jast2(lat_parm,ions,base)
