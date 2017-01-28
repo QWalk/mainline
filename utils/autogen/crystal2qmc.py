@@ -211,14 +211,14 @@ def read_kred(info,basis):
   nevals = eigsys['nspin']*info[6]*nikpts
   eigsys['eigvals'] = np.array(kred_words[cursor:cursor+nevals],dtype=float)
   cursor += nevals
-  # Weights of eigenvales--incorperating Fermi energy cutoff.
+  # Weights of eigenvalues--incorporating Fermi energy cutoff.
   nbands = int(round(nevals / nikpts / eigsys['nspin']))
   eigsys['eig_weights'] = np.array(kred_words[cursor:cursor+nevals],dtype=float)\
       .reshape(nikpts,eigsys['nspin'],nbands)
   cursor += nevals
 
-  # Read in eigenvectors at inequivilent kpoints. Can't do all kpoints because we 
-  # don't know if non-inequivilent kpoints are real or complex (without symmetry
+  # Read in eigenvectors at inequivalent kpoints. Can't do all kpoints because we 
+  # don't know if non-inequivalent kpoints are real or complex (without symmetry
   # info)
   nbands = int(round(nevals / nikpts / eigsys['nspin']))
   nkpts  = np.prod(eigsys['nkpts_dir'])
@@ -235,7 +235,7 @@ def read_kred(info,basis):
             "Didn't find all {0} kpoints.".format(nikpts),"IO Error")
     cursor += 3
 
-    # If new_kpt_coord is an inequivilent point...
+    # If new_kpt_coord is an inequivalent point...
     if new_kpt_coord in ikpt_coords:
       # If complex...
       if eigsys['ikpt_iscmpx'][new_kpt_coord]:
@@ -285,8 +285,8 @@ def read_kred(info,basis):
           skip = False
           break
 
-  # It's probably true that kpt_coords == ikpt_coords, with repitition for spin
-  # up and spin down, because we only read in inequivilent kpoints. However,
+  # It's probably true that kpt_coords == ikpt_coords, with repetition for spin
+  # up and spin down, because we only read in inequivalent kpoints. However,
   # ordering might be different, and the ordering is correct for kpt_coords.
   # If there are bugs, this might be a source.
   eigsys['kpt_coords'] = ikpt_coords # kpt_coords
