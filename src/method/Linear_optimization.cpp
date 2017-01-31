@@ -350,6 +350,8 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
     doublevar prop_psi0=find_directions(S,Sinv,H,alphas(i),acc_stabils[i-1],linear);  
     //cout << "i " << i << " " << acc_stabils[i-1] << " prop_psi0 " << prop_psi0 << endl;
     
+    for(int j=0;j<alphas(i).GetDim(0);j++)
+      cout<<alphas(i)(j)<<endl;
   }
 
   for(int i=1; i< nstabil; i++) { 
