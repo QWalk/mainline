@@ -163,6 +163,11 @@ public:
     return bfwrapper.nparms()+dkeeper.nparms();
   }
 
+  Backflow_wf_data * clone() const {
+    error("clone() not implemented for Blackflow_wf_data yet");
+    return NULL;
+  }
+
 private:
   friend class Backflow_wf;
   

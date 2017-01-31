@@ -143,6 +143,10 @@ public:
   virtual int writeinput(string &, ostream &);
   virtual int showinfo(ostream &);
   virtual void generateWavefunction(Wavefunction * &);
+
+  Jastrow2_wf_data * clone() const{
+    return new Jastrow2_wf_data(*this);
+  }
 private:
   friend class Jastrow2_wf;
   Array1 < Jastrow_group > group;

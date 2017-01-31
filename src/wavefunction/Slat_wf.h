@@ -533,9 +533,7 @@ template <class T> inline void Slat_wf<T>::updateLap( Wavefunction_data * wfdata
         electronIsStaleVal(e)=0;
       }
     }
-    
   }
-
 }
 
 

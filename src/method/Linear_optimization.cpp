@@ -112,6 +112,10 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
     output << "step " << it << ": current energy " << setprecision(10) << en(0) 
            << " +/- " << setprecision(10) << en(1);
     output.flush();
+    if(it > 0){
+      //cout<<"Exit in Linear_optimization.cpp, 116"<<endl;
+      //exit(0);
+    }
     //if(it > 0) 
     //  output << "  energy change " << en(0)-olden(0) 
     //    << " +/- " << sqrt(en(1)*en(1)+olden(1)*olden(1)) << endl;
@@ -128,7 +132,19 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
       nzero_iterations++;
       output << "Iterations without a downhill move:" << nzero_iterations << endl;
     }
+  
+    /**/
+    /*if(endiff < -0.2){
+      cout<<endiff<<endl; 
+      for(int i=0;i<alpha.GetDim(0);i++)
+        cout<<alpha(i)<<endl;*/
+
+      //cout<<"Exit in Linear_optimization.cpp, 134"<<endl;
+      //exit(0);
     
+    //} 
+    /**/
+
     wfdata->setVarParms(alpha);
     wfdata->lockInParms(alpha);
     wfdata->renormalize();
@@ -193,8 +209,9 @@ doublevar find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
   doublevar min_eigenval=W(0).real();
   doublevar max_p0=0.0;
   for(int i=0; i< n; i++) { 
-    single_write(cout,"eigenvalue ",i," ");
-    single_write(cout,W(i),"\n");
+    //single_write(cout,"eigenvalue ",i," ");
+    //single_write(cout,W(i),"\n");
+    
     //if(W(i).real() < min_eigenval) { 
     //  min_index=i;
     //  min_eigenval=W(i).real();
@@ -209,15 +226,15 @@ doublevar find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
       min_eigenval=W(i).real();
     }
   }
-
+  //cout<<min_index<<endl;
   Array1 <doublevar> dp(n);
-  single_write(cout,"eigenvector ");
+  //single_write(cout,"eigenvector ");
   for(int i=0; i < n; i++) { 
     dp(i)=VR(min_index,i);
-    single_write(cout,dp(i)," ");
+    //single_write(cout,dp(i)," ");
   }
-  single_write(cout,"\n");
-  single_write(cout,"eigenvalue ",min_eigenval,"\n");
+  //single_write(cout,"\n");
+  //single_write(cout,"eigenvalue ",min_eigenval,"\n");
   
   doublevar dpnorm=0.0;
   for(int i=0; i< n; i++) dpnorm+=dp(i)*dp(i);
@@ -301,7 +318,10 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
 
   doublevar step=(psi_0_max-psi_0_min)/5;
   doublevar tol=step/10;
+  
   //cout << "max " << psi_0_max << " min " << psi_0_min << endl;
+  //cout<< "step "<<step<<endl;
+
   for(doublevar psi0=psi_0_min+step; psi0 < psi_0_max; psi0+=step) { 
     doublevar bracket_above=stabilmax;
     doublevar bracket_below=0.0;
@@ -328,7 +348,7 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   alphas(0)=alpha;
   for(int i=1; i < nstabil; i+=1) { 
     doublevar prop_psi0=find_directions(S,Sinv,H,alphas(i),acc_stabils[i-1],linear);  
-    cout << "i " << i << " " << acc_stabils[i-1] << " prop_psi0 " << prop_psi0 << endl;
+    //cout << "i " << i << " " << acc_stabils[i-1] << " prop_psi0 " << prop_psi0 << endl;
     
   }
 
@@ -337,7 +357,6 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
       alphas(i)(j)+=alpha(j);
     }
   }
-  
   Array2 <doublevar> energies_corr2(nstabil,2);
   bool significant_stabil=false;
   while(!significant_stabil) { 
@@ -355,9 +374,10 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
     for(int n=1; n< nstabil; n++) {
       doublevar diff=energies_corr2(n,0)-energies_corr2(0,0);
       if( fabs(diff)/energies_corr2(n,1) > 3.0) {
+        cout<<"dE="<<diff<<"+/-"<<energies_corr2(n,1)<<endl;
         significant_stabil=true;
-        single_write(cout, "Significant change in energy ",diff);
-         single_write(cout," +/- ", energies_corr2(n,1),"\n");
+        //single_write(cout, n, " Significant change in energy ",diff);
+        // single_write(cout," +/- ", energies_corr2(n,1),"\n");
       }
     }
 
@@ -379,26 +399,43 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   for(int n=0; n< nstabil; n++) { 
 //single_write(cout,stabilization[n]," ",energies_corr2(n,0),"\n");
     if(energies_corr2(n,0) < min_en
-        && fabs(energies_corr2(n,0))/energies_corr2(n,1) > 2.0 ) { 
+        //&& fabs(energies_corr2(n,0))/energies_corr2(n,1) > 2.0 ) { 
+        && fabs(energies_corr2(n,0)-energies_corr2(0,0))/energies_corr2(n,1) > 3.0 ){
       min_en=energies_corr2(n,0);
       min_alpha=n;
     }
   }
+  
   alpha=alphas(min_alpha);
+  cout<<"energy difference "<<energies_corr2(min_alpha,0)-energies_corr2(0,0)<<"+/-";
+  cout<<energies_corr2(min_alpha,1)<<endl;
   return energies_corr2(min_alpha,0)-energies_corr2(0,0);
 }
 //----------------------------------------------------------------------
 
 #include "Generate_sample.h"
 void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar> > & alphas,int ref_alpha,Array2 <doublevar> & energies) {
+  
   Sample_point * sample=NULL;
   Wavefunction * wf=NULL;
   sys->generateSample(sample);
   wfdata->generateWavefunction(wf);
-  sample->attachObserver(wf);
+  //sample->attachObserver(wf);
   Array1 <Config_save_point> config_pos(nconfig_eval);
   Primary guide;
-  generate_sample(sample,wf,wfdata,&guide,nconfig_eval,config_pos);
+  
+  /**/
+  Wavefunction_data * wfdata1 = duplicate(wfdata);
+  Wavefunction * wf1=NULL;
+  Array1<doublevar> tmpparmsout;
+  wfdata1->setVarParms(alphas(1));       //For now we just sample the sum squares over 2 functions
+  wfdata1->lockInParms(tmpparmsout);
+  wfdata1->generateWavefunction(wf1);
+  sample->attachObserver(wf1);
+  generate_sample(sample,wf1,wfdata1,&guide,nconfig_eval,config_pos);
+  
+  /**/
+  //generate_sample(sample,wf,wfdata,&guide,nconfig_eval,config_pos);
 
   Properties_gather mygather;
   int nwfs=alphas.GetDim(0);
@@ -407,11 +444,11 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
   Properties_point pt;
   Array1 <doublevar> kinetic(1),ecp(1,0.0),pseudo_test(pseudo->nTest());
   doublevar local;
+  
   for(int config=0; config < nconfig_eval; config++) { 
      config_pos(config).restorePos(sample);
      for(int i=0; i < pseudo_test.GetDim(0); i++) 
        pseudo_test(i)=rng.ulec();
-
      for(int w=0; w< nwfs; w++) {
        wfdata->setVarParms(alphas(w));
        wf->updateLap(wfdata,sample);
@@ -430,37 +467,72 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
   Array1 <doublevar> avg_en_unweight(nwfs,0.0);
   Array2 <doublevar> diff_en(nwfs,nconfig_eval,0.0);
   doublevar min_weight=1e99,max_weight=-1e99;
+  cout<<"~~~~~~~~~~~"<<"~~~~~~~~~~"<<endl;
+  Array1 <int> drop;
+  drop.Resize(nwfs);
+  drop=0;
+  doublevar cutoff=1e99;
+
+  //ofstream myfile;
   for(int w=0; w< nwfs; w++) {
-    for(int config=0; config < nconfig_eval; config++)  { 
+    //myfile.open("weight_"+to_string(nconfig_eval)+"_"+to_string(w)+".dat");
+    for(int config=0; config < nconfig_eval; config++){ 
       doublevar weight=exp(2*(wf_vals(w,config).amp(0,0)-wf_vals(ref_alpha,config).amp(0,0)));
-      avg_energies(w)+=weight*all_energies(w,config)/nconfig_eval;
-      avg_en_unweight(w)+=all_energies(w,config)/nconfig_eval;
-      avg_weight(w)+=weight/nconfig_eval;
-      diff_en(w,config)=all_energies(w,config)-all_energies(0,config);
-      if(weight < min_weight) min_weight=weight;
-      if(weight > max_weight) max_weight=weight;
+      /**/
+      //myfile<<weight<<endl;
+      /**/
+      if(weight < cutoff){
+        avg_energies(w)+=weight*all_energies(w,config)/nconfig_eval;
+        avg_en_unweight(w)+=all_energies(w,config)/nconfig_eval;
+        avg_weight(w)+=weight/nconfig_eval;
+        diff_en(w,config)=all_energies(w,config)-all_energies(0,config);
+        if(weight < min_weight) min_weight=weight;
+        if(weight > max_weight) max_weight=weight;
+      }else{
+        drop(w)++; 
+        //how to define diff_en
+      }
     }
+    cout<<"weights "<<max_weight<<", "<<min_weight<<endl;
+    max_weight=-1e99;
+    min_weight=1e99;
+    //myfile.close();
   }
+  cout<<"Exit in Linear_optimization.cpp, 493"<<endl;
+  exit(0);
+
   for(int w=0; w< nwfs; w++) { 
     avg_energies(w)=parallel_sum(avg_energies(w));
     avg_weight(w)=parallel_sum(avg_weight(w));
+    /**/
+    avg_energies(w)*=(nconfig_eval)/(nconfig_eval-drop(w));
+    avg_weight(w)*=(nconfig_eval)/(nconfig_eval-drop(w));
+    /**/
+    cout<<"dropped="<<drop(w)<<", total="<<nconfig_eval<<endl;
   }
+  cout<<"~~~~~~~~~~~"<<"~~~~~~~~~~"<<endl;
 
   for(int w=0; w< nwfs; w++) { 
     diff_var(w)=0.0;
     doublevar diff=avg_energies(w)/avg_weight(w)-avg_energies(0)/avg_weight(0);
-//    cout << w << " diff " << diff << endl;
+    //cout << w << " diff " << diff << endl;
     for(int config=0; config < nconfig_eval; config++) { 
-      diff_var(w)+=(diff_en(w,config)-diff)
+      /**/
+      doublevar weight=exp(2*(wf_vals(w,config).amp(0,0)-wf_vals(ref_alpha,config).amp(0,0)));
+      /**/
+      if(weight < cutoff){
+        diff_var(w)+=(diff_en(w,config)-diff)
                   *(diff_en(w,config)-diff);
+      }
     }
-    int npts=nconfig_eval*mpi_info.nprocs;    
+    int npts=(nconfig_eval-drop(w))*mpi_info.nprocs;    
     diff_var(w)=parallel_sum(diff_var(w))/npts;
     diff_var(w)=sqrt(diff_var(w)/npts);
   }
 
-  debug_write(cout,"min_weight ",min_weight, " max_weight ");
-  debug_write(cout,max_weight, "\n");
+  //debug_write(cout,"min_weight ",min_weight, " max_weight ");
+  //debug_write(cout,max_weight, "\n");
+  
   energies.Resize(nwfs,2);
   for(int w=0; w< nwfs; w++) { 
     energies(w,0)=avg_energies(w)/avg_weight(w);//+0.1*avg_var(w);
@@ -485,6 +557,8 @@ bool  Linear_optimization_method::deriv_is_significant(Average_return & avg,
     Average_return & err,
     int n) { 
   doublevar thresh=3; //Number of sigmas above which we consider this significant
+  
+  //None of these terms make sense, except for enderiv
   int nsig_S0=0;
   for(int i=0; i< n; i++) {
     if(fabs(avg.vals(n+i)/err.vals(n+i)) > thresh) nsig_S0++;
@@ -513,7 +587,7 @@ bool  Linear_optimization_method::deriv_is_significant(Average_return & avg,
   }
   single_write(cout, "proportions significant\n");
   single_write(cout, "S0 ", double(nsig_S0)/double(n), "\n");
-  single_write(cout, "S ", double(nsig_S0)/double(n*n), "\n");
+  single_write(cout, "S ", double(nsig_S)/double(n*n), "\n");
   single_write(cout, "H0 ", double(nsig_H0)/double(n), "\n");
   single_write(cout, "H ", double(nsig_H)/double(n*n), "\n");
   single_write(cout, "enderiv ", double(nsig_enderiv)/double(n), "\n");

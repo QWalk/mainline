@@ -80,7 +80,14 @@ public:
     slater->clearObserver();
     jastrow->clearObserver();
   }
-  
+
+  Slat_Jastrow_data * clone() const {
+    return new Slat_Jastrow_data(*this); 
+  } 
+  Slat_Jastrow_data(const Slat_Jastrow_data & wfdata){
+    slater=wfdata.slater->clone();
+    jastrow=wfdata.jastrow->clone();
+  }
 
 private:
   friend class Slat_Jastrow;

@@ -114,6 +114,10 @@ public:
     else return 0;
   }
 
+  Slat_wf_data * clone() const{
+    return new Slat_wf_data(*this);
+  }
+
 private:
   void init_mo();
   friend class Slat_wf<doublevar>;
