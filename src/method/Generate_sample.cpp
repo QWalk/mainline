@@ -43,7 +43,7 @@ void generate_sample(Sample_point * sample,
   Dynamics_info dinfo;
   int nsteps=0;
   while(!have_moved_enough) { 
-    for(int e=0; e< nelectrons; e++) { 
+    for(int e=0; e< nelectrons; e++) {
       int acc=sampler.sample(e,sample,wf,wfdata,guidewf,dinfo,timestep);
       if(dinfo.acceptance > target_acceptance) timestep+=tstep_delta;
       else timestep-=tstep_delta;
@@ -57,7 +57,8 @@ void generate_sample(Sample_point * sample,
 
   }
 
-  debug_write(cout,"Took ",nsteps," steps to warm up.");
+  cout<<"Took "<<nsteps<<" steps to warm up."<<endl;
+  //debug_write(cout,"Took ",nsteps," steps to warm up.");
 
   //Now we generate the configurations
   enough_moves=3;

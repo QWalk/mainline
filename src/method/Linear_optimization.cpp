@@ -414,29 +414,55 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
 //----------------------------------------------------------------------
 
 #include "Generate_sample.h"
+#include "Concatenate_wf_data.h"
+#include "Concatenate_wf.h"
 void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar> > & alphas,int ref_alpha,Array2 <doublevar> & energies) {
   
-  Sample_point * sample=NULL;
+  cout<<"-----correlated evaluation"<<endl;
+  /*********************************************************************/
+  //New implementation
+   
+  //Make first wavefunction
   Wavefunction * wf=NULL;
-  sys->generateSample(sample);
   wfdata->generateWavefunction(wf);
-  //sample->attachObserver(wf);
-  Array1 <Config_save_point> config_pos(nconfig_eval);
-  Primary guide;
   
-  /**/
+  //Make second wavefunction_data and wavefunction
   Wavefunction_data * wfdata1 = duplicate(wfdata);
   Wavefunction * wf1=NULL;
-  Array1<doublevar> tmpparmsout;
   wfdata1->setVarParms(alphas(1));       //For now we just sample the sum squares over 2 functions
-  wfdata1->lockInParms(tmpparmsout);
   wfdata1->generateWavefunction(wf1);
-  sample->attachObserver(wf1);
-  generate_sample(sample,wf1,wfdata1,&guide,nconfig_eval,config_pos);
-  
-  /**/
-  //generate_sample(sample,wf,wfdata,&guide,nconfig_eval,config_pos);
+ 
+  //Make the concatenated wave function
+  vector <Wavefunction_data *> wfdatas;
+  wfdatas.push_back(wfdata);
+  wfdatas.push_back(wfdata1);
+  Concatenate_wf_data * mywfdata = new Concatenate_wf_data(wfdatas);
+  vector <Wavefunction *> wfs;
+  wfs.push_back(wf);
+  wfs.push_back(wf1);
+  Concatenate_wf * mywf = new Concatenate_wf(wfs);
 
+  //Create guiding wave function and sample
+  Sample_point * sample=NULL;
+  sys->generateSample(sample);
+  sample->attachObserver(mywf);
+  
+  Array1 <Config_save_point> config_pos(nconfig_eval);
+  Vmc_sum_squares guide;
+  generate_sample(sample,mywf,mywfdata,&guide,nconfig_eval,config_pos);
+  
+  /*********************************************************************/
+  //Old implementation
+  /* 
+  Wavefunction * wf=NULL;
+  wfdata->generateWavefunction(wf);
+  Sample_point * sample=NULL;
+  sys->generateSample(sample);
+  sample->attachObserver(wf);
+  Array1 <Config_save_point> config_pos(nconfig_eval);
+  Primary guide;
+  generate_sample(sample,wf,wfdata,&guide,nconfig_eval,config_pos);
+  */
   Properties_gather mygather;
   int nwfs=alphas.GetDim(0);
   Array2 <doublevar> all_energies(nwfs,nconfig_eval);
@@ -473,13 +499,14 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
   drop=0;
   doublevar cutoff=1e99;
 
-  //ofstream myfile;
+  ofstream myfile;
   for(int w=0; w< nwfs; w++) {
-    //myfile.open("weight_"+to_string(nconfig_eval)+"_"+to_string(w)+".dat");
+    myfile.open("weight_"+to_string(nconfig_eval)+"_"+to_string(w)+".dat");
     for(int config=0; config < nconfig_eval; config++){ 
-      doublevar weight=exp(2*(wf_vals(w,config).amp(0,0)-wf_vals(ref_alpha,config).amp(0,0)));
+      //doublevar weight=exp(2*(wf_vals(w,config).amp(0,0)-wf_vals(ref_alpha,config).amp(0,0)));
+      doublevar weight=1.0/(1+exp(2*(wf_vals(ref_alpha,config).amp(0,0)-wf_vals(w,config).amp(0,0))));
       /**/
-      //myfile<<weight<<endl;
+      myfile<<weight<<endl;
       /**/
       if(weight < cutoff){
         avg_energies(w)+=weight*all_energies(w,config)/nconfig_eval;
@@ -496,7 +523,7 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
     cout<<"weights "<<max_weight<<", "<<min_weight<<endl;
     max_weight=-1e99;
     min_weight=1e99;
-    //myfile.close();
+    myfile.close();
   }
   cout<<"Exit in Linear_optimization.cpp, 493"<<endl;
   exit(0);

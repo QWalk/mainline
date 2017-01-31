@@ -490,7 +490,7 @@ int Split_sampler::sample(int e,
 
   if(! wfStore.isInitialized())
     wfStore.initialize(sample, wf);
-  
+ 
   wf->updateLap(wfdata, sample);
   wfStore.saveUpdate(sample, wf, e);
   trace.Resize(recursion_depth_+1);
@@ -508,7 +508,6 @@ int Split_sampler::sample(int e,
   }
 
   int depth=0;
-
   sample->getElectronPos(e,trace(depth).pos);
   wf->getLap(wfdata, e, trace(depth).lap);
   trace(depth).sign=sample->overallSign();
@@ -516,10 +515,8 @@ int Split_sampler::sample(int e,
   guidingwf->getLap(trace(depth).lap, trace(depth).drift);
   depth++;
 
-  
   int acc=split_driver(e, sample, wf, wfdata, guidingwf, depth,  
                       info, efftimestep);
-
   if(acc > 0) {
     acceptances(acc-1)++;
     for(int i=0; i< acc; i++) {
@@ -535,7 +532,7 @@ int Split_sampler::sample(int e,
   if(!acc) {
     wfStore.restoreUpdate(sample, wf, e);
   }
-  //cout << "-----------split done" << endl;
+  
   return acc;
 }
 
