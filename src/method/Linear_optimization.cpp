@@ -375,8 +375,9 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
 
     for(int n=1; n< nstabil; n++) {
       doublevar diff=energies_corr2(n,0)-energies_corr2(0,0);
+      cout<<"Energy="<<energies_corr2(n,0)-energies_corr2(n,1)<<endl;
       if( fabs(diff)/energies_corr2(n,1) > 3.0) {
-        cout<<"dE="<<diff<<"+/-"<<energies_corr2(n,1)<<endl;
+        //cout<<"dE="<<diff<<"+/-"<<energies_corr2(n,1)<<endl;
         significant_stabil=true;
         //single_write(cout, n, " Significant change in energy ",diff);
         // single_write(cout," +/- ", energies_corr2(n,1),"\n");
@@ -419,11 +420,20 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
 #include "Concatenate_wf_data.h"
 #include "Concatenate_wf.h"
 void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar> > & alphas,int ref_alpha,Array2 <doublevar> & energies) {
-  
+
+  /*for(int z=0;z<alphas.GetDim(0);z++){
+    alphas(z)=alphas(0);
+  }
+  alphas(1)(0)+=-0.01841051683;
+  alphas(2)(0)+=-0.01610320403;
+  alphas(3)(0)+=-0.0131389151;
+  alphas(4)(0)+=-0.009061137938;
+  */
+  for(int z=0;z<5;z++){
   cout<<"-----correlated evaluation"<<endl;
   /*********************************************************************/
   //New implementation
-   
+    
   //Make first wavefunction
   Wavefunction * wf=NULL;
   wfdata->generateWavefunction(wf);
@@ -431,7 +441,7 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
   //Make second wavefunction_data and wavefunction
   Wavefunction_data * wfdata1 = duplicate(wfdata);
   Wavefunction * wf1=NULL;
-  wfdata1->setVarParms(alphas(1));       //For now we just sample the sum squares over 2 functions
+  wfdata1->setVarParms(alphas(ref_alpha+1));       //For now we just sample the sum squares over 2 functions
   wfdata1->generateWavefunction(wf1);
  
   //Make the concatenated wave function
@@ -455,8 +465,7 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
   
   /*********************************************************************/
   //Old implementation
-  /* 
-  Wavefunction * wf=NULL;
+  /*Wavefunction * wf=NULL;
   wfdata->generateWavefunction(wf);
   Sample_point * sample=NULL;
   sys->generateSample(sample);
@@ -465,6 +474,7 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
   Primary guide;
   generate_sample(sample,wf,wfdata,&guide,nconfig_eval,config_pos);
   */
+
   Properties_gather mygather;
   int nwfs=alphas.GetDim(0);
   Array2 <doublevar> all_energies(nwfs,nconfig_eval);
@@ -472,6 +482,7 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
   Properties_point pt;
   Array1 <doublevar> kinetic(1),ecp(1,0.0),pseudo_test(pseudo->nTest());
   doublevar local;
+  
   
   for(int config=0; config < nconfig_eval; config++) { 
      config_pos(config).restorePos(sample);
@@ -496,48 +507,36 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
   Array2 <doublevar> diff_en(nwfs,nconfig_eval,0.0);
   doublevar min_weight=1e99,max_weight=-1e99;
   cout<<"~~~~~~~~~~~"<<"~~~~~~~~~~"<<endl;
-  Array1 <int> drop;
-  drop.Resize(nwfs);
-  drop=0;
-  doublevar cutoff=1e99;
-
-  ofstream myfile;
+  //ofstream myf;
   for(int w=0; w< nwfs; w++) {
-    myfile.open("weight_"+to_string(nconfig_eval)+"_"+to_string(w)+".dat");
+    //myf.open("weights_"+to_string(nconfig_eval)+"_"+to_string(w)+".dat");
     for(int config=0; config < nconfig_eval; config++){ 
+      //New weight
+      doublevar num=exp(2*(wf_vals(w,config).amp(0,0)));
+      doublevar den=exp(2*(wf_vals(ref_alpha+1,config).amp(0,0)));
+      den+=exp(2*(wf_vals(ref_alpha,config).amp(0,0)));
+      doublevar weight=num/den;
+      
+      //Old weight
       //doublevar weight=exp(2*(wf_vals(w,config).amp(0,0)-wf_vals(ref_alpha,config).amp(0,0)));
-      doublevar weight=1.0/(1+exp(2*(wf_vals(ref_alpha,config).amp(0,0)-wf_vals(w,config).amp(0,0))));
-      /**/
-      myfile<<weight<<endl;
-      /**/
-      if(weight < cutoff){
-        avg_energies(w)+=weight*all_energies(w,config)/nconfig_eval;
-        avg_en_unweight(w)+=all_energies(w,config)/nconfig_eval;
-        avg_weight(w)+=weight/nconfig_eval;
-        diff_en(w,config)=all_energies(w,config)-all_energies(0,config);
-        if(weight < min_weight) min_weight=weight;
-        if(weight > max_weight) max_weight=weight;
-      }else{
-        drop(w)++; 
-        //how to define diff_en
-      }
+
+      //myf<<weight<<endl;
+      avg_energies(w)+=weight*all_energies(w,config)/nconfig_eval;
+      avg_en_unweight(w)+=all_energies(w,config)/nconfig_eval;
+      avg_weight(w)+=weight/nconfig_eval;
+      diff_en(w,config)=all_energies(w,config)-all_energies(0,config);
+      if(weight < min_weight) min_weight=weight;
+      if(weight > max_weight) max_weight=weight;
     }
     cout<<"weights "<<max_weight<<", "<<min_weight<<endl;
     max_weight=-1e99;
     min_weight=1e99;
-    myfile.close();
+    //myf.close();
   }
-  cout<<"Exit in Linear_optimization.cpp, 493"<<endl;
-  exit(0);
-
+ 
   for(int w=0; w< nwfs; w++) { 
     avg_energies(w)=parallel_sum(avg_energies(w));
     avg_weight(w)=parallel_sum(avg_weight(w));
-    /**/
-    avg_energies(w)*=(nconfig_eval)/(nconfig_eval-drop(w));
-    avg_weight(w)*=(nconfig_eval)/(nconfig_eval-drop(w));
-    /**/
-    cout<<"dropped="<<drop(w)<<", total="<<nconfig_eval<<endl;
   }
   cout<<"~~~~~~~~~~~"<<"~~~~~~~~~~"<<endl;
 
@@ -546,15 +545,10 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
     doublevar diff=avg_energies(w)/avg_weight(w)-avg_energies(0)/avg_weight(0);
     //cout << w << " diff " << diff << endl;
     for(int config=0; config < nconfig_eval; config++) { 
-      /**/
-      doublevar weight=exp(2*(wf_vals(w,config).amp(0,0)-wf_vals(ref_alpha,config).amp(0,0)));
-      /**/
-      if(weight < cutoff){
-        diff_var(w)+=(diff_en(w,config)-diff)
+      diff_var(w)+=(diff_en(w,config)-diff)
                   *(diff_en(w,config)-diff);
-      }
     }
-    int npts=(nconfig_eval-drop(w))*mpi_info.nprocs;    
+    int npts=nconfig_eval*mpi_info.nprocs;    
     diff_var(w)=parallel_sum(diff_var(w))/npts;
     diff_var(w)=sqrt(diff_var(w)/npts);
   }
@@ -563,6 +557,7 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
   //debug_write(cout,max_weight, "\n");
   
   energies.Resize(nwfs,2);
+  cout<<avg_energies(0)/avg_weight(0)<<endl;
   for(int w=0; w< nwfs; w++) { 
     energies(w,0)=avg_energies(w)/avg_weight(w);//+0.1*avg_var(w);
     energies(w,1)=diff_var(w);
@@ -576,7 +571,9 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
   wfdata->clearObserver();
   delete wf;
   delete sample;
-  
+  }
+  cout<<"Exit in Linear_optimization.cpp, 574"<<endl;
+  exit(0);
 }
 
 //----------------------------------------------------------------------
