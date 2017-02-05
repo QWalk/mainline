@@ -459,16 +459,31 @@ def write_orb(eigsys,basis,ions,kpt,base="qwalk",kfmt='coord',maxmo_spin=-1):
   eigimag_flat = [e[0:maxmo_spin,:].flatten() for e in eigvecs_imag]
   print_cnt = 0
   outf.write("COEFFICIENTS\n")
-  for sidx in range(eigsys['nspin']):
-    #for cidx in range(coef_cnt):
-    for cidx in range(eigreal_flat[sidx].size):
-      if eigsys['ikpt_iscmpx'][kpt]:
+  if eigsys['ikpt_iscmpx'][kpt]: #complex coefficients
+    for eigr,eigi in zip(eigreal_flat,eigimag_flat):
+      for r,i in zip(eigr,eigi):
         outf.write("({:<.12e},{:<.12e}) "\
-            .format(eigreal_flat[sidx][cidx],eigimag_flat[sidx][cidx]))
-      else:
-        outf.write("{:< 15.12e} ".format(eigreal_flat[sidx][cidx]))
-      print_cnt += 1
-      if print_cnt % 5 == 0: outf.write("\n")
+            .format(r,i))
+        print_cnt+=1
+        if print_cnt%5==0: outf.write("\n")
+  else: #Real coefficients
+    for eigr in eigreal_flat:
+      for r in eigr:
+        outf.write("{:< 15.12e} ".format(r))
+        print_cnt+=1
+        if print_cnt%5==0: outf.write("\n")
+
+
+
+  #for sidx in range(eigsys['nspin']):
+  #  for cidx in range(eigreal_flat[sidx].size):
+  #    if eigsys['ikpt_iscmpx'][kpt]:
+  #      outf.write("({:<.12e},{:<.12e}) "\
+  #          .format(eigreal_flat[sidx][cidx],eigimag_flat[sidx][cidx]))
+  #    else:
+  #      outf.write("{:< 15.12e} ".format(eigreal_flat[sidx][cidx]))
+  #    print_cnt += 1
+  #    if print_cnt % 5 == 0: outf.write("\n")
   outf.close()
   return None
 
@@ -698,7 +713,7 @@ def convert_crystal(
     base="qwalk",
     propoutfn="prop.in.o",
     kfmt='coord',
-    kset='complex',nvirtual=10):
+    kset='complex',nvirtual=50):
   """
   Files are named by [base]_[kfmt option].sys etc.
   kfmt either 'int' or 'coord'.

@@ -277,6 +277,8 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   alpha_tmp=alpha;
   doublevar stabilmax=10.0*fabs(H(0,0));
   vector <doublevar> acc_stabils;
+  //cout << "checking the following alphas"<< endl;
+
   
   doublevar psi_0_min=find_directions(S,Sinv,H,alpha_tmp,0.0,linear);
   doublevar psi_0_max=find_directions(S,Sinv,H,alpha_tmp,stabilmax,linear);
@@ -389,10 +391,18 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
   sample->attachObserver(wf);
   Array1 <Config_save_point> config_pos(nconfig_eval);
   Primary guide;
-  generate_sample(sample,wf,wfdata,&guide,nconfig_eval,config_pos);
+  
+  generate_sample(sample,wf,wfdata,&guide,nconfig_eval,config_pos,500,10);
+  
 
-  Properties_gather mygather;
   int nwfs=alphas.GetDim(0);
+//  for(int w=0; w< nwfs; w++) { 
+//    cout << "alpha " << w << " ";
+//    for(int i=0; i< alphas(w).GetDim(0); i++) 
+//      cout<< alphas(w)(i) << " ";
+//    cout << endl;
+//  }
+
   Array2 <doublevar> all_energies(nwfs,nconfig_eval);
   Array2 <Wf_return> wf_vals(nwfs,nconfig_eval);
   Properties_point pt;
@@ -417,7 +427,7 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
   }
 
   Array1 <doublevar> avg_energies(nwfs,0.0),avg_weight(nwfs,0.0);
-  Array1 <doublevar> diff_var(nwfs,0.0);
+  Array1 <doublevar> diff_var(nwfs,0.0),weight_var(nwfs,0.0);
   Array1 <doublevar> avg_en_unweight(nwfs,0.0);
   Array2 <doublevar> diff_en(nwfs,nconfig_eval,0.0);
   doublevar min_weight=1e99,max_weight=-1e99;
