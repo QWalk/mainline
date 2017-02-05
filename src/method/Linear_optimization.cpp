@@ -403,7 +403,7 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
 //    cout << endl;
 //  }
 
-  Array2 <doublevar> all_energies(nwfs,nconfig_eval);
+  Array2 <doublevar> all_energies(nwfs,nconfig_eval),all_weights(nwfs,nconfig_eval);
   Array2 <Wf_return> wf_vals(nwfs,nconfig_eval);
   Properties_point pt;
   Array1 <doublevar> kinetic(1),ecp(1,0.0),pseudo_test(pseudo->nTest());
@@ -430,7 +430,6 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
   Array1 <doublevar> diff_var(nwfs,0.0),weight_var(nwfs,0.0);
   Array1 <doublevar> avg_en_unweight(nwfs,0.0);
   Array2 <doublevar> diff_en(nwfs,nconfig_eval,0.0);
-  doublevar min_weight=1e99,max_weight=-1e99;
   for(int w=0; w< nwfs; w++) {
     for(int config=0; config < nconfig_eval; config++)  { 
       doublevar weight=exp(2*(wf_vals(w,config).amp(0,0)-wf_vals(ref_alpha,config).amp(0,0)));
@@ -438,8 +437,7 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
       avg_en_unweight(w)+=all_energies(w,config)/nconfig_eval;
       avg_weight(w)+=weight/nconfig_eval;
       diff_en(w,config)=all_energies(w,config)-all_energies(0,config);
-      if(weight < min_weight) min_weight=weight;
-      if(weight > max_weight) max_weight=weight;
+      all_weights(w,config)=weight;
     }
   }
   for(int w=0; w< nwfs; w++) { 
@@ -454,22 +452,25 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
     for(int config=0; config < nconfig_eval; config++) { 
       diff_var(w)+=(diff_en(w,config)-diff)
                   *(diff_en(w,config)-diff);
+      weight_var(w)+=(all_weights(w,config)-avg_weight(w))
+                     *(all_weights(w,config)-avg_weight(w));
     }
     int npts=nconfig_eval*mpi_info.nprocs;    
-    diff_var(w)=parallel_sum(diff_var(w))/npts;
-    diff_var(w)=sqrt(diff_var(w)/npts);
+    diff_var(w)=sqrt(parallel_sum(diff_var(w))/(npts*(npts)));
+    weight_var(w)=sqrt(parallel_sum(weight_var(w))/(npts*(npts)));
   }
 
-  debug_write(cout,"min_weight ",min_weight, " max_weight ");
-  debug_write(cout,max_weight, "\n");
   energies.Resize(nwfs,2);
   for(int w=0; w< nwfs; w++) { 
     energies(w,0)=avg_energies(w)/avg_weight(w);//+0.1*avg_var(w);
-    energies(w,1)=diff_var(w);
+    doublevar diff=energies(w,0)-energies(0,0);
+    if(w!=0)
+      energies(w,1)=sqrt(diff_var(w)*diff_var(w)*avg_weight(w)*avg_weight(w)+diff*diff*weight_var(w)*weight_var(w));
     if(mpi_info.node==0) { 
-      cout << "endiff " << energies(w,0)-energies(0,0) 
-        <<  " estimated error " 
-        << diff_var(w) << endl;
+      cout << "endiff " << diff
+        <<  " estimated error " << energies(w,1) 
+        << " average weight " << avg_weight(w) 
+        << " weight variance " << weight_var(w) << endl;
     }
   }
   //cout << "done " << endl;
