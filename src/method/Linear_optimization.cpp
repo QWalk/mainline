@@ -466,8 +466,12 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
   /*********************************************************************/
   //New sampling 
      
+  /*
+  Sample_point * sample=NULL;
+  Wavefunction * wf=NULL;
+  sys->generateSample(sample);
+ 
   //Make first wavefunction
-  /*Wavefunction * wf=NULL;
   wfdata->generateWavefunction(wf);
   
   //Make second wavefunction_data and wavefunction
@@ -486,13 +490,11 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
   wfs.push_back(wf1);
   Concatenate_wf * mywf = new Concatenate_wf(wfs);
 
-  //Create guiding wave function and sample
-  Sample_point * sample=NULL;
-  sys->generateSample(sample);
   sample->attachObserver(mywf);
-  
   Array1 <Config_save_point> config_pos(nconfig_eval);
   Vmc_sum_squares guide;
+  int nwfs=alphas.GetDim(0);
+  energies.Resize(nwfs,2);
   generate_sample(sample,mywf,mywfdata,&guide,nconfig_eval,config_pos,500,10);
   */ 
   /*********************************************************************/
