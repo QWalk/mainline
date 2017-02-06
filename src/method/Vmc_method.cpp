@@ -26,6 +26,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "System.h"
 #include "Split_sample.h"
 #include "Properties.h"
+#include "Generate_sample.h"
 
 //----------------------------------------------------------------------
 
@@ -72,8 +73,14 @@ void Vmc_method::read(vector <string> words,
 
 
   vector <string> dynsec;
-  if(!readsection(words, pos=0, dynsec, "DYNAMICS")) 
+  if(!readsection(words, pos=0, dynsec, "DYNAMICS")) {
     dynsec.push_back("SPLIT");
+    dynsec.push_back("DEPTH");
+    dynsec.push_back("2");
+    dynsec.push_back("DIVIDER");
+    dynsec.push_back("2");
+  }
+    
 
   allocate(dynsec, sampler);
   
@@ -366,6 +373,12 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
   age=0;
   Array1 <doublevar> diffusion_rate(nblock,0.0);
 
+  if(auto_timestep) { 
+    timestep=generate_sample(sample,wf,wfdata,guidewf,nconfig,
+                            config_pos,50,10);
+    timestep=parallel_sum(timestep)/mpi_info.nprocs;
+  }
+  
  
   for(int block=0; block< nblock; block++) {
     int nwf_guide=wf->nfunc();
@@ -483,10 +496,11 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
         nldensplt(i)->write(log_label);
     }
     acceptance/=nstep*ndecorr*nelectrons;
-    if(auto_timestep) { 
-      if(acceptance < 0.4) timestep -=0.1;
-      if(acceptance > 0.6) timestep +=0.1;
-    }
+    //if(auto_timestep) { 
+    //  if(acceptance < 0.4) timestep -=0.1;
+    //  if(acceptance > 0.6) timestep +=0.1;
+    //  timestep=parallel_sum(timestep)/mpi_info.nprocs;
+    //}
     //Output for the block
     if(output) {
       if(global_options::rappture ) { 
