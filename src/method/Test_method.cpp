@@ -47,6 +47,7 @@ void Test_method::read(vector <string> words,
     cout << "wfdata allocate" << endl;
     allocate(options.twftext[0], sysprop, wfdata);
   }
+
   sysprop->generatePseudo(options.pseudotext, psp);
 
   vector <string> btxt;
@@ -157,7 +158,9 @@ void Test_method::run(Program_options & options, ostream & output)
     config_pos(0).restorePos(sample);
   }
   else sample->randomGuess();
+    
 
+  
   sample->attachObserver(mywf);
   Array1 <Wf_return> first_calc(nelectrons);
   cout <<"**********updateLap " << endl;
@@ -184,15 +187,19 @@ void Test_method::run(Program_options & options, ostream & output)
     cout << "####electron " << e << " #####" << endl;
     cout << "#######################\n";
     sample->getElectronPos(e,epos);
-    cout <<" position "<<epos(0)<<","<<epos(1)<<","<<epos(2)<<endl;
+    //cout <<" position "<<epos(0)<<" "<<epos(1)<<" "<<epos(2)<<endl;
     doublevar lap=0;
     doublevar phaselap=0;
     for(int d=0;d < 3; d++) {
+      cout << "here " << endl;
       new_epos=epos;
       new_epos(d)+=del;
       sample->setElectronPos(e, new_epos);
+      //mywf->notify(all_electrons_move,0);
       mywf->updateLap(wfdata, sample);
       mywf->getLap(wfdata,e,test_wf);
+      //mywf->updateVal(wfdata, sample);
+      //mywf->getVal(wfdata,e,test_wf);
       doublevar ratio=exp(test_wf.amp(0,0)-first_calc(0).amp(0,0));
       doublevar derivative=(ratio-1)/del;
       doublevar phasederivative=(exp(test_wf.phase(0,0)-first_calc(0).phase(0,0))-1)/del;
@@ -294,9 +301,8 @@ void Test_method::testParmDeriv(Wavefunction * mywf, Sample_point * sample){
   cout <<"#######################################################\n";
   cout <<" Checking ParmDeriv for "<<nparms<<" parameters"<<endl;
   cout <<"#######################################################\n";
-  //doublevar del=1e-8;
-  doublevar del=1e-5;
-
+  doublevar del=1e-8;
+  
   Array1 <Wf_return> base_wfval(nelectrons),test_wfval(nelectrons);
   Parm_deriv_return wfders;
   if(testhessian)
@@ -315,7 +321,6 @@ void Test_method::testParmDeriv(Wavefunction * mywf, Sample_point * sample){
   Array1 <doublevar> Psi(nparms); 
   Array1 <doublevar> temp_parms(nparms),orig_parms(nparms);
   wfdata->getVarParms(temp_parms);
-  
   for (int i=0;i<nparms;i++)
     orig_parms(i)=temp_parms(i);
 
@@ -333,7 +338,9 @@ void Test_method::testParmDeriv(Wavefunction * mywf, Sample_point * sample){
       *exp(test_wfval(0).amp(0,0)-base_wfval(0).amp(0,0));
     Psi(i)=psi;
     doublevar derivative=(psi-1)/del;
+    cout <<" derivative check for parameter "<< i<< endl;
     check_numbers(derivative,wfders.gradient(i),cout);
+
     cout << "Gradient and laplacian check: size " << wfders.gradderiv.GetDim(0)
       << " " << wfders.gradderiv.GetDim(1) << " " << wfders.gradderiv.GetDim(2) << endl;
     for(int e=0; e< nelectrons; e++) { 

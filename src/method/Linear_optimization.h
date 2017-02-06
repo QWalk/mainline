@@ -57,6 +57,7 @@ private:
   int max_nconfig_eval;
   int max_vmc_nstep;
   int max_zero_iterations;
+  bool do_uncorrelated_evaluation;
   doublevar sig_H_threshold;
   doublevar en_convergence;
   doublevar minimum_psi0;
@@ -69,13 +70,26 @@ private:
 
   void wavefunction_derivative(Array2<doublevar> & H,Array2 <doublevar> & S,Array1<doublevar> & en);
   void wavefunction_energy(Array1 <doublevar> & en);
+  
   //returns the estimated energy change
   double line_minimization(Array2 <doublevar> & S, 
-    Array2 <doublevar> & Sinv, Array2 <doublevar> & H,Array1 <doublevar> & alpha);
-  void correlated_evaluation(Array1 <Array1 <doublevar> > & alphas,int ref_alpha,Array2 <doublevar> & energies);
+                           Array2 <doublevar> & Sinv, 
+                           Array2 <doublevar> & H,
+                           Array1 <doublevar> & alpha);
+
+  void correlated_evaluation(Array1 <Array1 <doublevar> > & alphas,
+                             int ref_alpha,
+                             Array2 <doublevar> & energies);
+
+  void uncorrelated_evaluation(Array1 <Array1 <doublevar> > & alphas,
+                               Array2 <doublevar> & energies);
+  
   bool deriv_is_significant(Average_return & avg, Average_return & err,int n);
   
 };
+
+
+
 
 #endif //LINEAR_OPTIMIZATION_H_INCLUDED
 

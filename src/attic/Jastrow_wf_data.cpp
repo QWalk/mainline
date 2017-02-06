@@ -34,10 +34,7 @@ void Jastrow_wf_data::read(vector <string> & words, unsigned int & pos,
 {
 
 
-<<<<<<< HEAD
-=======
   //cout << "jast wf data " << endl;
->>>>>>> qwalk-devel/master
   unsigned int startpos=pos;
   Array1 <int> espin(2);
   vector <string> nspinstr;

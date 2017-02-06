@@ -249,7 +249,8 @@ template <class T> inline void Slat_wf<T>::init(Wavefunction_data * wfdata,
     spin(e)=1;
     opspin(e)=0;
   }
-  moVal.Resize(5,tote,nmo);
+  //Properties and intermediate calculation storage.
+  moVal.Resize(5,   tote, nmo);
   updatedMoVal.Resize(nmo,5);
 
   detVal.Resize (nfunc_, ndet, 2);
@@ -533,7 +534,9 @@ template <class T> inline void Slat_wf<T>::updateLap( Wavefunction_data * wfdata
         electronIsStaleVal(e)=0;
       }
     }
+    
   }
+
 }
 
 
@@ -807,6 +810,7 @@ template <class T> inline int Slat_wf<T>::updateValNoInverse(Slat_wf_data * data
         }
       }
       
+      
       T ratio=1./InverseGetNewRatio(inverse(f,det,s),
                                             modet, rede(e),
                                             nelectrons(s));
@@ -922,6 +926,7 @@ template <class T> inline void Slat_wf<T>::getSymmetricVal(Wavefunction_data * w
 
 template <class T> inline void Slat_wf<T>::calcLap(Slat_wf_data * dataptr, Sample_point * sample)
 {
+  //cout << "calcLap " << endl;
   inverseStale=0;
   for(int e=0; e< nelectrons(0)+nelectrons(1); e++)  {
     int s=spin(e);
@@ -981,12 +986,12 @@ template <class T> inline void Slat_wf<T>::calcLap(Slat_wf_data * dataptr, Sampl
         cout << "Slat_wf::calcLap: f " << f<< " det " << det 
           << " detVal " << detVal(f,det,s).logval << endl;
 #endif
-
         //if(f==0 && det==0 && s==0) matout << "determinant " << detVal(f,det,s) 
          //   << " should be " << modet(0,0)*modet(1,1)-modet(0,1)*modet(1,0) << endl;
       }
     }
   }
+  //cout << "done " << endl;
 }
 
 //------------------------------------------------------------------------
@@ -1091,7 +1096,7 @@ template <class T> void Slat_wf<T>::getLap(Wavefunction_data * wfdata,
   //Array1 <doublevar> si(nfunc_, 0.0);
   //Array2 <doublevar> vals(nfunc_,5,0.0);
   Array2 <log_value <T> > vals(nfunc_,5);
- 
+  
   Array3 <log_value<T> > detvals;
   getDetLap(e,detvals);
   Array1 <log_value<T> > tempsum(ndet);
@@ -1133,7 +1138,9 @@ template <class T> inline void Slat_wf<T>::updateLap(Slat_wf_data * dataptr,
 
   int s=spin(e);
   sample->updateEIDist();
-  
+
+
+  //update all the mo's that we will be using.
   molecorb->updateLap(sample,e,s,updatedMoVal);
 
   for(int d=0; d< 5; d++)

@@ -281,6 +281,7 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
   }
 
   //Decide on the updating scheme:
+  
   if(ndet > 1 && tote > 10) {
     use_clark_updates=true;
   }
@@ -345,6 +346,7 @@ void Slat_wf_data::init_mo() {
       }
     }
   }
+
   if(nmospin(0) > nmo)
     error("First spin channel contains an orbital higher"
         " than requested NMO's.");
@@ -356,6 +358,7 @@ void Slat_wf_data::init_mo() {
     nmo=orbrot->getnmo();
   }
   genmolecorb->buildLists(totoccupation);
+
 }
 
 //----------------------------------------------------------------------

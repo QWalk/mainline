@@ -80,6 +80,7 @@ public:
     slater->clearObserver();
     jastrow->clearObserver();
   }
+  
 
   Slat_Jastrow_data * clone() const {
     return new Slat_Jastrow_data(*this); 
