@@ -416,7 +416,7 @@ void Linear_optimization_method::uncorrelated_evaluation(Array1 <Array1 <doublev
   
   for(int w=0; w< nwfs; w++) { 
     wfdata->setVarParms(alphas(w));
-    generate_sample(sample,wf,wfdata,&guide,nconfig_eval,config_pos,500,10);
+    generate_sample(sample,wf,wfdata,&guide,nconfig_eval,config_pos,20,2);
 
     for(int config=0; config < nconfig_eval; config++) { 
       config_pos(config).restorePos(sample);
@@ -463,16 +463,8 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
   
 
 
-  generate_sample(sample,wf,wfdata,&guide,nconfig_eval,config_pos,500,10);
+  generate_sample(sample,wf,wfdata,&guide,nconfig_eval,config_pos,10,5);
     
-//  for(int w=0; w< nwfs; w++) { 
-//    cout << "alpha " << w << " ";
-//    for(int i=0; i< alphas(w).GetDim(0); i++) 
-//      cout<< alphas(w)(i) << " ";
-//    cout << endl;
-//  }
-//
-  
 
   Array2 <doublevar> all_energies(nwfs,nconfig_eval),all_weights(nwfs,nconfig_eval);
   Array2 <Wf_return> wf_vals(nwfs,nconfig_eval);
@@ -511,6 +503,68 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
       all_weights(w,config)=weight;
     }
   }
+
+  int totnconfig_eval=nconfig_eval*mpi_info.nprocs;
+#ifdef USE_MPI
+  Array2<doublevar> allproc_energies(nwfs,totnconfig_eval);
+  Array2<doublevar> allproc_weights(nwfs,totnconfig_eval);
+  for(int w=0; w< nwfs; w++) {
+    MPI_Allgather(all_energies.v+w*nconfig_eval,nconfig_eval,
+                  MPI_DOUBLE, allproc_energies.v+w*totnconfig_eval,
+                  nconfig_eval,MPI_DOUBLE,MPI_Comm_grp);
+    MPI_Allgather(all_weights.v+w*nconfig_eval,nconfig_eval,
+                  MPI_DOUBLE, allproc_weights.v+w*totnconfig_eval,
+                  nconfig_eval,MPI_DOUBLE,MPI_Comm_grp);
+  }
+#else
+  Array2 <doublevar> allproc_energies=all_energies;
+  Array2 <doublevar> allproc_weights=all_weights;
+#endif 
+
+  int npartitions=20;
+  Array2 <doublevar> diffpartition(nwfs,npartitions);
+  for(int w=0; w< nwfs; w++) { 
+    for(int p=0; p < npartitions; p++) { 
+      doublevar weightsum=0.0;
+      doublevar ensum=0.0;
+      for(int config=p; config<totnconfig_eval; config+=npartitions) { 
+         ensum+=allproc_energies(w,config)*allproc_weights(w,config);
+         weightsum+=allproc_weights(w,config);
+      }
+      diffpartition(w,p)=ensum/weightsum;
+      //cout << "partitions " << w << " "<< p << " " << diffpartition(w,p) 
+      //  << endl;      
+    }
+  }
+
+  Array1<doublevar> ref_wf(npartitions);
+  for(int p=0; p < npartitions; p++) 
+    ref_wf(p)=diffpartition(ref_alpha,p);
+  for(int w=0; w< nwfs; w++) { 
+    for(int p=0; p < npartitions; p++) { 
+      diffpartition(w,p)-=ref_wf(p);
+      //cout << "partitions " << w << " "<< p << " " << diffpartition(w,p) 
+      //  << endl;
+    }
+  }
+
+  
+  energies=0.0;
+  for(int w=0; w< nwfs; w++) { 
+    for(int p=0; p < npartitions; p++) { 
+      energies(w,0)+=diffpartition(w,p)/npartitions;
+    }
+    for(int p=0; p < npartitions; p++) { 
+      doublevar d=diffpartition(w,p)-energies(w,0);
+      energies(w,1)+=d*d/npartitions;
+    }
+    energies(w,1)=sqrt(energies(w,1)/npartitions);
+  }
+  
+
+
+  /*
+  
   for(int w=0; w< nwfs; w++) { 
     avg_energies(w)=parallel_sum(avg_energies(w))/mpi_info.nprocs;
     avg_weight(w)=parallel_sum(avg_weight(w))/mpi_info.nprocs;
@@ -543,6 +597,7 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
         << " weight variance " << weight_var(w) << endl;
     }
   }
+  */
   //cout << "done " << endl;
   wfdata->clearObserver();
   delete wf;
