@@ -441,8 +441,8 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
     }
   }
   for(int w=0; w< nwfs; w++) { 
-    avg_energies(w)=parallel_sum(avg_energies(w));
-    avg_weight(w)=parallel_sum(avg_weight(w));
+    avg_energies(w)=parallel_sum(avg_energies(w))/mpi_info.nprocs;
+    avg_weight(w)=parallel_sum(avg_weight(w))/mpi_info.nprocs;
   }
 
   for(int w=0; w< nwfs; w++) { 
