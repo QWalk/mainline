@@ -50,6 +50,7 @@ doublevar generate_sample(Sample_point * sample,
       else timestep-=tstep_delta;
     }
   }
+  timestep=parallel_sum(timestep)/mpi_info.nprocs;
 
   debug_write(cout,"Timestep is ",timestep,"\n");
 
