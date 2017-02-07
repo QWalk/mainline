@@ -465,8 +465,7 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
 
   /*********************************************************************/
   //New sampling 
-     
-  /*
+  /* 
   Sample_point * sample=NULL;
   Wavefunction * wf=NULL;
   sys->generateSample(sample);
@@ -496,7 +495,7 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
   int nwfs=alphas.GetDim(0);
   energies.Resize(nwfs,2);
   generate_sample(sample,mywf,mywfdata,&guide,nconfig_eval,config_pos,500,10);
-  */ 
+  */
   /*********************************************************************/
   //Old sampling 
   Sample_point * sample=NULL;
@@ -509,7 +508,6 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
   int nwfs=alphas.GetDim(0);
   energies.Resize(nwfs,2);
   generate_sample(sample,wf,wfdata,&guide,nconfig_eval,config_pos,500,10);
-  
 
   Array2 <doublevar> all_energies(nwfs,nconfig_eval),all_weights(nwfs,nconfig_eval);
   Array2 <Wf_return> wf_vals(nwfs,nconfig_eval);
