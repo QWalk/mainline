@@ -156,13 +156,13 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
     for(int det=0;det<ndet;det++){
       for(int s=0;s<2;s++){
         for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++){
-          if(isactive(i+offset)){
+          //if(isactive(i+offset)){
             parms(det,s)(i)=atof(initparmstring[i+offset].c_str());
             //parms(det,s)(i)=atof(initparmstring[i+offset-k].c_str());
            //}else{
            // parms(det,s)(i)=0;
            // k++;
-          }
+          //}
         }
         offset+=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
       }
@@ -208,7 +208,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
   
   setTheta();
   setRvar();
-
 }
 
 void Orbital_rotation::writeinput(string & indent, ostream & os){
@@ -290,8 +289,12 @@ void Orbital_rotation::writeinput(string & indent, ostream & os){
       int k,l;
       for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++){
         getind(i+offset,det,s,k,l);
-        if(isactive(i+offset))
+        //if(isactive(i+offset))
           os<<tmptheta(det,s)(k,l)<<" ";
+        if((i+1)%Nocc(det,s)==0){
+          os<<" "<<endl;
+          os<<indent+indent2;
+        }
         if(i==Nocc(det,s)*(Nact(det,s)-Nocc(det,s))-1){
           offset+=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
           os<<" "<<endl;
@@ -303,7 +306,8 @@ void Orbital_rotation::writeinput(string & indent, ostream & os){
 
   os<<"}"<<endl;
   os<<indent<<"}"<<endl;
-
+  cout<<"exit in Orbital_rotation.cpp, 306"<<endl;
+  exit(0);
 }
 
 void Orbital_rotation::setTheta(void){
