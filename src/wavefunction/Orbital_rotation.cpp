@@ -148,7 +148,7 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
         }
       }
     }
-  }else if(initparmstring.size()!=nparms()){
+  }else if(initparmstring.size()!=nparms()+notactive){
     error("You have an incorrect number of initial parameters, require ",nparms());
   }else{
     int offset=0;
@@ -157,10 +157,11 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
       for(int s=0;s<2;s++){
         for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++){
           if(isactive(i+offset)){
-            parms(det,s)(i)=atof(initparmstring[i+offset-k].c_str());
-          }else{
-            parms(det,s)(i)=0;
-            k++;
+            parms(det,s)(i)=atof(initparmstring[i+offset].c_str());
+            //parms(det,s)(i)=atof(initparmstring[i+offset-k].c_str());
+           //}else{
+           // parms(det,s)(i)=0;
+           // k++;
           }
         }
         offset+=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
