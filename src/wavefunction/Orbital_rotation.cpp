@@ -149,7 +149,7 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
       }
     }
   }else if(initparmstring.size()!=nparms()+notactive){
-    error("You have an incorrect number of initial parameters, require ",nparms());
+    error("You have an incorrect number of initial parameters, require ",nparms()+notactive);
   }else{
     int offset=0;
     int k=0;
