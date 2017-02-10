@@ -306,8 +306,6 @@ void Orbital_rotation::writeinput(string & indent, ostream & os){
 
   os<<"}"<<endl;
   os<<indent<<"}"<<endl;
-  cout<<"exit in Orbital_rotation.cpp, 306"<<endl;
-  exit(0);
 }
 
 void Orbital_rotation::setTheta(void){
