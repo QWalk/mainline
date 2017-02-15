@@ -286,7 +286,9 @@ void Vmc_method::readcheck(string & filename) {
       sample->randomGuess();
       config_pos(i).savePos(sample);
     }
-  }   
+  }
+
+     
 }
 
 //----------------------------------------------------------------------
@@ -357,6 +359,14 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
   
   allocateIntermediateVariables(sys, wfdata);
   readcheck(readconfig);
+  
+  doublevar est_timestep=generate_sample(sample,wf,wfdata,guidewf,nconfig,
+                                         config_pos,50,10);
+
+  if(auto_timestep) { 
+    timestep=parallel_sum(est_timestep)/mpi_info.nprocs;
+  }
+    
 
   cout.precision(10);
 
@@ -373,11 +383,6 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
   age=0;
   Array1 <doublevar> diffusion_rate(nblock,0.0);
 
-  if(auto_timestep) { 
-    timestep=generate_sample(sample,wf,wfdata,guidewf,nconfig,
-                            config_pos,50,10);
-    timestep=parallel_sum(timestep)/mpi_info.nprocs;
-  }
   
  
   for(int block=0; block< nblock; block++) {
