@@ -2036,7 +2036,7 @@ void Average_wf_parmderivs::jsonOutput(Average_return &avg ,Average_return & err
   os << "\"" << avg.type << "\":{" << endl;
    int M=avg.vals.GetDim(0);
    int n=(sqrt(1.0-4*(1-M)/3.)-1)/2;
-   os << "\"n\":"<< n<<",";
+   os << "\"n\":"<< n<<",\n";
    
    Array1<doublevar> dpE(n),dpE_err(n),dp(n),dp_err(n),dE(n),dE_err(n);
 

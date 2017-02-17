@@ -16,7 +16,7 @@ template <class T> void jsonarray(std::ostream & os, Array2 <T> & arr) {
   
   for(int i=0; i< nptsi; i++) { 
     os << "[";
-    for(int j=0; i< nptsj-1; i++)
+    for(int j=0; j< nptsj-1; j++)
       os << arr(i,j) << ",";
     os << arr(i,nptsj-1) << "]";
     if(i< nptsi-1) os << ",\n";
