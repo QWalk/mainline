@@ -2034,8 +2034,9 @@ void Average_wf_parmderivs::write_summary(Average_return &avg ,Average_return & 
 //-----------------------------------------------------------------------------
 void Average_wf_parmderivs::jsonOutput(Average_return &avg ,Average_return & err, ostream & os) { 
   os << "\"" << avg.type << "\":{" << endl;
-   
-   int n=sqrt(1.0+avg.vals.GetDim(0))-1;
+   int M=avg.vals.GetDim(0);
+   int n=(sqrt(1.0-4*(1-M)/3.)-1)/2;
+   os << "\"n\":"<< n<<",";
    
    Array1<doublevar> dpE(n),dpE_err(n),dp(n),dp_err(n),dE(n),dE_err(n);
 
@@ -2055,21 +2056,21 @@ void Average_wf_parmderivs::jsonOutput(Average_return &avg ,Average_return & err
    for(int i=0; i< n; i++) { 
      for(int j=0; j< n; j++) {
        dpij(i,j)=avg.vals(3*n+i*n+j);
-       dpij_err=err.vals(3*n+i*n+j);
+       dpij_err(i,j)=err.vals(3*n+i*n+j);
      }
    }
    int offset=3*n+n*n;
    for(int i=0; i< n; i++) { 
      for(int j=0; j< n; j++) {
        dpijE(i,j)=avg.vals(offset+i*n+j);
-       dpijE_err=err.vals(offset+i*n+j);
+       dpijE_err(i,j)=err.vals(offset+i*n+j);
      }
    }
    offset+=n*n;
    for(int i=0; i< n; i++) { 
      for(int j=0; j< n; j++) {
        dpidE(i,j)=avg.vals(offset+i*n+j);
-       dpidE_err=err.vals(offset+i*n+j);
+       dpidE_err(i,j)=err.vals(offset+i*n+j);
      }
    }
    
