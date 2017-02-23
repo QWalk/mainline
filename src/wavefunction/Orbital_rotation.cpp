@@ -153,10 +153,9 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
     cout<<activestring[i].c_str()<<endl;
    
   //Need to manipulate data to get initparmstring
-   
+  //After that, just comment out the lines post read-in and we should be fine!
   cout<<"Exit in Orbital_rotation.cpp,32"<<endl;
   exit(0);
-
 
   /*//Multiple determinant read-in
   int f=0;
