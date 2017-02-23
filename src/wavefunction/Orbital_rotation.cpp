@@ -3,8 +3,125 @@
 void Orbital_rotation::read(vector<string> &words, int in_ndet, 
 Array3<Array1<int> > & occupation_orig, 
 Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
+ 
+  //New read-in
+  int f=0;
+  int nfunc=1;
+  ndet=in_ndet;
+  notactive=0;
+
+  //Occupied list sizes
+  Nocc.Resize(ndet,2);
+  Nact.Resize(ndet,2);
+  parms.Resize(ndet,2);
+
+  //Assign Nocc first
+  for(int det=0;det<ndet;det++){
+    Nocc(det,0)=occupation_orig(f,det,0).GetDim(0);
+    Nocc(det,1)=occupation_orig(f,det,1).GetDim(0);
+  }
+ 
+  //Manipulate data to get actudetstring and acttdetstring
+  unsigned int pos=0;
+  Array1<vector<string> > actudetstring;
+  Array1<vector<string> > acttdetstring;
+  actudetstring.Resize(ndet);
+  acttdetstring.Resize(ndet);
+  for(int det=0;det<ndet;det++){
+    vector<string> detstring;
+    if(!readsection(words,pos,detstring,"DET")){
+      error("Did not list enough determinants in OPTIMIZE_DATA"); 
+    }
+    unsigned int detpos=0;
+    vector<string> orbgroupstring;
+    while(readsection(detstring,detpos,orbgroupstring,"ORB_GROUP")){
+      int is0=0;
+      int is1=0;
+      for(int i=0;i<orbgroupstring.size();i++){
+        int val=atoi(orbgroupstring[i].c_str())-1;
+        is0=0;
+        is1=0;
+        //Check if element is occupied
+        for(int k=0;k<occupation_orig(f,det,0).GetDim(0);k++){
+          if(val==occupation_orig(f,det,0)(k)){
+            is0=1;
+          }
+        }
+        for(int k=0;k<occupation_orig(f,det,1).GetDim(0);k++){
+          if(val==occupation_orig(f,det,1)(k)){
+            is1=1;
+          }
+        }
+        vector<string> tmp=orbgroupstring;
+        tmp.erase(tmp.begin()+i);
+        for(int j=0;j<tmp.size();j++){
+          if(is0){
+            int one=1;
+            int two=1;
+            //See if element is occupied
+            for(int k=0;k<occupation_orig(f,det,0).GetDim(0);k++)
+              if(atoi(tmp[j].c_str())-1==occupation_orig(f,det,0)(k))
+                one=0;
+            //See if element exists in actudetstring
+            for(int k=0;k<actudetstring(det).size();k++)
+              if(atoi(tmp[j].c_str())==atoi(actudetstring(det)[k].c_str()))
+                two=0;
+            //Check for two conditions and add
+            if(one && two)
+              actudetstring(det).push_back(tmp[j]);
+          }
+          if(is1){
+            int one=1;
+            int two=1;
+            //See if element is occupied
+            for(int k=0;k<occupation_orig(f,det,1).GetDim(0);k++)
+              if(atoi(tmp[j].c_str())-1==occupation_orig(f,det,1)(k))
+                one=0;
+            //See if element exists in acttdetstring
+            for(int k=0;k<acttdetstring(det).size();k++)
+              if(atoi(tmp[j].c_str())==atoi(acttdetstring(det)[k].c_str()))
+                two=0;
+            //Check for two conditions and add
+            if(one && two)
+              acttdetstring(det).push_back(tmp[j]);
+          }
+        } 
+      }
+    }
+    //Here we have acttdetstring and actudetstring
+    for(int i=0;i<actudetstring(det).size();i++)
+      cout<<atoi(actudetstring(det)[i].c_str())<<endl;
+    for(int i=0;i<acttdetstring(det).size();i++)
+      cout<<atoi(acttdetstring(det)[i].c_str())<<endl;
+  }
   
-  //Multiple determinant read=in
+  //Assign Nact
+  for(int det=0;det<ndet;det++){
+    Nact(det,0)=actudetstring(det).size()+Nocc(det,0);
+    Nact(det,1)=acttdetstring(det).size()+Nocc(det,1);
+  }
+
+  //Need to get activestring and initparmstring
+  /*
+  int offset=0;
+  for(int s=0;s<2;s++){
+    for(int det=0;det<ndet;det++){
+      for(int i=0;i<Nact(det,s)-Nocc(det,s);i++){
+        for(int j=0;j<Nocc(det,s);j++){
+          activestring(i*Nocc(det,s)+j+off)=matrix(det,s)(i,j);
+        }    
+      }
+      offset+=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
+    }
+  }
+
+  */
+    
+  cout<<"Exit in Orbital_rotation.cpp,32"<<endl;
+  exit(0);
+
+
+  /*//Multiple determinant read-in
   int f=0;
   int nfunc=1;
   ndet=in_ndet;
@@ -148,26 +265,26 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
         }
       }
     }
-  }else if(initparmstring.size()!=nparms()+notactive){
-    error("You have an incorrect number of initial parameters, require ",nparms()+notactive);
+  }else if(initparmstring.size()!=nparms()){
+    error("You have an incorrect number of initial parameters, require ",nparms());
   }else{
     int offset=0;
     int k=0;
     for(int det=0;det<ndet;det++){
       for(int s=0;s<2;s++){
         for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++){
-          //if(isactive(i+offset)){
-            parms(det,s)(i)=atof(initparmstring[i+offset].c_str());
-            //parms(det,s)(i)=atof(initparmstring[i+offset-k].c_str());
-           //}else{
-           // parms(det,s)(i)=0;
-           // k++;
-          //}
+          if(isactive(i+offset)){
+            parms(det,s)(i)=atof(initparmstring[i+offset-k].c_str());
+           }else{
+            parms(det,s)(i)=0;
+            k++;
+          } 
         }
         offset+=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
       }
     }
-  }
+  }*/
+
   //Set initial matrices, theta = 0, Rvar = I, parms = 0, R = exp(theta(init_parms))
   theta.Resize(ndet,2);
   r.Resize(ndet,2);
@@ -289,12 +406,8 @@ void Orbital_rotation::writeinput(string & indent, ostream & os){
       int k,l;
       for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++){
         getind(i+offset,det,s,k,l);
-        //if(isactive(i+offset))
+        if(isactive(i+offset))
           os<<tmptheta(det,s)(k,l)<<" ";
-        if((i+1)%Nocc(det,s)==0){
-          os<<" "<<endl;
-          os<<indent+indent2;
-        }
         if(i==Nocc(det,s)*(Nact(det,s)-Nocc(det,s))-1){
           offset+=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
           os<<" "<<endl;
