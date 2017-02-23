@@ -27,14 +27,26 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
   Array1<vector<string> > acttdetstring;
   actudetstring.Resize(ndet);
   acttdetstring.Resize(ndet);
+  Array1<Array1<vector<string> > >groupstrings;
+  groupstrings.Resize(ndet);
+  int ngroup=0;
   for(int det=0;det<ndet;det++){
     vector<string> detstring;
+    ngroup=0;
     if(!readsection(words,pos,detstring,"DET")){
       error("Did not list enough determinants in OPTIMIZE_DATA"); 
     }
     unsigned int detpos=0;
     vector<string> orbgroupstring;
     while(readsection(detstring,detpos,orbgroupstring,"ORB_GROUP")){
+      ngroup++;
+    }
+    detpos=0;
+    groupstrings(det).Resize(ngroup);
+    ngroup=0;
+    while(readsection(detstring,detpos,orbgroupstring,"ORB_GROUP")){
+      groupstrings(det)(ngroup)=orbgroupstring;
+      ngroup++;
       int is0=0;
       int is1=0;
       for(int i=0;i<orbgroupstring.size();i++){
@@ -88,11 +100,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
         } 
       }
     }
-    //Here we have acttdetstring and actudetstring
-    for(int i=0;i<actudetstring(det).size();i++)
-      cout<<atoi(actudetstring(det)[i].c_str())<<endl;
-    for(int i=0;i<acttdetstring(det).size();i++)
-      cout<<atoi(acttdetstring(det)[i].c_str())<<endl;
   }
   
   //Assign Nact
@@ -101,22 +108,52 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
     Nact(det,1)=acttdetstring(det).size()+Nocc(det,1);
   }
 
-  //Need to get activestring and initparmstring
-  /*
-  int offset=0;
-  for(int s=0;s<2;s++){
-    for(int det=0;det<ndet;det++){
+  //Manipulate data to get activestring
+  int off=0;
+  vector <string> activestring;
+  activestring.resize(nparms());
+  for(int det=0;det<ndet;det++){
+    for(int s=0;s<2;s++){
       for(int i=0;i<Nact(det,s)-Nocc(det,s);i++){
         for(int j=0;j<Nocc(det,s);j++){
-          activestring(i*Nocc(det,s)+j+off)=matrix(det,s)(i,j);
+          //Figure out if i and j share an orbital group
+          int pass=0;
+          int passone=0;
+          int passtwo=0;
+          int one=0;
+          if(s==0){
+            one=atoi(actudetstring(det)[i].c_str());
+          }else{
+            one=atoi(acttdetstring(det)[i].c_str());
+          } 
+          int two=occupation_orig(f,det,s)(j)+1;
+          //Loop over groups
+          for(int k=0;k<groupstrings(det).GetDim(0);k++){
+            passone=0;
+            passtwo=0;
+            //Loop over elements in a group
+            for(int l=0;l<groupstrings(det)(k).size();l++){
+               if(one==atoi(groupstrings(det)(k)[l].c_str()))
+                 passone=1;
+               if(two==atoi(groupstrings(det)(k)[l].c_str()))
+                 passtwo=1;
+            }
+            if(passone && passtwo) {pass=1;break;}
+          }
+          if(pass) activestring[i*Nocc(det,s)+j+off]=to_string(1);
+          else activestring[i*Nocc(det,s)+j+off]=to_string(0);
         }    
       }
-      offset+=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
+      off+=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
     }
   }
 
-  */
-    
+  //Print activestring
+  for(int i=0;i<activestring.size();i++)
+    cout<<activestring[i].c_str()<<endl;
+   
+  //Need to manipulate data to get initparmstring
+   
   cout<<"Exit in Orbital_rotation.cpp,32"<<endl;
   exit(0);
 
