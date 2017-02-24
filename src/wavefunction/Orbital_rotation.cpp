@@ -21,14 +21,17 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
     Nocc(det,1)=occupation_orig(f,det,1).GetDim(0);
   }
  
-  //Manipulate data to get actudetstring and acttdetstring
+  //Manipulate data to get actudetstring and actddetstring
   unsigned int pos=0;
+  vector <string> initparmstring;
   Array1<vector<string> > actudetstring;
-  Array1<vector<string> > acttdetstring;
+  Array1<vector<string> > actddetstring;
   actudetstring.Resize(ndet);
-  acttdetstring.Resize(ndet);
+  actddetstring.Resize(ndet);
   Array1<Array1<vector<string> > >groupstrings;
+  Array1<Array1<vector<string> > >groupparms;
   groupstrings.Resize(ndet);
+  groupparms.Resize(ndet);
   int ngroup=0;
   for(int det=0;det<ndet;det++){
     vector<string> detstring;
@@ -41,10 +44,19 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
     while(readsection(detstring,detpos,orbgroupstring,"ORB_GROUP")){
       ngroup++;
     }
-    detpos=0;
     groupstrings(det).Resize(ngroup);
+    groupparms(det).Resize(ngroup);
+    detpos=0;
     ngroup=0;
     while(readsection(detstring,detpos,orbgroupstring,"ORB_GROUP")){
+      //Initial parameters
+      unsigned int tmp=detpos;
+      if(!strncmp(detstring[detpos].c_str(),"PARAMETERS",10)) {
+        readsection(detstring,tmp,groupparms(det)(ngroup),"PARAMETERS");
+      }else
+        groupparms(det)(ngroup).resize(0);
+      
+      //Other stuff 
       groupstrings(det)(ngroup)=orbgroupstring;
       ngroup++;
       int is0=0;
@@ -89,29 +101,39 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
             for(int k=0;k<occupation_orig(f,det,1).GetDim(0);k++)
               if(atoi(tmp[j].c_str())-1==occupation_orig(f,det,1)(k))
                 one=0;
-            //See if element exists in acttdetstring
-            for(int k=0;k<acttdetstring(det).size();k++)
-              if(atoi(tmp[j].c_str())==atoi(acttdetstring(det)[k].c_str()))
+            //See if element exists in actddetstring
+            for(int k=0;k<actddetstring(det).size();k++)
+              if(atoi(tmp[j].c_str())==atoi(actddetstring(det)[k].c_str()))
                 two=0;
             //Check for two conditions and add
             if(one && two)
-              acttdetstring(det).push_back(tmp[j]);
+              actddetstring(det).push_back(tmp[j]);
           }
         } 
       }
-    }
+    }//End read group
   }
   
   //Assign Nact
   for(int det=0;det<ndet;det++){
     Nact(det,0)=actudetstring(det).size()+Nocc(det,0);
-    Nact(det,1)=acttdetstring(det).size()+Nocc(det,1);
+    Nact(det,1)=actddetstring(det).size()+Nocc(det,1);
   }
 
   //Manipulate data to get activestring
   int off=0;
   vector <string> activestring;
   activestring.resize(nparms());
+  Array1<Array1<int> >numup;
+  Array1<Array1<int> >nump;
+  numup.Resize(ndet);
+  nump.Resize(ndet);
+  for(int det=0;det<ndet;det++){
+    numup(det).Resize(groupstrings(det).GetDim(0));
+    numup(det)=0;
+    nump(det).Resize(groupstrings(det).GetDim(0));
+    nump(det)=0;
+  }
   for(int det=0;det<ndet;det++){
     for(int s=0;s<2;s++){
       for(int i=0;i<Nact(det,s)-Nocc(det,s);i++){
@@ -124,7 +146,7 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
           if(s==0){
             one=atoi(actudetstring(det)[i].c_str());
           }else{
-            one=atoi(acttdetstring(det)[i].c_str());
+            one=atoi(actddetstring(det)[i].c_str());
           } 
           int two=occupation_orig(f,det,s)(j)+1;
           //Loop over groups
@@ -138,24 +160,62 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
                if(two==atoi(groupstrings(det)(k)[l].c_str()))
                  passtwo=1;
             }
-            if(passone && passtwo) {pass=1;break;}
+            if(passone && passtwo) {
+              if(s==0) numup(det)(k)++; 
+              nump(det)(k)++;
+              pass=1;
+              break;
+            }
           }
-          if(pass) activestring[i*Nocc(det,s)+j+off]=to_string(1);
-          else activestring[i*Nocc(det,s)+j+off]=to_string(0);
-        }    
+          if(pass) {
+            activestring[i*Nocc(det,s)+j+off]=to_string(1); 
+          }else { 
+            activestring[i*Nocc(det,s)+j+off]=to_string(0);
+          }
+        }
       }
       off+=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
     }
   }
 
+  //Manipulate data to get initparmstring
+  for(int det=0;det<ndet;det++){
+    vector<string> parmu;
+    vector<string> parmd;
+    for(int g=0;g<groupstrings(det).GetDim(0);g++){
+      if(groupparms(det)(g).size()!=0){
+        for(int i=0;i<numup(det)(g);i++)
+          parmu.push_back(groupparms(det)(g)[i]);
+        for(int i=0;i<nump(det)(g)-numup(det)(g);i++)
+          parmd.push_back(groupparms(det)(g)[i+numup(det)(g)]);
+      }else{
+        for(int i=0;i<numup(det)(g);i++)
+          parmu.push_back(to_string(0));
+        for(int i=0;i<nump(det)(g)-numup(det)(g);i++)
+          parmd.push_back(to_string(0));
+      }
+    }
+    //Finally get initparmstring
+    for(int k=0;k<parmu.size();k++)
+      initparmstring.push_back(parmu[k]);
+    for(int k=0;k<parmd.size();k++)
+      initparmstring.push_back(parmd[k]);
+  }
+
+  //Testing
   //Print activestring
-  for(int i=0;i<activestring.size();i++)
-    cout<<activestring[i].c_str()<<endl;
-   
+  //for(int i=0;i<activestring.size();i++)
+  // cout<<activestring[i].c_str()<<endl;
+  
+  //Print initparmstring
+  //for(int i=0;i<initparmstring.size();i++)
+  //  cout<<initparmstring[i].c_str()<<endl;
+  
+  //cout<<"Exit in Orbital_rotation.cpp, 211"<<endl;
+  //exit(0);
+  
   //Need to manipulate data to get initparmstring
   //After that, just comment out the lines post read-in and we should be fine!
-  cout<<"Exit in Orbital_rotation.cpp,32"<<endl;
-  exit(0);
 
   /*//Multiple determinant read-in
   int f=0;
@@ -211,11 +271,14 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
       notactive++;
     }
   }
-  
-  pos=0;
-  vector <string> initparmstring;
-  if(!readsection(words,pos,initparmstring,"INIT_PARMS")){
-    error("Require section INIT_PARMS");
+  */ 
+  //Assign active parameters
+  isactive.Resize(nparms());
+  for(int i=0;i<isactive.GetDim(0);i++){
+    isactive(i)=atoi(activestring[i].c_str());
+    if(!isactive(i)){
+      notactive++;
+    }
   }
 
   //Assign active arrays
@@ -228,7 +291,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
       activeoccupation(f,det,s).Resize(Nact(det,s));
     }
   }
- 
   
   for(int det=0;det<ndet;det++){
     for(int n=0;n<Nocc(det,0);n++){
@@ -286,7 +348,14 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
   occupation_orig=activeoccupation_orig;
   occupation=activeoccupation;
   totoccupation=activetotoccupation;
-  
+ 
+  //Read initial parameters
+  /*pos=0;
+  vector <string> initparmstring;
+  if(!readsection(words,pos,initparmstring,"INIT_PARMS")){
+    error("Require section INIT_PARMS");
+  }
+  */
   //Assign initial parameters
   for(int det=0;det<ndet;det++){
     parms(det,0).Resize(Nocc(det,0)*(Nact(det,0)-Nocc(det,0)));
@@ -319,7 +388,7 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
         offset+=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
       }
     }
-  }*/
+  }
 
   //Set initial matrices, theta = 0, Rvar = I, parms = 0, R = exp(theta(init_parms))
   theta.Resize(ndet,2);
