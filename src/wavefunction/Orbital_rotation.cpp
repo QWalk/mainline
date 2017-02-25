@@ -7,22 +7,31 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
   //New read-in
   int f=0;
   int nfunc=1;
+  doublevar randomparms=0;
   ndet=in_ndet;
   notactive=0;
-
+   
   //Occupied list sizes
   Nocc.Resize(ndet,2);
   Nact.Resize(ndet,2);
   parms.Resize(ndet,2);
 
-  //Assign Nocc first
+  //Assign Nocc 
   for(int det=0;det<ndet;det++){
     Nocc(det,0)=occupation_orig(f,det,0).GetDim(0);
     Nocc(det,1)=occupation_orig(f,det,1).GetDim(0);
   }
+
+  //Check if we want random initial parms
+  unsigned int pos=0;
+  if(haskeyword(words,pos,"RANDOM_PARMS")){
+    randomparms=atof(words[pos+1].c_str()); 
+    if(randomparms==0)
+      error("Please specify a magnitude for random parameters");
+  }
  
   //Manipulate data to get actudetstring and actddetstring
-  unsigned int pos=0;
+  pos=0;
   vector <string> initparmstring;
   Array1<vector<string> > actudetstring;
   Array1<vector<string> > actddetstring;
@@ -195,83 +204,12 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
           parmd.push_back(to_string(0));
       }
     }
-    //Finally get initparmstring
     for(int k=0;k<parmu.size();k++)
       initparmstring.push_back(parmu[k]);
     for(int k=0;k<parmd.size();k++)
       initparmstring.push_back(parmd[k]);
   }
 
-  //Testing
-  //Print activestring
-  //for(int i=0;i<activestring.size();i++)
-  // cout<<activestring[i].c_str()<<endl;
-  
-  //Print initparmstring
-  //for(int i=0;i<initparmstring.size();i++)
-  //  cout<<initparmstring[i].c_str()<<endl;
-  
-  //cout<<"Exit in Orbital_rotation.cpp, 211"<<endl;
-  //exit(0);
-  
-  //Need to manipulate data to get initparmstring
-  //After that, just comment out the lines post read-in and we should be fine!
-
-  /*//Multiple determinant read-in
-  int f=0;
-  int nfunc=1;
-  ndet=in_ndet;
-  notactive=0;
-
-  //Occupied list sizes
-  Nocc.Resize(ndet,2);
-  Nact.Resize(ndet,2);
-  parms.Resize(ndet,2);
-
-  //Assign Nocc first
-  for(int det=0;det<ndet;det++){
-    Nocc(det,0)=occupation_orig(f,det,0).GetDim(0);
-    Nocc(det,1)=occupation_orig(f,det,1).GetDim(0);
-  }
-  
-  //Read in active spaces, active parameters, and initial parameters 
-  unsigned int pos=0;
-  Array1<vector<string> > actudetstring;
-  actudetstring.Resize(ndet);
-  for(int det=0;det<ndet;det++){
-    if(!readsection(words,pos,actudetstring(det),"VIRTUAL_SPACE_U")){
-      error("Didn't list enough virtual_space_u, expected ",ndet, " got ", det);
-    }
-    Nact(det,0)=actudetstring(det).size()+Nocc(det,0);
-  }
-
-  pos=0;
-  Array1<vector<string> > actddetstring;
-  actddetstring.Resize(ndet);
-  for(int det=0;det<ndet;det++){
-    if(!readsection(words,pos,actddetstring(det),"VIRTUAL_SPACE_D")){
-      error("Didn't list enough vritual_space_d, expected ",ndet, " got ", det);
-    }
-    Nact(det,1)=actddetstring(det).size()+Nocc(det,1);
-  }
-
-  pos=0;
-  vector <string> activestring;
-  if(!readsection(words,pos,activestring,"ACTIVE_PARMS")){
-    error("Require section ACTIVE_PARMS");
-  }
-  if(activestring.size()!=nparms()){
-    error("Require ", nparms()," terms in ACTIVE_PARMS, but only ", activestring.size()," provided.");
-  }
-  //Assign active parameters
-  isactive.Resize(nparms());
-  for(int i=0;i<isactive.GetDim(0);i++){
-    isactive(i)=atoi(activestring[i].c_str());
-    if(!isactive(i)){
-      notactive++;
-    }
-  }
-  */ 
   //Assign active parameters
   isactive.Resize(nparms());
   for(int i=0;i<isactive.GetDim(0);i++){
@@ -319,12 +257,11 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
             break;
           }
         }
-        if(place==-1) { //if we didn't find the MO
+        if(place==-1) { 
           activeoccupation(f,det,s)(mo)=totocctemp.size();
           totocctemp.push_back(activeoccupation_orig(f,det,s)(mo));
         }
         else {
-          //cout << "found it" << endl;
           activeoccupation(f,det,s)(mo)=place;
         }
       }
@@ -333,6 +270,7 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
     for(int i=0; i<activetotoccupation(s).GetDim(0); i++)
      activetotoccupation(s)(i) = totocctemp[i];
   }
+
   //Alter matrices
   occupation_orig.Resize(nfunc,ndet,2);
   occupation.Resize(nfunc,ndet,2);
@@ -349,37 +287,60 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
   occupation=activeoccupation;
   totoccupation=activetotoccupation;
  
-  //Read initial parameters
-  /*pos=0;
-  vector <string> initparmstring;
-  if(!readsection(words,pos,initparmstring,"INIT_PARMS")){
-    error("Require section INIT_PARMS");
-  }
-  */
   //Assign initial parameters
   for(int det=0;det<ndet;det++){
     parms(det,0).Resize(Nocc(det,0)*(Nact(det,0)-Nocc(det,0)));
     parms(det,1).Resize(Nocc(det,1)*(Nact(det,1)-Nocc(det,1)));
   }
-  if(initparmstring.size()==0){
-    cout<<"No initial parameters specified, setting all to zero."<<endl;
-    for(int det=0;det<ndet;det++){
-      for(int s=0;s<2;s++){
-        for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++){
-          parms(det,s)(i)=0;
+  if(randomparms==0){
+    if(initparmstring.size()==0){
+      cout<<"No initial parameters specified, setting all to zero."<<endl;
+      for(int det=0;det<ndet;det++){
+        for(int s=0;s<2;s++){
+          for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++){
+            parms(det,s)(i)=0;
+          }
+        }
+      }
+    }else if(initparmstring.size()!=nparms()){
+      error("You have an incorrect number of initial parameters, require ",nparms());
+    }else{
+      int offset=0;
+      int k=0;
+      for(int det=0;det<ndet;det++){
+        for(int s=0;s<2;s++){
+          for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++){
+            if(isactive(i+offset)){
+              parms(det,s)(i)=atof(initparmstring[i+offset-k].c_str());
+             }else{
+              parms(det,s)(i)=0;
+              k++;
+            } 
+          }
+          offset+=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
         }
       }
     }
-  }else if(initparmstring.size()!=nparms()){
-    error("You have an incorrect number of initial parameters, require ",nparms());
   }else{
+    cout<<"Randomizing initial parameters"<<endl;
     int offset=0;
     int k=0;
+    srand (time(NULL));
+    //Warmup
+    for(int det=0;det<ndet;det++)
+      for(int s=0;s<2;s++)
+        for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++)
+          doublevar tmp=(rand()*2.0*randomparms/float(RAND_MAX))-randomparms;
+    
+    //Randomize initparms
+    cout<<"Initial parameters:"<<endl;
     for(int det=0;det<ndet;det++){
       for(int s=0;s<2;s++){
         for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++){
           if(isactive(i+offset)){
-            parms(det,s)(i)=atof(initparmstring[i+offset-k].c_str());
+            //Random numbers chosen between [-randomparms, randomparms] uniformly
+            parms(det,s)(i)=(rand()*2.0*randomparms/float(RAND_MAX))-randomparms;
+            cout<<parms(det,s)(i)<<endl;
            }else{
             parms(det,s)(i)=0;
             k++;
@@ -433,8 +394,9 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
 }
 
 void Orbital_rotation::writeinput(string & indent, ostream & os){
- 
-  os<<indent<<"OPTIMIZE_MO"<<endl;
+  //This doesn't work correctly yet
+
+  /*os<<indent<<"OPTIMIZE_MO"<<endl;
   os<<indent<<"OPTIMIZE_DATA {"<<endl;
   string indent2=indent+"  ";
   int f=0;
@@ -524,6 +486,7 @@ void Orbital_rotation::writeinput(string & indent, ostream & os){
 
   os<<"}"<<endl;
   os<<indent<<"}"<<endl;
+  */
 }
 
 void Orbital_rotation::setTheta(void){
