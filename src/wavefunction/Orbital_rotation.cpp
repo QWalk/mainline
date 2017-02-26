@@ -3,14 +3,17 @@
 void Orbital_rotation::read(vector<string> &words, int in_ndet, 
 Array3<Array1<int> > & occupation_orig, 
 Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
- 
+  //This read-in is somewhat long because I am using a new input file 
+  //but the old data structure. Hence blocks of code with "Manipulate data"
+  //are just there to take the new input format and map it to the old data structures.
+
   //New read-in
   int f=0;
   int nfunc=1;
-  doublevar randomparms=0;
   ndet=in_ndet;
   notactive=0;
-   
+  randomparms=0;
+
   //Occupied list sizes
   Nocc.Resize(ndet,2);
   Nact.Resize(ndet,2);
@@ -37,7 +40,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
   Array1<vector<string> > actddetstring;
   actudetstring.Resize(ndet);
   actddetstring.Resize(ndet);
-  Array1<Array1<vector<string> > >groupstrings;
   Array1<Array1<vector<string> > >groupparms;
   groupstrings.Resize(ndet);
   groupparms.Resize(ndet);
@@ -187,27 +189,59 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
     }
   }
 
-  //Manipulate data to get initparmstring
+  //Manipulate data to get initparmstring and parminfodet/g
+  vector<string> parminfodet;
+  vector<string> parminfog;
   for(int det=0;det<ndet;det++){
     vector<string> parmu;
     vector<string> parmd;
+    vector<string> parminfodetu;
+    vector<string> parminfodetd;
+    vector<string> parminfogu;
+    vector<string> parminfogd;
     for(int g=0;g<groupstrings(det).GetDim(0);g++){
       if(groupparms(det)(g).size()!=0){
-        for(int i=0;i<numup(det)(g);i++)
+        for(int i=0;i<numup(det)(g);i++){
           parmu.push_back(groupparms(det)(g)[i]);
-        for(int i=0;i<nump(det)(g)-numup(det)(g);i++)
+          parminfodetu.push_back(to_string(det));
+          parminfogu.push_back(to_string(g));
+        }
+        for(int i=0;i<nump(det)(g)-numup(det)(g);i++){
           parmd.push_back(groupparms(det)(g)[i+numup(det)(g)]);
+          parminfodetd.push_back(to_string(det));
+          parminfogd.push_back(to_string(g));
+        }
       }else{
-        for(int i=0;i<numup(det)(g);i++)
+        for(int i=0;i<numup(det)(g);i++){
           parmu.push_back(to_string(0));
-        for(int i=0;i<nump(det)(g)-numup(det)(g);i++)
+          parminfodetu.push_back(to_string(det));
+          parminfogu.push_back(to_string(g));
+        }
+        for(int i=0;i<nump(det)(g)-numup(det)(g);i++){
           parmd.push_back(to_string(0));
+          parminfodetd.push_back(to_string(det));
+          parminfogd.push_back(to_string(g));
+        }
       }
     }
-    for(int k=0;k<parmu.size();k++)
+    for(int k=0;k<parmu.size();k++){
       initparmstring.push_back(parmu[k]);
-    for(int k=0;k<parmd.size();k++)
+      parminfodet.push_back(parminfodetu[k]);
+      parminfog.push_back(parminfogu[k]);
+    }
+    for(int k=0;k<parmd.size();k++){
       initparmstring.push_back(parmd[k]);
+      parminfodet.push_back(parminfodetd[k]);
+      parminfog.push_back(parminfogd[k]);
+    }
+  }
+
+  //Assign parminfo
+  parminfo.Resize(parminfodet.size());
+  for(int i=0;i<parminfo.GetDim(0);i++){
+    parminfo(i).Resize(2);
+    parminfo(i)(0)=atoi(parminfodet[i].c_str());
+    parminfo(i)(1)=atoi(parminfog[i].c_str());
   }
 
   //Assign active parameters
@@ -394,33 +428,9 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
 }
 
 void Orbital_rotation::writeinput(string & indent, ostream & os){
+  
   //This doesn't work correctly yet
-
-  /*os<<indent<<"OPTIMIZE_MO"<<endl;
-  os<<indent<<"OPTIMIZE_DATA {"<<endl;
   string indent2=indent+"  ";
-  int f=0;
-  for(int det=0;det<ndet;det++){
-    os<<indent2<<"VIRTUAL_SPACE_U { ";
-    for(int i=Nocc(det,0);i<Nact(det,0);i++){
-      os<<activeoccupation_orig(f,det,0)(i)+1<<" ";
-    }
-    os<<"}"<<endl;
-    os<<indent2<<"VIRTUAL_SPACE_D { ";
-    for(int i=Nocc(det,1);i<Nact(det,1);i++){
-      os<<activeoccupation_orig(f,det,1)(i)+1<<" ";
-    }
-    os<<"} "<<endl;
-  }
-  os<<indent2<<"ACTIVE_PARMS { ";
-  for(int i=0;i<nparms()+notactive;i++){
-    os<<isactive(i)<<" ";
-  }
-  os<<"}"<<endl;
-
-  os<<indent2<<"INIT_PARMS { "<<endl;
-  os<<indent+indent2;
-
   //Get final rotation parameters!
   Array2<Array2<dcomplex> > Ain;
   Array2<Array1<dcomplex> > W;
@@ -429,6 +439,7 @@ void Orbital_rotation::writeinput(string & indent, ostream & os){
   Array2<Array2<dcomplex> > VRinvT;
   Array2<Array2<dcomplex> > VRinv;
   Array2<Array2<doublevar> > tmptheta;
+  Array1<doublevar> parms;
 
   Ain.Resize(ndet,2);
   W.Resize(ndet,2);
@@ -437,8 +448,10 @@ void Orbital_rotation::writeinput(string & indent, ostream & os){
   VRinv.Resize(ndet,2);
   VRinvT.Resize(ndet,2);
   tmptheta.Resize(ndet,2);
+  parms.Resize(nparms());
 
   int offset=0;
+  int q=0;
   for(int det=0;det<ndet;det++){
     for(int s=0;s<2;s++){
       Ain(det,s).Resize(Nact(det,s),Nact(det,s));
@@ -473,20 +486,37 @@ void Orbital_rotation::writeinput(string & indent, ostream & os){
       int k,l;
       for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++){
         getind(i+offset,det,s,k,l);
-        if(isactive(i+offset))
-          os<<tmptheta(det,s)(k,l)<<" ";
-        if(i==Nocc(det,s)*(Nact(det,s)-Nocc(det,s))-1){
+        if(isactive(i+offset)){
+          parms(i+offset-q)=tmptheta(det,s)(k,l);
+        }else
+          q++;
+        if(i==Nocc(det,s)*(Nact(det,s)-Nocc(det,s))-1)
           offset+=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
-          os<<" "<<endl;
-          os<<indent+indent2;
-        }
       }
     }
   }
 
-  os<<"}"<<endl;
+  //Write input file
+  os<<indent<<"OPTIMIZE_MO"<<endl;
+  os<<indent<<"OPTIMIZE_DATA {"<<endl;
+  int f=0;
+  for(int det=0;det<ndet;det++){
+    os<<indent2<<"DET {"<<endl;
+    for(int g=0;g<groupstrings(det).GetDim(0);g++){
+      os<<indent2<<indent<<"ORB_GROUP { ";
+      for(int l=0;l<groupstrings(det)(g).size();l++)
+        os<<groupstrings(det)(g)[l].c_str()<<" ";
+      os<<"}"<<endl;
+      //Print out final parameters 
+      os<<indent2<<indent<<"PARAMETERS { ";
+      for(int i=0;i<parms.GetDim(0);i++)
+        if(parminfo(i)(0)==det && parminfo(i)(1)==g)
+          os<<parms(i)<<" ";
+      os<<"}"<<endl;
+    }
+    os<<indent2<<" } "<<endl;
+  }
   os<<indent<<"}"<<endl;
-  */
 }
 
 void Orbital_rotation::setTheta(void){

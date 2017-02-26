@@ -46,9 +46,15 @@ private:
 
   int ndet;            //Number of determinants
   int notactive;       //Total number of inactive parameters 
+  doublevar randomparms; //Whether we want randomized initial parameters
   void setTheta(void); //Set theta matrix based on parms 
   void setRvar(void);  //Rvar=exp(theta)
   void getind(int n,int& det,int& s,int& i,int& j); //Get index of parameter n
+
+  //Useful for writeinput()
+  Array1<Array1<vector<string> > >groupstrings; //Contains ORB_GROUPs
+  //For each active parameter, parminfo(i) has the determinant and group it resides in
+  Array1<Array1<doublevar> >parminfo;
 };
 
 template <class T>
