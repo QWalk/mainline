@@ -410,5 +410,8 @@ private:
 };
 
 
+
+
+
 #endif //AVERAGE_GENERATOR_H_INCLUDED
 

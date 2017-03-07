@@ -7,6 +7,7 @@
 #include "Average_region_fluctuation.h"
 #include "Average_enmoment.h"
 #include "Average_derivative_dm.h"
+#include "Average_quadrupole.h"
 #include "Properties_point.h"
 #include "jsontools.h"
 
@@ -54,6 +55,9 @@ int decide_averager(string & label, Average_generator *& avg) {
     avg=new Average_fourier_density;
   else if(caseless_eq(label,"AVERAGE_DERIVATIVE_DM"))
     avg=new Average_derivative_dm;
+  else if(caseless_eq(label,"QUADRUPOLE"))
+    avg=new Average_quadrupole;
+  
   else 
     error("Didn't understand ", label, " in Average_generator.");
   
@@ -2155,4 +2159,6 @@ void Average_wf_parmderivs::jsonOutput(Average_return &avg ,Average_return & err
    
 }
 //-----------------------------------------------------------------------------
+
+
 
