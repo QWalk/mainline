@@ -62,7 +62,8 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
     while(readsection(detstring,detpos,orbgroupstring,"ORB_GROUP")){
       //Initial parameters
       unsigned int tmp=detpos;
-      if(!strncmp(detstring[detpos].c_str(),"PARAMETERS",10)) {
+      //if(!strncmp(detstring[detpos].c_str(),"PARAMETERS",10)) {
+      if(caseless_eq(detstring[detpos].c_str(),"PARAMETERS")) {
         readsection(detstring,tmp,groupparms(det)(ngroup),"PARAMETERS");
       }else
         groupparms(det)(ngroup).resize(0);
@@ -179,9 +180,9 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
             }
           }
           if(pass) {
-            activestring[i*Nocc(det,s)+j+off]=to_string(1); 
+            activestring[i*Nocc(det,s)+j+off]="1"; 
           }else { 
-            activestring[i*Nocc(det,s)+j+off]=to_string(0);
+            activestring[i*Nocc(det,s)+j+off]="0";
           }
         }
       }
@@ -190,37 +191,47 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
   }
 
   //Manipulate data to get initparmstring and parminfodet/g
-  vector<string> parminfodet;
-  vector<string> parminfog;
+  //vector<string> parminfodet;
+  //vector<string> parminfog;
+  vector<int> parminfodet;
+  vector<int> parminfog;
   for(int det=0;det<ndet;det++){
+    /*
     vector<string> parmu;
     vector<string> parmd;
     vector<string> parminfodetu;
     vector<string> parminfodetd;
     vector<string> parminfogu;
     vector<string> parminfogd;
+    */
+    vector<string> parmu;
+    vector<string> parmd;
+    vector<int> parminfodetu;
+    vector<int> parminfodetd;
+    vector<int> parminfogu;
+    vector<int> parminfogd;
     for(int g=0;g<groupstrings(det).GetDim(0);g++){
       if(groupparms(det)(g).size()!=0){
         for(int i=0;i<numup(det)(g);i++){
           parmu.push_back(groupparms(det)(g)[i]);
-          parminfodetu.push_back(to_string(det));
-          parminfogu.push_back(to_string(g));
+          parminfodetu.push_back(det);
+          parminfogu.push_back(g);
         }
         for(int i=0;i<nump(det)(g)-numup(det)(g);i++){
           parmd.push_back(groupparms(det)(g)[i+numup(det)(g)]);
-          parminfodetd.push_back(to_string(det));
-          parminfogd.push_back(to_string(g));
+          parminfodetd.push_back(det);
+          parminfogd.push_back(g);
         }
       }else{
         for(int i=0;i<numup(det)(g);i++){
-          parmu.push_back(to_string(0));
-          parminfodetu.push_back(to_string(det));
-          parminfogu.push_back(to_string(g));
+          parmu.push_back("0");
+          parminfodetu.push_back(det);
+          parminfogu.push_back(g);
         }
         for(int i=0;i<nump(det)(g)-numup(det)(g);i++){
-          parmd.push_back(to_string(0));
-          parminfodetd.push_back(to_string(det));
-          parminfogd.push_back(to_string(g));
+          parmd.push_back("0");
+          parminfodetd.push_back(det);
+          parminfogd.push_back(g);
         }
       }
     }
@@ -235,13 +246,12 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
       parminfog.push_back(parminfogd[k]);
     }
   }
-
   //Assign parminfo
   parminfo.Resize(parminfodet.size());
   for(int i=0;i<parminfo.GetDim(0);i++){
     parminfo(i).Resize(2);
-    parminfo(i)(0)=atoi(parminfodet[i].c_str());
-    parminfo(i)(1)=atoi(parminfog[i].c_str());
+    parminfo(i)(0)=parminfodet[i];
+    parminfo(i)(1)=parminfog[i];
   }
 
   //Assign active parameters
