@@ -174,10 +174,6 @@ void Test_method::run(Program_options & options, ostream & output)
   }
   
   cout << "#############checking derivatives" << endl;
-  /*
-  The derivatives check out as long as rotMoVals isn't implemented at all. This is promising, 
-  since it means that my read-in hasn't screwed up!
-  */
   const doublevar del=1e-6;
   Array1 <doublevar> epos(3);
   Array1 <doublevar> new_epos(3);
