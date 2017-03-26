@@ -12,16 +12,16 @@ reports=[]
 allsuc=[]
 
 print(""" Testing derivatives """)
-
-
 test_str=str(subprocess.check_output([QW,'qw.testder']))
-
 if test_str.count("FAILED") > 4:
   print("Failed")
 else:
   print("Succeeded")
 
-
+print(""" Testing derivatives with orbital rotation """)
+test_str=str(subprocess.check_output([QW,'qw.testder_orbrot']))
+print("Number failed: ", test_str.count("FAILED"))
+print("Number passed: ", test_str.count("OK"))
 
 print("""###########################################
 Checking the linear method for the H2 molecule. 

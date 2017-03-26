@@ -212,6 +212,9 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
     vector<int> parminfogd;
     for(int g=0;g<groupstrings(det).GetDim(0);g++){
       if(groupparms(det)(g).size()!=0){
+        if(groupparms(det)(g).size()!=nump(det)(g)){
+          error("Expected ", nump(det)(g), " parameters, got ", groupparms(det)(g).size());
+        }
         for(int i=0;i<numup(det)(g);i++){
           parmu.push_back(groupparms(det)(g)[i]);
           parminfodetu.push_back(det);
