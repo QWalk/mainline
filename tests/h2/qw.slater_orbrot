@@ -21,7 +21,7 @@
    #DET 1
      DET { 
       #Orbitals that can mix
-      ORB_GROUP { 2 4 5 }
+      ORB_GROUP { 1 2 4 }
      }
    #DET 2
      DET { 
