@@ -341,7 +341,8 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
   }
   if(randomparms==0){
     if(initparmstring.size()==0){
-      cout<<"No initial parameters specified, setting all to zero."<<endl;
+      //cout<<"No initial parameters specified, setting all to zero."<<endl;
+      single_write(cout,"No initial parameters specified, setting all to zero.\n");
       for(int det=0;det<ndet;det++){
         for(int s=0;s<2;s++){
           for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++){
@@ -369,7 +370,8 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
       }
     }
   }else{
-    cout<<"Randomizing initial parameters"<<endl;
+    //cout<<"Randomizing initial parameters"<<endl;
+    single_write(cout,"Randomizing initial parameters.\n");
     int offset=0;
     int k=0;
     srand (time(NULL));
@@ -380,14 +382,12 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
           doublevar tmp=(rand()*2.0*randomparms/float(RAND_MAX))-randomparms;
     
     //Randomize initparms
-    cout<<"Initial parameters:"<<endl;
     for(int det=0;det<ndet;det++){
       for(int s=0;s<2;s++){
         for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++){
           if(isactive(i+offset)){
             //Random numbers chosen between [-randomparms, randomparms] uniformly
             parms(det,s)(i)=(rand()*2.0*randomparms/float(RAND_MAX))-randomparms;
-            cout<<parms(det,s)(i)<<endl;
            }else{
             parms(det,s)(i)=0;
             k++;

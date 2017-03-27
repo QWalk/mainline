@@ -187,7 +187,6 @@ void Test_method::run(Program_options & options, ostream & output)
     doublevar lap=0;
     doublevar phaselap=0;
     for(int d=0;d < 3; d++) {
-      cout << "here " << endl;
       new_epos=epos;
       new_epos(d)+=del;
       sample->setElectronPos(e, new_epos);
