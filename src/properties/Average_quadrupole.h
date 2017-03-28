@@ -1,7 +1,7 @@
 #include "Average_generator.h"
 
 #ifndef AVERAGE_QUADRUPOLE_H_INCLUDED
-
+#endif
 /*!
  \brief 
  Accumulate the derivative of the wave function with respect to the parameters. 
