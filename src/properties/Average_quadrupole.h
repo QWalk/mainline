@@ -1,7 +1,7 @@
 #include "Average_generator.h"
 
 #ifndef AVERAGE_QUADRUPOLE_H_INCLUDED
-#endif
+#define AVERAGE_QUADRUPOLE_H_INCLUDED
 /*!
  \brief 
  Accumulate the derivative of the wave function with respect to the parameters. 
@@ -21,5 +21,5 @@ private:
   Array2 <doublevar> gvecs; //(number of gvecs, vectors)
 };
 
-
+#endif //AVERAGE_QUADRUPOLE_H_INCLUDED
 
