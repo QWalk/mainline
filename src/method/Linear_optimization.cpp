@@ -99,26 +99,13 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
   
   wfdata->getVarParms(alpha);
   int nzero_iterations=0;
-  
-  //ofstream myf;
-  //myf.open("en.out");
-  
 
   for(int it=0; it< iterations; it++) {
     Array1 <doublevar> olden=en;
     wavefunction_derivative(H,S,en);
-    
-    //myf<<en(0)<<endl;
-    //myf<<en(1)<<endl;
-
     output << "step " << it << ": current energy " << setprecision(10) << en(0) 
            << " +/- " << setprecision(10) << en(1);
     output.flush();
-    if(it > 0){
-      //cout<<"Exit in Linear_optimization.cpp, 116"<<endl;
-      //exit(0);
-    }
-    //if(it > 0) 
     //  output << "  energy change " << en(0)-olden(0) 
     //    << " +/- " << sqrt(en(1)*en(1)+olden(1)*olden(1)) << endl;
     
@@ -198,8 +185,8 @@ doublevar find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
   doublevar min_eigenval=W(0).real();
   doublevar max_p0=0.0;
   for(int i=0; i< n; i++) { 
-    //single_write(cout,"eigenvalue ",i," ");
-    //single_write(cout,W(i),"\n");
+    single_write(cout,"eigenvalue ",i," ");
+    single_write(cout,W(i),"\n");
     
     //if(W(i).real() < min_eigenval) { 
     //  min_index=i;
@@ -217,13 +204,13 @@ doublevar find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
   }
 
   Array1 <doublevar> dp(n);
-  //single_write(cout,"eigenvector ");
+  single_write(cout,"eigenvector ");
   for(int i=0; i < n; i++) { 
     dp(i)=VR(min_index,i);
-    //single_write(cout,dp(i)," ");
+    single_write(cout,dp(i)," ");
   }
-  //single_write(cout,"\n");
-  //single_write(cout,"eigenvalue ",min_eigenval,"\n");
+  single_write(cout,"\n");
+  single_write(cout,"eigenvalue ",min_eigenval,"\n");
   
   doublevar dpnorm=0.0;
   for(int i=0; i< n; i++) dpnorm+=dp(i)*dp(i);
@@ -461,41 +448,6 @@ void Linear_optimization_method::uncorrelated_evaluation(Array1 <Array1 <doublev
 
 void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar> > & alphas,int ref_alpha,Array2 <doublevar> & energies) {
 
-  /*********************************************************************/
-  //New sampling 
-  /* 
-  Sample_point * sample=NULL;
-  Wavefunction * wf=NULL;
-  sys->generateSample(sample);
- 
-  //Make first wavefunction
-  wfdata->generateWavefunction(wf);
-  
-  //Make second wavefunction_data and wavefunction
-  Wavefunction_data * wfdata1 = duplicate(wfdata);
-  Wavefunction * wf1=NULL;
-  wfdata1->setVarParms(alphas(ref_alpha+1));       //For now we just sample the sum squares over 2 functions
-  wfdata1->generateWavefunction(wf1);
- 
-  //Make the concatenated wave function
-  vector <Wavefunction_data *> wfdatas;
-  wfdatas.push_back(wfdata);
-  wfdatas.push_back(wfdata1);
-  Concatenate_wf_data * mywfdata = new Concatenate_wf_data(wfdatas);
-  vector <Wavefunction *> wfs;
-  wfs.push_back(wf);
-  wfs.push_back(wf1);
-  Concatenate_wf * mywf = new Concatenate_wf(wfs);
-
-  sample->attachObserver(mywf);
-  Array1 <Config_save_point> config_pos(nconfig_eval);
-  Vmc_sum_squares guide;
-  int nwfs=alphas.GetDim(0);
-  energies.Resize(nwfs,2);
-  generate_sample(sample,mywf,mywfdata,&guide,nconfig_eval,config_pos,500,10);
-  */
-  /*********************************************************************/
-  //Old sampling 
   Sample_point * sample=NULL;
   Wavefunction * wf=NULL;
   sys->generateSample(sample);
@@ -537,19 +489,8 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
   Array1 <doublevar> diff_var(nwfs,0.0),weight_var(nwfs,0.0);
   Array1 <doublevar> avg_en_unweight(nwfs,0.0);
   Array2 <doublevar> diff_en(nwfs,nconfig_eval,0.0);
-  //ofstream myf;
   for(int w=0; w< nwfs; w++) {
-    //myf.open("weights_"+to_string(nconfig_eval)+"_"+to_string(w)+".dat");
     for(int config=0; config < nconfig_eval; config++){ 
-      /*********************************************************************/
-      //New weight
-      /*doublevar num=exp(2*(wf_vals(w,config).amp(0,0)));
-      doublevar den=exp(2*(wf_vals(ref_alpha+1,config).amp(0,0)));
-      den+=exp(2*(wf_vals(ref_alpha,config).amp(0,0)));
-      doublevar weight=num/den;
-      */
-      /*********************************************************************/
-      //Old weight
       doublevar weight=exp(2*(wf_vals(w,config).amp(0,0)-wf_vals(ref_alpha,config).amp(0,0)));
       
       avg_energies(w)+=weight*all_energies(w,config)/nconfig_eval;
@@ -668,7 +609,6 @@ bool  Linear_optimization_method::deriv_is_significant(Average_return & avg,
     int n) { 
   doublevar thresh=3; //Number of sigmas above which we consider this significant
   
-  //None of these terms make sense, except for enderiv
   int nsig_S0=0;
   for(int i=0; i< n; i++) {
     if(fabs(avg.vals(n+i)/err.vals(n+i)) > thresh) nsig_S0++;
@@ -690,16 +630,15 @@ bool  Linear_optimization_method::deriv_is_significant(Average_return & avg,
   int nsig_H=0;
   for(int i=0; i< n; i++) { 
     for(int j=0; j< n; j++) { 
-      //if(fabs(avg.vals(3*n+2*n*n+i*n+j)/err.vals(3*n+2*n*n+i*n+j)) > thresh) 
-      if(fabs(avg.vals(3*n+n*n+i*n+j)/err.vals(3*n+2*n*n+i*n+j)) > thresh) 
+      if(fabs(avg.vals(3*n+2*n*n+i*n+j)/err.vals(3*n+2*n*n+i*n+j)) > thresh) 
         nsig_H++;
     }
   }
   single_write(cout, "proportions significant\n");
   single_write(cout, "S0 ", double(nsig_S0)/double(n), "\n");
-  single_write(cout, "S ", double(nsig_S)/double(n*n), "\n");
+  single_write(cout, "S ", double(nsig_S0)/double(n*n), "\n");
   single_write(cout, "H0 ", double(nsig_H0)/double(n), "\n");
-  single_write(cout, "H ", double(nsig_H)/double(n*n), "\n");
+  single_write(cout, "H ", double(nsig_H0)/double(n*n), "\n");
   single_write(cout, "enderiv ", double(nsig_enderiv)/double(n), "\n");
   //if(double(nsig_H0)/double(n) > sig_H_threshold) return true;
   //else return false;
