@@ -1,30 +1,40 @@
-# Compiled source #
-###################
-*.com
-*.class
-*.dll
-*.exe
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
 *.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
 *.so
-*.pyc
- 
-# Packages #
-############
-# it's better to unpack these files and commit the raw source
-# git has its own built in compression methods
-*.7z
-*.dmg
-*.gz
-*.iso
-*.jar
-*.rar
-*.tar
-*.zip
- 
-# Logs, tmp files, and databases #
-######################
-*.swp
-*.log
-*.sql
-*.sqlite
-.DS_Store
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+#Other things
+*.html
+*-Darwin
+src/obj/*
+src/latex/*
+src/html/*
+bin/*

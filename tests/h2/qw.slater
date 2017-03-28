@@ -1,8 +1,8 @@
-  SLATER 
+ SLATER 
   ORBITALS {
   CUTOFF_MO
     MAGNIFY 1
-    NMO 1
+    NMO 1 
     ORBFILE qw.orb
     INCLUDE qw.basis
     CENTERS { USEGLOBAL } 

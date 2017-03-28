@@ -23,4 +23,3 @@ template <class T> void jsonarray(std::ostream & os, Array2 <T> & arr) {
   }
   os << "\n ] ";
 }
-

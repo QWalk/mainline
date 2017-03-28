@@ -116,7 +116,11 @@ public:
   int nparms(){
     return bfwrapper.nparms()+pfkeeper.nparms();
   }
- 
+
+  Backflow_pf_wf_data * clone () const {
+    error("clone() not implemented for Backflow_pf_wf_data yet");
+    return NULL;
+  }
 
 private:
   friend class Backflow_pf_wf;

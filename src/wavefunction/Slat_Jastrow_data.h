@@ -39,6 +39,7 @@ public:
   virtual int supports(wf_support_type );
   void generateWavefunction(Wavefunction *&);
   int valSize();
+  void lockInParms(Array1<doublevar> & );
   void getVarParms(Array1 <doublevar> & );
   void setVarParms(Array1 <doublevar> & );
   virtual void linearParms(Array1 <bool> & is_linear);
@@ -80,6 +81,14 @@ public:
     jastrow->clearObserver();
   }
   
+
+  Slat_Jastrow_data * clone() const {
+    return new Slat_Jastrow_data(*this); 
+  } 
+  Slat_Jastrow_data(const Slat_Jastrow_data & wfdata){
+    slater=wfdata.slater->clone();
+    jastrow=wfdata.jastrow->clone();
+  }
 
 private:
   friend class Slat_Jastrow;

@@ -1,16 +1,42 @@
-  SLATER 
-  ORBITALS {
-  CUTOFF_MO
-    MAGNIFY 1
-    NMO 5
-    ORBFILE qw.orb
-    INCLUDE qw.basis
-    CENTERS { USEGLOBAL } 
+SLATER
+ORBITALS {
+CUTOFF_MO
+  MAGNIFY 1
+  NMO 8 
+  ORBFILE qw.orb
+  INCLUDE qw.basis
+  CENTERS { USEGLOBAL }
+}
+#include cidet
+#include det0
+#include det1
+include det2
+
+OPTIMIZE_MO
+OPTIMIZE_DATA{
+  #ACTIVE_SPACE_U { 1 2 3 4 5 }
+  #ACTIVE_SPACE_D { 1 2 3 4 5 7 } 
+  
+  VIRTUAL_SPACE_U { }
+  VIRTUAL_SPACE_D { 7 }
+
+  #ACTIVE_SPACE_U { 1 2 3 4 6 7 }
+  #ACTIVE_SPACE_D { 1 2 3 4 6 5 } 
+  
+  VIRTUAL_SPACE_U { 7 8 }
+  VIRTUAL_SPACE_D { 5 }
+
+  #ACTIVE_SPACE_U { 1 2 3 4 7 8 }
+  #ACTIVE_SPACE_D { 1 2 3 4 7 6 } 
+
+  VIRTUAL_SPACE_U { 6 }
+  VIRTUAL_SPACE_D { }
+
+  INIT_PARMS {
+   1 2 3 4 5 
+   6 7 8 9 10
+   11 12 13 14 15
+   16 17 18 19 20 
+   16 17 18 19 20 
   }
 
-  DETWT { 1.0 } 
-  STATES {
-     #Spin up orbitals
-   1 2 3 4 5 
-     #Spin down orbitals 
-   1 2 3 4 5   }

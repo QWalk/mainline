@@ -68,7 +68,12 @@ public:
   int useMo(MO_matrix * mo);
   
   doublevar coef_eps;
-    
+
+  Pfaff_wf_data * clone() const {
+    error("clone() not implemented for Pfaff_wf_data yet.");
+    return NULL;
+  }
+
 private:
   
   void init_mo();

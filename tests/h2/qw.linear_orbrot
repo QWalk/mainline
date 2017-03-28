@@ -4,6 +4,6 @@ include qw.sys
 
 trialfunc { 
   slater-jastrow
-  wf1 { include qw.slater }
+  wf1 { include qw.slater_orbrot }
   wf2 { include jast2.wfin } 
 }

@@ -25,6 +25,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Wavefunction_data.h"
 #include "MO_matrix.h"
 #include "clark_updates.h"
+#include "Orbital_rotation.h"
 template <class T> class Slat_wf;
 /*!
 \brief
@@ -77,13 +78,16 @@ public:
     if(molecorb != NULL ) delete molecorb;
   }
 
-
+  int optimize_mo; //!< whether to optimize MO basis
   virtual int valSize() {
     if(optimize_mo) return 0;
     if(optimize_det) return 2*detwt.GetDim(0);
     else return nfunc*2;
   }
-
+  virtual void lockInParms(Array1<doublevar> & parms){
+    if(optimize_mo)
+     orbrot->lockIn(parms);
+  }
   virtual void getVarParms(Array1 <doublevar> & parms);
   virtual void setVarParms(Array1 <doublevar> & parms);
   virtual void linearParms(Array1 <bool> & is_linear);
@@ -105,9 +109,13 @@ public:
   int nparms()
   {
     if(optimize_mo) 
-      return orbitals_for_optimize_mo.GetSize()*(molecorb->nMoCoeff()/molecorb->getNmo());
+      return orbrot->nparms();
     else if(optimize_det){ return ncsf-1; } 
     else return 0;
+  }
+
+  Slat_wf_data * clone() const{
+    return new Slat_wf_data(*this);
   }
 
 private:
@@ -132,7 +140,6 @@ private:
   int ndim;       //!<Number of (spacial) dimensions each electron has
   int nfunc;      //!<Number of separate functions this represents
 
-  int optimize_mo; //!< whether to optimize MO basis
   Array1 <int> orbitals_for_optimize_mo; //!< which orbitals should be optimized 
   string mo_place; //!< where to place the new mo's
   int optimize_det; //!< whether to optimize determinant coefficients
@@ -147,6 +154,7 @@ private:
   bool use_clark_updates; //!<Use Bryan Clark's updates.
   Excitation_list excitations;
   Complex_MO_matrix * cmolecorb;
+  Orbital_rotation * orbrot;
 
 };
 

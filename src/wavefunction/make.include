@@ -19,7 +19,8 @@ MY_SOURCES:= \
 	Slat_wf_data.cpp \
 	Wavefunction.cpp \
 	Wavefunction_data.cpp \
-  Wf_return.cpp 
+  Wf_return.cpp \
+  Orbital_rotation.cpp
 
 
 SOURCES:= $(SOURCES) $(addprefix wavefunction/,$(MY_SOURCES))

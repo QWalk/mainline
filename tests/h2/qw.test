@@ -1,0 +1,14 @@
+METHOD { 
+  TEST
+  TEST_PARMS_DERS {  }
+}
+
+INCLUDE qw.sys
+TRIALFUNC{
+  #INCLUDE qw.slater
+  #INCLUDE jast2.wfin
+  SLATER-JASTROW
+  WF1 { INCLUDE qw.slater }
+  WF2 { INCLUDE jast2.wfin }
+}
+

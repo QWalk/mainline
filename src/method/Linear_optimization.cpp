@@ -92,7 +92,6 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
   if(!wfdata->supports(parameter_derivatives))
     error("Wavefunction needs to supports analytic parameter derivatives");
   
-  
   wfdata->getVarParms(alpha); 
   Array1 <doublevar> en,tmp_en;
   Array2 <doublevar> energy_step(iterations,2);
@@ -100,15 +99,15 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
   
   wfdata->getVarParms(alpha);
   int nzero_iterations=0;
+
   for(int it=0; it< iterations; it++) {
-    //cout << "wf derivative " << endl;
+    //cout<< "wf derivative" <<endl;
     Array1 <doublevar> olden=en;
     wavefunction_derivative(H,S,en);
-
     output << "step " << it << ": current energy " << setprecision(10) << en(0) 
            << " +/- " << setprecision(10) << en(1);
     output.flush();
-    //if(it > 0) 
+    //if(it>0)
     //  output << "  energy change " << en(0)-olden(0) 
     //    << " +/- " << sqrt(en(1)*en(1)+olden(1)*olden(1)) << endl;
     
@@ -125,6 +124,7 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
       output << "Iterations without a downhill move:" << nzero_iterations << endl;
     }
     wfdata->setVarParms(alpha);
+    wfdata->lockInParms(alpha);
     wfdata->renormalize();
     if(mpi_info.node==0) { 
       string indentation="";
@@ -189,6 +189,7 @@ doublevar find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
   for(int i=0; i< n; i++) { 
     single_write(cout,"eigenvalue ",i," ");
     single_write(cout,W(i),"\n");
+    
     //if(W(i).real() < min_eigenval) { 
     //  min_index=i;
     //  min_eigenval=W(i).real();
@@ -403,8 +404,7 @@ void Linear_optimization_method::uncorrelated_evaluation(Array1 <Array1 <doublev
   sample->attachObserver(wf);
   Array1 <Config_save_point> config_pos(nconfig_eval);
   Primary guide;
-
-
+  
   int nwfs=alphas.GetDim(0);
   energies.Resize(nwfs,2);  
   Array1<doublevar> alpha_save;
@@ -413,23 +413,20 @@ void Linear_optimization_method::uncorrelated_evaluation(Array1 <Array1 <doublev
   Array1 <doublevar> kinetic(1),ecp(1,0.0),pseudo_test(pseudo->nTest());
   Array2 <doublevar> all_energies(nwfs,nconfig_eval);
   doublevar local;
-  
+
   for(int w=0; w< nwfs; w++) { 
     wfdata->setVarParms(alphas(w));
     generate_sample(sample,wf,wfdata,&guide,nconfig_eval,config_pos,20,2);
 
     for(int config=0; config < nconfig_eval; config++) { 
       config_pos(config).restorePos(sample);
-
       wf->updateLap(wfdata,sample);
       local=sys->calcLoc(sample);
       sys->calcKinetic(wfdata,sample,wf,kinetic);
       pseudo->calcNonloc(wfdata,sys,sample,wf,ecp);
-
       all_energies(w,config)=local+kinetic(0)+ecp(0);
     }
   }
-
   energies=0.0;
   for(int w=0; w< nwfs; w++) { 
     for(int config=0; config < nconfig_eval; config++) { 
@@ -441,16 +438,14 @@ void Linear_optimization_method::uncorrelated_evaluation(Array1 <Array1 <doublev
     }
     energies(w,1)=sqrt(energies(w,1)/nconfig_eval);
   }
-    
-    
   wfdata->setVarParms(alpha_save);
   wfdata->clearObserver();
   delete wf;
   delete sample;  
 }
-  
-//----------------------------------------------------------------------
+
 void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar> > & alphas,int ref_alpha,Array2 <doublevar> & energies) {
+
   Sample_point * sample=NULL;
   Wavefunction * wf=NULL;
   sys->generateSample(sample);
@@ -475,7 +470,6 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
      config_pos(config).restorePos(sample);
      for(int i=0; i < pseudo_test.GetDim(0); i++) 
        pseudo_test(i)=rng.ulec();
-
      for(int w=0; w< nwfs; w++) {
        wfdata->setVarParms(alphas(w));
        wf->updateLap(wfdata,sample);
@@ -494,8 +488,9 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
   Array1 <doublevar> avg_en_unweight(nwfs,0.0);
   Array2 <doublevar> diff_en(nwfs,nconfig_eval,0.0);
   for(int w=0; w< nwfs; w++) {
-    for(int config=0; config < nconfig_eval; config++)  { 
+    for(int config=0; config < nconfig_eval; config++){ 
       doublevar weight=exp(2*(wf_vals(w,config).amp(0,0)-wf_vals(ref_alpha,config).amp(0,0)));
+      
       avg_energies(w)+=weight*all_energies(w,config)/nconfig_eval;
       avg_en_unweight(w)+=all_energies(w,config)/nconfig_eval;
       avg_weight(w)+=weight/nconfig_eval;
@@ -602,7 +597,6 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
   wfdata->clearObserver();
   delete wf;
   delete sample;
-  
 }
 
 //----------------------------------------------------------------------
@@ -612,6 +606,7 @@ bool  Linear_optimization_method::deriv_is_significant(Average_return & avg,
     Average_return & err,
     int n) { 
   doublevar thresh=3; //Number of sigmas above which we consider this significant
+  
   int nsig_S0=0;
   for(int i=0; i< n; i++) {
     if(fabs(avg.vals(n+i)/err.vals(n+i)) > thresh) nsig_S0++;
@@ -642,7 +637,7 @@ bool  Linear_optimization_method::deriv_is_significant(Average_return & avg,
   single_write(cout, "S ", double(nsig_S0)/double(n*n), "\n");
   single_write(cout, "H0 ", double(nsig_H0)/double(n), "\n");
   single_write(cout, "enderiv ", double(nsig_enderiv)/double(n), "\n");
-  single_write(cout, "H ", double(nsig_H)/double(n*n), "\n");
+  single_write(cout, "H ", double(nsig_H0)/double(n*n), "\n");
   //if(double(nsig_H0)/double(n) > sig_H_threshold) return true;
   //else return false;
   return true;
