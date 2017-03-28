@@ -46,11 +46,18 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
   int ngroup=0;
   for(int det=0;det<ndet;det++){
     vector<string> detstring;
+    int givenparms=0;
+    unsigned int parmpos=0;
     ngroup=0;
     if(!readsection(words,pos,detstring,"DET")){
       error("Did not list enough determinants in OPTIMIZE_DATA"); 
     }
     unsigned int detpos=0;
+    vector<string> tmpparmstring;
+    if(readsection(detstring,detpos,tmpparmstring,"PARAMETERS"))
+      givenparms=1;
+    
+    detpos=0;
     vector<string> orbgroupstring;
     while(readsection(detstring,detpos,orbgroupstring,"ORB_GROUP")){
       ngroup++;
@@ -59,17 +66,15 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
     groupparms(det).Resize(ngroup);
     detpos=0;
     ngroup=0;
+    
     while(readsection(detstring,detpos,orbgroupstring,"ORB_GROUP")){
-      //Initial parameters
-      unsigned int tmp=detpos;
-      if(detpos<=detstring.size()){
-        groupparms(det)(ngroup).resize(0);
+      if(givenparms){
+        if(!readsection(detstring,parmpos,groupparms(det)(ngroup),"PARAMETERS"))
+          error("Missing PARAMETERS section for det ",det+1);
       }else{
-        if(caseless_eq(detstring[detpos].c_str(),"PARAMETERS")) {
-          readsection(detstring,tmp,groupparms(det)(ngroup),"PARAMETERS");
-        }else
-          groupparms(det)(ngroup).resize(0);
+        groupparms(det)(ngroup).resize(0);
       }
+
       //Other stuff 
       groupstrings(det)(ngroup)=orbgroupstring;
       ngroup++;
@@ -198,14 +203,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
   vector<int> parminfodet;
   vector<int> parminfog;
   for(int det=0;det<ndet;det++){
-    /*
-    vector<string> parmu;
-    vector<string> parmd;
-    vector<string> parminfodetu;
-    vector<string> parminfodetd;
-    vector<string> parminfogu;
-    vector<string> parminfogd;
-    */
     vector<string> parmu;
     vector<string> parmd;
     vector<int> parminfodetu;
