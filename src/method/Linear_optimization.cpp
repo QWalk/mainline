@@ -101,11 +101,13 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
   int nzero_iterations=0;
 
   for(int it=0; it< iterations; it++) {
+    //cout<< "wf derivative" <<endl;
     Array1 <doublevar> olden=en;
     wavefunction_derivative(H,S,en);
     output << "step " << it << ": current energy " << setprecision(10) << en(0) 
            << " +/- " << setprecision(10) << en(1);
     output.flush();
+    //if(it>0)
     //  output << "  energy change " << en(0)-olden(0) 
     //    << " +/- " << sqrt(en(1)*en(1)+olden(1)*olden(1)) << endl;
     
@@ -393,10 +395,6 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
 }
 //----------------------------------------------------------------------
 #include "Generate_sample.h"
-#include "Concatenate_wf_data.h"
-#include "Concatenate_wf.h"
-
-
 
 void Linear_optimization_method::uncorrelated_evaluation(Array1 <Array1 <doublevar> > & alphas,Array2 <doublevar> & energies) {
   Sample_point * sample=NULL;
