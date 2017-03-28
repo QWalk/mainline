@@ -62,12 +62,14 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
     while(readsection(detstring,detpos,orbgroupstring,"ORB_GROUP")){
       //Initial parameters
       unsigned int tmp=detpos;
-      //if(!strncmp(detstring[detpos].c_str(),"PARAMETERS",10)) {
-      if(caseless_eq(detstring[detpos].c_str(),"PARAMETERS")) {
-        readsection(detstring,tmp,groupparms(det)(ngroup),"PARAMETERS");
-      }else
+      if(detpos<=detstring.size()){
         groupparms(det)(ngroup).resize(0);
-      
+      }else{
+        if(caseless_eq(detstring[detpos].c_str(),"PARAMETERS")) {
+          readsection(detstring,tmp,groupparms(det)(ngroup),"PARAMETERS");
+        }else
+          groupparms(det)(ngroup).resize(0);
+      }
       //Other stuff 
       groupstrings(det)(ngroup)=orbgroupstring;
       ngroup++;
