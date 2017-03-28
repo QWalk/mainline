@@ -7,8 +7,9 @@
 #include "Average_region_fluctuation.h"
 #include "Average_enmoment.h"
 #include "Average_derivative_dm.h"
+#include "Average_quadrupole.h"
 #include "Properties_point.h"
-
+#include "jsontools.h"
 
 //-----------------------------------------------------------------------------
 int decide_averager(string & label, Average_generator *& avg) { 
@@ -54,6 +55,9 @@ int decide_averager(string & label, Average_generator *& avg) {
     avg=new Average_fourier_density;
   else if(caseless_eq(label,"AVERAGE_DERIVATIVE_DM"))
     avg=new Average_derivative_dm;
+  else if(caseless_eq(label,"QUADRUPOLE"))
+    avg=new Average_quadrupole;
+  
   else 
     error("Didn't understand ", label, " in Average_generator.");
   
@@ -2030,5 +2034,131 @@ void Average_wf_parmderivs::write_summary(Average_return &avg ,Average_return & 
    
 }
 //-----------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------
+void Average_wf_parmderivs::jsonOutput(Average_return &avg ,Average_return & err, ostream & os) { 
+  os << "\"" << avg.type << "\":{" << endl;
+   int M=avg.vals.GetDim(0);
+   int n=(sqrt(1.0-4*(1-M)/3.)-1)/2;
+   os << "\"n\":"<< n<<",\n";
+   
+   Array1<doublevar> dpE(n),dpE_err(n),dp(n),dp_err(n),dE(n),dE_err(n);
+
+
+   for(int i=0; i < n; i++) { 
+     dpE(i)=avg.vals(i);
+     dpE_err(i)=err.vals(i);
+     dp(i)=avg.vals(n+i);
+     dp_err(i)=err.vals(n+i);
+     dE(i)=avg.vals(2*n+i);
+     dE_err(i)=err.vals(2*n+i);
+   }
+
+
+   Array2<doublevar> dpij(n,n),dpij_err(n,n);
+   Array2<doublevar> dpijE(n,n),dpijE_err(n,n),dpidE(n,n),dpidE_err(n,n);
+   for(int i=0; i< n; i++) { 
+     for(int j=0; j< n; j++) {
+       dpij(i,j)=avg.vals(3*n+i*n+j);
+       dpij_err(i,j)=err.vals(3*n+i*n+j);
+     }
+   }
+   int offset=3*n+n*n;
+   for(int i=0; i< n; i++) { 
+     for(int j=0; j< n; j++) {
+       dpijE(i,j)=avg.vals(offset+i*n+j);
+       dpijE_err(i,j)=err.vals(offset+i*n+j);
+     }
+   }
+   offset+=n*n;
+   for(int i=0; i< n; i++) { 
+     for(int j=0; j< n; j++) {
+       dpidE(i,j)=avg.vals(offset+i*n+j);
+       dpidE_err(i,j)=err.vals(offset+i*n+j);
+     }
+   }
+   
+   
+   os << "\"dpE\":";
+   jsonarray(os,dpE);
+   os << ",\n";
+
+   os << "\"dpE_err\":";
+   jsonarray(os,dpE_err);
+   os << ",\n";
+
+   os << "\"dp\":";
+   jsonarray(os,dp);
+   os << ",\n";
+
+   os << "\"dp_err\":";
+   jsonarray(os,dp_err);
+   os << ",\n";
+
+
+   os << "\"dE\":";
+   jsonarray(os,dE);
+   os << ",\n";
+
+   os << "\"dE_err\":";
+   jsonarray(os,dE_err);
+   os << ",\n";
+   
+
+   os << "\"dpij\":";
+   jsonarray(os,dpij);
+   os << ",\n";
+
+   os << "\"dpij_err\":";
+   jsonarray(os,dpij_err);
+   os << ",\n";
+
+   os << "\"dpijE\":";
+   jsonarray(os,dpijE);
+   os << ",\n";
+
+   os << "\"dpijE_err\":";
+   jsonarray(os,dpijE_err);
+   os << ",\n";
+   
+   os << "\"dpidE\":";
+   jsonarray(os,dpidE);
+   os << ",\n";
+
+   os << "\"dpidE_err\":";
+   jsonarray(os,dpidE_err);
+   os << "\n";
+   
+   
+   os << "}\n";
+
+/*
+  for(int i=0;i< nparms; i++) { 
+    for(int j=0; j< nparms; j++) { 
+      avg.vals(3*nparms+i*nparms+j)=deriv.gradient(i)*deriv.gradient(j);
+    }
+  }
+  int offset=3*nparms+nparms*nparms;
+  for(int i=0; i< nparms; i++) { 
+    for(int j=0; j< nparms; j++) { 
+      avg.vals(offset+i*nparms+j)=deriv.gradient(i)*deriv.gradient(j)*pt.energy(0);
+    }
+  }
+
+  for(int i=0; i< nparms; i++) { 
+    avg.vals(2*nparms+i)=el(i);
+  }
+  offset+=nparms*nparms;
+  for(int i=0; i< nparms; i++) {
+    for(int j=0; j< nparms; j++) { 
+      avg.vals(offset+i*nparms+j)=deriv.gradient(i)*el(j);
+    }
+  }
+  */
+  
+   
+}
+//-----------------------------------------------------------------------------
+
 
 

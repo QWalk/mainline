@@ -669,7 +669,7 @@ int main_read_g03fchkfile(/* input */
   g03_fchk_read_i(fchkfilename,key,nbasis);
   cout << key << ": " << nbasis <<endl;
   int nindep; 
-  key="Number of independant functions";
+  key="Number of independent functions";
   g03_fchk_read_i(fchkfilename,key,nindep);
   cout << key << ": " << nindep <<endl;
 

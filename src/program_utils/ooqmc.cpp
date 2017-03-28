@@ -162,11 +162,7 @@ int main(int argc, char* argv[])
     //clock_t run_end=clock();
     time_t endtime;
     time(&endtime);
-    if(output)
-    {
-      //On Linux, this method overflows after only about an hour, so it's fairly useless.
-      //Better to use difftime so the results are credible.
-      //output << "CPU time for run only: " << double(run_end-run_start)/double(CLOCKS_PER_SEC) << endl;
+    if(output) {
       output << "Wall time for this method: " << difftime(endtime, methodstart) << " seconds." << endl;
       output << "Total wall time so far: " << difftime(endtime, starttime) << " seconds." << endl;
     }

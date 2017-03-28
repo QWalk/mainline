@@ -179,3 +179,5 @@ void Average_quadrupole::jsonOutput(Average_return &avg,
 
 
 //----------------------------------------------------------------------
+
+

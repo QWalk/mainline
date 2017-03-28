@@ -403,9 +403,14 @@ public:
   virtual void write_init(string & indent, ostream & os);
   virtual void read(vector <string> & words);
   virtual void write_summary(Average_return &,Average_return &, ostream & os);
+  virtual void jsonOutput(Average_return &,Average_return &, ostream & );
+  
 private:
   
 };
+
+
+
 
 
 #endif //AVERAGE_GENERATOR_H_INCLUDED

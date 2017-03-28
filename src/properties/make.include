@@ -6,6 +6,7 @@ MY_SOURCES:= \
              Average_generator.cpp \
              Average_ekt.cpp	\
              Average_region_fluctuation.cpp \
+	     Average_quadrupole.cpp \
              Properties.cpp \
              Properties_point.cpp \
              Properties_average.cpp \

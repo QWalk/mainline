@@ -22,4 +22,4 @@ private:
 };
 
 
-#endif // AVERAGE_QUADRUPOLE_H_INCLUDED
+
