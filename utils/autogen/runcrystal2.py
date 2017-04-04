@@ -4,16 +4,22 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from xml.etree.ElementTree import ElementTree
-from pymatgen.io.cif import CifParser
+from pymatgen.io.cif import CifParser, CifWriter
 from pymatgen.core.periodic_table import Element
-import os
-from io import StringIO 
+from pymatgen.core.structure import Structure
+from io import StringIO
 import sys
-import shutil
 import string
-import numpy as np
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+from pymatgen.core.lattice import Lattice
 
+import os
+import numpy as np
+import subprocess as sub
+import shutil
+import errorhandler
+import cif2crystal
+####################################################
 
 ######################################################################
 def pseudopotential_section(symbol, xml_name):
@@ -170,7 +176,7 @@ def basis_section(struct,params=[0.2,2,3],initial_charges={},library_directory="
 def cif2geom(cif):
   parser=CifParser.from_string(cif)
   struct=parser.get_structures()[0]
-  primstruct=struct
+  primstruct=struct.get_primitive_structure()
   lat=primstruct.as_dict()['lattice']
   sites=primstruct.as_dict()['sites']
   geomlines=["CRYSTAL","0 0 0","1","%g %g %g %g %g %g"%\
@@ -268,24 +274,165 @@ def cif2geom_sym2(cif):
 
 ######################################################################
 
-class Cif2Crystal:
-  _name_="Cif2Crystal"
 
-  def __init__(self,library_directory="../"):
-    self.library_directory=library_directory
-  # Currently, check_status() and runcrystal requires user not to modify outfn. 
-  # In the future, we should probably store name of d12 in record, 
-  # so this is not needed.
-  def run(self,job_record,outfn="autogen.d12"):
-    job_record['control']['BFD_Library_Path'] = self.library_directory
+class AbstractRunCrystal:
+  _name_="AbstractRunCrystal"
+  def __init__(self, submitter, library_directory="../"):
+    self._submitter = submitter
+    self.library_directory = library_directory
+
+#-------------------------------------------------      
+  def run(self, job_record):
+    status = self.make_input_file(job_record)
+    if status != 'ok':
+      return status
+
+    self._submitter.execute(job_record, ['autogen.d12'],
+          'autogen.d12', 'autogen.d12.o',self._name_)
+    return 'running'
+
+#-------------------------------------------------          
+  
+  def check_status(self,job_record):
+    """ Decide status of job (in queue or otherwise). """
+    if os.path.isfile('final.%s.autogen.d12.o'%self._name_):
+      return 'ok'
+    else:
+      outfilename="autogen.d12.o"
+    ehandler = errorhandler.ErrorHandler(job_record)
+
+    ## Checking autogen.d12 file
+    if not os.path.isfile("autogen.d12"):
+      return 'not_started'
+    status = self.make_input_file(job_record,outfn="new.autogen.d12")
+    new = open("new.autogen.d12",'r').read().split()
+    old = open("autogen.d12",'r').read().split()
+    for doesntmatter in ["GUESSP","SAVEWF"]:
+      if doesntmatter in new: new.remove(doesntmatter)
+      if doesntmatter in old: old.remove(doesntmatter)
+    if new != old:
+      if not job_record['assert_nochanges']:
+        print("Warning: job record inconsistent with past input")
+      else:
+        print("Error: job record inconsistent with past input")
+        return 'failed'
+
+    ## Checking crystal output
+    status=self._submitter.status(job_record,self._name_)
+    if 'running' in status:
+      return 'running'
+
+    self._submitter.transfer_output(job_record, ['autogen.d12.o', 'fort.9'])
+    status=self.check_outputfile(outfilename)
+    print("status",status)
+    if status == 'not_started':
+      return 'not_started'
+    elif status == 'ok':
+      if 'initial_spin' in job_record['dft'].keys():
+        try:
+          if not self._consistent_spins(outfilename,job_record['dft']['initial_spin']):
+            print("Error: Spin changed from initial configuration!")
+            return ehandler.conservative_diagnose("changed_spins")
+        except:
+          return 'failed'
+      return 'ok'
+    status=ehandler.diagnose(status)
+    if status in ['ok','not_finished','failed']:
+      return status
+    # This case shouldn't happen:
+    if not os.path.isfile(outfilename):
+      print("Warning: author of this code didn't expect this to occur!")
+      return 'not_started'
+
+    return 'failed'
+#-------------------------------------------------      
+  def _consistent_spins(self,outfn,init_spins,small_spin=1.0):
+    f = open(outfn, 'r')
+    lines = f.readlines()
+    for li,line in enumerate(lines):
+      if 'TOTAL ATOMIC SPINS' in line:
+        moms = []
+        shift = 1
+        while "TTT" not in lines[li+shift]:
+          moms += map(float,lines[li+shift].split())
+          shift += 1
+    moms = np.array(moms)
+    zs = abs(moms) < small_spin
+    up = moms > 0.
+    dn = moms < 0.
+    moms.dtype = int
+    moms[up] = 1
+    moms[dn] = -1
+    moms[zs] = 0
+    if len(init_spins)==0:
+      if (moms == np.zeros(moms.shape)).all():
+        return True
+      else:
+        return False
+    else:
+      return (moms == np.array(init_spins)).all()
+
+#-------------------------------------------------      
+  def output(self,job_record):
+    """ Collect results from output."""
+    if os.path.isfile('autogen.d12.o'):
+      f = open('autogen.d12.o', 'r')
+      lines = f.readlines()
+      for li,line in enumerate(lines):
+        if 'SCF ENDED' in line:
+          job_record['dft']['total_energy']=float(line.split()[8])    
+        elif 'TOTAL ATOMIC SPINS' in line:
+          moms = []
+          shift = 1
+          while "TTT" not in lines[li+shift]:
+            moms += map(float,lines[li+shift].split())
+            shift += 1
+          job_record['dft']['mag_moments']=moms
+
+      if not os.path.isfile('final.%s.autogen.d12.o'%self._name_):
+        for filename in ["autogen.d12","autogen.d12.o","fort.79"]:
+          shutil.move(filename,"final.%s.%s"%(self._name_,filename))
+    return job_record
+
+#-------------------------------------------------      
+  def resume(self,job_record,maxresume=5):
+    """ Continue a crystal run using GUESSP or RESTART (if relaxation)."""
+    jobname = job_record['control']['id']
+    trynum = 0
+    while os.path.isfile("%d.%s.autogen.d12.o"%(trynum,self._name_)):
+      trynum += 1
+      if trynum > maxresume:
+        print("Not resuming because resume limit reached ({}>{}).".format(
+          trynum,maxresume))
+        return 'failed'
+    for filename in ["autogen.d12","autogen.d12.o","fort.79"]:
+      shutil.copy(filename,"%d.%s.%s"%(trynum,self._name_,filename))
+    shutil.copy("fort.79","fort.20")
+    job_record['dft']['restart_from'] = os.getcwd()+"%d.fort.79"%trynum
+    if job_record['dft']['relax'] != None:
+      job_record['dft']['relax_restart'] = True
+      job_record['dft']['restart_from'] = None
+    status = self.make_input_file(job_record)
+    if status != 'ok':
+      return status
+    else:
+      return self.run(job_record)
+
+#-------------------------------------------------      
+  def make_input_file(self, job_record,outfn="autogen.d12"):
+    """ Prints out input for a CRYSTAL run."""
     if job_record['pseudopotential']!='BFD':
       print("ERROR: only support BFD pseudoptentials for now")
       quit()
 
+    if 'relaxed_cif' in job_record['dft'].keys():
+      cif = job_record['dft']['relaxed_cif']
+    else:
+      cif = job_record['cif']
     if job_record['dft']['symmetrized'] == False:
-      geomlines,primstruct=cif2geom(job_record['cif'])
+      geomlines,primstruct=cif2geom(cif)
     elif job_record['dft']['symmetrized'] == True:
-      geomlines,primstruct=cif2geom_sym2(job_record['cif'])
+      geomlines,primstruct=cif2geom_sym2(cif)
     else:
       print('Improper input for "symmetrized" keyword. Value must be True or False.')
       quit()
@@ -310,8 +457,12 @@ class Cif2Crystal:
         modisym.insert(0,"MODISYMM")
     
     relaxation = []
-    if job_record['dft']['relax'] != None:
+    if self._name_ == 'RunCrystalRelaxation':
+      if job_record['dft']['relax'] == None:
+        print('Error: Need to specify type of relaxation.')
+        quit()
       relaxation = ['OPTGEOM']
+      relaxation.append('ONELOG')
       if job_record['dft']['relax'] == 'ionic':
         relaxation.append('ATOMONLY')
       elif job_record['dft']['relax'] == 'cell':
@@ -324,7 +475,7 @@ class Cif2Crystal:
         relaxation.append('INTREDUN')
       if job_record['dft']['relax_cvol'] == True:
         relaxation.append('CVOLOPT')
-      if job_record['dft']['relax_restart'] == True:
+      if job_record['dft']['relax_restart'] == True and os.path.isfile('OPTINFO.DAT'):
         relaxation.append('RESTART')
       relaxation.append('END')
 
@@ -371,6 +522,8 @@ class Cif2Crystal:
       str(job_record['dft']['edifftol']),
       "FMIXING",
       str(job_record['dft']['fmixing']),
+      "BROYDEN",
+      ' '.join(map(str,job_record['dft']['broyden'])),
       "TOLINTEG",
       ' '.join(map(str,job_record['dft']['tolinteg'])),
       "MAXCYCLE",
@@ -378,14 +531,6 @@ class Cif2Crystal:
       "MADELIND",
       str(job_record['dft']['madelind'])
     ]
-    
-    if job_record['dft']['levshift']!=None:
-      outlines+=["LEVSHIFT",' '.join(map(str,job_record['dft']['levshift']))]
-    else:
-      outlines+=["BROYDEN",
-                 ' '.join(map(str,job_record['dft']['broyden']))]
-    
-
     if job_record['dft']['smear'] != None:
       outlines += ["SMEAR",str(job_record['dft']['smear'])]
     if job_record['dft']['spin_polarized']:
@@ -411,55 +556,258 @@ class Cif2Crystal:
       outf.close()
     return 'ok'
 
-  def check_status(self,job_record):
-    if not os.path.isfile("autogen.d12"):
-      return 'not_started'
-    status = self.run(job_record,outfn="new.autogen.d12")
-    new = open("new.autogen.d12",'r').read().split()
-    old = open("autogen.d12",'r').read().split()
-    for doesntmatter in ["GUESSP","SAVEWF"]:
-      if doesntmatter in new: new.remove(doesntmatter)
-      if doesntmatter in old: old.remove(doesntmatter)
-    if new != old:
-      if not job_record['assert_nochanges']:
-        print("Warning: job record inconsistent with past input")
+####################################################
+
+class RunCrystal(AbstractRunCrystal):
+  _name_ = 'RunCrystal'
+
+  # This can be made more efficient if it's a problem: searches whole file for
+  # each query.
+  def check_outputfile(self,outfilename,acceptable_scf=0.0):
+    """ Check output file. 
+
+    Current return values:
+    no_record, not_started, ok, too_many_cycles, finished (fall-back),
+    scf_fail, not_enough_decrease, divergence, not_finished
+    """
+    if os.path.isfile(outfilename):
+      outf = open(outfilename,'r')
+    else:
+      return "not_started"
+    outlines = outf.read().split('\n')
+    reslines = [line for line in outlines if "ENDED" in line]
+    if len(reslines) > 0:
+      if "CONVERGENCE" in reslines[0]:
+        return "ok"
+      elif "TOO MANY CYCLES" in reslines[0]:
+        print("RunCrystal output: Too many cycles.")
+        return "too_many_cycles"
+      else: # What else can happen?
+        print("RunCrystal output: Finished, but unknown state.")
+        return "finished"
+    detots = [float(line.split()[5]) for line in outlines if "DETOT" in line]
+    if len(detots) == 0:
+      print("RunCrystal output: Last run completed no cycles.")
+      return "scf_fail"
+    detots_net = sum(detots[1:])
+    if detots_net > acceptable_scf:
+      print("RunCrystal output: Last run performed poorly.")
+      return "not_enough_decrease"
+    etots = [float(line.split()[3]) for line in outlines if "DETOT" in line]
+    if etots[-1] > 0:
+      print("RunCrystal output: Energy divergence.")
+      return "divergence"
+    print("RunCrystalDFT output: Not finished.")
+    return "not_finished"
+
+####################################################
+
+class RunCrystalRelaxation(AbstractRunCrystal):
+  _name_ = 'RunCrystalRelaxation'
+
+#-------------------------------------------------     
+  # This can be made more efficient if it's a problem: searches whole file for
+  # each query.
+  def check_outputfile(self,outfilename,acceptable_scf=0.0):
+    """ Check output file. 
+    """
+    if os.path.isfile(outfilename):
+      outf = open(outfilename,'r')
+    else:
+      return "not_started"
+    outlines = outf.read().split('\n')
+    for line in outlines:
+      if 'CONVERGENCE TESTS SATISFIED AFTER' in line:
+        return 'ok'
+      elif 'ERROR' in line:
+        print(line)
+        return 'failed'
+
+    print("RunCrystalRelaxation output: Not finished.")
+    return "not_finished"
+
+  def output(self,job_record):
+    """ Collect relaxed geometry from output."""
+    if os.path.isfile('autogen.d12.o'):
+      f = open('autogen.d12.o', 'r')
+      lines = f.readlines()
+      for li,line in enumerate(lines):
+        if 'FINAL OPTIMIZED GEOMETRY' in line:
+          lattice_params = [float(v) for v in lines[li+6].split()]
+          lattice = Lattice.from_parameters(
+            lattice_params[0],
+            lattice_params[1],
+            lattice_params[2],
+            lattice_params[3],
+            lattice_params[4],
+            lattice_params[5])
+          idx = li+11
+          species = []
+          coords = []
+          while len(lines[idx].strip()) != 0:
+            species.append(int(lines[idx].split()[2])-200)
+            coords.append([float(v) for v in lines[idx].split()[4:7]])
+            idx += 1
+          coords = np.asarray(coords)
+          job_record['dft']['relaxed_cif'] = str(
+            CifWriter(Structure(lattice=lattice,species=species,coords=coords))
+            )
+          break
+    job_record = AbstractRunCrystal.output(self, job_record)
+    return job_record
+
+####################################################
+
+class RunProperties:
+  _name_="RunProperties"
+  def __init__(self,submitter=None):
+    # 'None' implies to run in command line.
+    self._submitter=submitter
+  def run(self,job_record):
+    f=open("prop.in",'w')
+    if 'cif' in job_record.keys():
+      kmax = max(job_record['dft']['kmesh'])
+      out = '\n'.join([
+        "NEWK",
+        "%d %d"%(kmax,2*kmax),
+        "1 1",
+        "67 999",
+        "END"
+      ])
+      f.write(out)
+    else:
+      out = '\n'.join([
+        "NEWK",
+        "1 1",
+        "67 999",
+        "END"
+      ])
+      f.write(out)
+    f.close()
+
+    if self._submitter==None:
+      os.system("properties < prop.in > prop.in.o")
+      return 'ok'
+    else:
+      self._submitter.execute(job_record,["prop.in"], 'prop.in', 'prop.in.o',self._name_)
+      return 'running'
+
+  def check_outputfile(self,outfilename):
+    if os.path.isfile(outfilename):
+      f=open(outfilename,'r')
+      # Sometimes prop.in.o files are GB large, and this takes forever. 
+      # Instead just search the end.
+      if "ENDPROP" in str(sub.check_output(["tail",outfilename])):
         return 'ok'
       else:
-        print("Error: job record inconsistent with past input")
-        return 'failed'
+        return 'running'
+      #for line in f:
+      #  if "ENDPROP" in line:
+      #    return 'ok'
+      #return 'running'
     else:
-      return 'ok'
+      return 'not_started'
 
+  def check_status(self,job_record):
+    outfilename="prop.in.o"
+    status=self.check_outputfile(outfilename)
+    if status=='ok' or status=='failed':
+      return status
+
+    if self._submitter!=None:
+      status=self._submitter.status(job_record,self._name_)
+      if 'running' in status:
+        return 'running'
+      self._submitter.transfer_output(job_record, [outfilename, 'fort.9'])
+      status=self.check_outputfile(outfilename)
+      if status=='ok':
+        self._submitter.cancel(job_record['control']['queue_id'])
+        return status
+      elif status=='not_finished' or status=='failed':
+        return status
+    
+    if not os.path.isfile(outfilename):
+      return 'not_started'
+
+    return 'failed'
+      
   def retry(self,job_record):
     return self.run(job_record)
+
   def output(self,job_record):
     return job_record
-        
 
+####################################################
 
-######################################################################
+class NewRunProperties:
+  _name_="RunProperties"
+  def __init__(self,submitter=None):
+    # 'None' implies to run in command line.
+    self._submitter=submitter
+  def run(self,job_record):
+    f=open("prop.in",'w')
+    if 'cif' in job_record.keys():
+      kmax = max(job_record['dft']['kmesh'])
+      out = '\n'.join([
+        "NEWK",
+        "%d %d"%(kmax,2*kmax),
+        "1 0",
+        "CRYAPI_OUT",
+        "END"
+      ])
+      f.write(out)
+    else:
+      out = '\n'.join([
+        "NEWK",
+        "1 0",
+        "CRYAPI_OUT",
+        "END"
+      ])
+      f.write(out)
+    f.close()
 
-if __name__ == "__main__":
-  geomstring,primstruct=cif2geom(sys.argv[1])
-  basisstring=basis_section(primstruct,'.')
-  print("Generated by cif2crystal\n",geomstring,"END\n",
-          basisstring,"99 0\nEND\n",end="",sep="")
-  print("""SHRINK
-8 16
-DFT
-EXCHANGE
-PBE
-CORRELAT
-PBE
-END
-SCFDIR
-BIPOSIZE
-100000000
-EXCHSIZE 
-10017422
-FMIXING
-99
-BROYDEN
-.01 60 8
-END
-""")
+    if self._submitter==None:
+      os.system("properties < prop.in > prop.in.o")
+      return 'ok'
+    else:
+      self._submitter.execute(job_record,["prop.in"], 'prop.in', 'prop.in.o',self._name_)
+      return 'running'
+
+  def check_outputfile(self,outfilename):
+    if os.path.isfile(outfilename):
+      f=open(outfilename,'r')
+      for line in f:
+        if "ENDPROP" in line:
+          return 'ok'
+      return 'running'
+    else:
+      return 'not_started'
+
+  def check_status(self,job_record):
+    outfilename="prop.in.o"
+    status=self.check_outputfile(outfilename)
+    if status=='ok' or status=='failed':
+      return status
+
+    if self._submitter!=None:
+      status=self._submitter.status(job_record,self._name_)
+      if status=='running':
+        return status
+      self._submitter.transfer_output(job_record, [outfilename, 'fort.9'])
+      status=self.check_outputfile(outfilename)
+      if status=='not_finished' or status=='failed':
+        return status
+    
+    if not os.path.isfile(outfilename):
+      return 'not_started'
+
+    return 'failed'
+      
+  def retry(self,job_record):
+    return self.run(job_record)
+
+  def output(self,job_record):
+    return job_record
+
+####################################################
+  
