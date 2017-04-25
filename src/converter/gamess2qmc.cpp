@@ -411,12 +411,11 @@ void read_gamess_output(string & outputfilename,
       }
 
     }
-
-
     else if(words.size() > 4 && words[0] == "FINAL" && words[2] == "ENERGY") {
       eref=atof(words[4].c_str());
     }
-    else if(words.size() > 0 && words[0]=="SCFTYP=RHF") {
+    else if(words.size() > 0 && 
+            (words[0]=="SCFTYP=RHF" or words[0]=="SCFTYP=MCSCF") ) {
       slwriter.calctype="RHF";
     }
     else if(words.size() > 0 && words[0]=="SCFTYP=ROHF") {
