@@ -438,7 +438,7 @@ public:
     int max_big_it = n*5;
     int beta_counter=0;
     doublevar tol = 1e-9;
-    doublevar outer_tol = tol*100; // make outer loop tolerance looser than inner
+    doublevar outer_tol = 1e-4; // make outer loop tolerance looser than inner
     doublevar beta;
     os << "node" << mpi_info.node << " max_it=" << max_it << " tol=" << tol <<" max_big_it=" << max_big_it << " outer_tol=" << outer_tol << endl;
     for(int big_it=0; big_it < max_big_it; big_it++) {
