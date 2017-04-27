@@ -8,6 +8,7 @@
 #include "Average_enmoment.h"
 #include "Average_derivative_dm.h"
 #include "Average_quadrupole.h"
+#include "Average_so.h"
 #include "Properties_point.h"
 #include "jsontools.h"
 

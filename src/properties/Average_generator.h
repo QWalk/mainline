@@ -122,7 +122,6 @@ public:
   virtual void read(vector <string> & words);
   virtual void write_summary(Average_return &,Average_return &, ostream & os);
  private:
-  Wavefunction_data * parent;
 };
 
 
