@@ -846,7 +846,7 @@ void Pseudopotential_so::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
         //accum_nonlocal+=nonlocal(w);
 
         for(int w=0; w< nwf; w++) {
-          totalv(e,w)+=vLocal(0)+vLocal(1)+nonlocal(w);   
+          totalv(e,w)+=nonlocal(w);   
         }
 
 
@@ -953,19 +953,20 @@ void Pseudopotential_so::read(vector <vector <string> > & pseudotext, System * s
         vector <string> basistmp;
         if(!readsection(pseudotext[i], pos=0, basistmp, "BASIS"))
             error("Need Basis section in pseudopotential for ", pseudotext[i][0]);
-        allocate(basistmp, radial_basis(at,0,i)); 
+        allocate(basistmp, radial_basis(at,0,i%2)); 
         int basistmpSize=basistmp.size();
       //  for (int ibasistmp=0;ibasistmp<basistmpSize;ibasistmp++){
        //   cout << "basistmp[" << ibasistmp <<"]=" << basistmp[ibasistmp] << endl;}
 
-        allocate(basistmp, radial_basis(at,1,i));
+        allocate(basistmp, radial_basis(at,1,i%2));
+      
+        assert(radial_basis(at,0,0)->nfunc()==radial_basis(at,1,0)->nfunc());
+        int nlval=radial_basis(at,0,0)->nfunc();
+        if(maxL < nlval) maxL=nlval;
+        pos=0;
+        readvalue(pseudotext[i],pos,aip(at),"AIP");
+        if(haskeyword(pseudotext[i],pos=0,"ADD_ZEFF")){addzeff(at)=true;}
       }
-      assert(radial_basis(at,0,0)->nfunc()==radial_basis(at,1,0)->nfunc());
-      int nlval=radial_basis(at,0,0)->nfunc();
-      if(maxL < nlval) maxL=nlval;
-      pos=0;
-      readvalue(pseudotext[i],pos,aip(at),"AIP");
-      if(haskeyword(pseudotext[i],pos=0,"ADD_ZEFF")){addzeff(at)=true;}
     }
   }
 
