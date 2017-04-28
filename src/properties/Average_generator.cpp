@@ -9,6 +9,7 @@
 #include "Average_derivative_dm.h"
 #include "Average_quadrupole.h"
 #include "Properties_point.h"
+#include "Average_so.h"
 #include "jsontools.h"
 
 //-----------------------------------------------------------------------------
