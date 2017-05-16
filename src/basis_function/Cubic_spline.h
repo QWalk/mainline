@@ -38,7 +38,8 @@ private:
 
   //Overall symmetry type of a spline
   // added an extra term sym_7F_crystal   //CRYSTAL F orbital
-  enum symmetry_type { sym_S, sym_P, sym_6D, sym_10F, sym_5D, sym_7F, sym_7F_crystal, sym_15G, sym_9G, sym_P_siesta, sym_D_siesta, sym_F_siesta };
+  // added sym_9G_pyscf
+  enum symmetry_type { sym_S, sym_P, sym_6D, sym_10F, sym_5D, sym_7F, sym_7F_crystal, sym_15G, sym_9G, sym_P_siesta, sym_D_siesta, sym_F_siesta, sym_9G_pyscf};
   
   string symmetry_lookup(symmetry_type );
   symmetry_type symmetry_lookup(string &);

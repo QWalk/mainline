@@ -183,88 +183,13 @@ int Slat_Jastrow::getParmDeriv(Wavefunction_data *  wfdata,
   
   int nslater=dataptr->slater->nparms();
   int njast=dataptr->jastrow->nparms();
-  int nparms=derivatives.nparms_end-derivatives.nparms_start;
-  if (derivatives.nparms_start<nslater){
-    slaterval.nparms_start=derivatives.nparms_start;
-    jastval.nparms_start=0;
-    
-  }
-  else{
-    jastval.nparms_start=derivatives.nparms_start-nslater;
-    slaterval.nparms_start=nslater;
-  }
-  if (derivatives.nparms_end <= nslater){
-    slaterval.nparms_end=derivatives.nparms_end;
-    jastval.nparms_end=0;
-  }
-  else{
-    jastval.nparms_end=derivatives.nparms_end-nslater;
-    slaterval.nparms_end=nslater;
-  }
+  int nparms=nslater + njast;
   
-  //cout <<slaterval.nparms_start<<" "<<slaterval.nparms_end<<"  "
-  //   <<jastval.nparms_start<<" "<<jastval.nparms_end<<endl;
+  derivatives.val_gradient.Resize(sample->electronSize(),5);
+  slater_wf->getParmDeriv(dataptr->slater,sample, derivatives);
+  jastrow_wf->getParmDeriv(dataptr->jastrow,sample, jastval);
+  extend_parm_deriv(derivatives,jastval);
   
-
-  
-  //new way with usage of extend_parm_deriv; 
-  //works as well, you can decrease nparms to be calculated in slater part
-  //but not in jastrow part
-
-  Parm_deriv_return retparm;
-  retparm.need_hessian=derivatives.need_hessian;
-  retparm.nparms_start=derivatives.nparms_start;
-  retparm.nparms_end=derivatives.nparms_end;
-  retparm.val_gradient.Resize(sample->electronSize(),5);
-  retparm.val_gradient=0.0;
-  if (slaterval.nparms_end-slaterval.nparms_start){
-    slater_wf->getParmDeriv(dataptr->slater,sample, slaterval);
-    //cout <<"adding slater"<<endl;
-    //extend_parm_deriv(retparm,slaterval);
-    retparm=slaterval;
-  }
-  
-  if (jastval.nparms_end-jastval.nparms_start){
-    if(jastval.nparms_end-jastval.nparms_start!=njast)
-      error("jastval.nparms_end-jastval.nparms_start!=njast is not supported");
-    jastrow_wf->getParmDeriv(dataptr->jastrow,sample, jastval);
-    //cout<<"adding jastrow"<<endl;
-    extend_parm_deriv(retparm,jastval);
-  }
-  
-  derivatives=retparm;
-  
-
-  //good old way, works even for the case jastval.nparms_end-jastval.nparms_start!=njast
-  /*
-  if(nslater)
-    slater_wf->getParmDeriv(dataptr->slater,sample, slaterval);
-  if(njast)
-    jastrow_wf->getParmDeriv(dataptr->jastrow,sample, jastval);
-  derivatives.gradient.Resize(nparms);
-    for (int i=0;i<nparms;i++){
-    if(derivatives.nparms_start+i<nslater)
-      derivatives.gradient(i)=slaterval.gradient(i);
-    else
-      derivatives.gradient(i)=jastval.gradient(i-nslater+derivatives.nparms_start);
-  }
-  
-  if(derivatives.need_hessian){
-    derivatives.hessian.Resize(nparms,nparms);
-    for(int i=0;i<nparms;i++){
-      for(int j=i;j<nparms;j++){
-        if(i+derivatives.nparms_start<nslater)
-          if (j+derivatives.nparms_start<nslater)
-            derivatives.hessian(i,j)=slaterval.hessian(i,j);
-          else
-            derivatives.hessian(i,j)=slaterval.gradient(i)*jastval.gradient(j-nslater+derivatives.nparms_start);
-        else
-          derivatives.hessian(i,j)=jastval.hessian(i-nslater+derivatives.nparms_start,j-nslater+derivatives.nparms_start);
-        derivatives.hessian(j,i)=derivatives.hessian(i,j);
-      }
-    }
-  }
-  */
   return 1;
 }
 

@@ -59,4 +59,38 @@ optional:
     default: special
     description: Force Sherman-Morrison updates of the determinant inverses and values.
   
-     
+  - keyword: OPTIMIZE_MO
+    type: flag
+    default: off
+    description: Optimize the orbital coefficients. Must be accompanied by OPTIMIZE_DATA.
+
+  - keyword: OPTIMIZE_DATA
+    type: section
+    default: empty
+    description: >
+      For each determinant, lists which orbitals to mix and initial orbital parameters via ORB_GROUP and PARAMETERS sections. 
+      If PARAMETERS sections are empty or not present, initial parameters are set to 0. 
+      <br><br>
+      A simple example of the OPTIMIZE_DATA section for a single determinant of two spin-up and one spin-down electron.
+
+      <pre><code>
+      STATES { 
+      <br>  1 2 
+      <br>  2
+      <br>}
+      <br>OPTIMIZE_MO 
+      <br>OPTIMIZE_DATA {
+      <br>  DET {
+      <br>    ORB_GROUP { 1 2 3 }
+      <br>    PARAMETERS { 
+      <br>      0.1 -0.2
+      <br>      -0.1 1.2
+      <br>    }
+      <br>  }
+      <br>}
+      </pre></code>
+      
+      ORB_GROUP allows for orbitals 1, 2, and 3 to mix potentially. For the spin-up determinant, we allow for the mixing of 1 and 3, as well as 2 and 3, 
+      but not 1 and 2 (both occupied). The first two parameters in PARAMETERS correspond to these two allowed mixings. For the spin-down determinant, 
+      we allow for mixing of 2 with 1 and 2 with 3 since 1 is not occupied in this spin channel, but not 1 with 3 (both virtual). 
+      The next two parameters correspond to these two allowed mixings.

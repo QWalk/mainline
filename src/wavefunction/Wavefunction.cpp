@@ -40,13 +40,7 @@ void extend_parm_deriv(Parm_deriv_return & ret1, const Parm_deriv_return & ret2)
     }
     return;
   }
-  //ignoring nparms_start and nparms_end..those should really be input variables, no?
-  //yes they are input variables, but in princile should be reflected when making the 
-  //final gradients and hessians, I am not changing it for now. M.
-  //cout << "nparms " << nparms << "  " << nparms1 << " " << nparms2 << endl;
   derivatives.need_hessian=ret1.need_hessian;
-  derivatives.nparms_start=ret1.nparms_start;
-  derivatives.nparms_end=ret1.nparms_end;
 
   derivatives.gradient.Resize(nparms);
   derivatives.hessian.Resize(nparms,nparms);

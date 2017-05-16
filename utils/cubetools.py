@@ -8,20 +8,20 @@ def read_cube(filename):
   cube['type']=f.readline()
   spl=f.readline().split()
   cube['natoms']=int(spl[0])
-  cube['origin']=map(float, spl[1:])
+  cube['origin']=list(map(float, spl[1:]))
   cube['npoints']=np.array([0,0,0])
   cube['latvec']=np.zeros((3,3))
   for i in range(0,3):
     spl=f.readline().split()
     cube['npoints'][i]=int(spl[0])
-    cube['latvec'][i,:]=map(float,spl[1:])
+    cube['latvec'][i,:]=list(map(float,spl[1:]))
   natoms=cube['natoms']
   cube['atomname']=[]
   cube['atomxyz']=np.zeros((natoms,3))
   for i in range(0,natoms):
     spl=f.readline().split()
     cube['atomname'].append(spl[0])
-    cube['atomxyz'][i,:]=map(float,spl[2:])
+    cube['atomxyz'][i,:]=list(map(float,spl[2:]))
   cube['data']=np.zeros(cube['npoints'])
   vector=[]
   while True:

@@ -115,6 +115,10 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
     }
   }
 
+  if(fabs(CSF(0)(0)) < 1e-10)
+    error("Cannot deal with the first CSF having zero weight.");
+      
+
   //no sorting when ndet=1;
   if( ndet==1 && sort)
     sort=0;
@@ -140,30 +144,6 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
   }
   else {
     error("Need ORBITALS or CORBITALS section in SLATER wave function");
-  }
-
-  if(optimize_mo) {
-    pos=startpos;
-    vector <string> orbitals_for_optimize_mostr;
-    if(!readsection(words, pos, orbitals_for_optimize_mostr, "ORBITALS_FOR_OPTIMIZE_MO")){
-      cout << "Assuming you want to use all orbitals up to NMO in OPTIMIZE_MO section \n";
-      orbitals_for_optimize_mo.Resize(nmo);
-      for (int i=0;i<nmo;i++){
-        orbitals_for_optimize_mo(i)=i;
-      }
-    }
-    else {
-      orbitals_for_optimize_mo.Resize(orbitals_for_optimize_mostr.size());
-      for (unsigned int i=0;i<orbitals_for_optimize_mostr.size();i++){
-        orbitals_for_optimize_mo(i)=atoi(orbitals_for_optimize_mostr[i].c_str())-1;
-        if(orbitals_for_optimize_mo(i)+1 > nmo)
-          error("Suplied incorrect orbital number in  ORBITALS_FOR_OPTIMIZE_MO");
-      }
-    }
-    cout << "orbitals_for_optimize_mo: ";
-    for(int i=0;i<orbitals_for_optimize_mo.GetSize();i++)
-      cout << orbitals_for_optimize_mo(i) <<"  ";
-    cout <<endl;
   }
 
   nfunc=statevec.size();
@@ -271,7 +251,6 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
       }
     }
 
-    //cout << "done assignment " << endl;
 
     totoccupation(s).Resize(totocctemp.size());
     for(int i=0; i<totoccupation(s).GetDim(0); i++)
@@ -283,6 +262,23 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
   }
 
   excitations.build_excitation_list(occupation,0);
+  
+  //Orbital_rotation
+  pos=0;
+  vector <string> optstring;
+  Array1<Array1<int> >activeSpace;
+  Array1<Array1<int> >lists;
+  activeSpace.Resize(2);
+  lists.Resize(4);
+  if(optimize_mo){
+    if(!readsection(words,pos,optstring,"OPTIMIZE_DATA")){
+      error("Require section OPTIMIZE_DATA with option optimize_mo");
+    }
+    //Read and initialize Orbital_rotation
+    orbrot=new Orbital_rotation;
+    orbrot->read(optstring, detwt.GetDim(0), occupation_orig, occupation, totoccupation);
+    nmo=orbrot->getnmo();
+  }
 
   //Decide on the updating scheme:
   
@@ -325,7 +321,10 @@ int Slat_wf_data::supports(wf_support_type support) {
 void Slat_wf_data::init_mo() {
   Array1 <int> nmospin(2);
   nmospin=0;
-
+  
+  if(optimize_mo){
+    nmo=molecorb->getNmo();
+  }
   for(int i=0; i< nfunc; i++)
   {
     //cout << "i=" << i << endl;
@@ -354,8 +353,10 @@ void Slat_wf_data::init_mo() {
   if(nmospin(1) > nmo)
     error("Second spin channel contains an orbital higher"
         " than requested NMO's.");
-
-
+  
+  if(optimize_mo){
+    nmo=orbrot->getnmo();
+  }
   genmolecorb->buildLists(totoccupation);
 
 }
@@ -447,13 +448,6 @@ int Slat_wf_data::writeinput(string & indent, ostream & os) {
 
   os << indent << "SLATER" << endl;
 
-  if(optimize_mo) {
-    os << indent << "OPTIMIZE_MO" << endl;
-    os << indent << "ORBITALS_FOR_OPTIMIZE_MO {";
-    for(int i=0;i<orbitals_for_optimize_mo.GetSize();i++)
-      os << orbitals_for_optimize_mo(i)+1 <<" ";
-    os << "}" << endl;	
-  }
   if(optimize_det)
     os << indent << "OPTIMIZE_DET" << endl;
   if(use_clark_updates)
@@ -563,19 +557,7 @@ int Slat_wf_data::writeinput(string & indent, ostream & os) {
     os << "}" << endl;
   }
   if(optimize_mo) {
-    molecorb->setOrbfile(mo_place);
-
-    ofstream tmp(mo_place.c_str());
-    Array2 <doublevar> rotation(nmo, nmo);
-    Array1 <int> moList(nmo);
-    rotation=0;
-    for(int i=0; i< nmo; i++) {
-      rotation(i,i)=1;
-      moList(i)=i;
-    }
-
-    molecorb->writeorb(tmp, rotation, moList);
-    tmp.close();
+    orbrot->writeinput(indent,os);
   }
 
   if(use_complexmo) os << indent << "CORBITALS { \n";
@@ -592,20 +574,7 @@ void Slat_wf_data::getVarParms(Array1 <doublevar> & parms)
 {
   //cout <<"start getVarParms"<<endl;
   if(optimize_mo) {
-    Array2 <doublevar> mocoeff;
-    molecorb->getMoCoeff(mocoeff);
-    int totmo=molecorb->getNmo();
-    int totcoeff=molecorb->nMoCoeff();
-    int coeff_per_orbital=totcoeff/totmo;
-    int nmo_to_optimize=orbitals_for_optimize_mo.GetSize();
-    parms.Resize(nmo_to_optimize*coeff_per_orbital);
-    int counter=0;
-    for(int i=0; i< nmo_to_optimize; i++) {
-      for(int j=0; j < mocoeff.GetDim(1); j++) {
-        parms(counter)=mocoeff(orbitals_for_optimize_mo(i),j);
-        counter++;
-      }
-    }
+    orbrot->getParms(parms);
   }
   else if(optimize_det) {
     parms.Resize(ncsf-1);
@@ -623,23 +592,7 @@ void Slat_wf_data::setVarParms(Array1 <doublevar> & parms)
 {
   //cout <<"start setVarParms"<<endl;
   if(optimize_mo) {
-    int totmo=molecorb->getNmo();
-    int totcoeff=molecorb->nMoCoeff();
-    int coeff_per_orbital=totcoeff/totmo;
-    int nmo_to_optimize=orbitals_for_optimize_mo.GetSize();
-
-    assert(parms.GetDim(0)==nmo_to_optimize*coeff_per_orbital);
-
-    Array2 <doublevar> mocoeff;
-    molecorb->getMoCoeff(mocoeff);
-    int counter=0;
-    for(int i=0; i< nmo_to_optimize; i++) {
-      for(int j=0; j < mocoeff.GetDim(1); j++) {
-        mocoeff(orbitals_for_optimize_mo(i),j)=parms(counter);
-        counter++;
-      }
-    }
-    molecorb->setMoCoeff(mocoeff);
+    orbrot->setParms(parms);
   }
   else if(optimize_det) {
     for(int csf=1; csf< ncsf; csf++) 
@@ -661,7 +614,6 @@ void Slat_wf_data::setVarParms(Array1 <doublevar> & parms)
   for(int i=0; i< max; i++) {
     wfObserver[i]->notify(all_wf_parms_change, 0);
   }
-  //cout <<"done setVarParms"<<endl;
 }
 //----------------------------------------------------------------------
 

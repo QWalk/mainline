@@ -6,6 +6,7 @@ MY_SOURCES:= gesqua.cpp \
 	Pbc_enforcer.cpp \
 	Periodic_sample.cpp \
 	Periodic_system.cpp \
+        Pseudopotential_so.cpp \
 	Pseudopotential.cpp \
 	Ring_sample.cpp \
 	Ring_system.cpp \

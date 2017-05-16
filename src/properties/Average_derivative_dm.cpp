@@ -36,7 +36,6 @@ void Average_derivative_dm::evaluate(Wavefunction_data * wfdata, Wavefunction * 
   
   Parm_deriv_return deriv;
   deriv.need_hessian=0;
-  deriv.nparms_end=nparms;
   if(!wf->getParmDeriv(wfdata, sample,deriv)) {
     error("Wave function needs to support parmderivs for Average_derivative_dm.");
   }

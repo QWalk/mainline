@@ -62,6 +62,11 @@ public:
     wf->notify(data_attach,0);
   }
 
+  /* 
+    Lock in variational parameters
+  */
+  virtual void lockInParms(Array1<doublevar> &){return;}
+
   /*!
     Get variational parameters.
    */
@@ -139,6 +144,8 @@ public:
     wfObserver.clear();
   }
 
+  //Used in virtual copy constructor
+  virtual Wavefunction_data * clone() const = 0;
 
 protected:
   vector <Wavefunction *> wfObserver;
@@ -150,6 +157,9 @@ protected:
 int allocate(vector <string> & wftext, System * sys,
              Wavefunction_data * & wfptr);
 int deallocate(Wavefunction_data * & wfptr);
+
+//Used in virtual copy constructor
+Wavefunction_data * duplicate(Wavefunction_data * wfdata);
 
 #endif //WAVEFUNCTION_DATA_H_INCLUDED
 //------------------------------------------------------------------------

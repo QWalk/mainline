@@ -29,13 +29,17 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 //efficiently as possible.
 //It will use the provided system objects to generate nconfig samples, stored in 
 //the configs variable.
+// Returns the optimized timestep.
 
-void generate_sample(Sample_point * sample,
+doublevar generate_sample(Sample_point * sample,
     Wavefunction * wf,
     Wavefunction_data * wfdata,
     Guiding_function * guidewf,
     int nconfig,
-    Array1 <Config_save_point> & configs);
+    Array1 <Config_save_point> & configs,
+    int warmup_moves=5,
+    int decorrelation_moves=3,
+    doublevar timestep=1.0);
 #include "MO_matrix.h"
 
 void generate_mo_sample(Sample_point * sample, System * sys,

@@ -99,6 +99,11 @@ public:
     return tot;
   }
 
+  BCS_wf_data * clone() const{
+    error("clone() not implemented for BCF_wf_data yet.");
+    return NULL;
+  }
+
 private:
   friend class BCS_wf;
   

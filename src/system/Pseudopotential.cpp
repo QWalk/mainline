@@ -628,9 +628,7 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
   if(parm_derivatives) { 
     parm_deriv.Resize(wfdata->nparms());
     parm_deriv=0;
-    base_deriv.nparms_start=0;
-    base_deriv.nparms_end=wfdata->nparms();
-    base_deriv.need_hessian=0;    
+    base_deriv.need_hessian=0;
     wf->getParmDeriv(wfdata, sample, base_deriv);
   }
   int accept_counter=0;
@@ -768,8 +766,6 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
               //-----------parameter derivatives
               if(parm_derivatives) { 
                 Parm_deriv_return deriv;
-                deriv.nparms_start=0;
-                deriv.nparms_end=wfdata->nparms();
                 deriv.need_hessian=0;
                 wf->getParmDeriv(wfdata, sample, deriv);
                 int np=wfdata->nparms();

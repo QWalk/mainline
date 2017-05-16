@@ -73,6 +73,18 @@ int Slat_Jastrow_data::valSize()
   return slater->valSize()+jastrow->valSize();
 }
 
+void Slat_Jastrow_data::lockInParms(Array1 <doublevar> & parms){
+  Array1<doublevar> wf1parms;
+  wf1parms.Resize(slater->nparms());
+  for(int i=0;i<slater->nparms();i++){
+    wf1parms(i)=parms(i); 
+  }
+  slater->lockInParms(wf1parms);
+  for(int j=0;j<slater->nparms();j++){
+    parms(j)=wf1parms(j);
+  }
+}
+
 void Slat_Jastrow_data::getVarParms(Array1 <doublevar> & parms)
 {
   Array1 <doublevar> wf1parms;

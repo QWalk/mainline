@@ -171,6 +171,10 @@ void lubksb(Array2 <doublevar> & a, int n, Array1 <int> & indx,
 
 void EigenSystemSolverRealSymmetricMatrix(const Array2 < doublevar > & Ain, Array1 < doublevar> & evals, Array2 < doublevar> & evecs);
 
+void DGGEV(Array2 <doublevar> & A, Array2 <doublevar> & B,
+           Array1 <dcomplex> & alpha, 
+           Array2 <doublevar> & VL, Array2 <doublevar> & VR);
+
 void GeneralizedEigenSystemSolverRealSymmetricMatrices(const Array2 < doublevar > & Ain, const Array2 < doublevar> & Bin, Array1 < doublevar> & evals, Array2 < doublevar> & evecs);
 void GeneralizedEigenSystemSolverComplexGeneralMatrices(Array2 < dcomplex > & Ain, 
          Array1 <dcomplex> & W, Array2 <dcomplex> & VL, Array2 <dcomplex> & VR); 
@@ -205,6 +209,9 @@ extern "C" {
       void * W, void *VL, int *LDVL,void * VR, int *LDVR,
       void * WORK, int * LWORK,void * RWORK, int * INFO);
 
+  void dggev_(char * JOBVL, char * JOBVR, int * N, void * A, int * lda,
+      void * B, int * ldb, void * alphar, void * alphai, void * beta,
+      void* vl, int * ldvl, void * vr, int * ldvr, void * work, int * lwork, int * info);
 };
 #endif
 

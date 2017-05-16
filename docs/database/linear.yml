@@ -37,12 +37,12 @@ advanced:
     on the Hamiltonian matrix.
   keyword: VMC_NSTEP
   type: Integer
-- default: '0.95'
+- default: '0.99'
   description: Fraction of the original wave function to keep per step.  This is a
     stabilization parameter.
   keyword: MINIMUM_PSI0
   type: Float
-- default: 8*VMCNSTEP
+- default: 4*VMCNSTEP
   description: The optimization method will increase VMCNSTEP automatically if certain
     significance requirements are not met in the Hamiltonian matrix.  This variable
     limits how much VMCNSTEP can be increased.

@@ -1020,9 +1020,7 @@ void Average_ekt::calcPseudoMo(System * sys,
     Array1 <dcomplex> & totalv)//, 
 {
   int natoms=sample->ionSize();
-  assert(accept_var.GetDim(0) >= nTest());
   //assert(totalv.GetDim(0) >= nwf);
-  assert(nelectrons == sample->electronSize());
 
   Array1 <doublevar> ionpos(3), oldpos(3), newpos(3);
   Array1 <doublevar> newdist(5), olddist(5);
