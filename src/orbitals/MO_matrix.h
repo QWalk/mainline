@@ -160,16 +160,6 @@ void rotate_Corb(istream & orbin, ostream & orbout,
 		 Array1 <int>  & moList, int nfunctions);
 
 
-/*
- Gets the coefficients and sets everything up from a formatted
- input file(ORB).  The file should look like: <br>
- MO#  AO#(for center) Center# Coeff# <br>
- for all MO's, then a listing of the coefficients in sequential order
-
-*/	    
-/*!
-
-*/
 //------------------------------------------------------------------------------------------
 #ifdef USE_MPI
 inline void overloaded_broadcast(Array1 <doublevar> & v) { 
@@ -314,10 +304,6 @@ template <> inline void eval_kpoint_deriv<doublevar>(Array1 <doublevar> & kpoint
 
 //----------------------------------------------------------------------------
 #include "qmc_io.h"
-//template<> inline void Complex_MO_matrix::read(vector <string> & words,
-//                     unsigned int & startpos,
-//                     System * sys) { 
-//}
 
 template<class T> inline void Templated_MO_matrix<T>::read(vector <string> & words,
                      unsigned int & startpos,

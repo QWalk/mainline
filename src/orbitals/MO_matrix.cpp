@@ -21,7 +21,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Qmc_std.h"
 #include "MO_matrix.h"
 #include "MO_matrix_cutoff.h"
-#include "MO_matrix_standard.h"
 #include "Sample_point.h"
 #include "qmc_io.h"
 #include "MO_matrix_blas.h"
@@ -35,8 +34,6 @@ int allocate(vector <string> & words, System * sys, MO_matrix *& moptr) {
 
   if(caseless_eq(words[0],"CUTOFF_MO"))
     moptr=new MO_matrix_cutoff<doublevar>;
-  else if(caseless_eq(words[0],"STANDARD_MO"))
-    moptr=new MO_matrix_standard;
   else if(caseless_eq(words[0],"BASFUNC_MO"))
     moptr=new MO_matrix_basfunc;
   else if(caseless_eq(words[0],"EINSPLINE_MO"))
