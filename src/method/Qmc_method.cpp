@@ -33,7 +33,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Wannier_method.h"
 #include "Linear_optimization.h"
 #include "Rotate_orbs.h"
-#include "Energy_slice.h"
 #include "Lowdin_method.h"
 #include "Maximize_method.h"
 
