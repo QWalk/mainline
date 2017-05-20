@@ -39,7 +39,7 @@ int allocate(vector <string> & words, System * sys, MO_matrix *& moptr) {
   else if(caseless_eq(words[0],"STANDARD_MO"))
     moptr=new MO_matrix_standard;
   else if(caseless_eq(words[0],"BLAS_MO"))
-    moptr=new MO_matrix_blas;
+    moptr=new MO_matrix_blas<doublevar>;
   else if(caseless_eq(words[0],"BASFUNC_MO"))
     moptr=new MO_matrix_basfunc;
   else if(caseless_eq(words[0],"EINSPLINE_MO"))
@@ -62,6 +62,8 @@ int allocate(vector <string> & words, System * sys,
     moptr=new MO_matrix_Cbasfunc;
   else if(caseless_eq(words[0],"CUTOFF_MO"))
     moptr=new MO_matrix_cutoff<dcomplex>;
+  else if(caseless_eq(words[0],"BLAS_MO"))
+    moptr=new MO_matrix_blas<dcomplex>;
   else if(caseless_eq(words[0],"EINSPLINE_MO"))
     moptr=new MO_matrix_einspline<dcomplex>;
   else 
