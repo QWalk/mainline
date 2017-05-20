@@ -46,27 +46,15 @@ inline void output_array(Array2 <doublevar> & arr) {
 }
 
 void MO_matrix_blas::init() {
-
-
-  //mo_counter.Resize(nmo);
-  //mo_counter=0.0;
-  //n_calls=0;
-
   //Determine where to cut off the basis functions
   
   cutoff.Resize(totbasis);
   int basiscounter=0;
-  for(int i=0; i< centers.size(); i++)
-  {
-    for(int j=0; j< centers.nbasis(i); j++)
-    {
+  for(int i=0; i< centers.size(); i++) {
+    for(int j=0; j< centers.nbasis(i); j++) {
       Basis_function* tempbasis=basis(centers.basis(i,j));
-      for(int n=0; n< tempbasis->nfunc(); n++)
-      {
-        //cout << "cutoff " << endl;
+      for(int n=0; n< tempbasis->nfunc(); n++) {
         cutoff(basiscounter)=tempbasis->cutoff(n);
-        //cout << "rcut(" << basiscounter << ") "
-        //     << cutoff(basiscounter) << endl;
         basiscounter++;
       }
     }
@@ -156,17 +144,13 @@ void MO_matrix_blas::writeorb(ostream & os, Array2 <doublevar> & rotation, Array
   int counter=0;
   for(int m=0; m < nmo_write; m++) {
     int mo=moList(m);
-    for(int ion=0; ion<centers.size(); ion++)
-    {
+    for(int ion=0; ion<centers.size(); ion++) {
       int f=0;
-
-      for(int n=0; n< centers.nbasis(ion); n++)
-      {
+      for(int n=0; n< centers.nbasis(ion); n++) {
         int fnum=centers.basis(ion,n);
         int imax=basis(fnum)->nfunc();
 
-        for(int i=0; i<imax; i++)
-        {
+        for(int i=0; i<imax; i++){
           os << mo+1 << "  "   << f+1 << "   " << ion+1 << "   " << counter+1 << endl;
           f++;  //keep a total of functions on center
           counter++;

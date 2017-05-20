@@ -102,22 +102,6 @@ public:
 
   virtual void writeorb(ostream &, Array2 <doublevar> & rotation, Array1 <int> &);
 
-  virtual void getMoCoeff(Array2 <T> & coeff) {
-    error("Cutoff_Mo doesn't support optimization yet");
-  }
-  
-  /*!
-    
-   */
-  virtual void setMoCoeff(Array2 <T> & coeff) {
-    error("Cutoff MO doesn't support optimization yet");
-  }
-
-  virtual int nMoCoeff() {
-    error("Need to implement MO_matrix_cutoff::nMoCoeff()");
-    return 0;
-  }
-
 
   virtual void updateVal(
     Sample_point * sample,
@@ -128,14 +112,6 @@ public:
     //!< The return: in form (MO)
   );
   
-  virtual void getBasisVal(
-    Sample_point * sample,
-    int e,
-    Array1 <T> & newvals
-    ){
-    error("Need to implement MO_matrix_cutoff::getBasisVal()");
-  }
-
   virtual void updateLap(
     Sample_point * sample,
     int e,

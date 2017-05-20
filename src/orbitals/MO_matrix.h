@@ -98,25 +98,6 @@ public:
   virtual void writeorb(ostream &, Array2 <doublevar> & rotation, Array1 <int> &)
   { error("writeorb not implemented"); } 
 
-  /*!
-    Get the molecular orbital coefficients
-   */
-  virtual void getMoCoeff(Array2 <T> & coeff) { 
-    error("getMoCoeff not implemented");
-  }
-  
-  /*!
-    
-   */
-  virtual void setMoCoeff(Array2 <T> & coeff){
-    error("setMoCoeff not implemented");
-  }
-  virtual int nMoCoeff() { 
-    error("nMoCoeff not implemented");
-    return 0;
-  }
-
-
   virtual void updateVal(
     Sample_point * sample,
     int e,
@@ -125,15 +106,6 @@ public:
     Array2 <T> & newvals
     //!< The return: in form (MO)
   )=0;
-
-  virtual void getBasisVal(
-    Sample_point * sample,
-    int e,
-    //!< electron number
-    Array1 <T> & newvals
-    ) { 
-    error("getBasisVal not implemented");
-  }
 
   virtual void updateLap(
     Sample_point * sample,
@@ -407,8 +379,7 @@ template<class T> inline void Templated_MO_matrix<T>::read(vector <string> & wor
   for(int i=0; i< centers.size(); i++)
   {
     int basiscent=0;
-    for(int j=0; j< centers.nbasis(i); j++)
-    {
+    for(int j=0; j< centers.nbasis(i); j++) {
       basiscent+=basis(centers.basis(i,j))->nfunc();
       //cout << "basiscent " << basiscent << endl;
     }

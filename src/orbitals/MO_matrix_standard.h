@@ -58,25 +58,6 @@ public:
   virtual void writeorb(ostream &, Array2 <doublevar> & rotation, 
                         Array1 <int> &);
 
-
-  virtual void getMoCoeff(Array2 <doublevar> & coeff) {
-    array_cp(coeff, moCoeff);
-  }
-  
-  /*!
-    
-   */
-  virtual void setMoCoeff(Array2 <doublevar> & coeff) {
-    assert(coeff.GetDim(0)==moCoeff.GetDim(0));
-    assert(coeff.GetDim(1)==moCoeff.GetDim(1));
-    array_cp(moCoeff, coeff);
-  }
-
-  virtual int nMoCoeff() {
-    return moCoeff.GetDim(0)*moCoeff.GetDim(1);
-  }
-
-
   virtual void updateVal(
     Sample_point * sample,
     int e,
@@ -84,12 +65,6 @@ public:
     int listnum,
     Array2 <doublevar> & newvals
     //!< The return: in form (MO)
-  );
-  
-  virtual void getBasisVal(
-    Sample_point * sample,
-    int e,
-    Array1 <doublevar> & newvals
   );
   
   virtual void updateLap(

@@ -68,30 +68,7 @@ public:
   virtual int writeinput(string &, ostream &);
 
 
-  //virtual void read(vector <string> & words, unsigned int & startpos, System * sys);
-
-  //! Takes an ORB file and inserts all the coefficients.
-  //virtual int readorb(istream &);
-
-
   virtual void writeorb(ostream &, Array2 <doublevar> & rotation, Array1 <int> &);
-
-  virtual void getMoCoeff(Array2 <doublevar> & coeff) {
-    error("Blas_Mo doesn't support optimization yet");
-  }
-  
-  /*!
-    
-   */
-  virtual void setMoCoeff(Array2 <doublevar> & coeff) {
-    error("Blas MO doesn't support optimization yet");
-  }
-
-  virtual int nMoCoeff() {
-    error("Need to implement MO_matrix_blas::nMoCoeff()");
-    return 0;
-  }
-
 
   virtual void updateVal(
     Sample_point * sample,
@@ -102,14 +79,6 @@ public:
     //!< The return: in form (MO)
   );
   
-  virtual void getBasisVal(
-    Sample_point * sample,
-    int e,
-    Array1 <doublevar> & newvals
-    ){
-    error("Need to implement MO_matrix_blas::getBasisVal()");
-  }
-
   virtual void updateLap(
     Sample_point * sample,
     int e,

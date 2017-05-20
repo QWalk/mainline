@@ -247,31 +247,6 @@ void MO_matrix_standard::updateVal(Sample_point * sample, int e,
 
 //------------------------------------------------------------------------
 
-void MO_matrix_standard::getBasisVal(Sample_point * sample, int e,
-				     Array1 <doublevar> & newvals
-				     ) {
-
-  newvals.Resize(totbasis);
-  int centermax=centers.size();
-  centers.updateDistance(e, sample);
-  Basis_function * tempbasis;
-  Array1 <doublevar> R(5);
-  int currfunc=0;
-  newvals=0;
-  for(int ion=0; ion < centermax; ion++) {
-    centers.getDistance(e, ion, R);
-    for(int n=0; n< centers.nbasis(ion); n++)
-    {
-
-      tempbasis=basis(centers.basis(ion,n));
-      tempbasis->calcVal(R, newvals, currfunc);
-      currfunc+=tempbasis->nfunc();
-    }
-  }
-}
-
-//------------------------------------------------------------------------
-
 
 /*!
 */
