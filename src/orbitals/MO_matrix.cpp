@@ -24,7 +24,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "MO_matrix_standard.h"
 #include "Sample_point.h"
 #include "qmc_io.h"
-#include "MO_1d.h"
 #include "MO_matrix_blas.h"
 #include "MO_matrix_basfunc.h"
 #include "MO_matrix_Cbasfunc.h"
@@ -53,9 +52,7 @@ int allocate(vector <string> & words, System * sys, MO_matrix *& moptr) {
 
 int allocate(vector <string> & words, System * sys, 
              Complex_MO_matrix *& moptr) {
-  if(caseless_eq(words[0],"MO_1D"))
-    moptr=new MO_1d;
-  else if(caseless_eq(words[0],"CBASFUNC_MO"))
+  if(caseless_eq(words[0],"CBASFUNC_MO"))
     moptr=new MO_matrix_Cbasfunc;
   else if(caseless_eq(words[0],"CUTOFF_MO"))
     moptr=new MO_matrix_cutoff<dcomplex>;

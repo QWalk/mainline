@@ -21,7 +21,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "System.h"
 #include "Molecular_system.h"
 #include "Periodic_system.h"
-#include "Ring_system.h"
 #include "ulec.h"
 #include "SHO_system.h"
 #include "HEG_system.h"
@@ -37,8 +36,6 @@ int allocate(vector <string> & syswords,
   
   else if(caseless_eq(syswords[0],"PERIODIC"))
     sysptr=new Periodic_system;
-  else if(caseless_eq(syswords[0],"RING"))
-    sysptr=new Ring_system;
   else if(caseless_eq(syswords[0],"SHO"))
     sysptr=new SHO_system;
   else if(caseless_eq(syswords[0],"HEG"))
