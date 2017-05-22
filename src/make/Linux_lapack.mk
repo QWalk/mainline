@@ -4,7 +4,7 @@
 CXX_SERIAL:=g++
 
 CXXFLAGS := -O2  
-CXXFLAGS += -DUSE_MPI -DUSE_BLAS -DUSE_LAPACK  ${INCLUDEPATH}
+CXXFLAGS += -DUSE_BLAS -DUSE_LAPACK  ${INCLUDEPATH}
 
 LAPACK_LIBS := -L/usr/lib/atlas-base -llapack -lf77blas -lcblas -latlas -lf77blas 
 LAPACK_INCLUDE := -I/usr/include/atlas/
