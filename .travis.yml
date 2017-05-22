@@ -5,4 +5,4 @@ script: cd src && make install PLATFORM=Linux_lapack && cd ../tests && make -k
 
 env:
   global:
-    - MAKEFLAGS="-j 1"
+    - MAKEFLAGS="-j 4"
