@@ -1,7 +1,6 @@
 ######################################################################
 # Compiler definitions for Linux systems
 # Setup should work for Ubuntu systems with ATLAS and OpenMPI installed
-CXX:=mpicxx
 CXX_SERIAL:=g++
 
 CXXFLAGS := -O2  
