@@ -1,5 +1,4 @@
-install: make
+install: cd src && make install
 language: cpp
 compiler: clang
-script: cd src && make install
 
