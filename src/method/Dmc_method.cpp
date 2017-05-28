@@ -651,7 +651,7 @@ void Dmc_method::move_all_electron(Wavefunction_data * wfdata,
   wf->getVal(wfdata,0,valf);
 
   doublevar ratio=guidingwf->getTrialRatio(valf,vali)*signi*signf;
-  if(ratio <0) { 
+  if(ratio <0 and false) { 
     for(int e=0; e< nelectrons; e++){
       sample->setElectronPos(e,pos0(e));
     }
