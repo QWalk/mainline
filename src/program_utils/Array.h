@@ -28,38 +28,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 /** These are templates for matrices. We define Array1, Array2, and
     Array3, for 1, 2, and 3 dimensional arrays. */
 
-/** We define a virtual base class Array so that all templated matrices
-    can be handled by the same function call. 
-    All Array classes have variables rank and a method GetDims() that
-    returns a constant int pointer to the size of each dimension.
-    An additional feature is that all Array objects can read their elements
-    from an input file, i.e., cin >> mat;, which streams cin to each
-    element in order of storage.
-*/
-
-template <class T>
-class Array
-{ //virtual base class for all matrices
-public:
-  friend istream& operator >>(istream& is, Array& mat)
-  {
-    mat.Read(is);
-    return is;
-  };
-  friend ifstream& operator >>(ifstream& is, Array& mat)
-  {
-    mat.Read(is);
-    return is;
-  };
-  virtual void Read(istream& is)=0;
-  virtual int GetSize() const =0;
-  virtual int GetRank() const =0;
-  virtual int* GetDims() const =0;           //return array of the dimensions.
-  virtual int GetDim( const int d) const =0; //return one dimension.
-  virtual ~Array()
-  {}
-  ;
-};
 
 // Limits is an inline function that checks indices
 inline void Limits(const int n, const int max)
@@ -120,8 +88,7 @@ inline void BiggerLimit(const int lower, const int upper)
 // Read is empty function since many elements do not provide
 // the << operator
 template <class T>
-class Array1 : public Array <T>
-{
+class Array1  {
 public:
   int size,mSize;
   const int rank;
@@ -323,7 +290,7 @@ public:
     size = n;
   }
 
-  virtual int GetDim(const int d) const
+   int GetDim(const int d) const
   {
 #ifdef RANGE_CHECKING
     Limits(d,rank);
@@ -331,15 +298,15 @@ public:
     return size;
   }
 
-  virtual int* GetDims() const
+   int* GetDims() const
   {
     return (int*)&size;
   }
-  virtual int GetRank() const
+   int GetRank() const
   {
     return rank;
   }
-  virtual int GetSize() const
+   int GetSize() const
   {
     return size;
   }
@@ -347,7 +314,7 @@ public:
   {
     return size;
   }
-  virtual void Read(istream& is)
+   void Read(istream& is)
   {
     error("Cannot read standard Array1\nNeed specialization of template");
   }
@@ -414,8 +381,7 @@ void write_json(ostream & os, const Array1 <T> & a) {
 //#####################################################################
 
 template <class T>
-class Array2 : public Array <T>
-{
+class Array2  {
 public:
   int step1;
   int size,mSize;
@@ -619,7 +585,7 @@ public:
     dim[1]=n2;
   }
 
-  virtual int GetDim(const int d) const
+   int GetDim(const int d) const
   {
 #ifdef RANGE_CHECKING
     Limits(d,rank);
@@ -627,19 +593,19 @@ public:
     return dim[d];
   }
 
-  virtual int* GetDims() const
+   int* GetDims() const
   {
     return (int*)dim;
   }
-  virtual int GetRank() const
+   int GetRank() const
   {
     return rank;
   }
-  virtual int GetSize() const
+   int GetSize() const
   {
     return size;
   }
-  virtual void Read(istream& is)
+   void Read(istream& is)
   {
     error("Cannot read standard Array2\nNeed specialization of template");
   }
@@ -705,8 +671,7 @@ inline void MPI_Recv(Array2 <doublevar> & arr, int node) {
 //#####################################################################
 
 template <class T>
-class Array3 : public Array <T>
-{
+class Array3  {
 public:
   int step1, step2;
   int size;
@@ -864,22 +829,22 @@ public:
     step1 = dim[1]*(step2);
   }
 
-  virtual int GetDim(const int d) const
+   int GetDim(const int d) const
   {
 #ifdef RANGE_CHECKING
     Limits(d,rank);
 #endif
     return dim[d];
   }
-  virtual int* GetDims() const
+   int* GetDims() const
   {
     return (int*)dim;
   }
-  virtual int GetRank() const
+   int GetRank() const
   {
     return rank;
   }
-  virtual int GetSize() const
+   int GetSize() const
   {
     return size;
   }
@@ -888,7 +853,7 @@ public:
     return size;
   }
 
-  virtual void Read(istream& is)
+   void Read(istream& is)
   {
     double dummy;
     is >> dummy;
