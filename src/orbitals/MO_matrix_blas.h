@@ -178,7 +178,7 @@ template <class T> void MO_matrix_blas<T>::init() {
   if(!ORB) error("couldn't find orb file ", orbfile);
 
   Array3 <int> coeffmat;
-  Array1 <doublevar> coeff;
+  Array1 <T> coeff;
   readorb(ORB,centers, nmo, maxbasis, kpoint,coeffmat, coeff);
   string in;
   ORB.close();
