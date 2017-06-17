@@ -18,9 +18,9 @@ void Average_quadrupole::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
 
     for(int d1=0; d1< ndim; d1++) { 
       for(int d2=0; d2< ndim; d2++) { 
-        quad(d1,d2)+=-1.*pos(d1)*pos(d2)*3.;
+        quad(d1,d2)+=-1.*pos(d1)*pos(d2); //*3.;
       }
-      quad(d1,d1)-=-1.*r2;
+      //quad(d1,d1)-=-1.*r2;
     }
   }
 
@@ -34,9 +34,9 @@ void Average_quadrupole::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
     
     for(int d1=0; d1< ndim; d1++) {
       for(int d2=0; d2< ndim; d2++) { 
-        quad(d1,d2)+=charge*pos(d1)*pos(d2)*3.;
+        quad(d1,d2)+=charge*pos(d1)*pos(d2); //*3.;
       }
-      quad(d1,d1)-=charge*r2;
+      //quad(d1,d1)-=charge*r2;
     }
   }
   
@@ -44,13 +44,22 @@ void Average_quadrupole::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
   // quad(i,j)= vals[i*n+j]
   avg.type="quadrupole";
   avg.vals.Resize(ndim*ndim*3);
-  for(int i=0; i < ndim; i++) { 
-    for(int j=0; j< ndim; j++) { 
-      avg.vals(i*ndim+j)=quad(i,j);
-      avg.vals(ndim*ndim+i*ndim+j)=cos(2*pi*gvecs(i,j)*quad(i,j));
-      avg.vals(2*ndim*ndim+i*ndim+j)=sin(2*pi*gvecs(i,j)*quad(i,j));
+  avg.vals=0.0;
+  doublevar factor=1./(2*pi);
+  for(int j=0; j < ndim; j++) { 
+    for(int k=0; k< ndim; k++) { 
+      avg.vals(j*ndim+k)=quad(j,k);
+      doublevar sum=0;
+      for(int a=0; a< ndim; a++) { 
+        for(int b=0; b< ndim; b++) { 
+          sum+=factor*gvecs(j,a)*gvecs(k,b)*quad(a,b);
+        }
+      }
+      avg.vals(ndim*ndim+j*ndim+k)=cos(sum);
+      avg.vals(2*ndim*ndim+j*ndim+k)=sin(sum);
     }
   }
+
   
 } 
 //----------------------------------------------------------------------
@@ -59,27 +68,13 @@ void Average_quadrupole::read(System * sys, Wavefunction_data * wfdata, vector
                     <string> & words) { 
   int ndim=3;
   unsigned int pos=0;
-  Array2<doublevar> gveclat(ndim,ndim);
-  if(!sys->getRecipLattice(gveclat)) { 
+  gvecs.Resize(3,3);
+  if(!sys->getRecipLattice(gvecs)) { 
     doublevar len=10.0;
     readvalue(words,pos=0,len,"LENGTH");
-    gveclat=0.0;
-    for(int d=0; d< ndim; d++) gveclat(d,d)=1./len;
+    gvecs=0.0;
+    for(int d=0; d< ndim; d++) gvecs(d,d)=1./len;
   }
-  gvecs.Resize(ndim,ndim);
-  gvecs=0.0;
-  for(int d1=0; d1 < ndim; d1++) { 
-    for(int d2=0; d2 < ndim; d2++) { 
-// This is just for orthorhombic cells. 
-      doublevar factor=0.5;
-      if(d1==d2) factor=1.0;
-      gvecs(d1,d2)=factor*gveclat(d1,d1)*gveclat(d2,d2);
-      //for(int d3=0; d3< ndim; d3++) { 
-      //  gvecs(d1,d2)+=gveclat(d1,d3)*gveclat(d2,d3);
-      //}
-    }
-  }
-  
   
 }
 //----------------------------------------------------------------------
@@ -88,7 +83,7 @@ void Average_quadrupole::write_init(string & indent, ostream & os) {
   os << indent << "quadrupole" << endl;
   os << indent << "GVECS { ";
   for(int i=0 ;i< 3; i++) { 
-    for(int j=0; j< 3; j++) { 
+    for(int j=0; j< 3; j++) {
       os << gvecs(i,j) << " ";
     }
   }
@@ -104,8 +99,10 @@ void Average_quadrupole::read(vector <string> & words) {
   readsection(words,pos,gtext,"GVECS");
   if(gtext.size()!=9) error("Expected 9 terms in GVECS");
   gvecs.Resize(3,3);
+  int count=0;
   for(int i=0; i < 3; i++) { 
-    for(int j=0; j< 3; j++) gvecs(i,j)=atof(gtext[i*3+j].c_str());
+    for(int j=0; j< 3; j++) 
+          gvecs(i,j)=atof(gtext[count++].c_str());
   }
   
 } 
