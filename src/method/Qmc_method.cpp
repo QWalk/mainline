@@ -33,8 +33,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Wannier_method.h"
 #include "Linear_optimization.h"
 #include "Rotate_orbs.h"
-#include "Determinant_select_method.h"
-#include "Energy_slice.h"
 #include "Lowdin_method.h"
 #include "Maximize_method.h"
 
@@ -86,10 +84,6 @@ int allocate(vector <string> & words,
     methptr=new Linear_optimization_method;
   else if(caseless_eq(words[0],"ROTATE_ORBS"))
     methptr=new Rotate_orbs_method;
-  else if(caseless_eq(words[0],"DETERMINANT_SELECT"))
-    methptr=new Determinant_select_method;
-  else if(caseless_eq(words[0],"ENERGY_SLICE"))
-    methptr=new Energy_slice;
   else if(caseless_eq(words[0],"LOWDIN"))
     methptr=new Lowdin_method;
   else if(caseless_eq(words[0],"MAXIMIZE"))

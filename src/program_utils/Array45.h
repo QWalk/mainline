@@ -29,8 +29,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Array.h"
 
 template <class T>
-class Array4 : public Array <T>
-{
+class Array4 {
 public:
   int step1, step2, step3;
   int size;
@@ -186,8 +185,7 @@ public:
 };
 
 template <class T>
-class Array5 : public Array <T>
-{
+class Array5  {
 public:
   int step1, step2, step3, step4;
   int size;

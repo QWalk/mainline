@@ -92,28 +92,6 @@ public:
     error("BASFUNC_MO: writeorb not implemented");
   }
 
-  // I guess the following three are ment for direct orbital optimization,
-  // there is nothing to optimize here, only basis functions
-  virtual void getMoCoeff(Array2 <doublevar> & coeff) {
-    error("BASFUNC_MO: getMoCoeff not implemented");
-  }
-  virtual void setMoCoeff(Array2 <doublevar> & coeff) {
-    error("BASFUNC_MO: setMoCoeff not implemented");
-  }
-  virtual int nMoCoeff() {
-    error("BASFUNC_MO: nMoCoeff not implemented");
-    return 0;
-  }
-
-  // No problem to implement/copy, but what for is it
-  // anyway?
-  virtual void getBasisVal(Sample_point * sample, 
-			   int e,
-			   Array1 <doublevar> & newvals
-			   ) {
-    error("BASFUNC_MO: getBasisVal not implemented");
-  }
-
   // finally, the two key functions of the class that actually evaluate the
   // molecular orbitals (and their derivatives)
   virtual void updateVal(Sample_point * sample,

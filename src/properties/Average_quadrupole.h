@@ -2,9 +2,8 @@
 
 #ifndef AVERAGE_QUADRUPOLE_H_INCLUDED
 #define AVERAGE_QUADRUPOLE_H_INCLUDED
+#include "Array45.h"
 /*!
- \brief 
- Accumulate the derivative of the wave function with respect to the parameters. 
 */
 class Average_quadrupole:public Average_generator { 
 public:
@@ -18,7 +17,7 @@ public:
   virtual void jsonOutput(Average_return &,Average_return &, ostream & );
   
 private:
-  Array2 <doublevar> gvecs; //(number of gvecs, vectors)
+  Array2 <doublevar> gvecs; 
 };
 
 #endif //AVERAGE_QUADRUPOLE_H_INCLUDED
