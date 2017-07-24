@@ -8,8 +8,6 @@ MY_SOURCES:= gesqua.cpp \
 	Periodic_system.cpp \
         Pseudopotential_so.cpp \
 	Pseudopotential.cpp \
-	Ring_sample.cpp \
-	Ring_system.cpp \
 	Sample_point.cpp \
         SHO_system.cpp \
         SHO_sample.cpp \

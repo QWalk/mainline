@@ -130,16 +130,6 @@ public:
   virtual int showinfo(ostream & os);
   virtual int writeinput(string &, ostream &);
   virtual void writeorb(ostream &, Array2 <doublevar> & rotation, Array1 <int> & tmp) { } 
-  virtual void getMoCoeff(Array2 <doublevar> & coeff) {
-    error("Einspline_Mo doesn't support optimization yet");
-  }
-  virtual void setMoCoeff(Array2 <doublevar> & coeff) {
-    error("Einspline MO doesn't support optimization yet");
-  }
-  virtual int nMoCoeff() {
-    error("Need to implement MO_matrix_einspline::nMoCoeff()");
-    return 0;
-  }
   virtual void updateVal(Sample_point *,int e,int listnum,Array2<T>&);
   virtual void updateLap(Sample_point *,int e, int listnum, Array2<T>&);
   virtual void updateHessian(Sample_point * sample,

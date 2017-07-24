@@ -1,9 +1,6 @@
 
 MY_SOURCES:= Center_set.cpp \
-	MO_1d.cpp \
-	MO_matrix_blas.cpp \
 	MO_matrix.cpp \
-	MO_matrix_standard.cpp \
 	MO_matrix_basfunc.cpp \
 	MO_matrix_Cbasfunc.cpp \
 

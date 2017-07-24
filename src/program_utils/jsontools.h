@@ -1,5 +1,9 @@
 #include <iostream>
 #include "Array.h"
+#include "Array45.h"
+
+#ifndef JSONTOOLS_H_INCLUDED
+#define JSONTOOLS_H_INCLUDED
 
 template <class T> void jsonarray(std::ostream & os, Array1 <T> & arr) { 
   os << "[";
@@ -23,3 +27,5 @@ template <class T> void jsonarray(std::ostream & os, Array2 <T> & arr) {
   }
   os << "\n ] ";
 }
+
+#endif

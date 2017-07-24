@@ -21,10 +21,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Qmc_std.h"
 #include "MO_matrix.h"
 #include "MO_matrix_cutoff.h"
-#include "MO_matrix_standard.h"
 #include "Sample_point.h"
 #include "qmc_io.h"
-#include "MO_1d.h"
 #include "MO_matrix_blas.h"
 #include "MO_matrix_basfunc.h"
 #include "MO_matrix_Cbasfunc.h"
@@ -36,17 +34,12 @@ int allocate(vector <string> & words, System * sys, MO_matrix *& moptr) {
 
   if(caseless_eq(words[0],"CUTOFF_MO"))
     moptr=new MO_matrix_cutoff<doublevar>;
-  else if(caseless_eq(words[0],"STANDARD_MO"))
-    moptr=new MO_matrix_standard;
-  else if(caseless_eq(words[0],"BLAS_MO"))
-    moptr=new MO_matrix_blas;
   else if(caseless_eq(words[0],"BASFUNC_MO"))
     moptr=new MO_matrix_basfunc;
   else if(caseless_eq(words[0],"EINSPLINE_MO"))
     moptr=new MO_matrix_einspline<doublevar>;
-  
   else {
-    error("Didn't  understand ",words[0]);
+    moptr=new MO_matrix_blas<doublevar>;
   }
 
   unsigned int pos=0;
@@ -56,16 +49,14 @@ int allocate(vector <string> & words, System * sys, MO_matrix *& moptr) {
 
 int allocate(vector <string> & words, System * sys, 
              Complex_MO_matrix *& moptr) {
-  if(caseless_eq(words[0],"MO_1D"))
-    moptr=new MO_1d;
-  else if(caseless_eq(words[0],"CBASFUNC_MO"))
+  if(caseless_eq(words[0],"CBASFUNC_MO"))
     moptr=new MO_matrix_Cbasfunc;
   else if(caseless_eq(words[0],"CUTOFF_MO"))
     moptr=new MO_matrix_cutoff<dcomplex>;
   else if(caseless_eq(words[0],"EINSPLINE_MO"))
     moptr=new MO_matrix_einspline<dcomplex>;
   else 
-    error("Unknown complex MO: ", words[0]);
+    moptr=new MO_matrix_blas<dcomplex>;
 
   unsigned int pos=0;
   moptr->read(words, pos, sys);

@@ -1,11 +1,9 @@
 
 MY_SOURCES:= \
-          Determinant_select_method.cpp \
-  Dmc_method.cpp \
+        Dmc_method.cpp \
+	Force_fitter.cpp \
         Generate_sample.cpp \
 	Rndmc_method.cpp \
-        Energy_slice.cpp \
-	Force_fitter.cpp \
         Linear_optimization.cpp \
         Localize_method.cpp \
 	Lowdin_method.cpp \

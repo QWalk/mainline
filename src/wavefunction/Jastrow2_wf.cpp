@@ -26,77 +26,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 //######################################################################
 
 
-//----------------------------------------------------------------------
-//functions to change the input so that the old style Jastrow 3-body 
-//factor will work
-//This consists of:
-// -Adding a step function with range 1e99 to the beginning of all sections
-// -Adding a 0 in the beginning of the two-body and one-body coefficient
-//  sections
-
-void fix_onebody_txt(vector <string> & onebodywords) {
-  
-  for(vector<string>::iterator i=onebodywords.begin();
-      i!=onebodywords.end(); i++) {
-    if(caseless_eq(*i,"COEFFICIENTS")) { 
-      i++; //{
-      i++; //label
-      i++;
-      i=onebodywords.insert(i,"0.0");
-    }
-  }
-}
-		     
-void fix_onebody_basis(vector <vector <string> > & basistxt,
-		       vector <string> atomnames) { 
-  vector <string> uniqueat;
-  int natoms=atomnames.size();
-  for(int at=0; at< natoms; at++) { 
-    int unique=1;
-    for(vector<string>::iterator i=uniqueat.begin();
-	i!=uniqueat.end(); i++) {
-      if(*i==atomnames[at]) {
-	unique=0;
-	break;
-      }
-    }
-    if(unique) { 
-      vector <string> tmptxt;
-      tmptxt.push_back(atomnames[at]);
-      tmptxt.push_back("STEP");
-      tmptxt.push_back("CUTOFF");
-      tmptxt.push_back("1e99");
-      basistxt.push_back(tmptxt);
-      uniqueat.push_back(atomnames[at]);
-    }
-  }
-
-}
-
-void fix_twobody_basis(vector < vector <string> > & basistxt) { 
-  vector <string> tmptxt;
-  tmptxt.push_back("EE");
-  tmptxt.push_back("STEP");
-  tmptxt.push_back("CUTOFF");
-  tmptxt.push_back("1e99");
-  basistxt.push_back(tmptxt);
-  
-}
-
-void fix_twobody_section(vector <string> & twobodysec) {
-  
-  for(vector<string>::iterator i=twobodysec.begin();
-      i!=twobodysec.end(); i++) {
-    if(caseless_eq(*i,"COEFFICIENTS")) { 
-      i++; //{
-      i++;
-      i=twobodysec.insert(i,"0.0");
-    }
-  }
-}
-
-//----------------------------------------------------------------------
-
 void Jastrow_group::set_up(vector <string> & words, System * sys) {
   //cout <<"Start set up"<<endl;
   unsigned int pos=0;
@@ -108,20 +37,16 @@ void Jastrow_group::set_up(vector <string> & words, System * sys) {
   else optimize_basis=0;
 
 
-  int fix_old=haskeyword(words, pos=0,"OLD_FORMAT");
   int natoms=atomnames.size();
 
   has_one_body=has_two_body=0;
   if(readsection(words, pos=0, onebodywords, "ONEBODY")) {
     has_one_body=1;
-    if(fix_old) fix_onebody_txt(onebodywords);
     one_body.set_up(onebodywords, atomnames);
   }
   pos=0;
   vector < vector < string> > basistxt;
   vector <string> tmpbasis;
-
-  if(fix_old) fix_onebody_basis(basistxt,atomnames);
 
   while(readsection(words, pos, tmpbasis, "EIBASIS"))
     basistxt.push_back(tmpbasis);
@@ -177,7 +102,6 @@ void Jastrow_group::set_up(vector <string> & words, System * sys) {
   //Two-body stuff
   vector < vector < string> > eebasistxt;
   vector <string> eebasistmp;
-  if(fix_old) fix_twobody_basis(eebasistxt);
   pos=0;
   while(readsection(words, pos, eebasistmp, "EEBASIS"))
     eebasistxt.push_back(eebasistmp);
@@ -201,7 +125,6 @@ void Jastrow_group::set_up(vector <string> & words, System * sys) {
   if(readsection(words, pos=0, twobodysec, "TWOBODY")) {
     has_two_body=1;
     have_diffspin=0;
-    if(fix_old) fix_twobody_section(twobodysec);
 
     two_body=new Jastrow_twobody_piece;
     two_body->set_up(twobodysec, sys);
@@ -210,8 +133,6 @@ void Jastrow_group::set_up(vector <string> & words, System * sys) {
   if(readsection(words, pos=0, twobodysec, "TWOBODY_SPIN")) {
     if(has_two_body)
       error("Can only have one of TWOBODY_SPIN or TWOBODY");
-    if(fix_old) 
-      error("Should not use OLD_FORMAT for spin-dependent Jastrows");
     have_diffspin=1;
     has_two_body=1;
     two_body=new Jastrow_twobody_piece_diffspin;

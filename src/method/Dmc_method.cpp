@@ -72,6 +72,9 @@ void Dmc_method::read(vector <string> words,
   if(haskeyword(words, pos=0, "TMOVESSC")) tmoves_sizeconsistent=1;
   else tmoves_sizeconsistent=0;
 
+  all_electron_moves=false;
+  if(haskeyword(words,pos=0,"ALL_ELECTRON")) all_electron_moves=true;
+
 
   readvalue(words,pos=0,save_trace,"SAVE_TRACE");
 
@@ -387,24 +390,8 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
 	//------Do several steps without branching
         for(int p=0; p < npsteps; p++) {
           pseudo->randomize();
-          
-          for(int e=0; e< nelectrons; e++) {
-            int acc;
-            acc=dyngen->sample(e, sample, wf, wfdata, guidingwf,
-                               dinfo, timestep);
-            
-            if(dinfo.accepted) 
-              deltar2+=dinfo.diffusion_rate/(nconfig*nelectrons*npsteps);
-            if(dinfo.accepted) {               
-              pts(walker).age(e)=0;
-            }
-            else { 
-              pts(walker).age(e)++;
-            }
-            avg_acceptance+=dinfo.acceptance/(nconfig*nelectrons*npsteps);
-            
-            if(acc>0) acsum++;
-          }
+          if(all_electron_moves) move_all_electron(wfdata,wf,sample,guidingwf,pts(walker),acsum);
+          else move_electron_by_electron(wfdata,wf,sample,guidingwf,pts(walker),acsum);
           totpoints++;
           Properties_point pt;
           if(tmoves or tmoves_sizeconsistent) {  //------------------T-moves
@@ -424,7 +411,7 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
           pts(walker).prop=pt;
           if(!pure_dmc) { 
             pts(walker).weight*=getWeight(pts(walker),teff,etrial);
-            //Introduce potentially a small bias to avoid instability.
+            //Introduce a small bias to avoid instability.
             if(pts(walker).weight>max_poss_weight) pts(walker).weight=max_poss_weight;
           }
           else
@@ -468,7 +455,8 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
 
       doublevar accept_ratio=acsum/(nconfig*nelectrons*npsteps);
       teff=timestep*accept_ratio; //deltar2/rf_diffusion; 
-
+      if(output) output << "Acceptance " << accept_ratio << endl;
+      
       updateEtrial(feedback);
 
       step+=npsteps;
@@ -541,8 +529,7 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
              << " etrial " << etrial << endl;
       output << "maximum age " << maxage 
 	     << " average age " << avgage << endl;
-      dyngen->showStats(output);
-
+      if(!all_electron_moves)  dyngen->showStats(output);
       prop.printBlockSummary(output);
 
       output << "Branched "
@@ -570,6 +557,115 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
 
 
 //----------------------------------------------------------------------
+
+
+
+void Dmc_method::move_electron_by_electron(Wavefunction_data * wfdata,
+                                           Wavefunction * wf, 
+                                           Sample_point * sample,
+                                           Guiding_function * guidingwf,
+                                           Dmc_point & pt,
+                                           doublevar & acsum) { 
+  Dynamics_info dinfo;
+  for(int e=0; e< nelectrons; e++) {
+    int acc;
+    acc=dyngen->sample(e, sample, wf, wfdata, guidingwf,
+        dinfo, timestep);
+
+    if(dinfo.accepted) {               
+      pt.age(e)=0;
+    }
+    else { 
+      pt.age(e)++;
+    }
+    if(acc>0) acsum++;
+  }
+
+}
+
+
+//----------------------------------------------------------------------
+
+void Dmc_method::move_all_electron(Wavefunction_data * wfdata,
+                         Wavefunction * wf, 
+                         Sample_point * sample,
+                         Guiding_function * guidingwf,
+                         Dmc_point & pt,
+                         doublevar & acsum) { 
+  wf->updateLap(wfdata,sample);
+  Wf_return lap(wf->nfunc(),5),vali(wf->nfunc(),1),valf(wf->nfunc(),1);
+  doublevar signi,signf;
+  int ndim=sample->ndim();
+  Array1 < Array1 < doublevar> > drift1(nelectrons),drift2(nelectrons),
+                              translate1(nelectrons),translate2(nelectrons),
+                              gauss(nelectrons),pos0(nelectrons);
+  for(int e=0; e < nelectrons; e++) {
+    drift1(e).Resize(ndim);
+    drift2(e).Resize(ndim);
+    translate1(e).Resize(ndim);
+    translate2(e).Resize(ndim);
+    gauss(e).Resize(ndim);
+    for(int d=0; d< ndim; d++) gauss(e)(d)=rng.gasdev();
+    pt.age(e)=0;
+    pos0(e).Resize(ndim);
+    sample->getElectronPos(e,pos0(e));
+  }
+
+  signi=sample->overallSign();
+  wf->getVal(wfdata,0,vali);
+  
+  for(int e=0; e < nelectrons; e++) { 
+    wf->getLap(wfdata,e,lap);
+    guidingwf->getLap(lap,drift1(e));
+    limDrift(drift1(e),timestep,drift_cyrus);
+    for(int d=0; d< ndim; d++) {
+      translate1(e)(d)=gauss(e)(d)*sqrt(timestep)+drift1(e)(d);
+    }
+  }
+  
+  for(int e=0; e< nelectrons; e++) { 
+    sample->translateElectron(e,translate1(e));
+  }
+  wf->notify(all_electrons_move,0);
+  wf->updateLap(wfdata,sample);
+
+
+  for(int e=0; e < nelectrons; e++) { 
+    wf->getLap(wfdata,e,lap);
+    guidingwf->getLap(lap,drift2(e));
+    limDrift(drift2(e),timestep,drift_cyrus);
+    for(int d=0; d< ndim; d++) {
+      translate2(e)(d)=gauss(e)(d)*sqrt(timestep)+
+           0.5*(drift1(e)(d)+drift2(e)(d))-translate1(e)(d);
+    }
+  }
+  
+  for(int e=0; e< nelectrons; e++) { 
+    sample->translateElectron(e,translate2(e));
+  }
+  wf->notify(all_electrons_move,0);
+  
+
+  wf->updateLap(wfdata,sample);
+  signf=sample->overallSign();
+  wf->getVal(wfdata,0,valf);
+
+  doublevar ratio=guidingwf->getTrialRatio(valf,vali)*signi*signf;
+  if(ratio <0 and false) { 
+    for(int e=0; e< nelectrons; e++){
+      sample->setElectronPos(e,pos0(e));
+    }
+    wf->notify(all_electrons_move,0);
+    
+  }
+  else { 
+    acsum+=nelectrons;
+  }
+  
+}
+
+//----------------------------------------------------------------------
+
 
 
 void Dmc_method::savecheckpoint(string & filename,                     
