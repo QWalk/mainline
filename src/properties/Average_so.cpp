@@ -1,5 +1,6 @@
 #include "Average_so.h"
 #include "Pseudopotential_so.h"
+#include "ulec.h"
 
 void Average_so::read(System * sys, Wavefunction_data * wfdata, 
                       vector <string> & words){
@@ -55,21 +56,27 @@ void Average_so::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System 
 void Average_so::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys,
                           Sample_point * sample, Average_return & avg) {
   avg.type="psp_so";
-  avg.vals.Resize(1);
-  avg.vals=0.0;
   int nwf=wf->nfunc();
+  avg.vals.Resize(nwf);
+  avg.vals=0.0;
   int nelectrons=sample->electronSize();
  
-  Array2 <doublevar> totalv;
-  totalv.Resize(nelectrons,nwf);
+  Array1 <doublevar> totalv;
+  totalv.Resize(nwf);
 
-  psp_so->calcNonlocSeparated(wfdata,sys,sample,wf,totalv);
-  for(int e=0;e<nelectrons;e++){
-    for(int w=0;w<nwf;w++){
-      avg.vals(0)+=totalv(e,w);
-    }
-  } 
+  int nrandvar=psp_so->nTest();
+  Array1 <doublevar> rand_num(nrandvar);
+  for(int i=0; i< nrandvar; i++)
+    rand_num(i)=rng.ulec();
 
+  psp_so->calcNonlocWithTest(wfdata,sys,sample,wf,rand_num,totalv);
+  avg.vals=totalv;
+
+}
+
+void Average_so::randomize(Wavefunction_data * wfdata, Wavefunction * wf,
+                        System * sys, Sample_point * sample) {
+  psp_so->randomize();
 }
 
 void Average_so::write_summary(Average_return & avg, Average_return & err, 

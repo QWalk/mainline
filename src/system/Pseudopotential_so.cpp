@@ -142,33 +142,23 @@ dcomplex Ylm(int l, int ml, Array1 <doublevar> r){
   case 4:
     switch(ml){
       case -4:
-        return 3.00*sqrt(70.00)/16.00*dcomplex( ((r(2)*r(2)-r(3)*r(3))*(r(2)*(2)-r(3)*r(3))
-                                                -4*r(2)*r(2)*r(3)*r(3))/(r(1)*r(1)),
-                                                -4*r(2)*r(3)*(r(2)*r(2)-r(3)*r(3))/(r(1)*r(1)) );
+        return 3.00*sqrt(70.00)/16.00*pow(dcomplex(r(2),-r(3)),4)/pow(r(1),2);
       case -3:
-        return 3.00*sqrt(35.00)/4.00*dcomplex( r(2)*r(4)*(r(2)*r(2)-3*r(3)*r(3))/(r(1)*r(1)),
-                                               -r(3)*r(4)*(3*r(2)*r(2)-r(3)*r(3))/(r(1)*r(1)) );
+        return 3.00*sqrt(35.00)/4.00*pow(dcomplex(r(2),-r(3)),3)*r(4)/pow(r(1),2);
       case -2:
-        return 3.00*sqrt(10.00)/8.00*dcomplex( (r(2)*r(2)-r(3)*r(3))*(7*r(4)*r(4)-r(1))/(r(1)*r(1)),
-                                                -2*r(2)*r(3)*(7*r(4)*r(4)-r(1))/(r(1)*r(1))   );
+        return 3.00*sqrt(10.00)/8.00*pow(dcomplex(r(2),-r(3)),2)*(7*r(4)*r(4)-r(1))/pow(r(1),2);
       case -1:
-        return 3.00*sqrt(5.00)/4.00*dcomplex( r(2)*r(4)*(7*r(4)*r(4)-3*r(1))/(r(1)*r(1)),
-                                             -r(3)*r(4)*(7*r(4)*r(4)-3*r(1))/(r(1)*r(1)) );
+        return 3.00*sqrt(5.00)/4.00*dcomplex(r(2),-r(3))*r(4)*(7*r(4)*r(4)-3*r(1))/pow(r(1),2);
       case 0:
         return 3.00/8.00*dcomplex( (35*r(4)*r(4)*r(4)*r(4)-30*r(1)*r(4)*r(4)+3*r(1)*r(1))/(r(1)*r(1)), 0 );
       case 1:
-        return -3.00*sqrt(5.00)/4.00*dcomplex( r(2)*r(4)*(7*r(4)*r(4)-3*r(1))/(r(1)*r(1)),
-                                             r(3)*r(4)*(7*r(4)*r(4)-3*r(1))/(r(1)*r(1)) );
+        return -3.00*sqrt(5.00)/4.00*dcomplex(r(2),r(3))*r(4)*(7*r(4)*r(4)-3*r(1))/pow(r(1),2);
       case 2:
-        return 3.00*sqrt(10.00)/8.00*dcomplex( (r(2)*r(2)-r(3)*r(3))*(7*r(4)*r(4)-r(1))/(r(1)*r(1)),
-                                                2*r(2)*r(3)*(7*r(4)*r(4)-r(1))/(r(1)*r(1))   );
+        return 3.00*sqrt(10.00)/8.00*pow(dcomplex(r(2),r(3)),2)*(7*r(4)*r(4)-r(1))/pow(r(1),2);
       case 3:
-        return -3.00*sqrt(35.00)/4.00*dcomplex( r(2)*r(4)*(r(2)*r(2)-3*r(3)*r(3))/(r(1)*r(1)),
-                                               r(3)*r(4)*(3*r(2)*r(2)-r(3)*r(3))/(r(1)*r(1)) );
+        return -3.00*sqrt(35.00)/4.00*pow(dcomplex(r(2),r(3)),3)*r(4)/pow(r(1),2);
       case 4:
-        return 3.00*sqrt(70.00)/16.00*dcomplex( ((r(2)*r(2)-r(3)*r(3))*(r(2)*(2)-r(3)*r(3))
-                                                -4*r(2)*r(2)*r(3)*r(3))/(r(1)*r(1)),
-                                                4*r(2)*r(3)*(r(2)*r(2)-r(3)*r(3))/(r(1)*r(1)) );
+        return 3.00*sqrt(70.00)/16.00*pow(dcomplex(r(2),r(3)),4)/pow(r(1),2);
       default:
  //       error("Do not have spherical harmonics of order", ml);
         return 0;
@@ -669,7 +659,7 @@ void Pseudopotential_so::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
   
           for(int l=0; l<numL(at)-1; l++)
             for(int j=0;j<=1;j++)
-              strength+=calculate_threshold*(2*l+1)*fabs(v_jl(j,l));
+              strength+=calculate_threshold*(l-j+1)*fabs(v_jl(j,l));
    
           strength=min((doublevar) 1.0, strength);
   
