@@ -6,57 +6,52 @@ void Average_quadrupole::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
                         System * sys, Sample_point * sample, Average_return & avg) 
 { 
   int ndim=3;
-  Array2 <doublevar> quad(ndim,ndim,0.0);
-  
   int nelectrons=sample->electronSize();
+  int nions=sample->ionSize();
+  Array1 <doublevar> charges(nelectrons+nions);
+  Array2 <doublevar> positions(nelectrons+nions,ndim);
   Array1<doublevar> pos(ndim);
+
   for(int e=0; e< nelectrons; e++) {
     sample->getElectronPos(e,pos);
-    doublevar r2=0;
-    for(int d=0; d< ndim; d++) 
-      r2+=pos(d)*pos(d);
-
-    for(int d1=0; d1< ndim; d1++) { 
-      for(int d2=0; d2< ndim; d2++) { 
-        quad(d1,d2)+=-1.*pos(d1)*pos(d2); //*3.;
-      }
-      //quad(d1,d1)-=-1.*r2;
-    }
+    charges(e)=-1;
+    for(int d=0; d< 3; d++) 
+      positions(e,d)=pos(d);
   }
 
-  int nions=sample->ionSize();
   for(int at=0; at < nions; at++) {
     sample->getIonPos(at,pos);
-    doublevar charge=sample->getIonCharge(at);
-    doublevar r2=0.0;
-    for(int d=0; d< ndim; d++) 
-      r2+=pos(d)*pos(d);
-    
-    for(int d1=0; d1< ndim; d1++) {
-      for(int d2=0; d2< ndim; d2++) { 
-        quad(d1,d2)+=charge*pos(d1)*pos(d2); //*3.;
-      }
-      //quad(d1,d1)-=charge*r2;
-    }
+    charges(at+nelectrons)=sample->getIonCharge(at);
+    for(int d=0; d< 3; d++) 
+      positions(at+nelectrons,d)=pos(d);
   }
+
   
   //Serialization:
   // quad(i,j)= vals[i*n+j]
   avg.type="quadrupole";
   avg.vals.Resize(ndim*ndim*3);
   avg.vals=0.0;
-  doublevar factor=1./(2*pi);
   for(int j=0; j < ndim; j++) { 
     for(int k=0; k< ndim; k++) { 
-      avg.vals(j*ndim+k)=quad(j,k);
-      doublevar sum=0;
-      for(int a=0; a< ndim; a++) { 
-        for(int b=0; b< ndim; b++) { 
-          sum+=factor*gvecs(j,a)*gvecs(k,b)*quad(a,b);
+      for(doublevar shift=0; shift < 0.2; shift+=0.05) { 
+      doublevar sum=0;      
+      for(int p=0; p < nelectrons+nions; p++) { 
+        avg.vals(j*ndim+k)+=charges(p)*positions(p,j)*positions(p,k);
+
+        for(int a=0; a< ndim; a++) { 
+          for(int b=0; b< ndim; b++) { 
+            sum+=charges(p)*gvecs(j,a)*gvecs(k,b)
+                       *(positions(p,a)+shift)
+                       *(positions(p,b)+shift);
+          }
         }
       }
-      avg.vals(ndim*ndim+j*ndim+k)=cos(sum);
-      avg.vals(2*ndim*ndim+j*ndim+k)=sin(sum);
+      cout << "shift " << shift << " sum " << sum << " cos(sum) " 
+        << cos(2*pi*sum) << endl;
+      }
+      //avg.vals(ndim*ndim+j*ndim+k)=cos(2*pi*sum);
+      //avg.vals(2*ndim*ndim+j*ndim+k)=sin(2*pi*sum);
     }
   }
 
