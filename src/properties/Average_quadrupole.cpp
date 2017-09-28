@@ -34,7 +34,6 @@ void Average_quadrupole::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
   avg.vals=0.0;
   for(int j=0; j < ndim; j++) { 
     for(int k=0; k< ndim; k++) { 
-      for(doublevar shift=0; shift < 0.2; shift+=0.05) { 
       doublevar sum=0;      
       for(int p=0; p < nelectrons+nions; p++) { 
         avg.vals(j*ndim+k)+=charges(p)*positions(p,j)*positions(p,k);
@@ -42,16 +41,13 @@ void Average_quadrupole::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
         for(int a=0; a< ndim; a++) { 
           for(int b=0; b< ndim; b++) { 
             sum+=charges(p)*gvecs(j,a)*gvecs(k,b)
-                       *(positions(p,a)+shift)
-                       *(positions(p,b)+shift);
+                       *(positions(p,a))
+                       *(positions(p,b));
           }
         }
       }
-      cout << "shift " << shift << " sum " << sum << " cos(sum) " 
-        << cos(2*pi*sum) << endl;
-      }
-      //avg.vals(ndim*ndim+j*ndim+k)=cos(2*pi*sum);
-      //avg.vals(2*ndim*ndim+j*ndim+k)=sin(2*pi*sum);
+      avg.vals(ndim*ndim+j*ndim+k)=cos(2*pi*sum);
+      avg.vals(2*ndim*ndim+j*ndim+k)=sin(2*pi*sum);
     }
   }
 
