@@ -44,6 +44,7 @@ void Linear_optimization_method::read(vector <string> words,
   do_uncorrelated_evaluation=false;
   if(haskeyword(words, pos=0, "UNCORRELATED_EVALUATION"))
     do_uncorrelated_evaluation=true;
+  pseudopotential_derivatives=haskeyword(words,pos=0,"PSEUDOPOTENTIAL_DERIVATIVES");
   if(!readvalue(words, pos=0, max_nconfig_eval, "MAX_ZERO_ITERATIONS"))
     max_zero_iterations=2;
 
@@ -74,7 +75,12 @@ int Linear_optimization_method::showinfo(ostream & os) {
   os << "Linear wave function optimization:  " << endl;
   os << "Number of processors: " << mpi_info.nprocs << endl;
   os << "Number of MC steps : " << vmc_nstep*mpi_info.nprocs << endl;
+  os << "Number of correlated sampling walkers : " << nconfig_eval*mpi_info.nprocs << endl;
   os << "Wave function output to file  : " << wfoutputfile << endl;
+  if(do_uncorrelated_evaluation) 
+    os << "Uncorrelated evaluation of energy differences using above number of walkers" << endl;
+  if(pseudopotential_derivatives) 
+    os << "Computing derivatives using the pseudopotential" << endl;
   os << "nparms " << wfdata->nparms() << endl;
   os << "----------------------------" << endl;
   return 1;
@@ -656,7 +662,9 @@ void Linear_optimization_method::wavefunction_derivative(
 
     string vmc_section="VMC nstep ";
     append_number(vmc_section,vmc_nstep);
-    vmc_section+="  nblock 20 average { WF_PARMDERIV } ";
+    vmc_section+="  nblock 20 average { WF_PARMDERIV "; 
+    if(pseudopotential_derivatives) vmc_section+="EVALUATE_PSEUDOPOTENTIAL";
+    vmc_section+="} ";
     vector <string> words;
     string sep=" ";
     split(vmc_section,sep,words);

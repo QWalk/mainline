@@ -58,6 +58,7 @@ private:
   int max_vmc_nstep;
   int max_zero_iterations;
   bool do_uncorrelated_evaluation;
+  bool pseudopotential_derivatives;
   doublevar sig_H_threshold;
   doublevar en_convergence;
   doublevar minimum_psi0;
