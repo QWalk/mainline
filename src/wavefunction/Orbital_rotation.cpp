@@ -55,8 +55,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
     }
     unsigned int detpos=0;
     vector<string> tmpparmstring;
-    //if(readsection(detstring,detpos,tmpparmstring,"PARAMETERS"))
-    //  givenparms=1;
     if(!readsection(detstring,detpos,groupparms(det),"PARAMETERS"))
       groupparms(det).resize(0);
 
@@ -71,13 +69,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
     ngroup=0;
     
     while(readsection(detstring,detpos,orbgroupstring,"ORB_GROUP")){
-      /*if(givenparms){
-        if(!readsection(detstring,parmpos,groupparms(det)(ngroup),"PARAMETERS"))
-          error("Missing PARAMETERS section for det ",det+1);
-      }else{
-        groupparms(det)(ngroup).resize(0);
-      }*/
-
       //Other stuff 
       groupstrings(det)(ngroup)=orbgroupstring;
       ngroup++;
@@ -201,86 +192,31 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
   }
 
   //Manipulate data to get initparmstring and parminfodet/g
-  
-  //Parminfo strings are completely useless. Should just read in parameters from a matrix type thing
-  //vector<int> parminfodet;
-  //vector<int> parminfog;
   for(int det=0;det<ndet;det++){
     vector<string> parmu;
     vector<string> parmd;
-    /*vector<int> parminfodetu;
-    vector<int> parminfodetd;
-    vector<int> parminfogu;
-    vector<int> parminfogd;*/
-    //for(int g=0;g<groupstrings(det).GetDim(0);g++){
     int numup=(int)Nact(det,0)*(Nact(det,0)-1)/2;
     int nump=numup+(int)Nact(det,1)*(Nact(det,1)-1)/2;
     if(groupparms(det).size()!=0){
       if(groupparms(det).size()!=nump)
         error("Expected ",nump," parameters, got ",groupparms(det).size());
-      //if(groupparms(det)(g).size()!=nump(det)(g)){
-      //  error("Expected ", nump(det)(g), " parameters, got ", groupparms(det)(g).size());
-      //}
-      /*for(int i=0;i<numup(det)(g);i++){
-        parmu.push_back(groupparms(det)(g)[i]);
-        parminfodetu.push_back(det);
-        parminfogu.push_back(g);
-      }
-      for(int i=0;i<nump(det)(g)-numup(det)(g);i++){
-        parmd.push_back(groupparms(det)(g)[i+numup(det)(g)]);
-        parminfodetd.push_back(det);
-        parminfogd.push_back(g);
-      }*/
       for(int i=0;i<numup;i++)
         parmu.push_back(groupparms(det)[i]);
       for(int i=0;i<nump-numup;i++)
         parmd.push_back(groupparms(det)[i+numup]);
     }else{
-      /*
-      for(int i=0;i<numup(det)(g);i++){
-        parmu.push_back("0");
-        parminfodetu.push_back(det);
-        parminfogu.push_back(g);
-      }
-      for(int i=0;i<nump(det)(g)-numup(det)(g);i++){
-        parmd.push_back("0");
-        parminfodetd.push_back(det);
-        parminfogd.push_back(g);
-      }
-      */
       for(int i=0;i<numup;i++)
         parmu.push_back("0");
       for(int i=0;i<nump-numup;i++)  
         parmd.push_back("0");
     }
-    //}
     for(int k=0;k<parmu.size();k++){
       initparmstring.push_back(parmu[k]);
-      //parminfodet.push_back(parminfodetu[k]);
-      //parminfog.push_back(parminfogu[k]);
     }
     for(int k=0;k<parmd.size();k++){
       initparmstring.push_back(parmd[k]);
-      //parminfodet.push_back(parminfodetd[k]);
-      //parminfog.push_back(parminfogd[k]);
     }
   }
-
-  //Debug initparmstring
-  std::cout<<"INITPARMSTRING"<<std::endl;
-  std::cout<<initparmstring.size()<<std::endl;
-  for(int i=0;i<initparmstring.size();i++)
-    std::cout<<initparmstring[i]<<" ";
-  std::cout<<"\n";
-  
-  //Assign parminfo
-  /*parminfo.Resize(parminfodet.size());
-  for(int i=0;i<parminfo.GetDim(0);i++){
-    parminfo(i).Resize(2);
-    parminfo(i)(0)=parminfodet[i];
-    parminfo(i)(1)=parminfog[i];
-  }*/
-
   //Assign active parameters
   isactive.Resize(nparms());
   for(int i=0;i<isactive.GetDim(0);i++){
@@ -361,26 +297,19 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
   //Assign initial parameters
   int totparms=0;
   for(int det=0;det<ndet;det++){
-    //parms(det,0).Resize(Nocc(det,0)*(Nact(det,0)-Nocc(det,0)));
-    //parms(det,1).Resize(Nocc(det,1)*(Nact(det,1)-Nocc(det,1)));
     parms(det,0).Resize((int)Nact(det,0)*(Nact(det,0)-1)/2);
     parms(det,1).Resize((int)Nact(det,1)*(Nact(det,1)-1)/2);
     totparms+=(int)Nact(det,0)*(Nact(det,0)-1)/2 + (int)Nact(det,1)*(Nact(det,1)-1)/2;
   }
   if(randomparms==0){
     if(initparmstring.size()==0){
-      //cout<<"No initial parameters specified, setting all to zero."<<endl;
       single_write(cout,"No initial parameters specified, setting all to zero.\n");
       for(int det=0;det<ndet;det++){
         for(int s=0;s<2;s++){
-          //for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++){
           for(int i=0;i<(int)Nact(det,s)*(Nact(det,s)-1)/2;i++)
             parms(det,s)(i)=0;
-          //}
         }
       }
-    //}else if(initparmstring.size()!=nparms()){
-      //error("You have an incorrect number of initial parameters, require ",nparms());
     }else if(initparmstring.size()!=totparms){
       error("You have an incorrect number of initial parameters, require ",nparms());
     }else{
@@ -392,15 +321,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
             parms(det,s)(i)=atof(initparmstring[i+offset].c_str());
           }
           offset+=(int)Nact(det,s)*(Nact(det,s)-1)/2;
-          /*for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++){
-            if(isactive(i+offset)){
-              parms(det,s)(i)=atof(initparmstring[i+offset-k].c_str());
-             }else{
-              parms(det,s)(i)=0;
-              k++;
-            } 
-          }
-          offset+=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));*/
         }
       }
     }
@@ -423,29 +343,7 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
           parms(det,s)(i)=(rand()*2.0*randomparms/float(RAND_MAX))-randomparms;
         }
         offset+=(int)Nact(det,s)*(Nact(det,s)-1)/2;
-        /*for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++){
-          if(isactive(i+offset)){
-            //Random numbers chosen between [-randomparms, randomparms] uniformly
-            parms(det,s)(i)=(rand()*2.0*randomparms/float(RAND_MAX))-randomparms;
-           }else{
-            parms(det,s)(i)=0;
-            k++;
-          } 
-        }
-        offset+=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
-        */
       }
-    }
-  }
-
-  //Debugging parms()
-  std::cout<<"PARMS"<<std::endl;
-  for(int det=0;det<ndet;det++){
-    for(int s=0;s<2;s++){
-      for(int i=0;i<parms(det,s).Size();i++){
-        std::cout<<parms(det,s)(i)<<" ";
-      }
-      std::cout<<"\n";
     }
   }
 
@@ -467,7 +365,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
     }
   }
   
-  //setTheta();
   //Set Theta manually
   for(int det=0;det<ndet;det++){
     for(int s=0;s<2;s++){
@@ -477,7 +374,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
         for(int j=0;j<i;j++){
           if(i==j) { theta(det,s)(i,j)=0; }
           else{
-            //Additional debugging
             theta(det,s)(j,i)=parms(det,s)(ind);
             theta(det,s)(i,j)=-parms(det,s)(ind);
             ind++;
@@ -487,20 +383,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
     }
   }
   
-  //Debug theta
-  std::cout<<"THETA"<<std::endl;
-  for(int det=0;det<ndet;det++){
-    for(int s=0;s<2;s++){
-      for(int i=0;i<Nact(det,s);i++){
-        for(int j=0;j<Nact(det,s);j++){
-          std::cout<<theta(det,s)(i,j)<<" ";
-        }
-        std::cout<<"\n";
-      }
-      std::cout<<"\n\n";
-    }
-    std::cout<<"\n\n";
-  }
   setRvar();
 
   for(int det=0;det<ndet;det++){
@@ -530,55 +412,9 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
   
   setTheta();
   setRvar();
-
-  //Debugging
-  std::cout<<"POST THETA"<<std::endl;
-  for(int det=0;det<ndet;det++){
-    for(int s=0;s<2;s++){
-      for(int i=0;i<Nact(det,s);i++){
-        for(int j=0;j<Nact(det,s);j++){
-          std::cout<<theta(det,s)(i,j)<<" ";
-        }
-        std::cout<<"\n";
-      }
-      std::cout<<"\n\n";
-    }
-    std::cout<<"\n\n";
-  }
-  
-  std::cout<<"POST RVAR"<<std::endl;
-  for(int det=0;det<ndet;det++){
-    for(int s=0;s<2;s++){
-      for(int i=0;i<Nact(det,s);i++){
-        for(int j=0;j<Nact(det,s);j++){
-          std::cout<<rvar(det,s)(i,j)<<" ";
-        }
-        std::cout<<"\n";
-      }
-      std::cout<<"\n\n";
-    }
-    std::cout<<"\n\n";
-  }
-  
-  std::cout<<"POST R"<<std::endl;
-  for(int det=0;det<ndet;det++){
-    for(int s=0;s<2;s++){
-      for(int i=0;i<Nact(det,s);i++){
-        for(int j=0;j<Nact(det,s);j++){
-          std::cout<<r(det,s)(i,j)<<" ";
-        }
-        std::cout<<"\n";
-      }
-      std::cout<<"\n\n";
-    }
-    std::cout<<"\n\n";
-  }
 }
 
 void Orbital_rotation::writeinput(string & indent, ostream & os){
- 
-  std::cout<<"WRITEINPUT"<<std::endl;
-    
   //This doesn't work correctly yet
   string indent2=indent+"  ";
   //Get final rotation parameters!
@@ -658,12 +494,6 @@ void Orbital_rotation::writeinput(string & indent, ostream & os){
       for(int l=0;l<groupstrings(det)(g).size();l++)
         os<<groupstrings(det)(g)[l].c_str()<<" ";
       os<<"}"<<endl;
-      /*//Print out final parameters 
-      os<<indent2<<indent<<"PARAMETERS { ";
-      for(int i=0;i<parms.GetDim(0);i++)
-        if(parminfo(i)(0)==det && parminfo(i)(1)==g)
-          os<<parms(i)<<" ";
-      os<<"}"<<endl;*/
     }
     //Print out final parameters
     os<<indent2<<indent<<"PARAMETERS { ";

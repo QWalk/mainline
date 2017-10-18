@@ -53,8 +53,6 @@ private:
 
   //Useful for writeinput()
   Array1<Array1<vector<string> > >groupstrings; //Contains ORB_GROUPs
-  //For each active parameter, parminfo(i) has the determinant and group it resides in
-  //Array1<Array1<doublevar> >parminfo;
 };
 
 template <class T>
