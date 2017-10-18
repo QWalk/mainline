@@ -40,7 +40,8 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
   Array1<vector<string> > actddetstring;
   actudetstring.Resize(ndet);
   actddetstring.Resize(ndet);
-  Array1<Array1<vector<string> > >groupparms;
+  //Array1<Array1<vector<string> > >groupparms;
+  Array1<vector<string> >groupparms;
   groupstrings.Resize(ndet);
   groupparms.Resize(ndet);
   int ngroup=0;
@@ -54,26 +55,28 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
     }
     unsigned int detpos=0;
     vector<string> tmpparmstring;
-    if(readsection(detstring,detpos,tmpparmstring,"PARAMETERS"))
-      givenparms=1;
-    
+    //if(readsection(detstring,detpos,tmpparmstring,"PARAMETERS"))
+    //  givenparms=1;
+    if(!readsection(detstring,detpos,groupparms(det),"PARAMETERS"))
+      groupparms(det).resize(0);
+
     detpos=0;
     vector<string> orbgroupstring;
     while(readsection(detstring,detpos,orbgroupstring,"ORB_GROUP")){
       ngroup++;
     }
     groupstrings(det).Resize(ngroup);
-    groupparms(det).Resize(ngroup);
+    //groupparms(det).Resize(ngroup);
     detpos=0;
     ngroup=0;
     
     while(readsection(detstring,detpos,orbgroupstring,"ORB_GROUP")){
-      if(givenparms){
+      /*if(givenparms){
         if(!readsection(detstring,parmpos,groupparms(det)(ngroup),"PARAMETERS"))
           error("Missing PARAMETERS section for det ",det+1);
       }else{
         groupparms(det)(ngroup).resize(0);
-      }
+      }*/
 
       //Other stuff 
       groupstrings(det)(ngroup)=orbgroupstring;
@@ -198,63 +201,84 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
   }
 
   //Manipulate data to get initparmstring and parminfodet/g
-  //vector<string> parminfodet;
-  //vector<string> parminfog;
-  vector<int> parminfodet;
-  vector<int> parminfog;
+  
+  //Parminfo strings are completely useless. Should just read in parameters from a matrix type thing
+  //vector<int> parminfodet;
+  //vector<int> parminfog;
   for(int det=0;det<ndet;det++){
     vector<string> parmu;
     vector<string> parmd;
-    vector<int> parminfodetu;
+    /*vector<int> parminfodetu;
     vector<int> parminfodetd;
     vector<int> parminfogu;
-    vector<int> parminfogd;
-    for(int g=0;g<groupstrings(det).GetDim(0);g++){
-      if(groupparms(det)(g).size()!=0){
-        if(groupparms(det)(g).size()!=nump(det)(g)){
-          error("Expected ", nump(det)(g), " parameters, got ", groupparms(det)(g).size());
-        }
-        for(int i=0;i<numup(det)(g);i++){
-          parmu.push_back(groupparms(det)(g)[i]);
-          parminfodetu.push_back(det);
-          parminfogu.push_back(g);
-        }
-        for(int i=0;i<nump(det)(g)-numup(det)(g);i++){
-          parmd.push_back(groupparms(det)(g)[i+numup(det)(g)]);
-          parminfodetd.push_back(det);
-          parminfogd.push_back(g);
-        }
-      }else{
-        for(int i=0;i<numup(det)(g);i++){
-          parmu.push_back("0");
-          parminfodetu.push_back(det);
-          parminfogu.push_back(g);
-        }
-        for(int i=0;i<nump(det)(g)-numup(det)(g);i++){
-          parmd.push_back("0");
-          parminfodetd.push_back(det);
-          parminfogd.push_back(g);
-        }
+    vector<int> parminfogd;*/
+    //for(int g=0;g<groupstrings(det).GetDim(0);g++){
+    int numup=(int)Nact(det,0)*(Nact(det,0)-1)/2;
+    int nump=numup+(int)Nact(det,1)*(Nact(det,1)-1)/2;
+    if(groupparms(det).size()!=0){
+      if(groupparms(det).size()!=nump)
+        error("Expected ",nump," parameters, got ",groupparms(det).size());
+      //if(groupparms(det)(g).size()!=nump(det)(g)){
+      //  error("Expected ", nump(det)(g), " parameters, got ", groupparms(det)(g).size());
+      //}
+      /*for(int i=0;i<numup(det)(g);i++){
+        parmu.push_back(groupparms(det)(g)[i]);
+        parminfodetu.push_back(det);
+        parminfogu.push_back(g);
       }
+      for(int i=0;i<nump(det)(g)-numup(det)(g);i++){
+        parmd.push_back(groupparms(det)(g)[i+numup(det)(g)]);
+        parminfodetd.push_back(det);
+        parminfogd.push_back(g);
+      }*/
+      for(int i=0;i<numup;i++)
+        parmu.push_back(groupparms(det)[i]);
+      for(int i=0;i<nump-numup;i++)
+        parmd.push_back(groupparms(det)[i+numup]);
+    }else{
+      /*
+      for(int i=0;i<numup(det)(g);i++){
+        parmu.push_back("0");
+        parminfodetu.push_back(det);
+        parminfogu.push_back(g);
+      }
+      for(int i=0;i<nump(det)(g)-numup(det)(g);i++){
+        parmd.push_back("0");
+        parminfodetd.push_back(det);
+        parminfogd.push_back(g);
+      }
+      */
+      for(int i=0;i<numup;i++)
+        parmu.push_back("0");
+      for(int i=0;i<nump-numup;i++)  
+        parmd.push_back("0");
     }
+    //}
     for(int k=0;k<parmu.size();k++){
       initparmstring.push_back(parmu[k]);
-      parminfodet.push_back(parminfodetu[k]);
-      parminfog.push_back(parminfogu[k]);
+      //parminfodet.push_back(parminfodetu[k]);
+      //parminfog.push_back(parminfogu[k]);
     }
     for(int k=0;k<parmd.size();k++){
       initparmstring.push_back(parmd[k]);
-      parminfodet.push_back(parminfodetd[k]);
-      parminfog.push_back(parminfogd[k]);
+      //parminfodet.push_back(parminfodetd[k]);
+      //parminfog.push_back(parminfogd[k]);
     }
   }
+
+  //Debug initparmstring
+  std::cout<<initparmstring.size()<<std::endl;
+  for(int i=0;i<initparmstring.size();i++)
+    std::cout<<initparmstring[i]<<" ";
+  std::cout<<"\n";
+  exit(0);
   //Assign parminfo
-  parminfo.Resize(parminfodet.size());
+  /*parminfo.Resize(parminfodet.size());
   for(int i=0;i<parminfo.GetDim(0);i++){
     parminfo(i).Resize(2);
     parminfo(i)(0)=parminfodet[i];
     parminfo(i)(1)=parminfog[i];
-  }
+  }*/
 
   //Assign active parameters
   isactive.Resize(nparms());
