@@ -267,11 +267,12 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
   }
 
   //Debug initparmstring
+  std::cout<<"INITPARMSTRING"<<std::endl;
   std::cout<<initparmstring.size()<<std::endl;
   for(int i=0;i<initparmstring.size();i++)
     std::cout<<initparmstring[i]<<" ";
   std::cout<<"\n";
-  exit(0);
+  
   //Assign parminfo
   /*parminfo.Resize(parminfodet.size());
   for(int i=0;i<parminfo.GetDim(0);i++){
@@ -358,9 +359,13 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
   totoccupation=activetotoccupation;
  
   //Assign initial parameters
+  int totparms=0;
   for(int det=0;det<ndet;det++){
-    parms(det,0).Resize(Nocc(det,0)*(Nact(det,0)-Nocc(det,0)));
-    parms(det,1).Resize(Nocc(det,1)*(Nact(det,1)-Nocc(det,1)));
+    //parms(det,0).Resize(Nocc(det,0)*(Nact(det,0)-Nocc(det,0)));
+    //parms(det,1).Resize(Nocc(det,1)*(Nact(det,1)-Nocc(det,1)));
+    parms(det,0).Resize((int)Nact(det,0)*(Nact(det,0)-1)/2);
+    parms(det,1).Resize((int)Nact(det,1)*(Nact(det,1)-1)/2);
+    totparms+=(int)Nact(det,0)*(Nact(det,0)-1)/2 + (int)Nact(det,1)*(Nact(det,1)-1)/2;
   }
   if(randomparms==0){
     if(initparmstring.size()==0){
@@ -368,19 +373,26 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
       single_write(cout,"No initial parameters specified, setting all to zero.\n");
       for(int det=0;det<ndet;det++){
         for(int s=0;s<2;s++){
-          for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++){
+          //for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++){
+          for(int i=0;i<(int)Nact(det,s)*(Nact(det,s)-1)/2;i++)
             parms(det,s)(i)=0;
-          }
+          //}
         }
       }
-    }else if(initparmstring.size()!=nparms()){
+    //}else if(initparmstring.size()!=nparms()){
+      //error("You have an incorrect number of initial parameters, require ",nparms());
+    }else if(initparmstring.size()!=totparms){
       error("You have an incorrect number of initial parameters, require ",nparms());
     }else{
       int offset=0;
       int k=0;
       for(int det=0;det<ndet;det++){
         for(int s=0;s<2;s++){
-          for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++){
+          for(int i=0;i<(int)Nact(det,s)*(Nact(det,s)-1)/2;i++){
+            parms(det,s)(i)=atof(initparmstring[i+offset].c_str());
+          }
+          offset+=(int)Nact(det,s)*(Nact(det,s)-1)/2;
+          /*for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++){
             if(isactive(i+offset)){
               parms(det,s)(i)=atof(initparmstring[i+offset-k].c_str());
              }else{
@@ -388,7 +400,7 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
               k++;
             } 
           }
-          offset+=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
+          offset+=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));*/
         }
       }
     }
@@ -407,7 +419,11 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
     //Randomize initparms
     for(int det=0;det<ndet;det++){
       for(int s=0;s<2;s++){
-        for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++){
+        for(int i=0;i<Nact(det,s)*(Nact(det,s)-1)/2;i++){
+          parms(det,s)(i)=(rand()*2.0*randomparms/float(RAND_MAX))-randomparms;
+        }
+        offset+=(int)Nact(det,s)*(Nact(det,s)-1)/2;
+        /*for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++){
           if(isactive(i+offset)){
             //Random numbers chosen between [-randomparms, randomparms] uniformly
             parms(det,s)(i)=(rand()*2.0*randomparms/float(RAND_MAX))-randomparms;
@@ -417,7 +433,19 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
           } 
         }
         offset+=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
+        */
       }
+    }
+  }
+
+  //Debugging parms()
+  std::cout<<"PARMS"<<std::endl;
+  for(int det=0;det<ndet;det++){
+    for(int s=0;s<2;s++){
+      for(int i=0;i<parms(det,s).Size();i++){
+        std::cout<<parms(det,s)(i)<<" ";
+      }
+      std::cout<<"\n";
     }
   }
 
@@ -438,7 +466,41 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
       rmult(det,s).Resize(Nact(det,s),Nact(det,s)); 
     }
   }
-  setTheta();
+  
+  //setTheta();
+  //Set Theta manually
+  for(int det=0;det<ndet;det++){
+    for(int s=0;s<2;s++){
+      int ind=0;
+      theta(det,s)=0;
+      for(int i=0;i<Nact(det,s);i++){
+        for(int j=0;j<i;j++){
+          if(i==j) { theta(det,s)(i,j)=0; }
+          else{
+            //Additional debugging
+            theta(det,s)(j,i)=parms(det,s)(ind);
+            theta(det,s)(i,j)=-parms(det,s)(ind);
+            ind++;
+          }
+        }
+      }
+    }
+  }
+  
+  //Debug theta
+  std::cout<<"THETA"<<std::endl;
+  for(int det=0;det<ndet;det++){
+    for(int s=0;s<2;s++){
+      for(int i=0;i<Nact(det,s);i++){
+        for(int j=0;j<Nact(det,s);j++){
+          std::cout<<theta(det,s)(i,j)<<" ";
+        }
+        std::cout<<"\n";
+      }
+      std::cout<<"\n\n";
+    }
+    std::cout<<"\n\n";
+  }
   setRvar();
 
   for(int det=0;det<ndet;det++){
@@ -450,7 +512,14 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
       }
     }
   }
- 
+
+  //Resize parameters back to shape
+  for(int det=0;det<ndet;det++){
+    parms(det,0).Resize(Nocc(det,0)*(Nact(det,0)-Nocc(det,0)));
+    parms(det,1).Resize(Nocc(det,1)*(Nact(det,1)-Nocc(det,1)));
+  }
+
+  //Zero out parameters and reset theta and Rvar
   for(int det=0;det<ndet;det++){
     for(int s=0;s<2;s++){
       for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++){
@@ -461,10 +530,55 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
   
   setTheta();
   setRvar();
+
+  //Debugging
+  std::cout<<"POST THETA"<<std::endl;
+  for(int det=0;det<ndet;det++){
+    for(int s=0;s<2;s++){
+      for(int i=0;i<Nact(det,s);i++){
+        for(int j=0;j<Nact(det,s);j++){
+          std::cout<<theta(det,s)(i,j)<<" ";
+        }
+        std::cout<<"\n";
+      }
+      std::cout<<"\n\n";
+    }
+    std::cout<<"\n\n";
+  }
+  
+  std::cout<<"POST RVAR"<<std::endl;
+  for(int det=0;det<ndet;det++){
+    for(int s=0;s<2;s++){
+      for(int i=0;i<Nact(det,s);i++){
+        for(int j=0;j<Nact(det,s);j++){
+          std::cout<<rvar(det,s)(i,j)<<" ";
+        }
+        std::cout<<"\n";
+      }
+      std::cout<<"\n\n";
+    }
+    std::cout<<"\n\n";
+  }
+  
+  std::cout<<"POST R"<<std::endl;
+  for(int det=0;det<ndet;det++){
+    for(int s=0;s<2;s++){
+      for(int i=0;i<Nact(det,s);i++){
+        for(int j=0;j<Nact(det,s);j++){
+          std::cout<<r(det,s)(i,j)<<" ";
+        }
+        std::cout<<"\n";
+      }
+      std::cout<<"\n\n";
+    }
+    std::cout<<"\n\n";
+  }
 }
 
 void Orbital_rotation::writeinput(string & indent, ostream & os){
-  
+ 
+  std::cout<<"WRITEINPUT"<<std::endl;
+    
   //This doesn't work correctly yet
   string indent2=indent+"  ";
   //Get final rotation parameters!
@@ -519,6 +633,7 @@ void Orbital_rotation::writeinput(string & indent, ostream & os){
       }else{
         tmptheta(det,s)=0;
       }
+      /*
       int k,l;
       for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++){
         getind(i+offset,det,s,k,l);
@@ -528,7 +643,7 @@ void Orbital_rotation::writeinput(string & indent, ostream & os){
           q++;
         if(i==Nocc(det,s)*(Nact(det,s)-Nocc(det,s))-1)
           offset+=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
-      }
+      }*/
     }
   }
 
@@ -543,14 +658,27 @@ void Orbital_rotation::writeinput(string & indent, ostream & os){
       for(int l=0;l<groupstrings(det)(g).size();l++)
         os<<groupstrings(det)(g)[l].c_str()<<" ";
       os<<"}"<<endl;
-      //Print out final parameters 
+      /*//Print out final parameters 
       os<<indent2<<indent<<"PARAMETERS { ";
       for(int i=0;i<parms.GetDim(0);i++)
         if(parminfo(i)(0)==det && parminfo(i)(1)==g)
           os<<parms(i)<<" ";
-      os<<"}"<<endl;
+      os<<"}"<<endl;*/
     }
-    os<<indent2<<" } "<<endl;
+    //Print out final parameters
+    os<<indent2<<indent<<"PARAMETERS { ";
+    for(int s=0;s<2;s++){
+      for(int i=0;i<Nact(det,s);i++){
+        os<<indent2<<indent2;
+        for(int j=0;j<i;j++){
+          os<<tmptheta(det,s)(j,i)<<" ";
+        }
+        os<<"\n";
+      }
+      //if(s==0) os<<"\n";
+    }
+    os<<indent2<<indent<<"}"<<endl;
+    os<<indent2<<"} "<<endl;
   }
   os<<indent<<"}"<<endl;
 }
@@ -580,7 +708,6 @@ void Orbital_rotation::setTheta(void){
       }
     }
   }
-
 }
 
 void Orbital_rotation::setRvar(void){
