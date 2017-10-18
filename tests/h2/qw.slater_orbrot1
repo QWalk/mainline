@@ -8,24 +8,22 @@
     CENTERS { USEGLOBAL } 
   }
 
-  DETWT { 1.0 1.0 } 
+  DETWT { 1.0 0.1 } 
   STATES {
   #DET 1
-     1 2 
+     1 3 
   #DET 2
-     3 2 
+     3 2  
    }
 
    OPTIMIZE_MO
    OPTIMIZE_DATA { 
-    FROZEN
-   #DET 1
+     FROZEN
      DET { 
       ORB_GROUP { 1 3 4 }
      }
-   #DET 2
      DET { 
       ORB_GROUP { 1 3 4 }
-      ORB_GROUP { 2 5 }
+      ORB_GROUP { 2 5 } 
      }
    }

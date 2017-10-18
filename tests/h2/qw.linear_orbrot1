@@ -1,0 +1,9 @@
+method { linear total_nstep 1000  } 
+
+include qw1.sys
+
+trialfunc { 
+  slater-jastrow
+  wf1 { include qw.slater_orbrot1 }
+  wf2 { include jast2.wfin } 
+}
