@@ -8,7 +8,7 @@
     CENTERS { USEGLOBAL } 
   }
 
-  DETWT { 1.0 0.1 } 
+  DETWT { 1.0 1.0 } 
   STATES {
   #DET 1
      1 3 

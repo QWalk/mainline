@@ -64,7 +64,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
       ngroup++;
     }
     groupstrings(det).Resize(ngroup);
-    //groupparms(det).Resize(ngroup);
     detpos=0;
     ngroup=0;
     
@@ -191,7 +190,7 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
     }
   }
 
-  //Manipulate data to get initparmstring and parminfodet/g
+  //Manipulate data to get initparmstring 
   for(int det=0;det<ndet;det++){
     vector<string> parmu;
     vector<string> parmd;
@@ -371,11 +370,11 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
       int ind=0;
       theta(det,s)=0;
       for(int i=0;i<Nact(det,s);i++){
-        for(int j=0;j<i;j++){
+        for(int j=i;j<Nact(det,s);j++){
           if(i==j) { theta(det,s)(i,j)=0; }
           else{
-            theta(det,s)(j,i)=parms(det,s)(ind);
-            theta(det,s)(i,j)=-parms(det,s)(ind);
+            theta(det,s)(i,j)=parms(det,s)(ind);
+            theta(det,s)(j,i)=-parms(det,s)(ind);
             ind++;
           }
         }
@@ -415,7 +414,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
 }
 
 void Orbital_rotation::writeinput(string & indent, ostream & os){
-  //This doesn't work correctly yet
   string indent2=indent+"  ";
   //Get final rotation parameters!
   Array2<Array2<dcomplex> > Ain;
@@ -469,17 +467,6 @@ void Orbital_rotation::writeinput(string & indent, ostream & os){
       }else{
         tmptheta(det,s)=0;
       }
-      /*
-      int k,l;
-      for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++){
-        getind(i+offset,det,s,k,l);
-        if(isactive(i+offset)){
-          parms(i+offset-q)=tmptheta(det,s)(k,l);
-        }else
-          q++;
-        if(i==Nocc(det,s)*(Nact(det,s)-Nocc(det,s))-1)
-          offset+=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
-      }*/
     }
   }
 
@@ -500,12 +487,10 @@ void Orbital_rotation::writeinput(string & indent, ostream & os){
     for(int s=0;s<2;s++){
       for(int i=0;i<Nact(det,s);i++){
         os<<indent2<<indent2;
-        for(int j=0;j<i;j++){
-          os<<tmptheta(det,s)(j,i)<<" ";
-        }
+        for(int j=i+1;j<Nact(det,s);j++)
+          os<<tmptheta(det,s)(i,j)<<" ";
         os<<"\n";
       }
-      //if(s==0) os<<"\n";
     }
     os<<indent2<<indent<<"}"<<endl;
     os<<indent2<<"} "<<endl;
