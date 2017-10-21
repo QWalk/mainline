@@ -15,6 +15,8 @@
   #DET 2
      3 2  
    }
+  
+  OPTIMIZE_DET
 
    OPTIMIZE_MO
    OPTIMIZE_DATA { 

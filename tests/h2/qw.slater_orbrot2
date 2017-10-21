@@ -13,16 +13,15 @@
      2 2 
      3 3 
    }
-
+   NOSORT
+   OPTIMIZE_DET
    OPTIMIZE_MO
    OPTIMIZE_DATA { 
      FROZEN
      DET { 
       ORB_GROUP { 1 2 3 }
-      PARAMETERS { -1 -2 -3 3 2 1 } 
      }
      DET { 
       ORB_GROUP { 1 2 3 }
-      PARAMETERS { 0.1 0.2 0.3 0.3 0.2 0.1 }
      }
    }
