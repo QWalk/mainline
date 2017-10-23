@@ -583,6 +583,7 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
   if(parent->optimize_mo && !parent->optimize_det) {
     parent->orbrot->getParmDeriv<doublevar>(parent->detwt,moVal,inverse, detVal, derivatives);
     derivatives.hessian=0;
+    
     return 1;
   }
   else if(parent->optimize_det) {

@@ -592,9 +592,74 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
       }
     }
   }
-  
+
   setTheta();
   setRvar();
+
+  //[GOOD]
+  
+  //Make restriction matrix
+  if(orthog){
+    restMat.Resize(nparms_,nparms_);
+    int q=0;
+    for(int n=0;n<nparms_+notactive;n++){  
+      if(isactive(n)){
+        int ni,nj,ns,nd; //local indices
+        int n_i,n_j; //global indices
+        getind(n,nd,ns,ni,nj);
+        n_i=activeoccupation_orig(0,nd,ns)(ni);
+        n_j=activeoccupation_orig(0,nd,ns)(nj);
+        int p=0;
+        for(int m=0;m<nparms_+notactive;m++){
+          if(isactive(m)){
+            int mi,mj,ms,md; //local indices
+            int m_i,m_j; //global indices
+            getind(m,md,ms,mi,mj);
+            m_i=activeoccupation_orig(0,md,ms)(mi);
+            m_j=activeoccupation_orig(0,md,ms)(mj);
+
+            if((n_i==m_i) && (n_j==m_j)) { restMat(n-q,m-p)=1; restMat(m-p,n-q)=1; }
+            else if((n_i==m_j) && (n_j==m_i)) { restMat(n-q,m-p)=-1; restMat(m-p,n-q)=-1; }
+            else { restMat(n-q,m-p)=0; restMat(m-p,n-q)=0; }
+            
+          }else { p++; }
+        }
+      }else { q++; }
+    }
+  }//[GOOD]
+
+  //Get number of independent parameters using a BFS
+  //http://math.hws.edu/eck/cs327_s04/chapter9.pdf
+  bool visited[nparms_];
+  for(int i=0;i<nparms_;i++){
+    visited[i]=false;
+  }
+  
+  nindep=0;
+  for(int n=0;n<nparms_;n++){
+    if(!visited[n]){
+      nindep++;
+      queue<int> q;
+      q.push(n);
+      visited[n]=true;
+      vector<int>tmpcomp;
+      tmpcomp.push_back(n);
+      while(!q.empty()){
+        int w=q.front();
+        q.pop();
+        for(int m=0;m<nparms_;m++){
+          if(restMat(w,m)!=0){
+            if(!visited[m]){
+              visited[m]=true;
+              q.push(m);
+              tmpcomp.push_back(m);
+            }
+          }
+        }
+      }
+      concomp.push_back(tmpcomp);
+    }
+  }
 }
 
 void Orbital_rotation::writeinput(string & indent, ostream & os){
@@ -687,11 +752,9 @@ void Orbital_rotation::setTheta(void){
     for(int s=0;s<2;s++){
       int ind=0;
       theta(det,s)=0;
-      vector<int> tmpup;
-      vector<int> tmpdown;
-      for(int i=0;i<Nact(det,s);i++){
-        for(int j=0;j<=i;j++){
-          if(!orthog){
+      if(!orthog){
+        for(int i=0;i<Nact(det,s);i++){
+          for(int j=0;j<=i;j++){
             if(i>(Nocc(det,s)-1) && j<=(Nocc(det,s)-1)){
               if(parms(det,s)(ind)!=0){
                 theta(det,s)(j,i)=parms(det,s)(ind);  
@@ -705,21 +768,19 @@ void Orbital_rotation::setTheta(void){
               parmsindex(det,s)(ind)(1)=i;
               ind++;
             }
-          }else{
-            theta(det,s)(j,i)=parms(det,s)(ind);
-            theta(det,s)(i,j)=-parms(det,s)(ind);
-            tmpup.push_back(j);
-            tmpdown.push_back(i);
-            ind++;
           }
         }
-      }
-      if(orthog){
-        parmsindex(det,s).Resize(ind);
-        for(int k=0;k<ind;k++) {
-          parmsindex(det,s)(k).Resize(2);
-          parmsindex(det,s)(k)(0)=tmpup[k];
-          parmsindex(det,s)(k)(1)=tmpdown[k];
+      }else{
+        parmsindex(det,s).Resize((int)Nact(det,s)*(Nact(det,s)-1)/2);
+        for(int i=0;i<Nact(det,s);i++){
+          for(int j=i+1;j<Nact(det,s);j++){
+            theta(det,s)(i,j)=parms(det,s)(ind);
+            theta(det,s)(j,i)=-parms(det,s)(ind);
+            parmsindex(det,s)(ind).Resize(2);
+            parmsindex(det,s)(ind)(0)=i;
+            parmsindex(det,s)(ind)(1)=j;
+            ind++;
+          }
         }
       }
     }
@@ -814,21 +875,49 @@ void Orbital_rotation::setParms(Array1<doublevar> & parmsin){
     }
   }
 
-  //Apply new rotation by Rvar
-  int offset=0;
-  int k=0;
-  //VERY IMPORTANT: the det loop must be oustide, else offset has the incorrect meaning
-  for(int det=0;det<ndet;det++){
-    for(int s=0;s<2;s++){
-      for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++){
-        if(isactive(offset+i)){
-          parms(det,s)(i)=parmsin(i+offset-k);
-        }else{
-          parms(det,s)(i)=0;
-          k++;
+  if(!orthog){
+    //Apply new rotation by Rvar
+    int offset=0;
+    int k=0;
+    //VERY IMPORTANT: the det loop must be oustide, else offset has the incorrect meaning
+    for(int det=0;det<ndet;det++){
+      for(int s=0;s<2;s++){
+        for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++){
+          if(isactive(offset+i)){
+            parms(det,s)(i)=parmsin(i+offset-k);
+          }else{
+            parms(det,s)(i)=0;
+            k++;
+          }
         }
+        offset+=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
       }
-      offset+=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
+    }
+  }else{
+    //Expand the input parmsin to be appropriate size
+    Array1<int> intparmsin;
+    intparmsin.Resize(nparms_);
+    for(int i=0;i<parmsin.Size();i++){
+      for(int j=0;j<concomp[i].size();j++){
+        intparmsin(concomp[i][j])=restMat(concomp[i][j],concomp[i][0])*parmsin(i);
+      }
+    }
+
+    //Now assign parms(det,s)
+    int offset=0;
+    int k=0;
+    for(int det=0;det<ndet;det++){
+      for(int s=0;s<2;s++){
+        for(int i=0;i<(int)Nact(det,s)*(Nact(det,s)-1)/2;i++){
+          if(isactive(offset+i)){
+            parms(det,s)(i)=intparmsin(i+offset-k);
+          }else{
+            parms(det,s)(i)=0;
+            k++;
+          }
+        }
+        offset+=(int)Nact(det,s)*(Nact(det,s)-1)/2;
+      }
     }
   }
 
@@ -851,13 +940,16 @@ int Orbital_rotation::nparms(void){
     }
     return val-notactive;
   }else{
-    error("nparms() not yet implemented for orthogonal");
+    return nindep;
   }
 }
 
 void Orbital_rotation::getind(int n, int& mydet, int& mys, int& i, int& j){
   //For a given parameter n, get the determinant it lives in, which spin, and the indices 
   //inside theta(mydet,mys) that corresponds to parameter n
+
+  //Since I set isactive in a particular order, getind has to satisfy that ordering 
+  //as well.
   mydet=0;
   mys=0;
   int val=0;
@@ -865,7 +957,9 @@ void Orbital_rotation::getind(int n, int& mydet, int& mys, int& i, int& j){
   for(int det=0;det<ndet;det++){
     if(!found){
       for(int s=0;s<2;s++){
-        val+=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
+        if(!orthog) val+=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
+        else val+=(int)Nact(det,s)*(Nact(det,s)-1)/2;
+        
         if(n<val){
           mydet=det;
           mys=s;
@@ -880,18 +974,21 @@ void Orbital_rotation::getind(int n, int& mydet, int& mys, int& i, int& j){
   if(mys==0){
     for(int det=0;det<mydet;det++){
       for(int s=0;s<2;s++){
-        n-=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
+        if(!orthog) n-=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
+        else n-=(int)Nact(det,s)*(Nact(det,s)-1)/2;
       }
     }
   }else{
     for(int det=0;det<mydet;det++){
       for(int s=0;s<2;s++){
-        n-=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
+        if(!orthog) n-=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
+        else n-=(int)Nact(det,s)*(Nact(det,s)-1)/2; 
       }
     }
-    n-=Nocc(mydet,0)*(Nact(mydet,0)-Nocc(mydet,0));
+    if(!orthog) n-=Nocc(mydet,0)*(Nact(mydet,0)-Nocc(mydet,0));
+    else n-=(int)Nact(mydet,0)*(Nact(mydet,0)-1)/2;
   }
-  
+
   i=parmsindex(mydet,mys)(n)(0);
   j=parmsindex(mydet,mys)(n)(1);
 
