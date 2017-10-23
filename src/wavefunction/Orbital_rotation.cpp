@@ -32,6 +32,14 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
     if(randomparms==0)
       error("Please specify a magnitude for random parameters");
   }
+
+  //Check if we want orthogonal 
+  pos=0;
+  orthog=0;
+  if(haskeyword(words,pos,"ORTHOGONAL"))
+    orthog=1;
+
+  std::cout<<"ORTHOGONAL: "<<orthog<<endl;
  
   //Manipulate data to get actudetstring and actddetstring
   pos=0;
@@ -40,7 +48,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
   Array1<vector<string> > actddetstring;
   actudetstring.Resize(ndet);
   actddetstring.Resize(ndet);
-  //Array1<Array1<vector<string> > >groupparms;
   Array1<vector<string> >groupparms;
   groupstrings.Resize(ndet);
   groupparms.Resize(ndet);
@@ -50,11 +57,17 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
     int givenparms=0;
     unsigned int parmpos=0;
     ngroup=0;
-    if(!readsection(words,pos,detstring,"DET")){
-      error("Did not list enough determinants in OPTIMIZE_DATA"); 
+    if(!orthog){
+      if(!readsection(words,pos,detstring,"DET")){
+        error("Did not list enough determinants in OPTIMIZE_DATA"); 
+      }
+    }else{
+      //This isn't the most memory efficient becuase now 
+      //every determinant stores the same information. We can 
+      //change this later if it becomes necessary.
+      detstring=words;
     }
     unsigned int detpos=0;
-    vector<string> tmpparmstring;
     if(!readsection(detstring,detpos,groupparms(det),"PARAMETERS"))
       groupparms(det).resize(0);
 
@@ -125,105 +138,236 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
       }
     }//End read group
   }
-  
+
   //Assign Nact
   for(int det=0;det<ndet;det++){
     Nact(det,0)=actudetstring(det).size()+Nocc(det,0);
     Nact(det,1)=actddetstring(det).size()+Nocc(det,1);
   }
 
-  //Manipulate data to get activestring
-  int off=0;
-  vector <string> activestring;
-  activestring.resize(nparms());
-  Array1<Array1<int> >numup;
-  Array1<Array1<int> >nump;
-  numup.Resize(ndet);
-  nump.Resize(ndet);
-  for(int det=0;det<ndet;det++){
-    numup(det).Resize(groupstrings(det).GetDim(0));
-    numup(det)=0;
-    nump(det).Resize(groupstrings(det).GetDim(0));
-    nump(det)=0;
-  }
-  for(int det=0;det<ndet;det++){
-    for(int s=0;s<2;s++){
-      for(int i=0;i<Nact(det,s)-Nocc(det,s);i++){
-        for(int j=0;j<Nocc(det,s);j++){
-          //Figure out if i and j share an orbital group
-          int pass=0;
-          int passone=0;
-          int passtwo=0;
-          int one=0;
-          if(s==0){
-            one=atoi(actudetstring(det)[i].c_str());
-          }else{
-            one=atoi(actddetstring(det)[i].c_str());
-          } 
-          int two=occupation_orig(f,det,s)(j)+1;
-          //Loop over groups
-          for(int k=0;k<groupstrings(det).GetDim(0);k++){
-            passone=0;
-            passtwo=0;
-            //Loop over elements in a group
-            for(int l=0;l<groupstrings(det)(k).size();l++){
-               if(one==atoi(groupstrings(det)(k)[l].c_str()))
-                 passone=1;
-               if(two==atoi(groupstrings(det)(k)[l].c_str()))
-                 passtwo=1;
-            }
-            if(passone && passtwo) {
-              if(s==0) numup(det)(k)++; 
-              nump(det)(k)++;
-              pass=1;
-              break;
-            }
-          }
-          if(pass) {
-            activestring[i*Nocc(det,s)+j+off]="1"; 
-          }else { 
-            activestring[i*Nocc(det,s)+j+off]="0";
-          }
-        }
+  //Assign nparms_
+  if(!orthog) nparms_=nparms();
+  else{
+    nparms_=0;
+    for(int det=0;det<ndet;det++){
+      for(int s=0;s<2;s++){
+        nparms_+=(int)Nact(det,s)*(Nact(det,s)-1)/2;
       }
-      off+=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
     }
   }
 
-  //Manipulate data to get initparmstring 
-  for(int det=0;det<ndet;det++){
-    vector<string> parmu;
-    vector<string> parmd;
-    int numup=(int)Nact(det,0)*(Nact(det,0)-1)/2;
-    int nump=numup+(int)Nact(det,1)*(Nact(det,1)-1)/2;
-    if(groupparms(det).size()!=0){
-      if(groupparms(det).size()!=nump)
-        error("Expected ",nump," parameters, got ",groupparms(det).size());
-      for(int i=0;i<numup;i++)
-        parmu.push_back(groupparms(det)[i]);
-      for(int i=0;i<nump-numup;i++)
-        parmd.push_back(groupparms(det)[i+numup]);
-    }else{
-      for(int i=0;i<numup;i++)
-        parmu.push_back("0");
-      for(int i=0;i<nump-numup;i++)  
-        parmd.push_back("0");
+  //Useful vector, tells us whether an orbital is globally active
+  if(orthog){
+    int vecsize=0;
+    for(int k=0;k<groupstrings(0).Size();k++){
+      vecsize+=groupstrings(0)(k).size();
     }
-    for(int k=0;k<parmu.size();k++){
-      initparmstring.push_back(parmu[k]);
+    globalactive.resize(vecsize);
+    globalindex.resize(vecsize);
+    
+    for(int i=0;i<vecsize;i++){
+      //Check if it's occupied in any of the determinants
+      globalactive[i]=0;
+      globalindex[i]=-1;
+      for(int det=0;det<ndet;det++){
+        for(int s=0;s<2;s++){
+          for(int l=0;l<occupation_orig(f,det,s).Size();l++){
+            if(i==occupation_orig(f,det,s)(l)){
+              globalactive[i]=1;
+              break;
+            }
+          }
+        }
+      }
     }
-    for(int k=0;k<parmd.size();k++){
-      initparmstring.push_back(parmd[k]);
+
+    //Get global index
+    int z=0;
+    for(int det=0;det<ndet;det++){
+      for(int s=0;s<2;s++){
+        for(int l=0;l<occupation_orig(f,det,s).Size();l++){
+          int i=occupation_orig(f,det,s)(l);
+          if(globalactive[i] && (globalindex[i]<0)){
+            globalindex[i]=z;
+            z++;
+          }
+        }
+      }
+    }
+   
+    //Global indices (relative to globalTheta)
+    for(int det=0;det<ndet;det++){
+      for(int s=0;s<2;s++){
+        if(s==0){
+          for(int l=0;l<actudetstring(det).size();l++){
+            int i=atoi(actudetstring(det)[l].c_str())-1;
+            if(!globalactive[i] && (globalindex[i]<0)){
+              globalindex[i]=z;
+              z++;
+            }
+          }
+        }else{
+          for(int l=0;l<actddetstring(det).size();l++){
+            int i=atoi(actddetstring(det)[l].c_str())-1;
+            if(!globalactive[i] &&(globalindex[i]<0)){
+              globalindex[i]=z;
+              z++;
+            }
+          }
+        }
+      }
     }
   }
+
+  /*//Debugging [GOOD]
+  cout<<"Global"<<endl;
+  for(int i=0;i<globalactive.size();i++){
+    cout<<i+1<<", "<<globalactive[i]<<", "<<globalindex[i]+1<<endl;
+  }*/
+
+  //Manipulate data to get activestring
+  int off=0;
+  vector <string> activestring;
+  activestring.resize(nparms_);
+  //Non orthogonal
+  if(!orthog){
+    for(int det=0;det<ndet;det++){
+      for(int s=0;s<2;s++){
+        for(int i=0;i<Nact(det,s)-Nocc(det,s);i++){
+          for(int j=0;j<Nocc(det,s);j++){
+            //Figure out if i and j share an orbital group
+            int pass=0;
+            int passone=0;
+            int passtwo=0;
+            int one=0;
+            if(s==0){
+              one=atoi(actudetstring(det)[i].c_str());
+            }else{
+              one=atoi(actddetstring(det)[i].c_str());
+            } 
+            int two=occupation_orig(f,det,s)(j)+1;
+            //Loop over groups
+            for(int k=0;k<groupstrings(det).GetDim(0);k++){
+              passone=0;
+              passtwo=0;
+              //Loop over elements in a group
+              for(int l=0;l<groupstrings(det)(k).size();l++){
+                 if(one==atoi(groupstrings(det)(k)[l].c_str()))
+                   passone=1;
+                 if(two==atoi(groupstrings(det)(k)[l].c_str()))
+                   passtwo=1;
+              }
+              if(passone && passtwo) {
+                //if(s==0) numup(det)(k)++; 
+                //nump(det)(k)++;
+                pass=1;
+                break;
+              }
+            }
+            if(pass) {
+              activestring[i*Nocc(det,s)+j+off]="1"; 
+            }else { 
+              activestring[i*Nocc(det,s)+j+off]="0";
+            }
+          }
+        }
+        off+=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
+      }
+    }
+  }else{ //Orthogonal. Could be merged with above loop, but I want to keep them separated for debugging purposes.
+    int p=0;
+    for(int det=0;det<ndet;det++){
+      for(int s=0;s<2;s++){
+        for(int i=0;i<Nact(det,s);i++){
+          for(int j=i+1;j<Nact(det,s);j++){
+            int pass=0;
+            int passone=0;
+            int passtwo=0;
+            int one=0;
+            int two=0;
+            if(i>=Nocc(det,s)) one=(!s)?atoi(actudetstring(det)[i-Nocc(det,s)].c_str()):atoi(actddetstring(det)[i-Nocc(det,s)].c_str());
+            else one=occupation_orig(f,det,s)(i)+1;
+            
+            if(j>=Nocc(det,s)) two=(!s)?atoi(actudetstring(det)[j-Nocc(det,s)].c_str()):atoi(actddetstring(det)[j-Nocc(det,s)].c_str());
+            else two=occupation_orig(f,det,s)(j)+1;
+          
+            //Check that they share the same group
+            for(int k=0;k<groupstrings(det).GetDim(0);k++){
+              passone=0;
+              passtwo=0;
+              //Loop over elements in a group
+              for(int l=0;l<groupstrings(det)(k).size();l++){
+                 if(one==atoi(groupstrings(det)(k)[l].c_str()))
+                   passone=1;
+                 if(two==atoi(groupstrings(det)(k)[l].c_str()))
+                   passtwo=1;
+              }
+              if(passone && passtwo) {
+                pass=1;
+                break;
+              }
+            }
+           
+            //Set active parameters
+            if(pass) activestring[p]="1";
+            else activestring[p]="0"; 
+            
+            p++;
+          }
+        }
+      }
+    }
+  }//[GOOD]
+  
+  //Manipulate data to get initparmstring 
+  if(!orthog) {
+    for(int det=0;det<ndet;det++){
+      vector<string> parmu;
+      vector<string> parmd;
+      int numup=(int)Nact(det,0)*(Nact(det,0)-1)/2;
+      int nump=numup+(int)Nact(det,1)*(Nact(det,1)-1)/2;
+      if(groupparms(det).size()!=0){
+        if(groupparms(det).size()!=nump)
+          error("Expected ",nump," parameters, got ",groupparms(det).size());
+        for(int i=0;i<numup;i++)
+          parmu.push_back(groupparms(det)[i]);
+        for(int i=0;i<nump-numup;i++)
+          parmd.push_back(groupparms(det)[i+numup]);
+      }else{
+        for(int i=0;i<numup;i++)
+          parmu.push_back("0");
+        for(int i=0;i<nump-numup;i++)  
+          parmd.push_back("0");
+      }
+      for(int k=0;k<parmu.size();k++){
+        initparmstring.push_back(parmu[k]);
+      }
+      for(int k=0;k<parmd.size();k++){
+        initparmstring.push_back(parmd[k]);
+      }
+    }
+  }else{
+    int nump=(int) globalactive.size()*(globalactive.size()-1)/2;
+    if(groupparms(0).size()!=0){
+      if(groupparms(0).size()!=nump) error("Expected ",nump," parameters, got ",groupparms(0).size());
+      for(int i=0;i<nump;i++) initparmstring.push_back(groupparms(0)[i]); //Goes directly into thetaGlobal;
+    }else{
+      for(int i=0;i<nump;i++) initparmstring.push_back("0");
+    }
+  }
+  
   //Assign active parameters
-  isactive.Resize(nparms());
+  isactive.Resize(nparms_);
   for(int i=0;i<isactive.GetDim(0);i++){
     isactive(i)=atoi(activestring[i].c_str());
     if(!isactive(i)){
       notactive++;
     }
   }
+
+  //alter nparms_
+  if(!orthog) nparms_=nparms();
+  else nparms_-=notactive;
 
   //Assign active arrays
   activeoccupation_orig.Resize(nfunc,ndet,2);
@@ -292,13 +436,21 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
   occupation_orig=activeoccupation_orig;
   occupation=activeoccupation;
   totoccupation=activetotoccupation;
- 
+
   //Assign initial parameters
   int totparms=0;
-  for(int det=0;det<ndet;det++){
-    parms(det,0).Resize((int)Nact(det,0)*(Nact(det,0)-1)/2);
-    parms(det,1).Resize((int)Nact(det,1)*(Nact(det,1)-1)/2);
-    totparms+=(int)Nact(det,0)*(Nact(det,0)-1)/2 + (int)Nact(det,1)*(Nact(det,1)-1)/2;
+  if(!orthog){
+    for(int det=0;det<ndet;det++){
+      parms(det,0).Resize((int)Nact(det,0)*(Nact(det,0)-1)/2);
+      parms(det,1).Resize((int)Nact(det,1)*(Nact(det,1)-1)/2);
+      totparms+=(int)Nact(det,0)*(Nact(det,0)-1)/2 + (int)Nact(det,1)*(Nact(det,1)-1)/2;
+    }
+  }else{
+    for(int det=0;det<ndet;det++){
+      parms(det,0).Resize((int)Nact(det,0)*(Nact(det,0)-1)/2);
+      parms(det,1).Resize((int)Nact(det,1)*(Nact(det,1)-1)/2);
+    }
+    totparms=(int)globalactive.size()*(globalactive.size()-1)/2; 
   }
   if(randomparms==0){
     if(initparmstring.size()==0){
@@ -310,16 +462,46 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
         }
       }
     }else if(initparmstring.size()!=totparms){
-      error("You have an incorrect number of initial parameters, require ",nparms());
+      error("You have an incorrect number of initial parameters, require ",totparms);
     }else{
-      int offset=0;
-      int k=0;
-      for(int det=0;det<ndet;det++){
-        for(int s=0;s<2;s++){
-          for(int i=0;i<(int)Nact(det,s)*(Nact(det,s)-1)/2;i++){
-            parms(det,s)(i)=atof(initparmstring[i+offset].c_str());
+      if(!orthog){
+        int offset=0;
+        int k=0;
+        for(int det=0;det<ndet;det++){
+          for(int s=0;s<2;s++){
+            for(int i=0;i<(int)Nact(det,s)*(Nact(det,s)-1)/2;i++){
+              parms(det,s)(i)=atof(initparmstring[i+offset].c_str());
+            }
+            offset+=(int)Nact(det,s)*(Nact(det,s)-1)/2;
           }
-          offset+=(int)Nact(det,s)*(Nact(det,s)-1)/2;
+        }
+      }else{
+        for(int det=0;det<ndet;det++){
+          for(int s=0;s<2;s++){
+            int p=0;
+            for(int i=0;i<Nact(det,s);i++){
+              for(int j=i+1;j<Nact(det,s);j++){
+                int iloc=activeoccupation_orig(f,det,s)(i);
+                int jloc=activeoccupation_orig(f,det,s)(j);
+                if(globalactive[iloc] || globalactive[jloc]){
+                  int iglob=globalindex[iloc];
+                  int jglob=globalindex[jloc];
+                  
+                  int offset=0;
+                  if(iglob<jglob){
+                    for(int k=0;k<iglob;k++) offset+=globalactive.size()-1-k;
+                    parms(det,s)(p)=atof(initparmstring[offset+jglob-iglob-1].c_str());
+                  }else{
+                    for(int k=0;k<jglob;k++) offset+=globalactive.size()-1-k;
+                    parms(det,s)(p)=-atof(initparmstring[offset+iglob-jglob-1].c_str());
+                  }
+                }else{
+                  parms(det,s)(p)=0;                
+                } 
+                p++;
+              } 
+            }
+          }             
         }
       }
     }
@@ -394,16 +576,18 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
     }
   }
 
-  //Resize parameters back to shape
-  for(int det=0;det<ndet;det++){
-    parms(det,0).Resize(Nocc(det,0)*(Nact(det,0)-Nocc(det,0)));
-    parms(det,1).Resize(Nocc(det,1)*(Nact(det,1)-Nocc(det,1)));
+  if(!orthog){
+    //Resize parameters back to shape
+    for(int det=0;det<ndet;det++){
+      parms(det,0).Resize(Nocc(det,0)*(Nact(det,0)-Nocc(det,0)));
+      parms(det,1).Resize(Nocc(det,1)*(Nact(det,1)-Nocc(det,1)));
+    }
   }
 
   //Zero out parameters and reset theta and Rvar
   for(int det=0;det<ndet;det++){
     for(int s=0;s<2;s++){
-      for(int i=0;i<Nocc(det,s)*(Nact(det,s)-Nocc(det,s));i++){
+      for(int i=0;i<parms(det,s).GetDim(0);i++){
         parms(det,s)(i)=0;
       }
     }
@@ -432,7 +616,6 @@ void Orbital_rotation::writeinput(string & indent, ostream & os){
   VRinv.Resize(ndet,2);
   VRinvT.Resize(ndet,2);
   tmptheta.Resize(ndet,2);
-  parms.Resize(nparms());
 
   int offset=0;
   int q=0;
@@ -504,21 +687,39 @@ void Orbital_rotation::setTheta(void){
     for(int s=0;s<2;s++){
       int ind=0;
       theta(det,s)=0;
+      vector<int> tmpup;
+      vector<int> tmpdown;
       for(int i=0;i<Nact(det,s);i++){
         for(int j=0;j<=i;j++){
-          if(i>(Nocc(det,s)-1) && j<=(Nocc(det,s)-1)){
-            if(parms(det,s)(ind)!=0){
-              theta(det,s)(j,i)=parms(det,s)(ind);  
-              theta(det,s)(i,j)=-parms(det,s)(ind);
-            }else{
-              theta(det,s)(j,i)=parms(det,s)(ind);
-              theta(det,s)(i,j)=parms(det,s)(ind);
+          if(!orthog){
+            if(i>(Nocc(det,s)-1) && j<=(Nocc(det,s)-1)){
+              if(parms(det,s)(ind)!=0){
+                theta(det,s)(j,i)=parms(det,s)(ind);  
+                theta(det,s)(i,j)=-parms(det,s)(ind);
+              }else{
+                theta(det,s)(j,i)=parms(det,s)(ind);
+                theta(det,s)(i,j)=parms(det,s)(ind);
+              }
+              parmsindex(det,s)(ind).Resize(2);
+              parmsindex(det,s)(ind)(0)=j;
+              parmsindex(det,s)(ind)(1)=i;
+              ind++;
             }
-            parmsindex(det,s)(ind).Resize(2);
-            parmsindex(det,s)(ind)(0)=j;
-            parmsindex(det,s)(ind)(1)=i;
+          }else{
+            theta(det,s)(j,i)=parms(det,s)(ind);
+            theta(det,s)(i,j)=-parms(det,s)(ind);
+            tmpup.push_back(j);
+            tmpdown.push_back(i);
             ind++;
           }
+        }
+      }
+      if(orthog){
+        parmsindex(det,s).Resize(ind);
+        for(int k=0;k<ind;k++) {
+          parmsindex(det,s)(k).Resize(2);
+          parmsindex(det,s)(k)(0)=tmpup[k];
+          parmsindex(det,s)(k)(1)=tmpdown[k];
         }
       }
     }
@@ -642,12 +843,16 @@ void Orbital_rotation::setParms(Array1<doublevar> & parmsin){
 }
 
 int Orbital_rotation::nparms(void){
-  int val=0;
-  for(int det=0;det<ndet;det++){
-    for(int s=0;s<2;s++)
-      val+=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
+  if(!orthog){
+    int val=0;
+    for(int det=0;det<ndet;det++){
+      for(int s=0;s<2;s++)
+        val+=Nocc(det,s)*(Nact(det,s)-Nocc(det,s));
+    }
+    return val-notactive;
+  }else{
+    error("nparms() not yet implemented for orthogonal");
   }
-  return val-notactive;
 }
 
 void Orbital_rotation::getind(int n, int& mydet, int& mys, int& i, int& j){

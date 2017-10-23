@@ -53,6 +53,13 @@ private:
 
   //Useful for writeinput()
   Array1<Array1<vector<string> > >groupstrings; //Contains ORB_GROUPs
+
+
+  //Whether we want orthogonal optimization, i.e. one rotation matrix for all spins and all dets
+  int orthog;
+  int nparms_; //Number of parameters used internally. Only differs from nparms() for orthogonal case.
+  vector<int> globalactive; //Tells us which orbitals are globally active (in the multi-determinant sense).
+  vector<int> globalindex;  //List of globally active and virtual orbitals
 };
 
 template <class T>
@@ -129,7 +136,8 @@ Array3<log_value<T> > & detVal, Parm_deriv_return & deriv){
   //gradderiv(n,e,t)=d/d_pn (grad_e^(t) ln(det(psi))), 
   //where grad_e^(1,2,3)=(d/dx_e, d/dy_e, d/dz_e) and grad_e^4=lap_e
   int q=0;
-  for(int n=0;n<nparms()+notactive;n++){
+  //for(int n=0;n<nparms()+notactive;n++){
+  for(int n=0;n<nparms_+notactive;n++){  
     if(isactive(n)){
       //These are the four parameters related to n
       int ni=0;
