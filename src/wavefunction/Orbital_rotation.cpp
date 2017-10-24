@@ -162,7 +162,7 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
   if(orthog){
     int vecsize=0;
     //Get number of unique orbitals, active and virtual
-    /*vector<int> tmpglobal;
+    vector<int> tmpglobal;
     for(int det=0;det<ndet;det++){
       for(int s=0;s<2;s++){
         for(int l=0;l<occupation_orig(f,det,s).Size();l++){
@@ -197,7 +197,7 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
         }
         if(!found) { tmpglobal.push_back(atoi(actddetstring(det)[l].c_str())-1); vecsize++; }
       }
-    }*/
+    }
     for(int k=0;k<groupstrings(0).Size();k++){
       vecsize+=groupstrings(0)(k).size();
     }
