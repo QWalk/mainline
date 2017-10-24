@@ -85,7 +85,7 @@ template <class T>
 void Orbital_rotation::getParmDeriv(Array1<log_value<T> > & detwt,
 Array3<T> & moVal, Array3<Array2<T> >& inverse, 
 Array3<log_value<T> > & detVal, Parm_deriv_return & deriv){ 
-  
+
   //moVal() dimension, electron, orbital 
   //inverse() function #, det #, spin 
   //detVal() function #, determinant #, spin 
@@ -147,7 +147,6 @@ Array3<log_value<T> > & detVal, Parm_deriv_return & deriv){
   //gradderiv(n,e,t)=d/d_pn (grad_e^(t) ln(det(psi))), 
   //where grad_e^(1,2,3)=(d/dx_e, d/dy_e, d/dz_e) and grad_e^4=lap_e
   int q=0;
-  //for(int n=0;n<nparms()+notactive;n++){
   for(int n=0;n<nparms_+notactive;n++){  
     if(isactive(n)){
       //These are the four parameters related to n
@@ -156,18 +155,17 @@ Array3<log_value<T> > & detVal, Parm_deriv_return & deriv){
       int nd=0;
       int ns=0;
       int no=0;
-     
+ 
       getind(n,nd,ns,ni,nj);
       if(ns==0){no=1;}
 
       //See if it happens that the parameter doesn't exist in this determinant
       int pass=((ni<Nocc(nd,ns))||(nj<Nocc(nd,ns)))?1:0;
-      
       if(!pass){
-        deriv.gradient(n)=0;
+        deriv.gradient(n-q)=0;
         for(int e=0;e<Nocc(0,0)+Nocc(0,1);e++){
           for(int t=0;t<4;t++){
-            deriv.gradderiv(n,e,t)=0;
+            deriv.gradderiv(n-q,e,t)=0;
           }
         }
       }else{
@@ -287,4 +285,11 @@ Array3<log_value<T> > & detVal, Parm_deriv_return & deriv){
       }
     }
   }
+  
+  //cout<<"end of getParmDeriv"<<endl;
+  //cout<<deriv.gradient.Size()<<endl;
+  //for(int i=0;i<deriv.gradient.Size();i++) cout<<deriv.gradient(i)<<" ";
+  //cout<<"\n";
+  
+  //exit(0);
 }
