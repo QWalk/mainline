@@ -6,6 +6,7 @@
 #include "MO_matrix.h"
 #include "Wavefunction.h"
 #include <queue>
+#include <map>
 
 class Orbital_rotation{
 public:
@@ -59,8 +60,10 @@ private:
   //Whether we want orthogonal optimization, i.e. one rotation matrix for all spins and all dets
   int orthog;
   int nparms_; //Number of parameters used internally. Only differs from nparms() for orthogonal case.
-  vector<int> globalactive; //Tells us which orbitals are globally active (in the multi-determinant sense).
-  vector<int> globalindex;  //List of globally active and virtual orbitals
+  
+  map<int,bool> globalactive; //Tells us which orbitals are globally active (in the multi-determinant sense).
+  map<int,int> globalindex;  //List of globally active and virtual orbitals
+  
   Array2<int> restMat;      //Restriction matrix
   int nindep;               //Number of independent parameters after restriction
   vector<vector<int> >concomp; //Parameters that are all equivalent

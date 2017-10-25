@@ -155,96 +155,37 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
     }
   }
 
-  //Useful vector, tells us whether an orbital is globally active
+  //Useful maps, tells us whether an orbital is globally active
   if(orthog){
-    int vecsize=0;
-    //Get number of unique orbitals, active and virtual
-    vector<int> tmpglobal;
+    //Actives
     for(int det=0;det<ndet;det++){
       for(int s=0;s<2;s++){
         for(int l=0;l<occupation_orig(f,det,s).Size();l++){
-          int found=0;
-          for(int p=0;p<vecsize;p++){
-            if(occupation_orig(f,det,s)(l)==tmpglobal[p]) {
-              found=1;
-              break;
-            }
-          }
-          if(!found) { tmpglobal.push_back(occupation_orig(f,det,s)(l)); vecsize++; }
-        }
-      }
-      for(int l=0;l<actudetstring(det).size();l++){
-        int found=0;
-        for(int p=0;p<vecsize;p++){
-          if(atoi(actudetstring(det)[l].c_str())-1==tmpglobal[p]) {
-            found=1;
-            break;
+          if(globalactive.count(occupation_orig(f,det,s)(l))==0) {
+            globalactive[occupation_orig(f,det,s)(l)]=true;
+            globalindex[occupation_orig(f,det,s)(l)]=globalindex.size();
           }
         }
-        if(!found) { tmpglobal.push_back(atoi(actudetstring(det)[l].c_str())-1); vecsize++; }
-      }
-      
-      for(int l=0;l<actddetstring(det).size();l++){
-        int found=0;
-        for(int p=0;p<vecsize;p++){
-          if(atoi(actddetstring(det)[l].c_str())-1==tmpglobal[p]) {
-            found=1;
-            break;
-          }
-        }
-        if(!found) { tmpglobal.push_back(atoi(actddetstring(det)[l].c_str())-1); vecsize++; }
       }
     }
-    globalactive.resize(vecsize);
-    globalindex.resize(vecsize);
     
-    for(int i=0;i<vecsize;i++){
-      //Check if it's occupied in any of the determinants
-      globalactive[i]=0;
-      globalindex[i]=-1;
-      for(int det=0;det<ndet;det++){
-        for(int s=0;s<2;s++){
-          for(int l=0;l<occupation_orig(f,det,s).Size();l++){
-            if(i==occupation_orig(f,det,s)(l)){
-              globalactive[i]=1;
-              break;
-            }
-          }
-        }
-      }
-    }
-
-    //Get global index
-    int z=0;
-    for(int det=0;det<ndet;det++){
-      for(int s=0;s<2;s++){
-        for(int l=0;l<occupation_orig(f,det,s).Size();l++){
-          int i=occupation_orig(f,det,s)(l);
-          if(globalactive[i] && (globalindex[i]<0)){
-            globalindex[i]=z;
-            z++;
-          }
-        }
-      }
-    }
-   
-    //Global indices (relative to globalTheta)
+    //Virtuals
     for(int det=0;det<ndet;det++){
       for(int s=0;s<2;s++){
         if(s==0){
           for(int l=0;l<actudetstring(det).size();l++){
-            int i=atoi(actudetstring(det)[l].c_str())-1;
-            if(!globalactive[i] && (globalindex[i]<0)){
-              globalindex[i]=z;
-              z++;
+            int k=atoi(actudetstring(det)[l].c_str())-1;
+            if(globalactive.count(k)==0) { 
+              globalactive[k]=false;
+              globalindex[k]=globalindex.size();
             }
           }
         }else{
           for(int l=0;l<actddetstring(det).size();l++){
-            int i=atoi(actddetstring(det)[l].c_str())-1;
-            if(!globalactive[i] &&(globalindex[i]<0)){
-              globalindex[i]=z;
-              z++;
+            int k=atoi(actddetstring(det)[l].c_str())-1;
+            if(globalactive.count(k)==0) {
+              globalactive[k]=false;
+              globalindex[k]=globalindex.size();
             }
           }
         }
