@@ -39,7 +39,8 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
   if(haskeyword(words,pos,"ORTHOGONAL"))
     orthog=1;
 
- 
+  
+
   //Manipulate data to get actudetstring and actddetstring
   pos=0;
   vector <string> initparmstring;
@@ -137,7 +138,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
       }
     }//End read group
   }
-  
   //Assign Nact
   for(int det=0;det<ndet;det++){
     Nact(det,0)=actudetstring(det).size()+Nocc(det,0);
@@ -158,12 +158,14 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
   //Useful maps, tells us whether an orbital is globally active
   if(orthog){
     //Actives
+    int z=0;
     for(int det=0;det<ndet;det++){
       for(int s=0;s<2;s++){
         for(int l=0;l<occupation_orig(f,det,s).Size();l++){
           if(globalactive.count(occupation_orig(f,det,s)(l))==0) {
             globalactive[occupation_orig(f,det,s)(l)]=true;
-            globalindex[occupation_orig(f,det,s)(l)]=globalindex.size();
+            globalindex[occupation_orig(f,det,s)(l)]=z;
+            z++;
           }
         }
       }
@@ -177,7 +179,8 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
             int k=atoi(actudetstring(det)[l].c_str())-1;
             if(globalactive.count(k)==0) { 
               globalactive[k]=false;
-              globalindex[k]=globalindex.size();
+              globalindex[k]=z;
+              z++;
             }
           }
         }else{
@@ -185,7 +188,8 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
             int k=atoi(actddetstring(det)[l].c_str())-1;
             if(globalactive.count(k)==0) {
               globalactive[k]=false;
-              globalindex[k]=globalindex.size();
+              globalindex[k]=z;
+              z++;
             }
           }
         }
@@ -193,6 +197,13 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
     }
   }
   
+  //DEBUG
+  /*for (map<int,bool>::iterator it=globalactive.begin(); it!=globalactive.end(); ++it)
+      std::cout << it->first << " => " << it->second << '\n';
+  for (map<int,int>::iterator it=globalindex.begin(); it!=globalindex.end(); ++it)
+        std::cout << it->first << " => " << it->second << '\n';
+  */
+
   //Manipulate data to get activestring
   int off=0;
   vector <string> activestring;
@@ -284,7 +295,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
       }
     }
   }//[GOOD]
-  
   //Manipulate data to get initparmstring 
   if(!orthog) {
     for(int det=0;det<ndet;det++){
@@ -386,7 +396,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
     for(int i=0; i<activetotoccupation(s).GetDim(0); i++)
      activetotoccupation(s)(i) = totocctemp[i];
   }
-
   //Alter matrices
   occupation_orig.Resize(nfunc,ndet,2);
   occupation.Resize(nfunc,ndet,2);
@@ -452,7 +461,9 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
                 if(globalactive[iloc] || globalactive[jloc]){
                   int iglob=globalindex[iloc];
                   int jglob=globalindex[jloc];
-                  
+          
+                  cout<<iglob<<","<<jglob<<endl;
+
                   int offset=0;
                   if(iglob<jglob){
                     for(int k=0;k<iglob;k++) offset+=globalactive.size()-1-k;
@@ -493,7 +504,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
       }
     }
   }
- 
   //Set initial matrices, theta = 0, Rvar = I, parms = 0, R = exp(theta(init_parms))
   theta.Resize(ndet,2);
   r.Resize(ndet,2);
@@ -562,7 +572,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
   setTheta();
   setRvar();
   //[GOOD]
-  
   //Make restriction matrix
   if(orthog){
     restMat.Resize(nparms_,nparms_);
