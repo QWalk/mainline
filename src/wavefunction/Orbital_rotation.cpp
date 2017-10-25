@@ -39,7 +39,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
   if(haskeyword(words,pos,"ORTHOGONAL"))
     orthog=1;
 
-  std::cout<<"ORTHOGONAL: "<<orthog<<endl;
  
   //Manipulate data to get actudetstring and actddetstring
   pos=0;
@@ -139,8 +138,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
     }//End read group
   }
   
-  cout<<"Group read-in setup"<<endl;
-  
   //Assign Nact
   for(int det=0;det<ndet;det++){
     Nact(det,0)=actudetstring(det).size()+Nocc(det,0);
@@ -197,9 +194,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
         }
         if(!found) { tmpglobal.push_back(atoi(actddetstring(det)[l].c_str())-1); vecsize++; }
       }
-    }
-    for(int k=0;k<groupstrings(0).Size();k++){
-      vecsize+=groupstrings(0)(k).size();
     }
     globalactive.resize(vecsize);
     globalindex.resize(vecsize);
@@ -258,8 +252,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
     }
   }
   
-  cout<<"Globalindices setup"<<endl;
-  
   //Manipulate data to get activestring
   int off=0;
   vector <string> activestring;
@@ -293,8 +285,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
                    passtwo=1;
               }
               if(passone && passtwo) {
-                //if(s==0) numup(det)(k)++; 
-                //nump(det)(k)++;
                 pass=1;
                 break;
               }
@@ -400,8 +390,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
     }
   }
   
-  cout<<"Activeparms setup"<<endl;
-  
   //alter nparms_
   if(!orthog) nparms_=nparms();
   else nparms_-=notactive;
@@ -474,8 +462,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
   occupation=activeoccupation;
   totoccupation=activetotoccupation;
   
-  cout<<"Occupation_orig setup"<<endl;
-  
   //Assign initial parameters
   int totparms=0;
   if(!orthog){
@@ -490,7 +476,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
       parms(det,1).Resize((int)Nact(det,1)*(Nact(det,1)-1)/2);
     }
     totparms=(int)globalactive.size()*(globalactive.size()-1)/2; 
-    cout<<totparms<<endl;
   }
   if(randomparms==0){
     if(initparmstring.size()==0){
@@ -568,8 +553,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
     }
   }
  
-  cout<<"Initparms setup"<<endl;
-
   //Set initial matrices, theta = 0, Rvar = I, parms = 0, R = exp(theta(init_parms))
   theta.Resize(ndet,2);
   r.Resize(ndet,2);
@@ -625,33 +608,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
       parms(det,1).Resize(Nocc(det,1)*(Nact(det,1)-Nocc(det,1)));
     }
   }
-  
-  if(orthog){
-    //Big debugging
-    cout<<"Read in complete, debugging now"<<endl;
-    
-    //parms()
-    cout<<"#parms"<<endl;
-    for(int det=0;det<ndet;det++){
-      for(int s=0;s<2;s++){
-        for(int i=0;i<parms(det,s).Size();i++) 
-          cout<<parms(det,s)(i)<<" ";
-        cout<<"\n";
-      }
-    }
-
-    //Theta()
-    cout<<"#Theta"<<endl;
-    for(int det=0;det<ndet;det++){
-      for(int s=0;s<2;s++){
-        for(int i=0;i<Nact(det,s);i++){
-          for(int j=0;j<Nact(det,s);j++)
-            cout<<theta(det,s)(i,j)<<" ";
-          cout<<"\n";
-        }
-      }
-    }
-  }
 
   //Zero out parameters and reset theta and Rvar
   for(int det=0;det<ndet;det++){
@@ -664,7 +620,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
 
   setTheta();
   setRvar();
-
   //[GOOD]
   
   //Make restriction matrix
@@ -729,58 +684,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
       }
     }
   }//[GOOD]
-  
-  if(orthog){
-    //parms()
-    cout<<"#parmsindex"<<endl;
-    for(int det=0;det<ndet;det++){
-      for(int s=0;s<2;s++){
-        for(int i=0;i<parms(det,s).Size();i++) 
-          cout<<parmsindex(det,s)(i)(0)<<","<<parmsindex(det,s)(i)(1)<<endl;
-      }
-    }
-    
-    cout<<"#activeoccupation_orig"<<endl;
-    //activeoccupation_orig
-    for(int det=0;det<ndet;det++){
-      for(int s=0;s<2;s++){
-        for(int k=0;k<activeoccupation_orig(f,det,s).Size();k++)
-          cout<<activeoccupation_orig(f,det,s)(k)<<" ";
-      }
-      cout<<"\n";
-    }
-    
-    //globalactive and globalindex
-    cout<<"#globalactive and index"<<endl;
-    for(int i=0;i<globalactive.size();i++){
-      cout<<i<<"->"<<globalindex[i]<<","<<globalactive[i]<<endl;
-    }     
-
-    //nparms_ and nparms(), notactive
-    cout<<"#nparms"<<endl;
-    cout<<nparms_<<","<<nparms()<<","<<notactive<<endl;
-
-    //isactive
-    cout<<"#isactive"<<endl;
-    for(int n=0;n<nparms_+notactive;n++) cout<<isactive(n)<<endl;
-
-    //restMat
-    cout<<"#restMat"<<endl;
-    for(int n=0;n<nparms_;n++){ 
-      for(int m=0;m<nparms_;m++)
-        cout<<restMat(n,m)<<" ";
-      cout<<"\n";
-    }
-    
-    cout<<"#concomp"<<endl;
-    //concomp
-    for(int i=0;i<nindep;i++){
-      for(int k=0;k<concomp[i].size();k++)
-        cout<<concomp[i][k]<<" ";
-      cout<<"\n";
-    }
-  }
-  cout<<"Finished reading"<<endl;
 }
 
 void Orbital_rotation::writeinput(string & indent, ostream & os){
@@ -812,9 +715,7 @@ void Orbital_rotation::writeinput(string & indent, ostream & os){
       for(int i=0;i<Nact(det,s);i++){
         for(int j=0;j<Nact(det,s);j++){
           Ain(det,s)(i,j)=r(det,s)(i,j);
-          cout<<r(det,s)(i,j)<<" ";
         }
-        cout<<"\n";
       }
       if(Nact(det,s)>0){
         VRinv(det,s).Resize(Nact(det,s),Nact(det,s));
@@ -840,31 +741,83 @@ void Orbital_rotation::writeinput(string & indent, ostream & os){
       }
     }
   }
-
   //Write input file
   os<<indent<<"OPTIMIZE_MO"<<endl;
   os<<indent<<"OPTIMIZE_DATA {"<<endl;
   int f=0;
-  for(int det=0;det<ndet;det++){
-    os<<indent2<<"DET {"<<endl;
-    for(int g=0;g<groupstrings(det).GetDim(0);g++){
-      os<<indent2<<indent<<"ORB_GROUP { ";
-      for(int l=0;l<groupstrings(det)(g).size();l++)
-        os<<groupstrings(det)(g)[l].c_str()<<" ";
+  if(!orthog){
+    for(int det=0;det<ndet;det++){
+      os<<indent2<<"DET {"<<endl;
+      for(int g=0;g<groupstrings(det).GetDim(0);g++){
+        os<<indent2<<indent<<"ORB_GROUP { ";
+        for(int l=0;l<groupstrings(det)(g).size();l++)
+          os<<groupstrings(det)(g)[l].c_str()<<" ";
+        os<<"}"<<endl;
+      }
+      //Print out final parameters
+      os<<indent2<<indent<<"PARAMETERS { ";
+      for(int s=0;s<2;s++){
+        for(int i=0;i<Nact(det,s);i++){
+          os<<indent2<<indent2;
+          for(int j=i+1;j<Nact(det,s);j++){
+            os<<fixed<<showpoint<<setprecision(7);
+            os<<tmptheta(det,s)(i,j)<<" ";
+          }     
+          os<<"\n";
+        }
+      }
+      os<<indent2<<indent<<"}"<<endl;
+      os<<indent2<<"} "<<endl;
+    }
+  }else{
+    os<<indent2<<"ORTHOGONAL"<<endl;
+    for(int g=0;g<groupstrings(0).GetDim(0);g++){
+      os<<indent2<<"ORB_GROUP { ";
+      for(int l=0;l<groupstrings(0)(g).size();l++)
+        os<<groupstrings(0)(g)[l].c_str()<<" ";
       os<<"}"<<endl;
     }
-    //Print out final parameters
-    os<<indent2<<indent<<"PARAMETERS { ";
-    for(int s=0;s<2;s++){
-      for(int i=0;i<Nact(det,s);i++){
-        os<<indent2<<indent2;
-        for(int j=i+1;j<Nact(det,s);j++)
-          os<<tmptheta(det,s)(i,j)<<" ";
-        os<<"\n";
+   
+    //Figure out how to print out parameters
+    Array2<doublevar> globaltheta;
+    globaltheta.Resize(globalactive.size(),globalactive.size());
+    for(int i=0;i<globalactive.size();i++){
+      for(int j=0;j<globalactive.size();j++){
+        globaltheta(i,j)=0;
       }
     }
-    os<<indent2<<indent<<"}"<<endl;
-    os<<indent2<<"} "<<endl;
+
+    //Build globaltheta
+    for(int det=0;det<ndet;det++){
+      for(int s=0;s<2;s++){
+        for(int i=0;i<Nact(det,s);i++){
+          for(int j=i+1;j<Nact(det,s);j++){
+            //Get global indices
+            int iglob=activeoccupation_orig(f,det,s)(i);
+            int jglob=activeoccupation_orig(f,det,s)(j);
+            //Make sure it hasn't been filled in
+            if(globaltheta(globalindex[iglob],globalindex[jglob])==0){
+              //Make sure that it's a-a or a-v
+              if(globalactive[iglob] || globalactive[jglob]){
+                globaltheta(globalindex[iglob],globalindex[jglob])=tmptheta(det,s)(i,j);
+                globaltheta(globalindex[jglob],globalindex[iglob])=tmptheta(det,s)(j,i);
+              }
+            }
+          }
+        }
+      }
+    }
+    //Print it out
+    os<<indent2<<"PARAMETERS {"<<endl;
+    for(int i=0;i<globalactive.size();i++){
+      os<<indent2<<indent;
+      for(int j=i+1;j<globalactive.size();j++){
+        os<<fixed<<showpoint<<setprecision(7);
+        os<<globaltheta(i,j)<<" ";
+      }
+      os<<"\n";
+    }
+    os<<indent2<<"}"<<endl;
   }
   os<<indent<<"}"<<endl;
 }
@@ -991,11 +944,6 @@ void Orbital_rotation::getParms(Array1<doublevar> & parmsout){
 
 void Orbital_rotation::setParms(Array1<doublevar> & parmsin){
   //Revert previous rotation by Rvar
-  
-  //cout<<"setParms"<<endl;
-  //cout<<"#parmsin"<<endl;
-  //for(int i=0;i<parmsin.Size();i++) cout<<parmsin(i)<<endl;
-
   rmult=r;
   for(int det=0;det<ndet;det++){
     for(int s=0;s<2;s++){
@@ -1025,16 +973,11 @@ void Orbital_rotation::setParms(Array1<doublevar> & parmsin){
     //Expand the input parmsin to be appropriate size
     Array1<doublevar> intparmsin; //Internal parameter representation
     intparmsin.Resize(nparms_);
-    //cout<<"#restMat"<<endl;
     for(int i=0;i<parmsin.Size();i++){
       for(int j=0;j<concomp[i].size();j++){
         intparmsin(concomp[i][j])=restMat(concomp[i][j],concomp[i][0])*parmsin(i);
-        //cout<<intparmsin(concomp[i][j])<<", "<<concomp[i][j]<<", "<<parmsin(i)<<", "<<restMat(concomp[i][j],concomp[i][0])<<endl;
       }
     }
-
-    //cout<<"#intparmsin"<<endl;
-    //for(int i=0;i<intparmsin.Size();i++) cout<<intparmsin(i)<<endl;
 
     //Now assign parms(det,s)
     int offset=0;
@@ -1053,14 +996,6 @@ void Orbital_rotation::setParms(Array1<doublevar> & parmsin){
       }
     }
   }
-
-  //Debugging
-  //cout<<"#parms"<<endl;
-  //for(int det=0;det<ndet;det++){
-  //  for(int s=0;s<2;s++){
-  //    for(int i=0;i<parms(det,s).Size();i++) cout<<parms(det,s)(i)<<endl;
-  //  }
-  //}
 
   setTheta();
   setRvar();

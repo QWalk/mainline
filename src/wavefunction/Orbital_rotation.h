@@ -285,11 +285,4 @@ Array3<log_value<T> > & detVal, Parm_deriv_return & deriv){
       }
     }
   }
-  
-  //cout<<"end of getParmDeriv"<<endl;
-  //cout<<deriv.gradient.Size()<<endl;
-  //for(int i=0;i<deriv.gradient.Size();i++) cout<<deriv.gradient(i)<<" ";
-  //cout<<"\n";
-  
-  //exit(0);
 }
