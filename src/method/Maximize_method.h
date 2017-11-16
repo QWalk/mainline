@@ -76,6 +76,7 @@ public:
             Program_options & options);
   void run(Program_options & options, ostream & output);
   void run_old(Program_options & options, ostream & output);
+  void run_sample(Program_options & options, ostream & output);
   
   int showinfo(ostream & os);
 
@@ -95,6 +96,7 @@ private:
   
   int nconfig;
   int nconfigs_per_node;
+  bool sample_only;
   string json_file;
   string guidetype;
   Guiding_function * guidewf;

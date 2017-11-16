@@ -44,7 +44,11 @@ void Maximize_method::read(vector <string> words,
 
   if(!readvalue(words,pos=0,nconfig,"NCONFIG"))
     nconfig=100;
-  
+
+  sample_only=false;
+  if(haskeyword(words,pos=0,"SAMPLE"))
+    sample_only=true;
+
   json_file = options.runid+".json";
   cout << "filename " << json_file << endl;
 #ifdef USE_MPI
@@ -69,6 +73,13 @@ void Maximize_method::run(Program_options & options, ostream & output) {
   sample->attachObserver(wf);
   Properties_gather mygather;
   Primary guidewf;
+
+  if(sample_only) {
+    run_sample(options, output);
+    delete sample;
+    delete wf;
+    return;
+  }
 #ifdef USE_MPI
   if(mpi_info.nprocs<2) error("MAXIMIZE must be run with at least 2 processes to be run in parallel.");
   if(mpi_info.node==0) {
@@ -240,6 +251,67 @@ int Maximize_method::master(Wavefunction * wf, Sample_point * sample, ostream & 
   os.close();
 #endif //USE_MPI
 }
+
+void Maximize_method::run_sample(Program_options & options, ostream & output) { 
+  Wavefunction * wf=NULL;
+  Sample_point * sample=NULL;
+  sys->generateSample(sample);
+  wfdata->generateWavefunction(wf);
+  sample->attachObserver(wf);
+  
+  Wf_return lap(1,5);
+
+  Array1 <Config_save_point> config_pos(nconfigs_per_node);
+  Array1 <Maximize_config> maximize_config(nconfigs_per_node);
+  Array1 <doublevar> epos(3);
+
+  Primary guidewf;
+  generate_sample(sample,wf,wfdata,&guidewf,nconfig,config_pos);
+  int nelectrons=sample->electronSize();
+  Properties_gather mygather;
+  
+  Array2 <doublevar> tempconfig(nelectrons,3);
+  Array1 <doublevar> tempgrad(3*nelectrons);
+  Array2 <doublevar> temphessian(3*nelectrons,3*nelectrons);
+  pseudo->setDeterministic(1); 
+  
+  for(int i=0; i < nconfigs_per_node; i++) { 
+    config_pos(i).restorePos(sample);
+    stringstream tableout;
+    
+    // Get initial info
+    for(int e=0; e< nelectrons; e++) {
+      sample->getElectronPos(e,epos);
+      for(int d=0; d< 3; d++) {
+        tempconfig(e,d) = epos(d);
+      }
+    }
+
+    Properties_point pt0;
+    mygather.gatherData(pt0, pseudo, sys, wfdata, wf, 
+                            sample, &guidewf);
+    
+    maximize_config(i).psi_init = pt0.wf_val.amp(0,0);
+    maximize_config(i).energy_init = pt0.energy(0);
+    maximize_config(i).config_init = tempconfig;
+    
+    maximize_config(i).nelectrons = nelectrons;
+    maximize_config(i).psi = pt0.wf_val.amp(0,0);
+    maximize_config(i).energy = pt0.energy(0);
+    maximize_config(i).config = tempconfig;
+    maximize_config(i).hessian= temphessian;
+    maximize_config(i).error = 0;
+     
+    config_pos(i).write(cout);
+    cout << "node" << mpi_info.node << " " << "sample " << i << " of " << nconfigs_per_node << " finished" << endl; 
+  }
+  
+  write_configurations_maximize_json(json_file, maximize_config);
+  delete wf;
+  delete sample;
+}
+//----------------------------------------------------------------------
+
 
 void Maximize_method::run_old(Program_options & options, ostream & output) { 
   Wavefunction * wf=NULL;
@@ -996,7 +1068,7 @@ void Maximize_config::mpiSend(int node) {
   MPI_Send(config_init.v, config_init.GetSize(), MPI_DOUBLE, node, 0, MPI_Comm_grp);
   MPI_Send(hessian.v, hessian.GetSize(), MPI_DOUBLE, node, 0, MPI_Comm_grp);
 #else
-  error("Maximize_config::mpiSend: not using MPI, this is most likely a bug");
+  //error("Maximize_config::mpiSend: not using MPI, this is most likely a bug");
 #endif
 }
 void Maximize_config::mpiReceive(int node) {
@@ -1011,7 +1083,7 @@ void Maximize_config::mpiReceive(int node) {
   MPI_Recv(config_init.v, config_init.GetSize(), MPI_DOUBLE, node, 0, MPI_Comm_grp, &status);
   MPI_Recv(hessian.v, hessian.GetSize(), MPI_DOUBLE, node, 0, MPI_Comm_grp, &status);
 #else
-  error("Maximize_config::mpiReceive: not using MPI, this is most likely a bug");
+  //error("Maximize_config::mpiReceive: not using MPI, this is most likely a bug");
 #endif
 }
 void Maximize_config::set_nelectrons(int nelec) {
