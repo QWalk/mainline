@@ -76,7 +76,7 @@ doublevar legendre_der_so(doublevar x, int n) {
 }
 
 dcomplex Ylm(int l, int ml, Array1 <doublevar> r){
-  assert(r.GetDim(0)=5);
+  assert(r.GetDim(0)==5);
   switch(l)
   {
   case 0:
@@ -175,7 +175,7 @@ dcomplex Ylm_c(int l, int m, Array1 <doublevar> r){
 }
 
 dcomplex Yl1(Array1 <doublevar> r, int l){
-  assert(r.GetDim(0)=5); 
+  assert(r.GetDim(0)==5); 
   switch(l)
   {
   case 0:
@@ -197,7 +197,7 @@ dcomplex Yl1(Array1 <doublevar> r, int l){
 }
 
 dcomplex Yl_1(Array1 <doublevar> r, int l){
-  assert(r.GetDim(0)=5); 
+  assert(r.GetDim(0)==5); 
   switch(l)
   {
   case 0:
