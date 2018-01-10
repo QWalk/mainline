@@ -1,6 +1,8 @@
 JASTROW2 
 
 GROUP { 
+
+  optimizebasis
 EEBASIS { 
 EE
  CUTOFF_CUSP
@@ -22,6 +24,8 @@ TWOBODY_SPIN {
  }
 } 
 GROUP { 
+
+  optimizebasis
 EIBASIS { 
 H
  POLYPADE
