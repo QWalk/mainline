@@ -231,9 +231,12 @@ int main(int argc, char ** argv) {
   nshift.resize(atoms.size());
   vector <int> shifted(atoms.size()); 
   if(latvec.size() > 0) { 
-    for (int at = 0; at<atoms.size(); at++)
+    for (int at = 0; at<atoms.size(); at++) { 
       shifted[at]=shiftobj.enforcepbc(atoms[at].pos, latvec, nshift[at]);
+      cout << "shifted " << at << "  " << shifted[at] << endl;
+    }
   }
+
   infile.open(infilename.c_str());
   get_crystal_basis(infile, basis);
   infile.close();
