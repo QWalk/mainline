@@ -1,0 +1,22 @@
+method { vmc } 
+
+include qw_222.sys
+
+trialfunc { 
+slater
+corbitals {
+blas_mo
+  magnify 1
+  nmo 4
+  orbfile qw_222.orb
+  include qw.basis
+  centers { useglobal }
+}
+detwt { 1.0 }
+states {
+  # Spin up orbitals.
+      1     2     3     4
+  # Spin down orbitals.
+      1     2     3     4
+}
+}
