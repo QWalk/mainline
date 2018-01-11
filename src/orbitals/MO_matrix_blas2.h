@@ -155,7 +155,6 @@ template <class T> void MO_matrix_blas2<T>::init() {
   
   int totfunc=0;
   moCoeff.Resize(totbasis, nmo);
-  cout << "Mocoeff " << moCoeff.GetDim(0) << " " << moCoeff.GetDim(1) << endl;
   for(int ion=0; ion<centers.equiv_centers.GetDim(0); ion++) {
     int f=0; 
     int center0=centers.equiv_centers(ion,0);
@@ -195,8 +194,53 @@ template <class T> void MO_matrix_blas2<T>::init() {
 //----------------------------------------------------------------------
 
 
-template <class T> void MO_matrix_blas2<T>::writeorb(ostream & os, Array2 <doublevar> & rotation, Array1 <int>  &moList) {
-  error("don't support writeorb() yet");
+template <class T> void MO_matrix_blas2<T>::writeorb(ostream & os, 
+                                           Array2 <doublevar> & rotation, 
+                                           Array1 <int>  &moList) {
+  int nmo_write=moList.GetDim(0);
+  assert(rotation.GetDim(0)==nmo_write);
+  assert(rotation.GetDim(1)==nmo_write);
+  os.precision(15);
+  int counter=0;
+  for(int m=0; m < nmo_write; m++) {
+    int mo=moList(m);
+    for(int ion=0; ion<centers.equiv_centers.GetDim(0); ion++) {
+      int f=0;
+      int center=centers.equiv_centers(ion,0);
+      for(int n=0; n< centers.nbasis(center); n++) {
+        int fnum=centers.basis(center,n);
+        int imax=basis(fnum)->nfunc();
+
+        for(int i=0; i<imax; i++){
+          os << mo+1 << "  "   << f+1 << "   " << ion+1 << "   " << counter+1 << endl;
+          f++;  //keep a total of functions on center
+          counter++;
+        } //i
+      } //n
+    }  //ion
+  }
+  os << "COEFFICIENTS\n";
+  
+  int nfunctions=moCoeff.GetDim(0);
+  Array2 <T> coeff_rotate(nfunctions,nmo_write);
+  coeff_rotate=0.0;
+  for(int f=0; f < nfunctions; f++) { 
+    for(int mo1=0; mo1 < nmo_write; mo1++) { 
+      for(int mo2=0; mo2 < nmo_write; mo2++) { 
+        coeff_rotate(f,mo1)+=rotation(mo1,mo2)*moCoeff(f,mo2);
+      }
+    }
+  }
+
+  counter=0;
+  for(int mo=0; mo < nmo_write; mo++) { 
+    for(int f=0; f< nfunctions; f++) { 
+      os << coeff_rotate(f,mo) << " ";
+      counter++;
+      if(counter%5==0) os << endl;
+    }
+  }
+  os << endl;
 
 }
 //---------------------------------------------------------------------
