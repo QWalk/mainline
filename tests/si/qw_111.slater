@@ -1,0 +1,16 @@
+slater
+corbitals {
+cutoff_mo
+  magnify 1
+  nmo 4
+  orbfile qw_111.orb
+  include qw.basis
+  centers { useglobal }
+}
+detwt { 1.0 }
+states {
+  # Spin up orbitals.
+      1     2     3     4
+  # Spin down orbitals.
+      1     2     3     4
+}

@@ -298,6 +298,10 @@ void Test_method::testParmDeriv(Wavefunction * mywf, Sample_point * sample){
   cout <<"#######################################################\n";
   doublevar del=1e-8;
   
+  if(!wfdata->supports(parameter_derivatives))
+    error("Wavefunction needs to supports analytic parameter derivatives");
+  
+
   Array1 <Wf_return> base_wfval(nelectrons),test_wfval(nelectrons);
   Parm_deriv_return wfders;
   if(testhessian)
@@ -312,7 +316,9 @@ void Test_method::testParmDeriv(Wavefunction * mywf, Sample_point * sample){
     test_wfval(e).Resize(1,5);
     mywf->getLap(wfdata, e, base_wfval(e));
   }
+  cout << "parmderiv" << endl;
   mywf->getParmDeriv(wfdata, sample,  wfders);
+  cout << "done " << endl;
   Array1 <doublevar> Psi(nparms); 
   Array1 <doublevar> temp_parms(nparms),orig_parms(nparms);
   wfdata->getVarParms(temp_parms);

@@ -30,8 +30,7 @@ void extend_parm_deriv(Parm_deriv_return & ret1, const Parm_deriv_return & ret2)
   int nparms2=ret2.gradient.GetDim(0);
   int nelectrons=ret1.val_gradient.GetDim(0);
   Parm_deriv_return derivatives;
-  
-  
+  if(nparms1==0 and nparms2==0) return;
   if(nparms2==0) { 
     for(int e=0; e < nelectrons; e++) {
       for(int d=0;d < 3; d++)  { 
@@ -41,7 +40,6 @@ void extend_parm_deriv(Parm_deriv_return & ret1, const Parm_deriv_return & ret2)
     return;
   }
   derivatives.need_hessian=ret1.need_hessian;
-
   derivatives.gradient.Resize(nparms);
   derivatives.hessian.Resize(nparms,nparms);
   for(int i=0; i< nparms1; i++) { 
@@ -52,7 +50,6 @@ void extend_parm_deriv(Parm_deriv_return & ret1, const Parm_deriv_return & ret2)
     derivatives.gradient(i)=ret2.gradient(i-nparms1);
     derivatives.hessian(i,i)=ret2.hessian(i-nparms1,i-nparms1);
   }
-  //cout << "there " << endl;
   for(int i=0; i< nparms1; i++) { 
     for(int j=i+1; j< nparms1; j++) { 
       derivatives.hessian(i,j)=derivatives.hessian(j,i)=ret1.hessian(i,j);
