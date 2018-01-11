@@ -195,7 +195,7 @@ template <class T> void MO_matrix_blas<T>::init() {
     //cout << "kptfac " << cos(dot*pi) << "  displacement " 
     //    << centers.centers_displacement(ion,0) << "   "
     //    << endl;            
-    doublevar kptfac=cos(dot*pi);
+    T kptfac=eval_kpoint_fac<T>(dot);
         
     for(int n=0; n< centers.nbasis(ion); n++) {
 
