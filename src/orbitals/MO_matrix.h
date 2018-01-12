@@ -318,7 +318,7 @@ template <class T> int readorb_noexpand(istream & input, Center_set & centers,
   int coeffmatsize;
   
   if(mpi_info.node!=0) { 
-    coeffmat.Resize(nmo_read,centers.size(),maxbasis);
+    coeffmat.Resize(nmo_read,centers.equiv_centers.GetDim(0),maxbasis);
     coeff.Resize(maxlabel);
   }
   MPI_Bcast(coeffmat.v,coeffmat.size,MPI_INT,0,MPI_Comm_grp);
