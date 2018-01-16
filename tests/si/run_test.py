@@ -24,7 +24,7 @@ ref_data['222']={'total_energy': [-7.71,0.02],
           }
 
 for bc in ['111','222']:
-  for orb in ['blas','blas2','cutoff']:
+  for orb in ['blas','cutoff']:
     fname='qw_'+bc+'.'+orb+'.hf'
     systems={}
     methods={}

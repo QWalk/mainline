@@ -27,7 +27,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Basis_function.h"
 #include "Center_set.h"
 #include "MO_matrix.h"
-
 class System;
 class Sample_point;
 //----------------------------------------------------------------------------
@@ -38,7 +37,6 @@ protected:
   using Templated_MO_matrix<T>::centers;
   using Templated_MO_matrix<T>::basis;
   using Templated_MO_matrix<T>::nmo;
-  using Templated_MO_matrix<T>::magnification_factor;
   using Templated_MO_matrix<T>::orbfile;
   using Templated_MO_matrix<T>::totbasis;
   using Templated_MO_matrix<T>::maxbasis;
@@ -52,6 +50,8 @@ private:
   Array1 <doublevar> obj_cutoff; //!< cutoff for each basis object
   Array1 <doublevar> cutoff;  //!< Cutoff for individual basis functions
   Array1 <int> nfunctions; //!< number of functions in each basis
+  doublevar TINY=1e-8; //Cutoff for evaluation of basis functions
+  Array1 <T> kptfac; //!< K-point factor for each center.
 
 public:
 
@@ -62,14 +62,6 @@ public:
     down MO's, and only evaluate up when an up electron is moved.
    */
   virtual void buildLists(Array1 <Array1 <int> > & occupations);
-
-  /*!
-    get the number of molecular orbitals
-   */
-  //virtual int getNmo()
-  //{
-  //  return nmo;
-  //}
 
   virtual int showinfo(ostream & os);
 
@@ -103,38 +95,6 @@ public:
 };
 
 
-template <class T> struct MOBLAS_CalcObjVal { 
-  T * moplace;
-  doublevar sval;
-};
-
-template <class T> struct MOBLAS_CalcObjLap { 
-  T * moplace;
-  doublevar sval[5];
-};
-
-
-inline void product_kernel(int n, doublevar & a, doublevar * x, doublevar * y) { 
-#ifdef USE_BLAS
-  cblas_daxpy(n,a,x,1,y,1);
-#else
-  for(int i=0; i< n; i++) { 
-    *(y+i)+=a* (*(x+i));
-  }
-#endif
-}
-
-
-inline void product_kernel(int n, doublevar & a, dcomplex * x, dcomplex * y) { 
-#ifdef USE_BLAS
-  dcomplex b(a);
-  cblas_zaxpy(n,&b,x,1,y,1);
-#else
-  for(int i=0; i< n; i++) { 
-    *(y+i)+=a* (*(x+i));
-  }  
-#endif 
-}
 
 
 
@@ -171,7 +131,6 @@ template <class T> void MO_matrix_blas<T>::init() {
   }
   
 
-  moCoeff.Resize(totbasis, nmo);
 
 
   ifstream ORB(orbfile.c_str());
@@ -179,40 +138,39 @@ template <class T> void MO_matrix_blas<T>::init() {
 
   Array3 <int> coeffmat;
   Array1 <T> coeff;
-  readorb(ORB,centers, nmo, maxbasis, kpoint,coeffmat, coeff);
+  readorb_noexpand(ORB,centers, nmo, maxbasis, kpoint,coeffmat, coeff);
   string in;
   ORB.close();
 
-  //Find the cutoffs
-
-  int totfunc=0;
-
-  for(int ion=0; ion<centers.size(); ion++) {
-    int f=0;
-    doublevar dot=0;
-    for(int d=0; d<3; d++) dot+=centers.centers_displacement(ion,d)*kpoint(d);
+  totbasis=0;
+  for(int ion=0; ion<centers.equiv_centers.GetDim(0); ion++) {
+    int center0=centers.equiv_centers(ion,0);
     
-    //cout << "kptfac " << cos(dot*pi) << "  displacement " 
-    //    << centers.centers_displacement(ion,0) << "   "
-    //    << endl;            
-    T kptfac=eval_kpoint_fac<T>(dot);
-        
-    for(int n=0; n< centers.nbasis(ion); n++) {
+    for(int n=0; n< centers.nbasis(center0); n++) {
+      int fnum=centers.basis(center0,n);
+      totbasis+=basis(fnum)->nfunc();
+    }
 
-      int fnum=centers.basis(ion,n);
+  }
+  
+  int totfunc=0;
+  moCoeff.Resize(totbasis, nmo);
+  for(int ion=0; ion<centers.equiv_centers.GetDim(0); ion++) {
+    int f=0; 
+    int center0=centers.equiv_centers(ion,0);
+    for(int n=0; n< centers.nbasis(center0); n++) {
+
+      int fnum=centers.basis(center0,n);
       int imax=basis(fnum)->nfunc();
 
       for(int i=0; i<imax; i++){ 
         for(int mo=0; mo<nmo; mo++) {	   
-
           if(coeffmat(mo,ion, f) == -1) {
             moCoeff(totfunc,mo)=0.0;
-            //cout << "missing MO pointer: mo# " << mo << " ion # " << ion
-            //<< " function on ion: " << f << endl;
-            //error("In the orb file, there is a missing pointer. It might "
-            //      "be a badly structured file.");
           }
-          else moCoeff(totfunc, mo)=magnification_factor*kptfac*coeff(coeffmat(mo,ion,f));
+          else { 
+            moCoeff(totfunc, mo)=coeff(coeffmat(mo,ion,f));         
+          }
         }//mo
         f++;  //keep a total of functions on center
         totfunc++;
@@ -220,16 +178,25 @@ template <class T> void MO_matrix_blas<T>::init() {
     } //n
   }  //ion
 
-
-
+  kptfac.Resize(centers.size());
+  for(int ion=0; ion < centers.equiv_centers.GetDim(0); ion++)  {
+    for(int centerind=0; centerind < centers.ncenters_atom(ion); centerind++) {
+      int center=centers.equiv_centers(ion,centerind);
+         
+      doublevar dot=0;
+      for(int d=0; d<3; d++) dot+=centers.centers_displacement(center,d)*kpoint(d);
+      kptfac(center)=eval_kpoint_fac<T>(dot);
+    }
+  }
+  
 }
 
 //----------------------------------------------------------------------
 
 
-template <class T> void MO_matrix_blas<T>::writeorb(ostream & os, Array2 <doublevar> & rotation, Array1 <int>  &moList) {
-
-
+template <class T> void MO_matrix_blas<T>::writeorb(ostream & os, 
+                                           Array2 <doublevar> & rotation, 
+                                           Array1 <int>  &moList) {
   int nmo_write=moList.GetDim(0);
   assert(rotation.GetDim(0)==nmo_write);
   assert(rotation.GetDim(1)==nmo_write);
@@ -237,10 +204,11 @@ template <class T> void MO_matrix_blas<T>::writeorb(ostream & os, Array2 <double
   int counter=0;
   for(int m=0; m < nmo_write; m++) {
     int mo=moList(m);
-    for(int ion=0; ion<centers.size(); ion++) {
+    for(int ion=0; ion<centers.equiv_centers.GetDim(0); ion++) {
       int f=0;
-      for(int n=0; n< centers.nbasis(ion); n++) {
-        int fnum=centers.basis(ion,n);
+      int center=centers.equiv_centers(ion,0);
+      for(int n=0; n< centers.nbasis(center); n++) {
+        int fnum=centers.basis(center,n);
         int imax=basis(fnum)->nfunc();
 
         for(int i=0; i<imax; i++){
@@ -252,10 +220,27 @@ template <class T> void MO_matrix_blas<T>::writeorb(ostream & os, Array2 <double
     }  //ion
   }
   os << "COEFFICIENTS\n";
-  ifstream orbin(orbfile.c_str());
-  rotate_orb(orbin, os, rotation, moList, totbasis);
-  orbin.close();
+  
+  int nfunctions=moCoeff.GetDim(0);
+  Array2 <T> coeff_rotate(nfunctions,nmo_write);
+  coeff_rotate=0.0;
+  for(int f=0; f < nfunctions; f++) { 
+    for(int mo1=0; mo1 < nmo_write; mo1++) { 
+      for(int mo2=0; mo2 < nmo_write; mo2++) { 
+        coeff_rotate(f,mo1)+=rotation(mo1,mo2)*moCoeff(f,mo2);
+      }
+    }
+  }
 
+  counter=0;
+  for(int mo=0; mo < nmo_write; mo++) { 
+    for(int f=0; f< nfunctions; f++) { 
+      os << coeff_rotate(f,mo) << " ";
+      counter++;
+      if(counter%5==0) os << endl;
+    }
+  }
+  os << endl;
 
 }
 //---------------------------------------------------------------------
@@ -300,7 +285,6 @@ template <class T> int MO_matrix_blas<T>::writeinput(string & indent, ostream & 
   os << indent << "BLAS_MO" << endl;
   os << indent << "NMO " << nmo << endl;
   os << indent << "ORBFILE " << orbfile << endl;
-  os << indent << "MAGNIFY " << magnification_factor << endl;
   string indent2=indent+"  ";
   for(int i=0; i< basis.GetDim(0); i++)
   {
@@ -317,17 +301,53 @@ template <class T> int MO_matrix_blas<T>::writeinput(string & indent, ostream & 
 //------------------------------------------------------------------------
 
 
+inline void product_kernel(int n, doublevar & a, doublevar * x, doublevar * y) { 
+#ifdef USE_BLAS
+  cblas_daxpy(n,a,x,1,y,1);
+#else
+  for(int i=0; i< n; i++) { 
+    *(y+i)+=a* (*(x+i));
+  }
+#endif
+}
+
+
+inline void product_kernel(int n, dcomplex & a, dcomplex * x, dcomplex * y) { 
+#ifdef USE_BLAS
+  cblas_zaxpy(n,&a,x,1,y,1);
+#else
+  for(int i=0; i< n; i++) { 
+    *(y+i)+=a* (*(x+i));
+  }  
+#endif 
+}
+
+
+template <class T> struct MOBLAS_CalcObjVal { 
+  T * moplace;
+  T sval;
+};
+
+template <class T> struct MOBLAS_CalcObjLap { 
+  T * moplace;
+  T sval[5];
+};
+
+
+
 template <class T> void MO_matrix_blas<T>::updateVal(Sample_point * sample,
                     int e, int listnum, Array2 <T> & newvals) {
 
   int centermax=centers.size();
-
+  int ionmax=centers.equiv_centers.GetDim(0);
+  
   assert(e < sample->electronSize());
   assert(newvals.GetDim(1) >=1);
 
 
   Array1 <doublevar> R(5);
   static Array1 <doublevar> symmvals_temp(maxbasis);
+  static Array1 <T> symmvals_sum(maxbasis);
   static Array1 <T> newvals_T;
   Array2 <T> & moCoefftmp(moCoeff_list(listnum));
   int totbasis=moCoefftmp.GetDim(0);
@@ -343,29 +363,32 @@ template <class T> void MO_matrix_blas<T>::updateVal(Sample_point * sample,
   static Array1 <MOBLAS_CalcObjVal<T> > calcobjs(totbasis);
   int ncalcobj=0;
 
-  for(int ion=0; ion < centermax; ion++)  {
-    centers.getDistance(e, ion, R);
-    for(int n=0; n< centers.nbasis(ion); n++) {
-      b=centers.basis(ion, n);
-      if(R(0) < obj_cutoff(b)) {
+  for(int ion=0; ion < ionmax; ion++)  {
+    int center0=centers.equiv_centers(ion,0);
+    symmvals_sum=T(0.0);
+    for(int n=0; n< centers.nbasis(center0); n++) {
+      b=centers.basis(center0, n);
+      int imax=nfunctions(b);
+      for(int centerind=0; centerind < centers.ncenters_atom(ion); centerind++) {
+        int center=centers.equiv_centers(ion,centerind);
+        centers.getDistance(e, center, R);
+        if(R(0) < obj_cutoff(b)) {
+          basis(b)->calcVal(R, symmvals_temp);
 
-        basis(b)->calcVal(R, symmvals_temp);
-        int imax=nfunctions(b);
-        for(int i=0; i< imax; i++) {
-          if(R(0) < cutoff(totfunc)) {
-            calcobjs(ncalcobj).sval=symmvals_temp(i);
-            calcobjs(ncalcobj).moplace=moCoefftmp.v+totfunc*nmo_list;
-            ncalcobj++;
-          }
-          totfunc++;
+          for(int i=0; i< imax; i++) symmvals_sum(i)+=kptfac(center)*symmvals_temp(i);
         }
       }
-      else {
-        totfunc+=nfunctions(b);
+
+      for(int i=0; i< imax; i++) {
+        if(abs(symmvals_sum(i)) > TINY) {
+          calcobjs(ncalcobj).sval=symmvals_sum(i);
+          calcobjs(ncalcobj).moplace=moCoefftmp.v+totfunc*nmo_list;
+          ncalcobj++;
+        }
+        totfunc++;
       }
     }
   }
-
 
   for(int i=0; i< ncalcobj; i++) { 
     product_kernel(nmo_list,calcobjs(i).sval,calcobjs(i).moplace,newvals_T.v);
@@ -393,7 +416,7 @@ template <class T> void MO_matrix_blas<T>::updateLap(
   int listnum,
   Array2 <T> & newvals) {
 
-  int centermax=centers.size();
+  int ionmax=centers.equiv_centers.GetDim(0);
 
   assert(e < sample->electronSize());
   assert(newvals.GetDim(1) >=5);
@@ -401,6 +424,7 @@ template <class T> void MO_matrix_blas<T>::updateLap(
 
   Array1 <doublevar> R(5);
   static Array2 <doublevar> symmvals_temp(maxbasis,5);
+  static Array2 <T> symmvals_sum(maxbasis,5);
   static Array2 <T> newvals_T;
   Array2 <T> & moCoefftmp(moCoeff_list(listnum));
   int totbasis=moCoefftmp.GetDim(0);
@@ -417,30 +441,40 @@ template <class T> void MO_matrix_blas<T>::updateLap(
   int ncalcobj=0;
   
 
-  for(int ion=0; ion < centermax; ion++)  {
-    centers.getDistance(e, ion, R);
-    for(int n=0; n< centers.nbasis(ion); n++) {
-      b=centers.basis(ion, n);
-      if(R(0) < obj_cutoff(b)) {
-        basis(b)->calcLap(R, symmvals_temp);
-        int imax=nfunctions(b);
-        for(int i=0; i< imax; i++) {
-          if(R(0) < cutoff(totfunc)) {
-            calcobjs(ncalcobj).moplace=moCoefftmp.v+totfunc*nmo_list;
-            
-            for(int j=0; j< 5; j++) {
-              calcobjs(ncalcobj).sval[j]=symmvals_temp(i,j);
-            }           
-            ncalcobj++;
+
+
+  for(int ion=0; ion < ionmax; ion++)  {
+    int center0=centers.equiv_centers(ion,0);
+    symmvals_sum=T(0.0);
+    for(int n=0; n< centers.nbasis(center0); n++) {
+      b=centers.basis(center0, n);
+      int imax=nfunctions(b);
+      for(int centerind=0; centerind < centers.ncenters_atom(ion); centerind++) {
+        int center=centers.equiv_centers(ion,centerind);
+        centers.getDistance(e, center, R);
+        if(R(0) < obj_cutoff(b)) {
+          basis(b)->calcLap(R, symmvals_temp);
+
+          for(int i=0; i< imax; i++) {
+            for(int j=0; j< 5; j++) { 
+              symmvals_sum(i,j)+=kptfac(center)*symmvals_temp(i,j);
+            }
           }
-          totfunc++;
         }
       }
-      else {
-        totfunc+=nfunctions(b);
+
+      for(int i=0; i< imax; i++) {
+        if(abs(symmvals_sum(i,0)) > TINY) {
+          for(int j=0; j< 5; j++) 
+            calcobjs(ncalcobj).sval[j]=symmvals_sum(i,j);
+          calcobjs(ncalcobj).moplace=moCoefftmp.v+totfunc*nmo_list;
+          ncalcobj++;
+        }
+        totfunc++;
       }
     }
   }
+  
 
   for(int i=0; i< ncalcobj; i++) { 
     for(int j=0; j< 5; j++) { 
