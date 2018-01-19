@@ -32,16 +32,16 @@ void Average_ldots::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, Syst
 
   for(int i=0; i< nwf; i++){
     for(int e=0; e< nelectrons; e++) {
-      //int spin = 1;
-      //if(e >= sys->nelectrons(0)) spin = -1;
+      int spin = 1;
+      if(e >= sys->nelectrons(0)) spin = -1;
       sample->getElectronPos(e,e_pos);
       for(int at=0; at < nions; at++) {
         sample->getIonPos(at,ion_pos);
         wf->getLap(wfdata, e, temp_lap);  
       //  avg.vals(2*i) += totalspin*(e_pos(0)-ion_pos(0))*temp_lap.amp(i,2)*cos(temp_lap.phase(i,2)) - totalspin*(e_pos(1)-ion_pos(1))*temp_lap.amp(i,1)*cos(temp_lap.phase(i,1));
-        avg.vals(2*i) += (e_pos(0)-ion_pos(0))*temp_lap.amp(i,2)*cos(temp_lap.phase(i,2)) - (e_pos(1)-ion_pos(1))*temp_lap.amp(i,1)*cos(temp_lap.phase(i,1));
+        avg.vals(2*i) += spin*(e_pos(0)-ion_pos(0))*temp_lap.amp(i,2)*cos(temp_lap.phase(i,2)) - spin*(e_pos(1)-ion_pos(1))*temp_lap.amp(i,1)*cos(temp_lap.phase(i,1));
       //  avg.vals(2*i+1) += totalspin*(e_pos(0)-ion_pos(0))*temp_lap.amp(i,2)*sin(temp_lap.phase(i,2)) -totalspin*(e_pos(1)-ion_pos(1))*temp_lap.amp(i,1)*sin(temp_lap.phase(i,1));
-        avg.vals(2*i+1) += (e_pos(0)-ion_pos(0))*temp_lap.amp(i,2)*sin(temp_lap.phase(i,2)) - (e_pos(1)-ion_pos(1))*temp_lap.amp(i,1)*sin(temp_lap.phase(i,1));
+        avg.vals(2*i+1) += spin*(e_pos(0)-ion_pos(0))*temp_lap.amp(i,2)*sin(temp_lap.phase(i,2)) - spin*(e_pos(1)-ion_pos(1))*temp_lap.amp(i,1)*sin(temp_lap.phase(i,1));
       }  
     }
   }
