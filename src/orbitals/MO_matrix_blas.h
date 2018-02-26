@@ -212,7 +212,7 @@ template <class T> void MO_matrix_blas<T>::writeorb(ostream & os,
         int imax=basis(fnum)->nfunc();
 
         for(int i=0; i<imax; i++){
-          os << mo+1 << "  "   << f+1 << "   " << ion+1 << "   " << counter+1 << endl;
+          os << m+1 << "  "   << f+1 << "   " << ion+1 << "   " << counter+1 << endl;
           f++;  //keep a total of functions on center
           counter++;
         } //i
