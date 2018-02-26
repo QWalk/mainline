@@ -227,7 +227,7 @@ template <class T> void MO_matrix_blas<T>::writeorb(ostream & os,
   for(int f=0; f < nfunctions; f++) { 
     for(int mo1=0; mo1 < nmo_write; mo1++) { 
       for(int mo2=0; mo2 < nmo_write; mo2++) { 
-        coeff_rotate(f,mo1)+=rotation(mo1,mo2)*moCoeff(f,mo2);
+        coeff_rotate(f,mo1)+=rotation(mo1,mo2)*moCoeff(f,moList(mo2));
       }
     }
   }
