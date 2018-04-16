@@ -45,7 +45,9 @@ class Average_ldots:public Average_generator {
   }
   Average_ldots() { 
   }
-
+  
+  private:
+   Array1 <doublevar> direction;
  
 };
 
