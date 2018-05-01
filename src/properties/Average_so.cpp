@@ -29,7 +29,7 @@ void Average_so::read(vector <string> & words){
 
 void Average_so::write_init(string & indent, ostream & os){
   os << indent << "psp_so\n";
-  psp_so->showinfo(os);
+ // psp_so->showinfo(os);
 }
 
 /*
@@ -68,7 +68,7 @@ void Average_so::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System 
   Array1 <doublevar> rand_num(nrandvar);
   for(int i=0; i< nrandvar; i++)
     rand_num(i)=rng.ulec();
-
+ 
   psp_so->calcNonlocWithTest(wfdata,sys,sample,wf,rand_num,totalv);
   avg.vals=totalv;
 
@@ -81,9 +81,9 @@ void Average_so::randomize(Wavefunction_data * wfdata, Wavefunction * wf,
 
 void Average_so::write_summary(Average_return & avg, Average_return & err, 
                                ostream & os) {
-  int ndim=avg.vals.GetDim(0);
+  int ndim = avg.vals.GetDim(0);
   assert(ndim <= err.vals.GetDim(0));
-  psp_so->showinfo(os);
+//  psp_so->showinfo(os);
   os << "First order energy correction due to spin-orbit interaction\n";
 
   for(int i=0;i<avg.vals.GetDim(0);i++)
