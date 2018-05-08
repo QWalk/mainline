@@ -72,11 +72,14 @@ private:
   void wavefunction_derivative(Array2<doublevar> & H,Array2 <doublevar> & S,Array1<doublevar> & en);
   void wavefunction_energy(Array1 <doublevar> & en);
   
+  double fit_stabil(Array1 <doublevar> & stabil, Array2 <doublevar> & energies);
+  
   //returns the estimated energy change
   double line_minimization(Array2 <doublevar> & S, 
                            Array2 <doublevar> & Sinv, 
                            Array2 <doublevar> & H,
-                           Array1 <doublevar> & alpha);
+                           Array1 <doublevar> & alpha,
+                           ostream & os);
 
   void correlated_evaluation(Array1 <Array1 <doublevar> > & alphas,
                              int ref_alpha,
