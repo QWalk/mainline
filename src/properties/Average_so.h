@@ -49,6 +49,9 @@ class Average_so:public Average_generator {
 
  private:
    Pseudopotential_so * psp_so; 
+   Array1 <doublevar> init_grid;
+   Array1 <doublevar> del_grid;
+   Array1 <doublevar> num_grid;
  
 };
 

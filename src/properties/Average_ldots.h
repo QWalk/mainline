@@ -47,7 +47,9 @@ class Average_ldots:public Average_generator {
   }
   
   private:
-   Array1 <doublevar> direction;
+   Array1 <doublevar> init_grid;
+   Array1 <doublevar> del_grid;
+   Array1 <doublevar> num_grid;
  
 };
 

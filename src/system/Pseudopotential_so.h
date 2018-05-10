@@ -60,23 +60,23 @@ public:
    */
   void calcNonloc(Wavefunction_data * wfdata, System *,
                   Sample_point * sample, Wavefunction * wf,
-                  Array1 <doublevar> & totalv);
+                  Array2 <doublevar> & totalv);
   
   void calcPseudoSeparated(Wavefunction_data * wfdata,
 			   System * sys,
 			   Sample_point * sample,
 			   Wavefunction * wf,
 			   const Array1 <doublevar> & accept_var,
-			   Array2 <doublevar> & totalv); //, 
+			   Array2 <doublevar> & totalv);  
   void calcPseudoLocal(Wavefunction_data * wfdata,
 		       System * sys,
 		       Sample_point * sample,
 		       Wavefunction * wf,
-		       Array2 <doublevar> & totalv); 
+		       Array3 <doublevar> & totalv); 
   void calcNonlocTmove(Wavefunction_data * wfdata, System *,
                        Sample_point * sample,
                        Wavefunction * wf,
-                       Array1 <doublevar> & totalv,  //total p.e. from the psp
+                       Array2 <doublevar> & totalv,  //total p.e. from the psp
                        vector <Tmove> & tmoves  //variables for T-moves of Casula
                        );
 
@@ -85,7 +85,7 @@ public:
   void calcNonlocSeparated(Wavefunction_data * wfdata, System * sys,
 			   Sample_point * sample,
 			   Wavefunction * wf, 
-			   Array2<doublevar> &totalv
+			   Array3 <doublevar> &totalv
 			   );
 
   /*!
@@ -97,7 +97,7 @@ public:
   */
   void calcNonlocWithTest(Wavefunction_data *, System *,Sample_point *, Wavefunction *,
                           const Array1 <doublevar> & accept_var,
-                          Array1 <doublevar> & totalv);
+                          Array2 <doublevar> & totalv);
 
   /*!
     \brief
@@ -115,7 +115,7 @@ public:
                                             Sample_point * sample,
                                             Wavefunction * wf,
                                             const Array1 <doublevar> & accept_var,
-                                            Array1 <doublevar> & totalv, Array1 <doublevar> & parm_deriv);
+                                            Array2 <doublevar> & totalv, Array1 <doublevar> & parm_deriv);
     
   /*!
     The worker function; the rest just provide simple defaults when functions don't need everything
@@ -126,7 +126,7 @@ public:
                                   Sample_point * sample,
                                   Wavefunction * wf,
                                   const Array1 <doublevar> & accept_var, //random variables for stochastic evaluation
-                                  Array2 <doublevar> & totalv,  //total p.e. from the psp. Indices are (electron,wf)
+                                  Array3 <doublevar> & totalv,  //total p.e. from the psp. Indices are (electron,wf)
                                   Tmoves::tmove_type do_tmoves,vector <Tmove> & tmoves,  //variables for T-moves of Casula
                                   bool parm_derivatives, Array1 <doublevar> & parm_deriv //derivatives wrt wf parameters
                                   );
