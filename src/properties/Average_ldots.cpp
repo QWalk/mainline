@@ -33,7 +33,7 @@ void Average_ldots::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, Syst
   int ndim=3;
   int num_dir=num_grid(0)*num_grid(1);
 //  int nwf=wf->nfunc();
-  avg.vals.Resize(2*num_dir);
+  avg.vals.Resize(6*num_dir);
   int nelectrons=sample->electronSize();
   avg.vals=0.0;
   int nions=sample->ionSize();
@@ -75,8 +75,13 @@ void Average_ldots::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, Syst
       direction(1) = sin(spin_theta)*sin(spin_phi);
       direction(2) = cos(spin_theta);
 
-      avg.vals(2*i*num_grid(1)+2*j) = ls_real(0)*direction(0)+ls_real(1)*direction(1)+ls_real(2)*direction(2);
-      avg.vals(2*i*num_grid(1)+2*j+1) = ls_imag(0)*direction(0)+ls_imag(1)*direction(1)+ls_imag(2)*direction(2);
+      avg.vals(6*i*num_grid(1)+6*j) = ls_real(0)*direction(0);//+ls_real(1)*direction(1)+ls_real(2)*direction(2);
+      avg.vals(6*i*num_grid(1)+6*j+1) = ls_imag(0)*direction(0);//+ls_imag(1)*direction(1)+ls_imag(2)*direction(2);
+      avg.vals(6*i*num_grid(1)+6*j+2) = ls_real(1)*direction(1);
+      avg.vals(6*i*num_grid(1)+6*j+3) = ls_imag(1)*direction(1);
+ 
+      avg.vals(6*i*num_grid(1)+6*j+4) = ls_real(2)*direction(2);
+      avg.vals(6*i*num_grid(1)+6*j+5) = ls_imag(2)*direction(2);
     }
   }
 
