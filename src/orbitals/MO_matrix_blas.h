@@ -100,7 +100,6 @@ public:
 
 template <class T> void MO_matrix_blas<T>::init() {
   //Determine where to cut off the basis functions
-  
   cutoff.Resize(totbasis);
   int basiscounter=0;
   for(int i=0; i< centers.size(); i++) {
@@ -132,7 +131,6 @@ template <class T> void MO_matrix_blas<T>::init() {
   
 
 
-
   ifstream ORB(orbfile.c_str());
   if(!ORB) error("couldn't find orb file ", orbfile);
 
@@ -141,7 +139,7 @@ template <class T> void MO_matrix_blas<T>::init() {
   readorb_noexpand(ORB,centers, nmo, maxbasis, kpoint,coeffmat, coeff);
   string in;
   ORB.close();
-
+  cout << "there  " << endl;
   totbasis=0;
   for(int ion=0; ion<centers.equiv_centers.GetDim(0); ion++) {
     int center0=centers.equiv_centers(ion,0);
@@ -152,6 +150,7 @@ template <class T> void MO_matrix_blas<T>::init() {
     }
 
   }
+  if(nmo > coeffmat.GetDim(0))  error("nmo is greater than the number of orbitals in the orb file");
   
   int totfunc=0;
   moCoeff.Resize(totbasis, nmo);
@@ -164,7 +163,8 @@ template <class T> void MO_matrix_blas<T>::init() {
       int imax=basis(fnum)->nfunc();
 
       for(int i=0; i<imax; i++){ 
-        for(int mo=0; mo<nmo; mo++) {	   
+        for(int mo=0; mo<nmo; mo++) {	
+          cout << i << " " << mo << " " << n << endl;
           if(coeffmat(mo,ion, f) == -1) {
             moCoeff(totfunc,mo)=0.0;
           }
