@@ -164,7 +164,6 @@ template <class T> void MO_matrix_blas<T>::init() {
 
       for(int i=0; i<imax; i++){ 
         for(int mo=0; mo<nmo; mo++) {	
-          cout << i << " " << mo << " " << n << endl;
           if(coeffmat(mo,ion, f) == -1) {
             moCoeff(totfunc,mo)=0.0;
           }
