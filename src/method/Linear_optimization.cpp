@@ -324,6 +324,14 @@ doublevar Linear_optimization_method::fit_stabil(Array1 <doublevar> & stabil_in,
     }
     min_stabil=stabil(min_stabil_i);
   }
+
+  doublevar stabilmin=1e8,stabilmax=0;
+  for(int i=0; i< nstabil; i++) { 
+    if(stabilmin > stabil(i)) stabilmin=stabil(i);
+    if(stabilmax < stabil(i)) stabilmax=stabil(i);
+  }
+  if(min_stabil < stabilmin) min_stabil=stabilmin;
+  if(min_stabil > stabilmax) min_stabil=stabilmax;
   return min_stabil; 
   
   
