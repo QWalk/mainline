@@ -343,7 +343,7 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   wfdata->linearParms(linear);
   Array1 <doublevar> alpha_tmp;
   alpha_tmp=alpha;
-  doublevar stabilmax=10.0*fabs(H(0,0));
+  doublevar stabilmax=1000.0*fabs(H(0,0));
   vector <doublevar> acc_stabils;
   //cout << "checking the following alphas"<< endl;
 
