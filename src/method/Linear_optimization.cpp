@@ -36,7 +36,7 @@ void Linear_optimization_method::read(vector <string> words,
   if(!readvalue(words,pos=0,sig_H_threshold,"SIG_H_THRESHOLD"))
     sig_H_threshold=0.5;
   if(!readvalue(words,pos=0,minimum_psi0,"MINIMUM_PSI0"))
-    minimum_psi0=0.95;
+    minimum_psi0=0.2;
   if(!readvalue(words, pos=0, max_vmc_nstep, "MAX_VMC_NSTEP"))
     max_vmc_nstep=2*vmc_nstep;
   if(!readvalue(words, pos=0, max_nconfig_eval, "MAX_FIT_NCONFIG"))
@@ -260,8 +260,24 @@ doublevar find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
 }
 
 //--------------------------------------------------------------------
-doublevar Linear_optimization_method::fit_stabil(Array1 <doublevar> & stabil, 
-                                                 Array2 <doublevar> & energies) {
+doublevar Linear_optimization_method::fit_stabil(Array1 <doublevar> & stabil_in, 
+                                                 Array2 <doublevar> & energies_in) {
+
+  int nfit=3;
+  Array2 <doublevar> energies(nfit,2);
+  Array1 <doublevar> stabil(nfit);
+  energies=1e8;
+  for(int i=0; i< energies_in.GetDim(0); i++) { 
+    for(int j=0; j< nfit; j++) { 
+      if(energies_in(i,0) < energies(j,0)) { 
+        energies(j,0)=energies_in(i,0);
+        energies(j,1)=energies_in(i,1);
+        stabil(j)=stabil_in(i);
+        break;
+      }
+    }
+  }
+
   
   int nstabil=energies.GetDim(0);
   Array2 <doublevar> descriptors(nstabil,3);
@@ -296,8 +312,18 @@ doublevar Linear_optimization_method::fit_stabil(Array1 <doublevar> & stabil,
   }
 
   //Array1 <doublevar> predvals(nstabil,
-
   doublevar min_stabil= - optparms(1)/(2*optparms(2));
+  // If we didn't find a minimum, just take the lowest energy 
+  // wave function
+  if(optparms(2) < 0) { 
+    int min_stabil_i=0;
+    for(int i=0; i< nstabil; i++) { 
+      if(energies(i,0) < energies(min_stabil_i,0)) { 
+        min_stabil_i=i;
+      }
+    }
+    min_stabil=stabil(min_stabil_i);
+  }
   return min_stabil; 
   
   
