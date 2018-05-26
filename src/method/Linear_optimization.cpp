@@ -210,10 +210,10 @@ doublevar find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
   }
 
   Array1 <doublevar> dp(n);
-  //single_write(cout,"eigenvector ");
+  single_write(cout,"eigenvector ");
   for(int i=0; i < n; i++) { 
     dp(i)=VR(min_index,i);
-    //single_write(cout,dp(i)," ");
+    single_write(cout,dp(i)," ");
   }
   single_write(cout,"\n");
   single_write(cout,"eigenvalue ",min_eigenval,"\n");
@@ -691,8 +691,7 @@ void Linear_optimization_method::wavefunction_derivative(
     single_write(cout, "energy derivative ",deriv_avg.vals(2*n+i)," +/- ");
     single_write(cout, deriv_err.vals(2*n+i), "\n");
   }
-  //cout<<"Exit in Linear_optimization.cpp, 693"<<endl;
-  //exit(0);
+  
   H.Resize(n+1,n+1);
   S.Resize(n+1,n+1);
   H=0.; S=0.;
