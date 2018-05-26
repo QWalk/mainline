@@ -461,9 +461,6 @@ Array3<Array1<int> > & occupation, Array1<Array1<int> > & totoccupation){
                 if(globalactive[iloc] || globalactive[jloc]){
                   int iglob=globalindex[iloc];
                   int jglob=globalindex[jloc];
-          
-                  cout<<iglob<<","<<jglob<<endl;
-
                   int offset=0;
                   if(iglob<jglob){
                     for(int k=0;k<iglob;k++) offset+=globalactive.size()-1-k;
