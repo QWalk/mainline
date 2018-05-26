@@ -80,13 +80,25 @@ public:
 
   int optimize_mo; //!< whether to optimize MO basis
   virtual int valSize() {
-    if(optimize_mo) return 0;
+    //if(optimize_mo) return 0;
     if(optimize_det) return 2*detwt.GetDim(0);
     else return nfunc*2;
   }
   virtual void lockInParms(Array1<doublevar> & parms){
-    if(optimize_mo)
-     orbrot->lockIn(parms);
+    if(optimize_mo && optimize_det){
+      Array1<doublevar> orbital_parms;
+      orbital_parms.Resize(orbrot->nparms());
+      for(int i=0;i<orbrot->nparms();i++){
+        orbital_parms[i]=parms[ncsf-1+i];
+      }
+      orbrot->lockIn(orbital_parms);
+      for(int i=0;i<orbrot->nparms();i++){
+        parms[ncsf-1+i]=orbital_parms[i];
+      }
+    }else if(optimize_mo){
+      orbrot->lockIn(parms);
+    }
+    return; 
   }
   virtual void getVarParms(Array1 <doublevar> & parms);
   virtual void setVarParms(Array1 <doublevar> & parms);
@@ -108,8 +120,8 @@ public:
 
   int nparms()
   {
-    if(optimize_mo) 
-      return orbrot->nparms();
+    if(optimize_mo && optimize_det) return ncsf - 1 + orbrot->nparms();
+    else if(optimize_mo) return orbrot->nparms();
     else if(optimize_det){ return ncsf-1; } 
     else return 0;
   }

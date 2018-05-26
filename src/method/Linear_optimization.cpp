@@ -93,6 +93,7 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
     error("Wavefunction needs to supports analytic parameter derivatives");
   
   wfdata->getVarParms(alpha); 
+  
   Array1 <doublevar> en,tmp_en;
   Array2 <doublevar> energy_step(iterations,2);
   Array2 <doublevar> alpha_step(iterations,nparms);
@@ -100,9 +101,11 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
   wfdata->getVarParms(alpha);
   int nzero_iterations=0;
 
+
   for(int it=0; it< iterations; it++) {
     //cout<< "wf derivative" <<endl;
     Array1 <doublevar> olden=en;
+    
     wavefunction_derivative(H,S,en);
     output << "step " << it << ": current energy " << setprecision(10) << en(0) 
            << " +/- " << setprecision(10) << en(1);
@@ -112,7 +115,7 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
     //    << " +/- " << sqrt(en(1)*en(1)+olden(1)*olden(1)) << endl;
     
     doublevar endiff= line_minimization(S,Sinv,H,alpha);
-
+ 
     output << " energy change  " << endiff << endl;
     if(endiff >= 0 && vmc_nstep < max_vmc_nstep) { 
       vmc_nstep*=4;
@@ -126,6 +129,7 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
     wfdata->setVarParms(alpha);
     wfdata->lockInParms(alpha);
     wfdata->renormalize();
+   
     if(mpi_info.node==0) { 
       string indentation="";
       ofstream wfoutput(wfoutputfile.c_str());
@@ -133,11 +137,11 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
       wfdata->writeinput(indentation,wfoutput);
       wfoutput.close();
     }
-    
+   
+
     for(int i=0; i< nparms; i++) {
       alpha_step(it,i)=alpha(i);
     }
-    
     if(nzero_iterations >= max_zero_iterations) {
       output << "Reached " << max_zero_iterations
              << " without a downhill move and at the maximum number of samples.\n"
@@ -319,7 +323,6 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
     acc_stabils.push_back(guesstab);
   }
 
-
   int nstabil=acc_stabils.size()+1;
   Array1 <Array1 <doublevar> > alphas(nstabil);
   Array1 <doublevar> prop_psi(nstabil,1.0);
@@ -328,15 +331,14 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
     doublevar prop_psi0=find_directions(S,Sinv,H,alphas(i),acc_stabils[i-1],linear);  
     cout << "i " << i << " " << acc_stabils[i-1] << " prop_psi0 " << prop_psi0 << endl;
     prop_psi(i)=prop_psi0;
-    
   }
-
+  
   for(int i=1; i< nstabil; i++) { 
     for(int j=0; j< alpha.GetDim(0); j++) { 
       alphas(i)(j)+=alpha(j);
     }
   }
-  
+ 
   Array2 <doublevar> energies_corr2(nstabil,2);
   bool significant_stabil=false;
   while(!significant_stabil) { 
@@ -344,7 +346,7 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
       uncorrelated_evaluation(alphas,energies_corr2);
     else 
       correlated_evaluation(alphas,0,energies_corr2);
-    
+   
     for(int n=0; n< nstabil; n++) { 
       single_write(cout,"alpha ");
       for(int i=0; i< alpha.GetDim(0); i++) { 
@@ -649,6 +651,7 @@ bool  Linear_optimization_method::deriv_is_significant(Average_return & avg,
 void Linear_optimization_method::wavefunction_derivative(
     Array2 <doublevar> & H,Array2<doublevar> & S, Array1 <doublevar> & en) { 
   int n=wfdata->nparms();
+
   Properties_final_average final;
   
   bool significant=false;
@@ -688,6 +691,7 @@ void Linear_optimization_method::wavefunction_derivative(
     single_write(cout, "energy derivative ",deriv_avg.vals(2*n+i)," +/- ");
     single_write(cout, deriv_err.vals(2*n+i), "\n");
   }
+  
   H.Resize(n+1,n+1);
   S.Resize(n+1,n+1);
   H=0.; S=0.;
@@ -708,13 +712,7 @@ void Linear_optimization_method::wavefunction_derivative(
       //S(i+1,j+1)=deriv_avg.vals(3*n+i*n+j);
     }
   }
-//  for(int i=0; i< n+1; i++) { 
-//    cout <<"S-- ";
-//    for(int j=0; j< n+1; j++) { 
-//      cout << S(i,j) << " ";
-//    }
-//    cout << endl;
-//  }
+
   H(0,0)=en(0);
   for(int i=0; i < n; i++) { 
     H(i+1,0)=(deriv_avg.vals(i)-en(0)*deriv_avg.vals(n+i));
@@ -737,8 +735,6 @@ void Linear_optimization_method::wavefunction_derivative(
      
     }
   }
-        
-  
 }
 
 

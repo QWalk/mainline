@@ -4,7 +4,7 @@ include qw.sys
 
 trialfunc { 
   slater-jastrow
-  wf1 { include qw.slater_orbrot }
+  wf1 { include qw.slater_orbrot2 }
   wf2 { include jast2.wfin } 
-  #include qw.linear_orbrot.wfout
+  #include qw.linear_orbrot2.wfout
 }
