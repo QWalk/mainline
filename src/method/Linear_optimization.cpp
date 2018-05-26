@@ -263,7 +263,7 @@ doublevar find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
 doublevar Linear_optimization_method::fit_stabil(Array1 <doublevar> & stabil_in, 
                                                  Array2 <doublevar> & energies_in) {
 
-  int nfit=3;
+  int nfit=5;
   Array2 <doublevar> energies(nfit,2);
   Array1 <doublevar> stabil(nfit);
   energies=1e8;
@@ -303,13 +303,21 @@ doublevar Linear_optimization_method::fit_stabil(Array1 <doublevar> & stabil_in,
       }
     }
   }
-  InvertMatrix(tmp,inv,3);
+  
   Array1 <doublevar> optparms(3,0.0);
-  for(int j1=0; j1 < 3; j1++) { 
-    for(int j2=0; j2 < 3; j2++) { 
-      optparms(j1)+=inv(j1,j2)*dty(j2);
-    }
+    //InvertMatrix(tmp,inv,3);
+    //for(int j1=0; j1 < 3; j1++) { 
+    //  for(int j2=0; j2 < 3; j2++) { 
+    //    optparms(j1)+=inv(j1,j2)*dty(j2);
+    //  }
+    //}
+  Array1 <int> index(3);doublevar d;
+  inv=tmp;
+  if(ludcmp(inv,3,index,d)) { 
+    optparms=dty;
+    lubksb(inv,3,index,optparms);
   }
+  else { optparms(2)=-50; } 
 
   //Array1 <doublevar> predvals(nstabil,
   doublevar min_stabil= - optparms(1)/(2*optparms(2));
@@ -343,9 +351,8 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   wfdata->linearParms(linear);
   Array1 <doublevar> alpha_tmp;
   alpha_tmp=alpha;
-  doublevar stabilmax=1000.0*fabs(H(0,0));
+  doublevar stabilmax=100.0*fabs(H(0,0));
   vector <doublevar> acc_stabils;
-  //cout << "checking the following alphas"<< endl;
 
   
   doublevar psi_0_min=find_directions(S,Sinv,H,alpha_tmp,0.0,linear);
@@ -358,12 +365,18 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
     else 
       error("In LINEAR, encountered psi_0_min > psi_0_max. Perhaps you should increase TOTAL_NSTEP?",psi_0_min,psi_0_max);
   }
+  int nstabil_test=9;
+  doublevar stabilbase=fabs(H(0,0))*1e-8;
+  for(int i=0; i< nstabil_test; i++) {
+    acc_stabils.push_back(stabilbase*pow(10,i));
+  }
+  /*
   psi_0_min=max(psi_0_min,minimum_psi0);
-
-  doublevar step=(psi_0_max-psi_0_min)/5+0.0001;
-  doublevar tol=step/10;
+  doublevar step=(psi_0_max-psi_0_min)/(nstabil_test-1);
+  doublevar tol=step/100;
   //cout << "max " << psi_0_max << " min " << psi_0_min << endl;
-  for(doublevar psi0=psi_0_min; psi0 < psi_0_max; psi0+=step) { 
+  for(int istabil=0; istabil<nstabil_test; istabil++) { 
+    doublevar psi0=psi_0_min+istabil*step;
     doublevar bracket_above=stabilmax;
     doublevar bracket_below=0.0;
     doublevar guesstab,guesspsi;
@@ -382,6 +395,7 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
     } while(fabs(guesspsi-psi0) > tol);
     acc_stabils.push_back(guesstab);
   }
+  */
 
   int nstabil=acc_stabils.size()+1;
   Array1 <Array1 <doublevar> > alphas(nstabil);
@@ -408,7 +422,8 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
     single_write(os,"prop_psi0 ",prop_psi(n));
     if(n<nstabil-1) single_write(os," stabilization ",acc_stabils[n]);
     single_write(os," energy ", energies_corr2(n,0));
-    single_write(os," +/- ",energies_corr2(n,1),"\n");
+    single_write(os," +/- ",energies_corr2(n,1));
+    os << endl;
   }
 
   ///----------
@@ -426,36 +441,9 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   doublevar prop_psi0=find_directions(S,Sinv,H,alphanew,min_stabil,linear);
   for(int i=0; i< alpha.GetDim(0); i++) alphanew(i)+=alpha(i);
   
-
-  /*
-  doublevar min_psi0=fit_stabil(stable_fit,energies_fit);
-  os << "Minimum psi0 " << min_psi0 << endl;
-  Array1 <doublevar> alphanew(alpha.GetDim(0));
-
-  if(min_psi0 < prop_psi(1)) {
-    alphanew=alphas(1);
-  }
-  else if(min_psi0 > prop_psi(nstabil-1)) { 
-    alphanew=alphas(nstabil-1);
-  }
-  else { 
-    int ibelow=0;
-    int iabove=nstabil;
-    for(int i=1; i < nstabil-1; i++) { 
-      if(prop_psi(i) > min_psi0) { 
-        break;
-      }
-      ibelow=i;
-      iabove=i+1;
-    }
-    doublevar delta=prop_psi(iabove)-prop_psi(ibelow);
-    doublevar a=(min_psi0-prop_psi(ibelow))/delta;
-    doublevar b=(prop_psi(iabove)-min_psi0)/delta;
-    for(int j=0; j< alpha.GetDim(0); j++) { 
-      alphanew(j)=(a*alphas(ibelow)(j)+b*alphas(iabove)(j));
-    }
-  }
-  */
+  //for(int i=0; i< alpha.GetDim(0); i++) os << alphanew(i) << "  ";
+  //os << endl;
+  
   Array1 <Array1<doublevar> > alphasfinal(2);
   alphasfinal(0)=alpha;
   alphasfinal(1)=alphanew;
