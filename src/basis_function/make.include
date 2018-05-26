@@ -11,7 +11,6 @@ MY_SOURCES:= Basis_function.cpp \
                   Poly_pade_function.cpp \
                   Rgaussian_function.cpp \
                   Spline_fitter.cpp \
-                  Step_function.cpp \
 		  CBasis_function.cpp \
 		  CPlanewave_function.cpp\
 		  Blochwave_function.cpp \

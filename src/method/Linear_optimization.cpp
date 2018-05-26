@@ -36,7 +36,7 @@ void Linear_optimization_method::read(vector <string> words,
   if(!readvalue(words,pos=0,sig_H_threshold,"SIG_H_THRESHOLD"))
     sig_H_threshold=0.5;
   if(!readvalue(words,pos=0,minimum_psi0,"MINIMUM_PSI0"))
-    minimum_psi0=0.95;
+    minimum_psi0=0.2;
   if(!readvalue(words, pos=0, max_vmc_nstep, "MAX_VMC_NSTEP"))
     max_vmc_nstep=2*vmc_nstep;
   if(!readvalue(words, pos=0, max_nconfig_eval, "MAX_FIT_NCONFIG"))
@@ -44,6 +44,7 @@ void Linear_optimization_method::read(vector <string> words,
   do_uncorrelated_evaluation=false;
   if(haskeyword(words, pos=0, "UNCORRELATED_EVALUATION"))
     do_uncorrelated_evaluation=true;
+  pseudopotential_derivatives=haskeyword(words,pos=0,"PSEUDOPOTENTIAL_DERIVATIVES");
   if(!readvalue(words, pos=0, max_nconfig_eval, "MAX_ZERO_ITERATIONS"))
     max_zero_iterations=2;
 
@@ -74,7 +75,12 @@ int Linear_optimization_method::showinfo(ostream & os) {
   os << "Linear wave function optimization:  " << endl;
   os << "Number of processors: " << mpi_info.nprocs << endl;
   os << "Number of MC steps : " << vmc_nstep*mpi_info.nprocs << endl;
+  os << "Number of correlated sampling walkers : " << nconfig_eval*mpi_info.nprocs << endl;
   os << "Wave function output to file  : " << wfoutputfile << endl;
+  if(do_uncorrelated_evaluation) 
+    os << "Uncorrelated evaluation of energy differences using above number of walkers" << endl;
+  if(pseudopotential_derivatives) 
+    os << "Computing derivatives using the pseudopotential" << endl;
   os << "nparms " << wfdata->nparms() << endl;
   os << "----------------------------" << endl;
   return 1;
@@ -107,16 +113,15 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
     Array1 <doublevar> olden=en;
     
     wavefunction_derivative(H,S,en);
+    output << "####################\n";
     output << "step " << it << ": current energy " << setprecision(10) << en(0) 
-           << " +/- " << setprecision(10) << en(1);
+           << " +/- " << setprecision(10) << en(1) << endl;
     output.flush();
     //if(it>0)
     //  output << "  energy change " << en(0)-olden(0) 
     //    << " +/- " << sqrt(en(1)*en(1)+olden(1)*olden(1)) << endl;
     
-    doublevar endiff= line_minimization(S,Sinv,H,alpha);
- 
-    output << " energy change  " << endiff << endl;
+    doublevar endiff= line_minimization(S,Sinv,H,alpha,output);
     if(endiff >= 0 && vmc_nstep < max_vmc_nstep) { 
       vmc_nstep*=4;
       output << "Did not find a downhill move; increasing total vmc steps to "
@@ -175,29 +180,17 @@ doublevar find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
   assert(Hin.GetDim(0)==n);
   assert(Hin.GetDim(1)==n);
   Array2 <doublevar> H=Hin;
-  //Sinv.Resize(n,n);
   for(int i=1; i< n; i++) H(i,i)+=stabilization;
-  //InvertMatrix(S,Sinv,n);
 
-  //Array2 <doublevar> prodmatrix(n,n);
-
-  //MultiplyMatrices(Sinv,H,prodmatrix,n);
   Array1 <dcomplex> W(n);
   Array2 <doublevar> VL(n,n), VR(n,n);
-  //GeneralizedEigenSystemSolverRealGeneralMatrices(prodmatrix,W,VL,VR);
   DGGEV(H,S,W,VL,VR);
   
   int min_index=0;
   doublevar min_eigenval=W(0).real();
   doublevar max_p0=0.0;
+  
   for(int i=0; i< n; i++) { 
-    single_write(cout,"eigenvalue ",i," ");
-    single_write(cout,W(i),"\n");
-    
-    //if(W(i).real() < min_eigenval) { 
-    //  min_index=i;
-    //  min_eigenval=W(i).real();
-    //}
     // Here we select the eigenvector with the highest percentage of the
     // original wave function. It's possible this makes the algorithm go a little
     // slower than necessary, but it should improve the stability, especially with 
@@ -208,15 +201,13 @@ doublevar find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
       min_eigenval=W(i).real();
     }
   }
+  //single_write(cout,"stabilization ",stabilization);
+  //single_write(cout," eigenvalue", min_eigenval,"\n");
 
   Array1 <doublevar> dp(n);
-  single_write(cout,"eigenvector ");
   for(int i=0; i < n; i++) { 
     dp(i)=VR(min_index,i);
-    single_write(cout,dp(i)," ");
   }
-  single_write(cout,"\n");
-  single_write(cout,"eigenvalue ",min_eigenval,"\n");
   
   doublevar dpnorm=0.0;
   for(int i=0; i< n; i++) dpnorm+=dp(i)*dp(i);
@@ -253,15 +244,11 @@ doublevar find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
         /(xi*D+(1-xi)*(1+denom_sum));
     else norm(i)=0.0;
   }
-  
-
-
 
   doublevar renorm_dp=0.;
   for(int i=1; i< n; i++) { 
     renorm_dp+=norm(i)*dp(i);
   }
-
 
   delta_alpha.Resize(n-1);
   for(int i=0; i< n-1; i++) { 
@@ -276,16 +263,99 @@ doublevar find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
 }
 
 //--------------------------------------------------------------------
+doublevar Linear_optimization_method::fit_stabil(Array1 <doublevar> & stabil_in, 
+                                                 Array2 <doublevar> & energies_in) {
 
+  int nfit=5;
+  Array2 <doublevar> energies(nfit,2);
+  Array1 <doublevar> stabil(nfit);
+  energies=1e8;
+  for(int i=0; i< energies_in.GetDim(0); i++) { 
+    for(int j=0; j< nfit; j++) { 
+      if(energies_in(i,0) < energies(j,0)) { 
+        energies(j,0)=energies_in(i,0);
+        energies(j,1)=energies_in(i,1);
+        stabil(j)=stabil_in(i);
+        break;
+      }
+    }
+  }
+
+  
+  int nstabil=energies.GetDim(0);
+  Array2 <doublevar> descriptors(nstabil,3);
+  for(int i=0; i< nstabil; i++) { 
+    descriptors(i,0)=1.;
+    descriptors(i,1)=stabil[i];
+    descriptors(i,2)=stabil[i]*stabil[i];
+  }
+
+  Array1 <doublevar> dty(3,0.0);
+  for(int j=0 ;j< 3; j++) { 
+    for(int i=0; i< nstabil; i++) {
+      dty(j)+=descriptors(i,j)*energies(i,0);
+    }
+  }
+
+  //Now we need (D^TD)^-1
+  Array2 <doublevar> tmp(3,3,0.0),inv(3,3,0.0);
+  for(int j1=0; j1 < 3; j1++) { 
+    for(int j2=0; j2 < 3; j2++) { 
+      for(int i=0; i< nstabil; i++) { 
+        tmp(j1,j2)+=descriptors(i,j1)*descriptors(i,j2);
+      }
+    }
+  }
+  
+  Array1 <doublevar> optparms(3,0.0);
+    //InvertMatrix(tmp,inv,3);
+    //for(int j1=0; j1 < 3; j1++) { 
+    //  for(int j2=0; j2 < 3; j2++) { 
+    //    optparms(j1)+=inv(j1,j2)*dty(j2);
+    //  }
+    //}
+  Array1 <int> index(3);doublevar d;
+  inv=tmp;
+  if(ludcmp(inv,3,index,d)) { 
+    optparms=dty;
+    lubksb(inv,3,index,optparms);
+  }
+  else { optparms(2)=-50; } 
+
+  //Array1 <doublevar> predvals(nstabil,
+  doublevar min_stabil= - optparms(1)/(2*optparms(2));
+  // If we didn't find a minimum, just take the lowest energy 
+  // wave function
+  if(optparms(2) < 0) { 
+    int min_stabil_i=0;
+    for(int i=0; i< nstabil; i++) { 
+      if(energies(i,0) < energies(min_stabil_i,0)) { 
+        min_stabil_i=i;
+      }
+    }
+    min_stabil=stabil(min_stabil_i);
+  }
+
+  doublevar stabilmin=1e8,stabilmax=0;
+  for(int i=0; i< nstabil; i++) { 
+    if(stabilmin > stabil(i)) stabilmin=stabil(i);
+    if(stabilmax < stabil(i)) stabilmax=stabil(i);
+  }
+  if(min_stabil < stabilmin) min_stabil=stabilmin;
+  if(min_stabil > stabilmax) min_stabil=stabilmax;
+  return min_stabil; 
+  
+  
+}
+//----------------------------------------------------------------
 doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S, 
-    Array2 <doublevar> & Sinv, Array2 <doublevar> & H, Array1 <doublevar> & alpha) { 
+    Array2 <doublevar> & Sinv, Array2 <doublevar> & H, Array1 <doublevar> & alpha, ostream & os) { 
   Array1 <bool> linear;
   wfdata->linearParms(linear);
   Array1 <doublevar> alpha_tmp;
   alpha_tmp=alpha;
-  doublevar stabilmax=10.0*fabs(H(0,0));
+  doublevar stabilmax=100.0*fabs(H(0,0));
   vector <doublevar> acc_stabils;
-  //cout << "checking the following alphas"<< endl;
 
   
   doublevar psi_0_min=find_directions(S,Sinv,H,alpha_tmp,0.0,linear);
@@ -298,12 +368,18 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
     else 
       error("In LINEAR, encountered psi_0_min > psi_0_max. Perhaps you should increase TOTAL_NSTEP?",psi_0_min,psi_0_max);
   }
+  int nstabil_test=9;
+  doublevar stabilbase=fabs(H(0,0))*1e-8;
+  for(int i=0; i< nstabil_test; i++) {
+    acc_stabils.push_back(stabilbase*pow(10,i));
+  }
+  /*
   psi_0_min=max(psi_0_min,minimum_psi0);
-
-  doublevar step=(psi_0_max-psi_0_min)/5;
-  doublevar tol=step/10;
+  doublevar step=(psi_0_max-psi_0_min)/(nstabil_test-1);
+  doublevar tol=step/100;
   //cout << "max " << psi_0_max << " min " << psi_0_min << endl;
-  for(doublevar psi0=psi_0_min+step; psi0 < psi_0_max; psi0+=step) { 
+  for(int istabil=0; istabil<nstabil_test; istabil++) { 
+    doublevar psi0=psi_0_min+istabil*step;
     doublevar bracket_above=stabilmax;
     doublevar bracket_below=0.0;
     doublevar guesstab,guesspsi;
@@ -322,78 +398,63 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
     } while(fabs(guesspsi-psi0) > tol);
     acc_stabils.push_back(guesstab);
   }
-
+  */
   int nstabil=acc_stabils.size()+1;
   Array1 <Array1 <doublevar> > alphas(nstabil);
   Array1 <doublevar> prop_psi(nstabil,1.0);
-  alphas(0)=alpha;
-  for(int i=1; i < nstabil; i+=1) { 
+  alphas(nstabil-1)=alpha;
+  for(int i=0; i < nstabil-1; i+=1) { 
     doublevar prop_psi0=find_directions(S,Sinv,H,alphas(i),acc_stabils[i-1],linear);  
-    cout << "i " << i << " " << acc_stabils[i-1] << " prop_psi0 " << prop_psi0 << endl;
     prop_psi(i)=prop_psi0;
   }
   
-  for(int i=1; i< nstabil; i++) { 
+  for(int i=0; i< nstabil-1; i++) { 
     for(int j=0; j< alpha.GetDim(0); j++) { 
       alphas(i)(j)+=alpha(j);
     }
   }
  
   Array2 <doublevar> energies_corr2(nstabil,2);
-  bool significant_stabil=false;
-  while(!significant_stabil) { 
-    if(do_uncorrelated_evaluation)
-      uncorrelated_evaluation(alphas,energies_corr2);
-    else 
-      correlated_evaluation(alphas,0,energies_corr2);
-   
-    for(int n=0; n< nstabil; n++) { 
-      single_write(cout,"alpha ");
-      for(int i=0; i< alpha.GetDim(0); i++) { 
-        single_write(cout,alphas(n)(i), " ");
-      }
-      single_write(cout,"\n");
-    }
-    for(int n=0; n< nstabil; n++) {
-      single_write(cout,"prop_psi0 ",prop_psi(n));
-      single_write(cout," energy ", energies_corr2(n,0));
-      single_write(cout," +/- ",energies_corr2(n,1),"\n");
-    }
+  if(do_uncorrelated_evaluation)
+    uncorrelated_evaluation(alphas,energies_corr2);
+  else 
+    correlated_evaluation(alphas,nstabil/2,energies_corr2);
 
-    for(int n=1; n< nstabil; n++) {
-      doublevar diff=energies_corr2(n,0)-energies_corr2(0,0);
-      if( fabs(diff)/energies_corr2(n,1) > 3.0) {
-        significant_stabil=true;
-        single_write(cout, "Significant change in energy ",diff);
-         single_write(cout," +/- ", energies_corr2(n,1),"\n");
-      }
-    }
-
-    if(nconfig_eval >= max_nconfig_eval and !significant_stabil){
-      single_write(cout, "Hit energy convergence\n");
-      alpha=alphas(0);
-      return 0;
-    }
-
-
-    if(!significant_stabil) {
-      nconfig_eval*=4;
-      single_write(cout,"fit not significant, increasing resolution: ",nconfig_eval,"\n");
-    }
-    
+  for(int n=0; n< nstabil; n++) {
+    single_write(os,"prop_psi0 ",prop_psi(n));
+    if(n<nstabil-1) single_write(os," stabilization ",acc_stabils[n]);
+    single_write(os," energy ", energies_corr2(n,0));
+    single_write(os," +/- ",energies_corr2(n,1));
+    os << endl;
   }
-  doublevar min_en=energies_corr2(0,0);
-  int min_alpha=0;
-  for(int n=0; n< nstabil; n++) { 
-//single_write(cout,stabilization[n]," ",energies_corr2(n,0),"\n");
-    if(energies_corr2(n,0) < min_en
-        && fabs(energies_corr2(n,0))/energies_corr2(n,1) > 2.0 ) { 
-      min_en=energies_corr2(n,0);
-      min_alpha=n;
-    }
+
+  ///----------
+  Array1 <doublevar> stable_fit(nstabil-1,0.0);
+  Array2 <doublevar> energies_fit(nstabil-1,2,0.0);
+  for(int n=0; n< nstabil-1; n++) {
+    stable_fit(n)=acc_stabils[n];
+    energies_fit(n,0)=energies_corr2(n,0);
+    energies_fit(n,1)=energies_corr2(n,1);
   }
-  alpha=alphas(min_alpha);
-  return energies_corr2(min_alpha,0)-energies_corr2(0,0);
+
+  doublevar min_stabil=fit_stabil(stable_fit,energies_fit);
+  os << "Minimum stabilization " << min_stabil << endl;
+  Array1 <doublevar> alphanew(alpha.GetDim(0));
+  doublevar prop_psi0=find_directions(S,Sinv,H,alphanew,min_stabil,linear);
+  for(int i=0; i< alpha.GetDim(0); i++) alphanew(i)+=alpha(i);
+  
+  //for(int i=0; i< alpha.GetDim(0); i++) os << alphanew(i) << "  ";
+  //os << endl;
+  
+  Array1 <Array1<doublevar> > alphasfinal(2);
+  alphasfinal(0)=alpha;
+  alphasfinal(1)=alphanew;
+  correlated_evaluation(alphasfinal,0,energies_corr2);
+  if(energies_corr2(1,0) < 0)
+    alpha=alphanew;
+  os << "Estimated change " << energies_corr2(1,0) << " +/- " << energies_corr2(1,1) << endl;
+//alpha=alphas(min_alpha);
+  return energies_corr2(1,0);
 }
 //----------------------------------------------------------------------
 #include "Generate_sample.h"
@@ -446,6 +507,8 @@ void Linear_optimization_method::uncorrelated_evaluation(Array1 <Array1 <doublev
   delete sample;  
 }
 
+//----------------------------------------------------------------------
+
 void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar> > & alphas,int ref_alpha,Array2 <doublevar> & energies) {
 
   Sample_point * sample=NULL;
@@ -459,6 +522,7 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
   energies.Resize(nwfs,2);  
   
 
+  wfdata->setVarParms(alphas(ref_alpha));
 
   generate_sample(sample,wf,wfdata,&guide,nconfig_eval,config_pos,10,5);
     
@@ -496,7 +560,7 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
       avg_energies(w)+=weight*all_energies(w,config)/nconfig_eval;
       avg_en_unweight(w)+=all_energies(w,config)/nconfig_eval;
       avg_weight(w)+=weight/nconfig_eval;
-      diff_en(w,config)=all_energies(w,config)-all_energies(0,config);
+      diff_en(w,config)=all_energies(w,config)-all_energies(ref_alpha,config);
       all_weights(w,config)=weight;
     }
   }
@@ -560,42 +624,6 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
   
 
 
-  /*
-  
-  for(int w=0; w< nwfs; w++) { 
-    avg_energies(w)=parallel_sum(avg_energies(w))/mpi_info.nprocs;
-    avg_weight(w)=parallel_sum(avg_weight(w))/mpi_info.nprocs;
-  }
-
-  for(int w=0; w< nwfs; w++) { 
-    diff_var(w)=0.0;
-    doublevar diff=avg_energies(w)/avg_weight(w)-avg_energies(0)/avg_weight(0);
-//    cout << w << " diff " << diff << endl;
-    for(int config=0; config < nconfig_eval; config++) { 
-      diff_var(w)+=(diff_en(w,config)-diff)
-                  *(diff_en(w,config)-diff);
-      weight_var(w)+=(all_weights(w,config)-avg_weight(w))
-                     *(all_weights(w,config)-avg_weight(w));
-    }
-    int npts=nconfig_eval*mpi_info.nprocs;    
-    diff_var(w)=sqrt(parallel_sum(diff_var(w))/(npts*(npts)));
-    weight_var(w)=sqrt(parallel_sum(weight_var(w))/(npts*(npts)));
-  }
-
-  for(int w=0; w< nwfs; w++) { 
-    energies(w,0)=avg_energies(w)/avg_weight(w);//+0.1*avg_var(w);
-    doublevar diff=energies(w,0)-energies(0,0);
-    if(w!=0)
-      energies(w,1)=sqrt(diff_var(w)*diff_var(w)*avg_weight(w)*avg_weight(w)+diff*diff*weight_var(w)*weight_var(w));
-    if(mpi_info.node==0) { 
-      cout << "endiff " << diff
-        <<  " estimated error " << energies(w,1) 
-        << " average weight " << avg_weight(w) 
-        << " weight variance " << weight_var(w) << endl;
-    }
-  }
-  */
-  //cout << "done " << endl;
   wfdata->clearObserver();
   delete wf;
   delete sample;
@@ -659,7 +687,9 @@ void Linear_optimization_method::wavefunction_derivative(
 
     string vmc_section="VMC nstep ";
     append_number(vmc_section,vmc_nstep);
-    vmc_section+="  nblock 20 average { WF_PARMDERIV } ";
+    vmc_section+="  nblock 20 average { WF_PARMDERIV "; 
+    if(pseudopotential_derivatives) vmc_section+="EVALUATE_PSEUDOPOTENTIAL";
+    vmc_section+="} ";
     vector <string> words;
     string sep=" ";
     split(vmc_section,sep,words);

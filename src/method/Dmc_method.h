@@ -159,6 +159,20 @@ public:
                Guiding_function * guideingwf);
   doublevar getWeight(Dmc_point & pt,
                       doublevar teff, doublevar etr);
+
+  void move_electron_by_electron(Wavefunction_data * wfdata,
+                                           Wavefunction * wf, 
+                                           Sample_point * sample,
+                                           Guiding_function * guidingwf,
+                                           Dmc_point & pt,
+                                           doublevar & acsum);
+  void move_all_electron(Wavefunction_data * wfdata,
+                         Wavefunction * wf, 
+                         Sample_point * sample,
+                         Guiding_function * guidingwf,
+                         Dmc_point & pt,
+                         doublevar & acsum);
+
   
   doublevar getWeightPURE_DMC(Dmc_point & pt,
 			   doublevar teff, doublevar etr);
@@ -167,6 +181,7 @@ public:
   void updateEtrial(doublevar feedback);
   
   //-----Options.
+  bool all_electron_moves; //!< Move all electrons at once.
   int low_io; //!< write out configs and densities only at the end.
   int tmoves; //!< whether to do Casula's t-moves
   int tmoves_sizeconsistent; //!< Do the size-consistent version of T-moves.

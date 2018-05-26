@@ -74,7 +74,6 @@ void Average_so::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System 
 
 void Average_so::write_summary(Average_return & avg, Average_return & err, 
                                ostream & os) {
-  assert(ndim <= err.vals.GetDim(0));
   psp_so->showinfo(os);
   os << "First order energy correction due to spin-orbit interaction\n";
 

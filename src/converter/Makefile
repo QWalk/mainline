@@ -10,7 +10,6 @@ GAMESS2QMCOBJS:=$(OBJPATH)/gamess2qmc.o $(ALLOBJS)
 GAMESSCI2QMCOBJS:=$(OBJPATH)/gamessci2qmc.o $(ALLOBJS) 
 CRYSTAL2QMCOBJS:=$(OBJPATH)/crystal2qmc.o $(ALLOBJS)
 SIESTA2QMCOBJS:= $(OBJPATH)/siesta2qmc.o $(ALLOBJS)
-JEEP2QMCOBJS :=  $(OBJPATH)/jeep2qmc.o $(OBJPATH)/JeepBasis.o $(ALLOBJS)
 ABINIT2QMCOBJS := $(OBJPATH)/abinit2qmc.o $(ALLOBJS)
 G032QMCOBJS := $(OBJPATH)/g032qmcmain.o $(OBJPATH)/g03tools.o $(ALLOBJS)
 HEG2QMCOBJS := $(OBJPATH)/heg2qmc.o $(OBJPATH)/indexx.o
@@ -52,11 +51,6 @@ siesta2qmc$(SUFFIX): $(SIESTA2QMCOBJS)
 	@echo ________________________________________________________________
 	@echo Linking $@
 	$(CXX) $(DEBUG) $(CXXFLAGS) -o siesta2qmc$(SUFFIX) $(LDFLAGS) $(BLAS_LIBS) $(SIESTA2QMCOBJS)
-
-jeep2qmc$(SUFFIX) : $(JEEP2QMCOBJS)
-	@echo ________________________________________________________________
-	@echo Linking $@
-	$(CXX) $(DEBUG) $(CXXFLAGS) -o jeep2qmc$(SUFFIX) $(LDFLAGS) $(BLAS_LIBS) $(JEEP2QMCOBJS)
 
 abinit2qmc$(SUFFIX) : $(ABINIT2QMCOBJS)
 	@echo ________________________________________________________________

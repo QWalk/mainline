@@ -18,6 +18,9 @@ int decide_averager(string & label, Average_generator *& avg) {
     avg=new Average_dipole;
   else if(caseless_eq(label,"SK")) 
     avg=new Average_structure_factor;
+  else if(caseless_eq(label,"MAGSK")) 
+    avg=new Average_magnetic_structure_factor;
+  
   else if(caseless_eq(label, "GR"))
     avg=new Average_twobody_correlation;
   else if(caseless_eq(label, "MANYBODY_POL"))
@@ -58,6 +61,8 @@ int decide_averager(string & label, Average_generator *& avg) {
     avg=new Average_derivative_dm;
   else if(caseless_eq(label,"QUADRUPOLE"))
     avg=new Average_quadrupole;
+  else if(caseless_eq(label,"JOINT_PBC"))
+    avg=new Average_joint_pbc;
   else if(caseless_eq(label,"PSP_SO"))
     avg=new Average_so;  
   else 
@@ -322,6 +327,155 @@ void Average_structure_factor::jsonOutput(Average_return & avg, Average_return &
 }
 
 //############################################################################
+
+void Average_magnetic_structure_factor::read(System * sys, Wavefunction_data * wfdata, vector <string> & words) {
+  unsigned int pos=0;
+  int np_side;
+  if(!readvalue(words, pos=0, np_side, "NGRID")) 
+    np_side=5;
+  
+  Array2 <doublevar> gvec;
+  vector <string> gvec_sec;
+  if(readsection(words, pos=0, gvec_sec, "GVEC")) {
+    int count=0;
+    gvec.Resize(3,3);
+    for(int i=0; i< 3; i++) { 
+      for(int j=0; j< 3; j++) { 
+        gvec(i,j)=atof(gvec_sec[count++].c_str());
+      }
+    }
+  }
+  else { 
+    if(!sys->getRecipLattice(gvec)) 
+      error("You don't have a periodic cell and you haven't specified GVEC for S(k)");
+  }
+  
+  int direction;
+  if(readvalue(words, pos=0, direction, "DIRECTION")) { 
+    npoints=np_side;
+    kpts.Resize(npoints, 3);
+    kpts=0;
+    for(int ix=0; ix < np_side; ix++) { 
+      for(int i=0; i< 3; i++) 
+        kpts(ix,i)=2*pi*gvec(direction,i)*ix;
+    }
+  }
+  else { 
+    npoints=np_side*np_side*np_side; 
+
+    kpts.Resize(npoints, 3);
+    kpts=0;
+    int c=0;
+    for(int ix=0; ix < np_side; ix++) {
+      for(int iy=0; iy < np_side; iy++) {
+        for(int iz=0; iz < np_side; iz++) {
+          for(int i=0; i< 3; i++)
+            kpts(c,i)+=2*pi*(gvec(0,i)*ix+gvec(1,i)*iy+gvec(2,i)*iz);
+          c++;
+        }
+      }
+    }
+  }
+}  
+
+//-----------------------------------------------------------------------------
+
+void Average_magnetic_structure_factor::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+                                        System * sys, Sample_point * sample, Average_return & avg) {
+  avg.type="magsk";
+  int nelectrons=sample->electronSize();
+  
+  Array1 <doublevar> pos1(3),pos2(3);
+  avg.vals.Resize(npoints*2);
+  avg.vals=0;
+  int nup=sys->nelectrons(0);
+  for(int p=0; p < npoints; p++) { 
+    doublevar sum_cos=0, sum_sin=0;
+    
+    for(int e1=0; e1< nelectrons; e1++) {
+      sample->getElectronPos(e1,pos1);
+      int s1=e1 < nup?1:-1;
+      for(int e2=0; e2 < nelectrons; e2++) {
+        sample->getElectronPos(e2,pos2);
+        doublevar dot=0;
+        for(int d=0; d< 3; d++) dot+=(pos1(d)-pos2(d))*kpts(p,d);
+        int s2=e2 < nup?1:-1;
+        sum_cos+=cos(dot)*s1*s2;
+        sum_sin+=sin(dot)*s1*s2;
+      }
+    }
+    avg.vals(2*p)+=sum_cos;
+    avg.vals(2*p+1)+=sum_sin;
+    
+  }
+  
+}
+
+//-----------------------------------------------------------------------------
+
+void Average_magnetic_structure_factor::write_init(string & indent, ostream & os) { 
+  os << indent << "magsk\n";
+  for(int i=0; i< npoints; i++) { 
+    os << indent << "kpoint { " << kpts(i,0) << " " << kpts(i,1) << " " 
+    << kpts(i,2) << " } " <<endl;
+  }
+}
+//-----------------------------------------------------------------------------
+
+void Average_magnetic_structure_factor::read(vector <string> & words) { 
+  vector <vector <string> > kpttext;
+  vector <string> tmp;
+  unsigned int pos=0;
+  while(readsection(words, pos, tmp, "KPOINT")) kpttext.push_back(tmp);
+  npoints=kpttext.size();
+  kpts.Resize(npoints,3);
+  for(int i=0; i< npoints; i++) { 
+    for(int d=0; d< 3; d++) { 
+      kpts(i,d)=atof(kpttext[i][d].c_str());
+    }
+  }
+}
+//-----------------------------------------------------------------------------
+
+void Average_magnetic_structure_factor::write_summary(Average_return & avg, Average_return & err, ostream & os) { 
+  os << "Structure factor \n";
+  os << "    k  s(k) s(k)err  kx  ky  kz" << endl;
+  assert(avg.vals.GetDim(0) >=2*npoints);
+  assert(err.vals.GetDim(0) >=2*npoints);
+  
+  for(int i=0; i< npoints; i++) {
+    doublevar skr=avg.vals(2*i), ski=err.vals(2*i+1);
+    doublevar skrerr=err.vals(2*i),skierr=err.vals(2*i+1);
+    doublevar r=0;
+    for(int d=0; d< 3; d++) r+=kpts(i,d)*kpts(i,d);
+    r=sqrt(r);
+    os << "sk_out " <<  r << "   " << skr << "   " << skrerr 
+       << "   " << ski << "   " << skierr 
+      << "  " << kpts(i,0) << "   " << kpts(i,1) << "   " << kpts(i,2) << endl;
+  }
+  
+}
+
+//--------------------------------------------------------------------------------
+void Average_magnetic_structure_factor::jsonOutput(Average_return & avg, Average_return & err, ostream & os) {
+    
+  assert(avg.vals.GetDim(0) >=npoints);
+  assert(err.vals.GetDim(0) >=npoints);
+    
+  os << "\"" << avg.type << "\":{" << endl;
+  os << "\"k\":";
+  jsonarray(os,kpts);
+  os << ",\n";
+
+  os << "\"value\":";jsonarray(os,avg.vals);
+  os << ",\n";
+  os << "\"error\":"; jsonarray(os,err.vals); 
+    
+  os << "}" << endl;
+}
+
+//############################################################################
+
 
 void Average_fourier_density::read(System * sys, Wavefunction_data * wfdata, vector <string> & words) {
   unsigned int pos=0;
@@ -625,10 +779,19 @@ void Average_manybody_polarization::evaluate(Wavefunction_data * wfdata, Wavefun
     sample->getElectronPos(e,pos);
     for(int i=0; i< 3; i++) { 
       for(int d=0; d< 3; d++) { 
-        sum(i)+=gvec(i,d)*pos(d);
+        sum(i)-=gvec(i,d)*pos(d);
       }
     }
   }
+  int nions=sample->ionSize();  
+  for(int at=0; at < nions; at++) {
+    sample->getIonPos(at,pos);
+    doublevar charge=sample->getIonCharge(at);
+    for(int i=0; i< 3; i++) 
+      for(int d=0; d< 3; d++) 
+        sum(i)+=charge*gvec(i,d)*pos(d);
+  }
+  
   for(int i=0; i< 3; i++) { 
     avg.vals(2*i)=cos(2*pi*sum(i));
     avg.vals(2*i+1)=sin(2*pi*sum(i));
@@ -1948,6 +2111,13 @@ void Average_wf_parmderivs::evaluate(Wavefunction_data * wfdata, Wavefunction * 
 void Average_wf_parmderivs::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
                        System * sys, Sample_point * sample, Properties_point & pt,
                        Average_return & avg) { 
+  error("Must use pseudopotential version of evaluate() with wf_parmderivs");
+}
+//-----------------------------------------------------------------------------
+
+
+void Average_wf_parmderivs::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
+			System * sys, Pseudopotential * psp, Sample_point * sample,  Properties_point & pt,  Average_return &avg ){ 
   
   Parm_deriv_return deriv;
   deriv.need_hessian=0;
@@ -1956,6 +2126,12 @@ void Average_wf_parmderivs::evaluate(Wavefunction_data * wfdata, Wavefunction * 
   if(!wf->getParmDeriv(wfdata, sample,deriv)) { 
     error("WF needs to support parmderivs for now.");
   }
+  Array1<doublevar> psp_der(nparms),test(psp->nTest()),totalv(wf->nfunc());
+  for(int i=0; i< psp->nTest(); i++) test(i)=rng.ulec();
+  psp_der=0;
+  if(evaluate_pseudopotential)
+    psp->calcNonlocParmDeriv(wfdata, sys,sample,wf,test,totalv,psp_der);
+  
   avg.vals.Resize(3*nparms+3*nparms*nparms+1);
   avg.vals=0.0;
   
@@ -1975,29 +2151,15 @@ void Average_wf_parmderivs::evaluate(Wavefunction_data * wfdata, Wavefunction * 
       avg.vals(offset+i*nparms+j)=deriv.gradient(i)*deriv.gradient(j)*pt.energy(0);
     }
   }
-  //approximate the derivative of elocal by finite differences
-  //and assuming that only the kinetic energy changes (this neglects the
-  //pseudopotential changes for now..)
   Array1 <doublevar> el(nparms),kin(1);
-  Array1 <doublevar> alpha0(nparms),alpha(nparms);
-  wfdata->getVarParms(alpha0);
-  doublevar base_kinetic=pt.kinetic(0);
-  doublevar delta=1e-10;
   int nelectrons=sample->electronSize();
   for(int i=0; i< nparms; i++) { 
-//    alpha=alpha0;
-//    alpha(i)+=delta;
-//    wfdata->setVarParms(alpha);
-//    wf->updateLap(wfdata,sample);
-//    sys->calcKinetic(wfdata,sample,wf,kin);
-//    el(i)=(kin(0)-base_kinetic)/delta;
      el(i)=0;
      for(int e=0; e< nelectrons; e++) { 
        el(i)+=-0.5*deriv.gradderiv(i,e,3);
      }
-     //cout << "el " << el(i) << endl;
+     el(i)+=psp_der(i);
   }
-  //wfdata->setVarParms(alpha0);
 
   for(int i=0; i< nparms; i++) { 
     avg.vals(2*nparms+i)=el(i);
@@ -2014,25 +2176,34 @@ void Average_wf_parmderivs::evaluate(Wavefunction_data * wfdata, Wavefunction * 
 //-----------------------------------------------------------------------------
 void Average_wf_parmderivs::read(System * sys, Wavefunction_data * wfdata, vector
                    <string> & words) { 
+  unsigned int pos=0;
+  evaluate_pseudopotential=haskeyword(words,pos=0,"EVALUATE_PSEUDOPOTENTIAL");
+
 }
 //-----------------------------------------------------------------------------
 void Average_wf_parmderivs::write_init(string & indent, ostream & os) { 
   os << indent << "WF_PARMDERIV" << endl;
+  if(evaluate_pseudopotential) os <<indent << "EVALUATE_PSEUDOPOTENTIAL" << endl;
 }
 //-----------------------------------------------------------------------------
 void Average_wf_parmderivs::read(vector <string> & words) { 
+  unsigned int pos=0;
+  evaluate_pseudopotential=haskeyword(words,pos=0,"EVALUATE_PSEUDOPOTENTIAL");
+  
 }
 //-----------------------------------------------------------------------------
 void Average_wf_parmderivs::write_summary(Average_return &avg ,Average_return & err, ostream & os) { 
-   os << "Wavefunction parameter derivatives" << endl;
-   
-   int n=sqrt(1.0+avg.vals.GetDim(0))-1;
-   
-   os << "energy " << endl;
-   for(int i=0; i < n; i++) { 
-     os << i << " " << avg.vals(i) << " +/- " << err.vals(i) 
-        << " " << avg.vals(n+i) << " +/- " << err.vals(n+i) <<  endl;
-   }
+  os << "Wavefunction parameter derivatives. ";
+  if(evaluate_pseudopotential) os << "Pseudopotential derivatives evaluated.";
+  os << endl;
+
+  int n=sqrt(1.0+avg.vals.GetDim(0))-1;
+
+  os << "energy " << endl;
+  for(int i=0; i < n; i++) { 
+    os << i << " " << avg.vals(i) << " +/- " << err.vals(i) 
+      << " " << avg.vals(n+i) << " +/- " << err.vals(n+i) <<  endl;
+  }
    
 }
 //-----------------------------------------------------------------------------
@@ -2133,31 +2304,6 @@ void Average_wf_parmderivs::jsonOutput(Average_return &avg ,Average_return & err
    
    
    os << "}\n";
-
-/*
-  for(int i=0;i< nparms; i++) { 
-    for(int j=0; j< nparms; j++) { 
-      avg.vals(3*nparms+i*nparms+j)=deriv.gradient(i)*deriv.gradient(j);
-    }
-  }
-  int offset=3*nparms+nparms*nparms;
-  for(int i=0; i< nparms; i++) { 
-    for(int j=0; j< nparms; j++) { 
-      avg.vals(offset+i*nparms+j)=deriv.gradient(i)*deriv.gradient(j)*pt.energy(0);
-    }
-  }
-
-  for(int i=0; i< nparms; i++) { 
-    avg.vals(2*nparms+i)=el(i);
-  }
-  offset+=nparms*nparms;
-  for(int i=0; i< nparms; i++) {
-    for(int j=0; j< nparms; j++) { 
-      avg.vals(offset+i*nparms+j)=deriv.gradient(i)*el(j);
-    }
-  }
-  */
-  
    
 }
 //-----------------------------------------------------------------------------
