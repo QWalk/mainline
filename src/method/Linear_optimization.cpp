@@ -106,9 +106,6 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
     //cout<< "wf derivative" <<endl;
     Array1 <doublevar> olden=en;
     
-    //Debugging
-    //cout<<"ALPHAS"<<endl;
-    //for(int i=0;i<alpha.GetDim(0);i++) cout<<alpha(i)<<endl;
     wavefunction_derivative(H,S,en);
     output << "step " << it << ": current energy " << setprecision(10) << en(0) 
            << " +/- " << setprecision(10) << en(1);
@@ -133,11 +130,6 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
     wfdata->lockInParms(alpha);
     wfdata->renormalize();
    
-    //cout<<"POST ALPHA"<<endl;
-    //for(int i=0;i<alpha.GetDim(0);i++) cout<<alpha(i)<<endl;
-
-    //if(it>3) exit(0);
-    
     if(mpi_info.node==0) { 
       string indentation="";
       ofstream wfoutput(wfoutputfile.c_str());
@@ -199,8 +191,8 @@ doublevar find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
   doublevar min_eigenval=W(0).real();
   doublevar max_p0=0.0;
   for(int i=0; i< n; i++) { 
-    //single_write(cout,"eigenvalue ",i," ");
-    //single_write(cout,W(i),"\n");
+    single_write(cout,"eigenvalue ",i," ");
+    single_write(cout,W(i),"\n");
     
     //if(W(i).real() < min_eigenval) { 
     //  min_index=i;
@@ -223,8 +215,8 @@ doublevar find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
     dp(i)=VR(min_index,i);
     //single_write(cout,dp(i)," ");
   }
-  //single_write(cout,"\n");
-  //single_write(cout,"eigenvalue ",min_eigenval,"\n");
+  single_write(cout,"\n");
+  single_write(cout,"eigenvalue ",min_eigenval,"\n");
   
   doublevar dpnorm=0.0;
   for(int i=0; i< n; i++) dpnorm+=dp(i)*dp(i);
@@ -331,11 +323,6 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
     acc_stabils.push_back(guesstab);
   }
 
-  //Debug
-  /*cout<<"acc_stabils"<<endl;
-  for(int i=0;i<acc_stabils.size();i++)
-    cout<<acc_stabils[i]<<endl;
-  */
   int nstabil=acc_stabils.size()+1;
   Array1 <Array1 <doublevar> > alphas(nstabil);
   Array1 <doublevar> prop_psi(nstabil,1.0);
@@ -352,16 +339,6 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
     }
   }
  
-  //Debugging
-  cout<<"alphas"<<endl;
-  cout.precision(3);
-  for(int i=0;i<nstabil;i++){
-    for(int j=0;j<alpha.GetDim(0);j++){
-      cout<<alphas(i)(j)<<" ";
-    }
-    cout<<"\n";
-  }
-
   Array2 <doublevar> energies_corr2(nstabil,2);
   bool significant_stabil=false;
   while(!significant_stabil) { 
@@ -370,12 +347,7 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
     else 
       correlated_evaluation(alphas,0,energies_corr2);
    
-    //Debugging
-    cout<<"Energies"<<endl;
-    for(int n=0;n<nstabil;n++)
-      cout<<energies_corr2(n,0)<<"+/-"<<energies_corr2(n,1)<<endl;
-
-    /*for(int n=0; n< nstabil; n++) { 
+    for(int n=0; n< nstabil; n++) { 
       single_write(cout,"alpha ");
       for(int i=0; i< alpha.GetDim(0); i++) { 
         single_write(cout,alphas(n)(i), " ");
@@ -386,7 +358,7 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
       single_write(cout,"prop_psi0 ",prop_psi(n));
       single_write(cout," energy ", energies_corr2(n,0));
       single_write(cout," +/- ",energies_corr2(n,1),"\n");
-    }*/
+    }
 
     for(int n=1; n< nstabil; n++) {
       doublevar diff=energies_corr2(n,0)-energies_corr2(0,0);
@@ -421,14 +393,6 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
     }
   }
   alpha=alphas(min_alpha);
-  
-  cout<<"Final alphas and E"<<endl;
-  cout<<energies_corr2(min_alpha,0)<<"+/-"<<energies_corr2(min_alpha,1)<<endl;
-  cout.precision(3);
-  for(int i=0;i<alpha.GetDim(0);i++) cout<<alpha(i)<<" ";
-  cout<<"\n";
- 
-  //exit(0);
   return energies_corr2(min_alpha,0)-energies_corr2(0,0);
 }
 //----------------------------------------------------------------------
@@ -749,16 +713,6 @@ void Linear_optimization_method::wavefunction_derivative(
       //S(i+1,j+1)=deriv_avg.vals(3*n+i*n+j);
     }
   }
-  
-  //Debugging
-  cout.precision(3);
-  cout <<"S matrix"<<endl;
-  for(int i=0; i< n+1; i++) { 
-    for(int j=0; j< n+1; j++) { 
-      cout << S(i,j) << " ";
-    }
-    cout << endl;
-  }
 
   H(0,0)=en(0);
   for(int i=0; i < n; i++) { 
@@ -782,16 +736,6 @@ void Linear_optimization_method::wavefunction_derivative(
      
     }
   }
-  
-  //Debugging
-  cout <<"H matrix"<<endl;
-  for(int i=0; i< n+1; i++) { 
-    for(int j=0; j< n+1; j++) { 
-      cout << H(i,j) << " ";
-    }
-    cout << endl;
-  }
-  cout.precision(10);
 }
 
 

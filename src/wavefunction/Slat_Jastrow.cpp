@@ -190,10 +190,6 @@ int Slat_Jastrow::getParmDeriv(Wavefunction_data *  wfdata,
   jastrow_wf->getParmDeriv(dataptr->jastrow,sample, jastval);
   extend_parm_deriv(derivatives,jastval);
  
-  //Debugging
-  //cout<<"Extended derivatives"<<endl;
-  //for(int i=0;i<derivatives.gradient.Size();i++) cout<<derivatives.gradient(i)<<endl;
-
   return 1;
 }
 

@@ -673,20 +673,6 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
         derivatives.gradient(csf)*=detsum.val(); 
     }
     derivatives.hessian=0;
-  
-    //Debugging
-    /*cout<<"Derivatives"<<endl;
-    for(int i=0;i<nparms;i++)
-      cout<<derivatives.gradient(i)<<endl;
-    cout<<"Gradderiv"<<endl;
-    for(int i=0;i<nparms;i++){
-      for(int e=0;e<tote;e++){
-        for(int d=0;d<4;d++){
-          cout<<derivatives.gradderiv(i,e,d)<<endl;
-        }
-      }
-    }
-    exit(0);*/
 
     return 1;
   }

@@ -31,23 +31,6 @@ void extend_parm_deriv(Parm_deriv_return & ret1, const Parm_deriv_return & ret2)
   int nelectrons=ret1.val_gradient.GetDim(0);
   Parm_deriv_return derivatives;
   
-  /*cout<<"Extend_parm_deriv slater"<<endl;
-  cout<<"ret1"<<endl;
-  for(int e=0;e<nelectrons;e++){
-    for(int d=0;d<3;d++){
-      cout<<ret1.val_gradient(e,d)<<endl;
-    }
-  }
-  cout<<"ret2"<<endl;
-  for(int e=0;e<nelectrons;e++){
-    for(int d=0;d<3;d++){
-      cout<<ret2.val_gradient(e,d)<<endl;
-    }
-  }
-
-  exit(0);
-  */
-
   if(nparms2==0) { 
     for(int e=0; e < nelectrons; e++) {
       for(int d=0;d < 3; d++)  { 
