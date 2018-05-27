@@ -68,8 +68,7 @@ This tests the LINEAR method, the Jastrow factor, orbital coefficients, analytic
 The reference is a previous QWalk run. 
 ################################################""")
 
-ref_data={'total_energy':[-1.079105599,0.002120787425]}
-#[-1.068309651,0.0009113787988]} Changed this for new linear optimizer.
+ref_data={'total_energy':[-1.068309651,0.0009113787988]} 
 systems={'total_energy':'h2'}
 methods={'total_energy':'linear_orbrot'}
 descriptions={'total_energy':'Checking the linear method with orbital rotation for the H2 molecule. This tests the LINEAR method, the Jastrow factor, orbital coefficients, analytic parameter derivatives. The reference is a previous QWalk run.'}

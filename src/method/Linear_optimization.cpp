@@ -11,6 +11,7 @@
 #include "Vmc_method.h"
 #include "Properties_average.h"
 #include "Properties_block.h"
+#include <string>
 
 void Linear_optimization_method::read(vector <string> words,
             unsigned int & pos, Program_options & options_) { 
@@ -114,6 +115,27 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
     output << "step " << it << ": current energy " << setprecision(10) << en(0) 
            << " +/- " << setprecision(10) << en(1) << endl;
     output.flush();
+
+
+    stringstream outfname; 
+    outfname << "linear_matrices" << it;
+    ofstream matrixout(outfname.str().c_str());
+    int n=H.GetDim(0);
+    for(int i=0; i< n; i++) { 
+      for(int j=0; j < n; j++) { 
+        matrixout << H(i,j) << " ";
+      }
+      matrixout << endl;
+    }
+    for(int i=0; i< n; i++) { 
+      for(int j=0; j < n; j++) { 
+        matrixout << S(i,j) << " ";
+      }
+      matrixout << endl;
+    }
+    matrixout.close();
+    
+
     //if(it>0)
     //  output << "  energy change " << en(0)-olden(0) 
     //    << " +/- " << sqrt(en(1)*en(1)+olden(1)*olden(1)) << endl;
@@ -672,8 +694,8 @@ void Linear_optimization_method::wavefunction_derivative(
 
   H(0,0)=en(0);
   for(int i=0; i < n; i++) { 
-    H(i+1,0)=(deriv_avg.vals(i)-en(0)*deriv_avg.vals(n+i));
-    H(0,i+1)=(H(i+1,0)+deriv_avg.vals(2*n+i));
+    H(i+1,0)=2*(deriv_avg.vals(i)-en(0)*deriv_avg.vals(n+i));
+    H(0,i+1)=(H(i+1,0)+2.*deriv_avg.vals(2*n+i));
   }
   
   for(int i=0; i< n; i++) { 
@@ -687,8 +709,7 @@ void Linear_optimization_method::wavefunction_derivative(
      
     }
   }
-        
-  
+
 }
 
 
