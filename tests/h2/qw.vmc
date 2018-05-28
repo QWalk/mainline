@@ -1,8 +1,0 @@
-method{
-  vmc
-  nblock 6400
-}
-include qw.sys
-trialfunc{
-  include qw.linear_orbrot.wfout
-}
