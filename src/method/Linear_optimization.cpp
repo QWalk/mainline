@@ -299,24 +299,29 @@ doublevar find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
 }
 
 //--------------------------------------------------------------------
-doublevar Linear_optimization_method::fit_stabil(Array1 <doublevar> & stabil_in, 
-                                                 Array2 <doublevar> & energies_in) {
+//
 
-  int nfit=5;
+bool operator<( const pair<double,double> & l, const pair<double,double>& r) { return l.first < r.first; }
+
+doublevar Linear_optimization_method::fit_stabil(Array1 <doublevar> & stabil_in, 
+                                                 Array2 <doublevar> & energies_in,
+                                                 int nfit) {
+
+  vector<pair <double,double> > enstabil;
+  for(int i=0; i< energies_in.GetDim(0); i++) { 
+    enstabil.push_back(pair<double,double>(energies_in(i,0),stabil_in(i)));
+  }
+  sort(enstabil.begin(),enstabil.end());
+
   Array2 <doublevar> energies(nfit,2);
   Array1 <doublevar> stabil(nfit);
-  energies=1e8;
-  for(int i=0; i< energies_in.GetDim(0); i++) { 
-    for(int j=0; j< nfit; j++) { 
-      if(energies_in(i,0) < energies(j,0)) { 
-        energies(j,0)=energies_in(i,0);
-        energies(j,1)=energies_in(i,1);
-        stabil(j)=stabil_in(i);
-        break;
-      }
-    }
-  }
 
+  for(int i=0; i< nfit; i++) { 
+    energies(i,0)=enstabil[i].first;
+    stabil(i)=enstabil[i].second;
+    single_write(cout , "selected energy" , energies(i,0));
+    single_write(cout," " , stabil(i),"\n");
+  }
   
   int nstabil=energies.GetDim(0);
   Array2 <doublevar> descriptors(nstabil,3);
@@ -339,6 +344,7 @@ doublevar Linear_optimization_method::fit_stabil(Array1 <doublevar> & stabil_in,
     for(int j2=0; j2 < 3; j2++) { 
       for(int i=0; i< nstabil; i++) { 
         tmp(j1,j2)+=descriptors(i,j1)*descriptors(i,j2);
+        
       }
     }
   }
