@@ -116,7 +116,8 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
            << " +/- " << setprecision(10) << en(1) << endl;
     output.flush();
 
-
+    /* Debug output
+    if(mpi_info.node==0) {
     stringstream outfname; 
     outfname << "linear_matrices" << it;
     ofstream matrixout(outfname.str().c_str());
@@ -134,6 +135,8 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
       matrixout << endl;
     }
     matrixout.close();
+    }
+    */
     
 
     //if(it>0)
@@ -204,7 +207,8 @@ doublevar find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
   Array1 <dcomplex> W(n);
   Array2 <doublevar> VL(n,n), VR(n,n);
   DGGEV(H,S,W,VL,VR);
-  
+
+
   int min_index=0;
   doublevar min_eigenval=1e8; //W(0).real();
   doublevar max_p0=0.0;
@@ -251,47 +255,6 @@ doublevar find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv,
   delta_alpha.Resize(n-1);
   
   for(int i=0; i< n-1; i++) delta_alpha(i)=dp(i+1);
-  /*
-  doublevar xi=0.5;
-  Array1 <doublevar> norm(n);
-  doublevar D=1.0;
-  for(int j=1; j< n; j++) { 
-    D+=2*S(0,j)*dp(j);
-    for(int k=0; k< n; k++) {
-      D+=S(j,k)*dp(j)*dp(k);
-    }
-  }
-  D=sqrt(D);
-  norm=0.0;
-  
-  for(int i=1; i< n;  i++) { 
-    doublevar num_sum=0.0;
-    doublevar denom_sum=0.0;
-    for(int j=1; j < n; j++) { 
-      if(!linear(j-1)) {
-        num_sum+=S(i,j)*dp(j);
-        denom_sum+=S(0,j)*dp(j);
-      }
-    }
-    if(!linear(i-1)) 
-      norm(i)=-(xi*D*S(0,i)+(1-xi)*(S(0,i)+num_sum))
-        /(xi*D+(1-xi)*(1+denom_sum));
-    else norm(i)=0.0;
-  }
-
-  doublevar renorm_dp=0.;
-  for(int i=1; i< n; i++) { 
-    renorm_dp+=norm(i)*dp(i);
-  }
-
-  delta_alpha.Resize(n-1);
-  for(int i=0; i< n-1; i++) { 
-    if(!linear(i))
-      delta_alpha(i)=dp(i+1)/(1-renorm_dp);
-    else delta_alpha(i)=dp(i+1);
-  }
-  */
-  
 
   
   return fabs(dp0);
@@ -405,6 +368,23 @@ doublevar Linear_optimization_method::fit_stabil(Array1 <doublevar> & stabil_in,
 //----------------------------------------------------------------
 doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S, 
     Array2 <doublevar> & Sinv, Array2 <doublevar> & H, Array1 <doublevar> & alpha, ostream & os) { 
+
+
+  //Check on the eigenspectrum of S. If the condition number is bad,
+  //then there may be issues converging.
+  int n=S.GetDim(0);
+  Array1 <doublevar> sevals(n);
+  Array2 <doublevar> sevecs(n,n);
+  EigenSystemSolverRealSymmetricMatrix(S,sevals,sevecs);
+  doublevar min_sval=1e8, max_sval=-1e8;
+  for(int i=0; i< n; i++) { 
+    if(min_sval > sevals(i)) min_sval=sevals(i);
+    if(max_sval < sevals(i)) max_sval=sevals(i);
+  }
+  single_write(cout, "S extremal eigenvalues ");
+  single_write(cout,min_sval, " ", max_sval,"\n");
+  
+  
   Array1 <bool> linear;
   wfdata->linearParms(linear);
   Array1 <doublevar> alpha_tmp;
