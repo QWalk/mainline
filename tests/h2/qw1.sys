@@ -1,7 +1,0 @@
-SYSTEM { MOLECULE 
-  NSPIN { 2  0 } 
-ATOM { H  1  COOR 0   0   -1.322808191 } 
-ATOM { H  1  COOR 0   0   1.322808191 } 
-}
-
-
