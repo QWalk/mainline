@@ -56,7 +56,6 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
 
   if(haskeyword(words, pos=startpos, "OPTIMIZE_DET")) {
     optimize_det=1;
-    if(optimize_mo) error("Can't optimize both mo and det right now");
   }
   else optimize_det=0;
 
@@ -64,6 +63,8 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
   if(haskeyword(words, pos=startpos, "NOSORT")) {
     sort=0;
   }
+
+  if(optimize_det && optimize_mo) sort=0;
 
   pos=startpos;
   vector <vector <string> > csfstr;
@@ -573,7 +574,26 @@ int Slat_wf_data::writeinput(string & indent, ostream & os) {
 void Slat_wf_data::getVarParms(Array1 <doublevar> & parms)
 {
   //cout <<"start getVarParms"<<endl;
-  if(optimize_mo) {
+  if(optimize_mo && optimize_det){
+    Array1<doublevar> det_parms;
+    det_parms.Resize(ncsf-1);
+    for(int i=1; i< ncsf; i++) {
+      det_parms(i-1)=CSF(i)(0);
+    }
+    
+    Array1<doublevar> orbital_parms;
+    orbital_parms.Resize(orbrot->nparms());
+    orbrot->getParms(orbital_parms);
+    
+    parms.Resize(det_parms.GetDim(0)+orbital_parms.GetDim(0));
+    for(int i=0;i<det_parms.GetDim(0);i++)
+      parms(i)=det_parms(i);
+    
+    //NOTICE HOW I SUBTRACTED OFF DET_PARMS.GETDIM(0)
+    for(int i=det_parms.GetDim(0);i<parms.GetDim(0);i++)
+      parms(i)=orbital_parms(i-det_parms.GetDim(0));
+
+  }else if(optimize_mo) {
     orbrot->getParms(parms);
   }
   else if(optimize_det) {
@@ -591,7 +611,25 @@ void Slat_wf_data::getVarParms(Array1 <doublevar> & parms)
 void Slat_wf_data::setVarParms(Array1 <doublevar> & parms)
 {
   //cout <<"start setVarParms"<<endl;
-  if(optimize_mo) {
+  if(optimize_mo && optimize_det){
+    for(int csf=1; csf< ncsf; csf++) 
+      CSF(csf)(0)=parms(csf-1);
+    int counter=0;
+    for(int csf=0; csf< ncsf; csf++) {
+      for(int j=1;j<CSF(csf).GetDim(0);j++){
+        detwt(counter++)=CSF(csf)(0)*CSF(csf)(j);
+      }
+    }
+    assert(counter==ndet);
+    
+    Array1<doublevar> orbital_parms;
+    orbital_parms.Resize(orbrot->nparms());
+    for(int i=0;i<orbrot->nparms();i++){
+      orbital_parms[i]=parms[ncsf-1+i];
+    }
+
+    orbrot->setParms(orbital_parms);
+  }else if(optimize_mo) {
     orbrot->setParms(parms);
   }
   else if(optimize_det) {
@@ -618,7 +656,10 @@ void Slat_wf_data::setVarParms(Array1 <doublevar> & parms)
 //----------------------------------------------------------------------
 
 void Slat_wf_data::linearParms(Array1 <bool> & is_linear) {
-  if(optimize_det) { 
+  if(optimize_det && optimize_mo){
+    is_linear.Resize(nparms());
+    for(int i=0;i<nparms();i++) is_linear[i]=(i<(ncsf-1))?true:false;
+  }else if(optimize_det) { 
     is_linear.Resize(nparms());
     is_linear=true;
   }

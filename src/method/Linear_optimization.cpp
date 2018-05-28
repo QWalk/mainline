@@ -101,6 +101,7 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
     error("Wavefunction needs to supports analytic parameter derivatives");
   
   wfdata->getVarParms(alpha); 
+  
   Array1 <doublevar> en,tmp_en;
   Array2 <doublevar> energy_step(iterations,2);
   Array2 <doublevar> alpha_step(iterations,nparms);
@@ -108,9 +109,11 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
   wfdata->getVarParms(alpha);
   int nzero_iterations=0;
 
+
   for(int it=0; it< iterations; it++) {
     //cout<< "wf derivative" <<endl;
     Array1 <doublevar> olden=en;
+    
     wavefunction_derivative(H,S,en);
     output << "####################\n";
     output << "step " << it << ": current energy " << setprecision(10) << en(0) 
@@ -145,7 +148,6 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
     //    << " +/- " << sqrt(en(1)*en(1)+olden(1)*olden(1)) << endl;
     
     doublevar endiff= line_minimization(S,Sinv,H,alpha,output);
-
     if(endiff >= 0 && vmc_nstep < max_vmc_nstep) { 
       vmc_nstep*=4;
       output << "Did not find a downhill move; increasing total vmc steps to "
@@ -158,6 +160,7 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
     wfdata->setVarParms(alpha);
     wfdata->lockInParms(alpha);
     wfdata->renormalize();
+   
     if(mpi_info.node==0) { 
       string indentation="";
       ofstream wfoutput(wfoutputfile.c_str());
@@ -165,11 +168,11 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
       wfdata->writeinput(indentation,wfoutput);
       wfoutput.close();
     }
-    
+   
+
     for(int i=0; i< nparms; i++) {
       alpha_step(it,i)=alpha(i);
     }
-    
     if(nzero_iterations >= max_zero_iterations) {
       output << "Reached " << max_zero_iterations
              << " without a downhill move and at the maximum number of samples.\n"
@@ -401,7 +404,7 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
     if(guesspsi > minimum_psi0)
       acc_stabils.push_back(stabil);
   }
-
+  
   int nstabil=acc_stabils.size()+1;
   Array1 <Array1 <doublevar> > alphas(nstabil);
   Array1 <doublevar> prop_psi(nstabil,1.0);
@@ -410,13 +413,13 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
     doublevar prop_psi0=find_directions(S,Sinv,H,alphas(i),acc_stabils[i],linear);  
     prop_psi(i)=prop_psi0;
   }
-
+  
   for(int i=0; i< nstabil-1; i++) { 
     for(int j=0; j< alpha.GetDim(0); j++) { 
       alphas(i)(j)+=alpha(j);
     }
   }
-  
+ 
   Array2 <doublevar> energies_corr2(nstabil,2);
   if(do_uncorrelated_evaluation)
     uncorrelated_evaluation(alphas,energies_corr2);
@@ -636,6 +639,7 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
 void Linear_optimization_method::wavefunction_derivative(
     Array2 <doublevar> & H,Array2<doublevar> & S, Array1 <doublevar> & en) { 
   int n=wfdata->nparms();
+
   Properties_final_average final;
   
 
@@ -666,6 +670,7 @@ void Linear_optimization_method::wavefunction_derivative(
     single_write(cout, "energy derivative ",deriv_avg.vals(2*n+i)," +/- ");
     single_write(cout, deriv_err.vals(2*n+i), "\n");
   }
+  
   H.Resize(n+1,n+1);
   S.Resize(n+1,n+1);
   H=0.; S=0.;
@@ -696,7 +701,6 @@ void Linear_optimization_method::wavefunction_derivative(
      
     }
   }
-
 }
 
 

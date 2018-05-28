@@ -30,7 +30,7 @@ H
  RCUT 7.5
 }
 ONEBODY { 
-  COEFFICIENTS { H   0.0   0.0   0.0   } 
+  COEFFICIENTS { H  0.0 0.0 0.0  } 
  } 
 EEBASIS { 
 EE
@@ -40,6 +40,6 @@ EE
  RCUT 7.5
 }
 TWOBODY { 
-  COEFFICIENTS {  0.0   0.0   0.0   }
+  COEFFICIENTS { 0.0 0.0 0.0 }
  } 
 } 
