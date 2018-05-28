@@ -12,6 +12,7 @@
 #include "Properties_average.h"
 #include "Properties_block.h"
 #include <string>
+#include <algorithm>
 
 void Linear_optimization_method::read(vector <string> words,
             unsigned int & pos, Program_options & options_) { 
