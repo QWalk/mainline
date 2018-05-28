@@ -139,7 +139,6 @@ template <class T> void MO_matrix_blas<T>::init() {
   readorb_noexpand(ORB,centers, nmo, maxbasis, kpoint,coeffmat, coeff);
   string in;
   ORB.close();
-  cout << "there  " << endl;
   totbasis=0;
   for(int ion=0; ion<centers.equiv_centers.GetDim(0); ion++) {
     int center0=centers.equiv_centers(ion,0);

@@ -99,7 +99,7 @@ void Excitation_list::build_excitation_list(Array3 <Array1 <int> > & occupation,
       for(int i=0; i< nex_s; i++) {
         excitations[d].g[s][i]=tot_missing[s][i];
         excitations[d].e[s][i]=tot_additional[s][i];
-        cout << "d " << d << " s " << s << " i " << i << " : " << excitations[d].g[s][i] << " -> " << excitations[d].e[s][i] << " sign " << excitations[d].sign(s) <<  endl;
+        //cout << "d " << d << " s " << s << " i " << i << " : " << excitations[d].g[s][i] << " -> " << excitations[d].e[s][i] << " sign " << excitations[d].sign(s) <<  endl;
       }
     }
 
