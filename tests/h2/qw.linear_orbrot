@@ -1,4 +1,4 @@
-method { linear total_nstep 10000 total_fit 10000 } 
+method { linear total_nstep 1000 total_fit 1000 } 
 
 include qw.sys
 
@@ -6,5 +6,4 @@ trialfunc {
   slater-jastrow
   wf1 { include qw.slater_orbrot }
   wf2 { include jast2.wfin } 
-  #include qw.linear_orbrot.wfout
 }
