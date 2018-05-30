@@ -396,7 +396,7 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   int nstabil_test=16;
   doublevar stabilbase=fabs(H(0,0))*1e-6;
   for(int i=0; i< nstabil_test; i++) {
-    doublevar stabil=stabilbase*pow(2,i);
+    doublevar stabil=stabilbase*pow(5,i);
     doublevar guesspsi=find_directions(S,Sinv,H,alpha_tmp,stabil,linear);
     if(guesspsi > minimum_psi0)
       acc_stabils.push_back(stabil);
