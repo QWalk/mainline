@@ -1696,6 +1696,51 @@ void DGGEV(Array2 <doublevar> & A, Array2 <doublevar> & B,
 
 }
 
+
+void DGESVD(Array2 <doublevar> & A, Array1 <doublevar> & s, 
+           Array2 <doublevar> & U, Array2 <doublevar> & VT) { 
+
+  int N=A.dim[0];
+  Array2 <doublevar> A_tmp=A;
+
+  //Translate between row and column ordering (Fortran)
+  for(int i=0; i< N; i++) { 
+    for(int j=0; j< N; j++) { 
+      A_tmp(i,j)=A(j,i);
+    }
+  }
+  U.Resize(N,N);
+  VT.Resize(N,N);
+  s.Resize(N);
+  int lda=N, LWORK=10*N,ldvl=N,ldvr=N;
+  Array1 <doublevar> WORK(LWORK);
+  int info;
+#ifdef USE_LAPACK
+  char * jobU="A";
+  char * jobVT="A";
+  dgesvd_(jobU,jobU,&N,&N,A_tmp.v,&lda,
+         s.v,U.v,&lda,
+         VT.v,&lda,
+         WORK.v,&LWORK,&info);
+
+  doublevar tmp=0;
+  for(int i=0;i < N; i++) { 
+    for(int j=0; j< N; j++) { 
+      tmp=U(i,j);
+      U(i,j)=U(j,i);
+      U(j,i)=tmp;
+      tmp=VT(i,j);
+      VT(i,j)=VT(j,i);
+      VT(j,i)=tmp;
+    }
+  }
+      
+#else //IF NO LAPACK
+  error("need LAPACK for eigensystem solver for general matrices");
+#endif
+
+}
+
 //-----------------------------------------------------------
 
 

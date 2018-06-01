@@ -57,6 +57,7 @@ private:
   int max_nconfig_eval;
   int max_vmc_nstep;
   int max_zero_iterations;
+  double svd_tolerance;
   bool do_uncorrelated_evaluation;
   bool pseudopotential_derivatives;
   doublevar sig_H_threshold;

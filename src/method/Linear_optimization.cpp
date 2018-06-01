@@ -50,6 +50,9 @@ void Linear_optimization_method::read(vector <string> words,
   if(!readvalue(words, pos=0, max_nconfig_eval, "MAX_ZERO_ITERATIONS"))
     max_zero_iterations=2;
 
+  if(!readvalue(words, pos=0, max_vmc_nstep, "MAX_VMC_NSTEP"))
+    svd_tolerance=1e-5;
+  
   allocate(options.systemtext[0],  sys);
   sys->generatePseudo(options.pseudotext, pseudo);
   wfdata=NULL;
@@ -197,7 +200,7 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
 //----------------------------------------------------------------------
 
 //return the proportion of the move that was Psi_0
-doublevar find_directions(Array2 <doublevar> & S, Array2 <doublevar> & Sinv, 
+doublevar find_directions(Array2 <doublevar> & S, 
     Array2 <doublevar> & Hin, 
     Array1 <doublevar> & delta_alpha,doublevar stabilization,
     Array1 <bool> & linear) { 
@@ -286,7 +289,7 @@ doublevar Linear_optimization_method::fit_stabil(Array1 <doublevar> & stabil_in,
   for(int i=0; i< nfit; i++) { 
     energies(i,0)=enstabil[i].first;
     stabil(i)=enstabil[i].second;
-    single_write(cout , "selected energy" , energies(i,0));
+    single_write(cout , "fitting to " , energies(i,0));
     single_write(cout," " , stabil(i),"\n");
   }
   
@@ -369,6 +372,74 @@ doublevar Linear_optimization_method::fit_stabil(Array1 <doublevar> & stabil_in,
   
   
 }
+
+
+//----------------------------------------------------------------
+
+void dimension_reduction(Array2 <doublevar> & H, //input
+                         Array2 <doublevar> & S, //input
+                         Array2 <doublevar> & Pinv, //output
+                         Array2 <doublevar> & Htilde, //reduced dimension H
+                         Array2 <doublevar> & Stilde,  //reduced dimension S
+
+                         doublevar cutoff=1e-5
+                         ) {
+  int n=H.GetDim(0);
+  assert(n==H.GetDim(1));
+  assert(n==S.GetDim(0));
+  assert(n==S.GetDim(1));
+  Array1 <doublevar> sigma;
+  Array2 <doublevar> U;
+  DGESVD(S,sigma,U,Pinv);
+  for(int i=0; i< n; i++) single_write(cout, sigma(i)," ");
+  single_write(cout,"\n");
+
+  int ntilde=n;
+  for(int i=0; i< n; i++) {
+    if(sigma(i) < cutoff) {
+      ntilde=i;
+      break;
+    }
+  }
+
+  Array2 <doublevar> tmp(n,n),Ht(n,n);
+  tmp=0.0; Ht=0.0;
+  MultiplyMatrices(H,U,tmp,n);
+  MultiplyMatrices(Pinv,tmp,Ht,n);
+
+  Htilde.Resize(ntilde,ntilde);
+  Stilde.Resize(ntilde,ntilde);
+  Stilde=0;
+  for(int i=0; i< ntilde; i++) { 
+    for(int j=0; j < ntilde; j++) { 
+      Htilde(i,j)=Ht(i,j);
+    }
+    Stilde(i,i)=sigma(i);
+  }
+
+}
+
+//----------------------------------------------------------------
+
+void recover_deltap(Array2 <doublevar> & Pinv,
+                    Array1 <doublevar> & dptilde, //this should be the output from find_directions (nparm)
+                    Array1 <doublevar> & dpout) { 
+  int ntilde=dptilde.GetDim(0);
+  int n=Pinv.GetDim(0);
+  Array1 <doublevar> tmp(n,0.0);
+  tmp(0)=1.0;
+  for(int i=1; i < ntilde; i++) tmp(i)=dptilde(i-1);
+  Array1 <doublevar> dp(n,0.0);
+  for(int i=0; i< n; i++) {
+    for(int j=0; j< n; j++) { 
+      dp(i)+=Pinv(j,i)*tmp(j);
+    }
+  }
+
+  dpout.Resize(n-1);
+  for(int i=1; i<n; i++) dpout(i-1)=dp(i);
+}
+
 //----------------------------------------------------------------
 doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S, 
     Array2 <doublevar> & Sinv, Array2 <doublevar> & H, Array1 <doublevar> & alpha, ostream & os) { 
@@ -387,7 +458,9 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   }
   single_write(cout, "S extremal eigenvalues ");
   single_write(cout,min_sval, " ", max_sval,"\n");
-  
+
+  Array2 <doublevar> Pinv,Htilde,Stilde;
+  dimension_reduction(H,S,Pinv,Htilde,Stilde,svd_tolerance);
   
   Array1 <bool> linear;
   wfdata->linearParms(linear);
@@ -400,7 +473,7 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   doublevar stabilbase=fabs(H(0,0))*1e-6;
   for(int i=0; i< nstabil_test; i++) {
     doublevar stabil=stabilbase*pow(5,i);
-    doublevar guesspsi=find_directions(S,Sinv,H,alpha_tmp,stabil,linear);
+    doublevar guesspsi=find_directions(Stilde,Htilde,alpha_tmp,stabil,linear);
     if(guesspsi > minimum_psi0)
       acc_stabils.push_back(stabil);
   }
@@ -410,12 +483,16 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   Array1 <doublevar> prop_psi(nstabil,1.0);
   alphas(nstabil-1)=alpha;
   for(int i=0; i < nstabil-1; i+=1) { 
-    doublevar prop_psi0=find_directions(S,Sinv,H,alphas(i),acc_stabils[i],linear);  
+    Array1 <doublevar> dptilde(Htilde.GetDim(0));
+    doublevar prop_psi0=find_directions(Stilde,Htilde,dptilde,acc_stabils[i],linear);
+    recover_deltap(Pinv,dptilde,alphas(i));
     prop_psi(i)=prop_psi0;
   }
   
   for(int i=0; i< nstabil-1; i++) { 
+    
     for(int j=0; j< alpha.GetDim(0); j++) { 
+
       alphas(i)(j)+=alpha(j);
     }
   }
@@ -446,7 +523,10 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   doublevar min_stabil=fit_stabil(stable_fit,energies_fit);
   os << "Minimum stabilization " << min_stabil << endl;
   Array1 <doublevar> alphanew(alpha.GetDim(0));
-  doublevar prop_psi0=find_directions(S,Sinv,H,alphanew,min_stabil,linear);
+  Array1 <doublevar> dptilde(Htilde.GetDim(0));
+  doublevar prop_psi0=find_directions(Stilde,Htilde,dptilde,min_stabil,linear);
+  recover_deltap(Pinv,dptilde,alphanew);
+  
   for(int i=0; i< alpha.GetDim(0); i++) alphanew(i)+=alpha(i);
   
   //for(int i=0; i< alpha.GetDim(0); i++) os << alphanew(i) << "  ";
@@ -593,8 +673,8 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
          weightsum+=allproc_weights(w,config);
       }
       diffpartition(w,p)=ensum/weightsum;
-      single_write(cout, "partitions " , w , " ");
-      single_write(cout, p , " " , diffpartition(w,p),"\n");
+      //single_write(cout, "partitions " , w , " ");
+      //single_write(cout, p , " " , diffpartition(w,p),"\n");
     }
   }
 
