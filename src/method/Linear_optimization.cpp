@@ -38,7 +38,7 @@ void Linear_optimization_method::read(vector <string> words,
   if(!readvalue(words,pos=0,sig_H_threshold,"SIG_H_THRESHOLD"))
     sig_H_threshold=0.5;
   if(!readvalue(words,pos=0,minimum_psi0,"MINIMUM_PSI0"))
-    minimum_psi0=0.2;
+    minimum_psi0=0.4;
   if(!readvalue(words, pos=0, max_vmc_nstep, "MAX_VMC_NSTEP"))
     max_vmc_nstep=2*vmc_nstep;
   if(!readvalue(words, pos=0, max_nconfig_eval, "MAX_FIT_NCONFIG"))
@@ -50,8 +50,8 @@ void Linear_optimization_method::read(vector <string> words,
   if(!readvalue(words, pos=0, max_nconfig_eval, "MAX_ZERO_ITERATIONS"))
     max_zero_iterations=2;
 
-  if(!readvalue(words, pos=0, max_vmc_nstep, "MAX_VMC_NSTEP"))
-    svd_tolerance=1e-5;
+  if(!readvalue(words, pos=0, max_vmc_nstep, "SVD_TOLERANCE"))
+    svd_tolerance=1e-9;
   
   allocate(options.systemtext[0],  sys);
   sys->generatePseudo(options.pseudotext, pseudo);
@@ -227,9 +227,16 @@ doublevar find_directions(Array2 <doublevar> & S,
     for(int i=0; i< n; i++) VR(j,i)/=dpnorm;
   }
 
+  single_write(cout,"eigenvals ");
+  for(int i=0; i< n; i++) {
+    single_write(cout,W(i)," ");
+  }
+  single_write(cout,"\n");
+
   for(int i=0; i< n; i++) { 
     
     if( fabs(VR(i,0)) > max_p0) {
+    //if(W(i).real() < min_eigenval) { 
       min_index=i;
       max_p0=fabs(VR(i,0));
       min_eigenval=W(i).real();
@@ -394,6 +401,35 @@ void dimension_reduction(Array2 <doublevar> & H, //input
   for(int i=0; i< n; i++) single_write(cout, sigma(i)," ");
   single_write(cout,"\n");
 
+  //Find the 1 eigenvalue and put it first
+  int ibase=-1;
+  for(int i=0; i< n; i++) { 
+    if(fabs(sigma(i)-1) < 1e-8) { 
+      if(ibase!=-1) { 
+        single_write(cout,"WARNING: found more than one unit eigenvalue in S\n");
+      }
+      ibase=i;
+    }
+  }
+  single_write(cout,"ibase ",ibase,"\n");
+  
+  //This is not particularly efficient, but I don't think it matters too much.
+  Array2 <doublevar> permute(n,n,0.0);
+  for(int i=0; i< n; i++) {
+    permute(i,i)=1.0;
+  }
+  permute(0,0)=0.0; 
+  permute(ibase,ibase)=0.0;
+  permute(0,ibase)=1.0;
+  permute(ibase,0)=1.0;
+  Array2 <doublevar> t=Pinv;
+  MultiplyMatrices(t,permute,Pinv,n);
+  t=U;
+  MultiplyMatrices(permute,t,U,n);
+  doublevar tt=sigma(0);
+  sigma(0)=sigma(ibase);
+  sigma(ibase)=tt;
+
   int ntilde=n;
   for(int i=0; i< n; i++) {
     if(sigma(i) < cutoff) {
@@ -407,6 +443,11 @@ void dimension_reduction(Array2 <doublevar> & H, //input
   MultiplyMatrices(H,U,tmp,n);
   MultiplyMatrices(Pinv,tmp,Ht,n);
 
+  Array2 <doublevar> Stest(n,n,0.0);
+  MultiplyMatrices(S,Pinv,tmp,n);
+  MultiplyMatrices(U,tmp,Stest,n);
+
+  
   Htilde.Resize(ntilde,ntilde);
   Stilde.Resize(ntilde,ntilde);
   Stilde=0;
@@ -417,6 +458,31 @@ void dimension_reduction(Array2 <doublevar> & H, //input
     Stilde(i,i)=sigma(i);
   }
 
+  single_write(cout,"Stilde\n");
+  for(int i=0; i< ntilde; i++) {
+    for(int j=0; j< ntilde; j++) { 
+      single_write(cout,Stilde(i,j), " ");
+    }
+    single_write(cout,"\n");
+  }
+
+  single_write(cout,"Htilde\n");
+  for(int i=0; i< ntilde; i++) {
+    for(int j=0; j< ntilde; j++) { 
+      single_write(cout,Htilde(i,j), " ");
+    }
+    single_write(cout,"\n");
+  }
+
+  single_write(cout,"Stest\n");
+  for(int i=0; i< ntilde; i++) {
+    for(int j=0; j< ntilde; j++) { 
+      single_write(cout,Stest(i,j), " ");
+    }
+    single_write(cout,"\n");
+  }
+  
+  
 }
 
 //----------------------------------------------------------------
@@ -437,7 +503,11 @@ void recover_deltap(Array2 <doublevar> & Pinv,
   }
 
   dpout.Resize(n-1);
-  for(int i=1; i<n; i++) dpout(i-1)=dp(i);
+  for(int i=1; i<n; i++) dpout(i-1)=dp(i)/dp(0);
+  
+  single_write(cout,"dp ");
+  for(int i=0; i< n-1; i++) single_write(cout,dpout(i)," ");
+  single_write(cout,"\n");
 }
 
 //----------------------------------------------------------------
@@ -445,19 +515,7 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
     Array2 <doublevar> & Sinv, Array2 <doublevar> & H, Array1 <doublevar> & alpha, ostream & os) { 
 
 
-  //Check on the eigenspectrum of S. If the condition number is bad,
-  //then there may be issues converging.
   int n=S.GetDim(0);
-  Array1 <doublevar> sevals(n);
-  Array2 <doublevar> sevecs(n,n);
-  EigenSystemSolverRealSymmetricMatrix(S,sevals,sevecs);
-  doublevar min_sval=1e8, max_sval=-1e8;
-  for(int i=0; i< n; i++) { 
-    if(min_sval > sevals(i)) min_sval=sevals(i);
-    if(max_sval < sevals(i)) max_sval=sevals(i);
-  }
-  single_write(cout, "S extremal eigenvalues ");
-  single_write(cout,min_sval, " ", max_sval,"\n");
 
   Array2 <doublevar> Pinv,Htilde,Stilde;
   dimension_reduction(H,S,Pinv,Htilde,Stilde,svd_tolerance);
@@ -469,7 +527,7 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   doublevar stabilmax=100.0*fabs(H(0,0));
   vector <doublevar> acc_stabils;
 
-  int nstabil_test=16;
+  int nstabil_test=15;
   doublevar stabilbase=fabs(H(0,0))*1e-6;
   for(int i=0; i< nstabil_test; i++) {
     doublevar stabil=stabilbase*pow(5,i);
@@ -490,9 +548,7 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   }
   
   for(int i=0; i< nstabil-1; i++) { 
-    
     for(int j=0; j< alpha.GetDim(0); j++) { 
-
       alphas(i)(j)+=alpha(j);
     }
   }
@@ -641,6 +697,10 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
   for(int w=0; w< nwfs; w++) {
     for(int config=0; config < nconfig_eval; config++){ 
       doublevar weight=exp(2*(wf_vals(w,config).amp(0,0)-wf_vals(ref_alpha,config).amp(0,0)));
+      //if(fabs(weight) > 3.0) {
+      //  cout << "WARNING: cut off weight of " << weight << endl;        
+      //  weight=3.0;
+      //}
       all_weights(w,config)=weight;
     }
   }
