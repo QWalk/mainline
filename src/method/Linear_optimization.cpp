@@ -535,6 +535,11 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
     if(guesspsi > minimum_psi0)
       acc_stabils.push_back(stabil);
   }
+
+  if(acc_stabils.size() < 5) { 
+    os << "Did not find enough acceptable stabilizations. Exiting." << endl;
+    return 0.0;
+  }
   
   int nstabil=acc_stabils.size()+1;
   Array1 <Array1 <doublevar> > alphas(nstabil);
