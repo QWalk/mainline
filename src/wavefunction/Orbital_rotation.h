@@ -5,6 +5,8 @@
 #include "MatrixAlgebra.h"
 #include "MO_matrix.h"
 #include "Wavefunction.h"
+#include <queue>
+#include <map>
 
 class Orbital_rotation{
 public:
@@ -53,8 +55,19 @@ private:
 
   //Useful for writeinput()
   Array1<Array1<vector<string> > >groupstrings; //Contains ORB_GROUPs
-  //For each active parameter, parminfo(i) has the determinant and group it resides in
-  Array1<Array1<doublevar> >parminfo;
+
+
+  //Whether we want orthogonal optimization, i.e. one rotation matrix for all spins and all dets
+  int orthog;
+  int nparms_; //Number of parameters used internally. Only differs from nparms() for orthogonal case.
+  
+  map<int,bool> globalactive; //Tells us which orbitals are globally active (in the multi-determinant sense).
+  map<int,int> globalindex;  //List of globally active and virtual orbitals
+  
+  Array2<int> restMat;      //Restriction matrix
+  int nindep;               //Number of independent parameters after restriction
+  vector<vector<int> >concomp; //Parameters that are all equivalent
+
 };
 
 template <class T>
@@ -75,7 +88,7 @@ template <class T>
 void Orbital_rotation::getParmDeriv(Array1<log_value<T> > & detwt,
 Array3<T> & moVal, Array3<Array2<T> >& inverse, 
 Array3<log_value<T> > & detVal, Parm_deriv_return & deriv){ 
-  
+
   //moVal() dimension, electron, orbital 
   //inverse() function #, det #, spin 
   //detVal() function #, determinant #, spin 
@@ -125,13 +138,19 @@ Array3<log_value<T> > & detVal, Parm_deriv_return & deriv){
       }
     }
   }
-
+  
+  //Resize for first calculation
+  if(orthog){
+    deriv.gradient.Resize(nparms_);
+    deriv.gradderiv.Resize(nparms_,deriv.gradderiv.GetDim(1),deriv.gradderiv.GetDim(2));
+  }
+  
   //Calculate gradient and gradderiv  
   //gradient(n)=d/d_pn ln(det(psi))
   //gradderiv(n,e,t)=d/d_pn (grad_e^(t) ln(det(psi))), 
   //where grad_e^(1,2,3)=(d/dx_e, d/dy_e, d/dz_e) and grad_e^4=lap_e
   int q=0;
-  for(int n=0;n<nparms()+notactive;n++){
+  for(int n=0;n<nparms_+notactive;n++){  
     if(isactive(n)){
       //These are the four parameters related to n
       int ni=0;
@@ -139,81 +158,134 @@ Array3<log_value<T> > & detVal, Parm_deriv_return & deriv){
       int nd=0;
       int ns=0;
       int no=0;
-     
+ 
       getind(n,nd,ns,ni,nj);
       if(ns==0){no=1;}
-      
-      //Calculate elements of column we want to replace 
-      u.Resize(Nocc(nd,ns));
-      u=0;
-      for(int l=0;l<Nocc(nd,ns);l++){
-        for(int c=0;c<Nact(nd,ns);c++){
-          u(l)+=r(nd,ns)(nj,c)*moVal(0,l+ns*Nocc(nd,0),activeoccupation(f,nd,ns)(c));
-        }
-      }
 
-      //Calculate trace of (psi^-1 d/d_pn psi) 
-      T tmp=0;
-      for(int l=0;l<Nocc(nd,ns);l++){
-        tmp+=inverse(f,nd,ns)(l,ni)*u(l);
-      }
-      
-      //Calculate gradient
-      deriv.gradient(n-q)=tmp;
-      deriv.gradient(n-q)*=detwt(nd).val()*detVal(f,nd,ns).val()*detVal(f,nd,no).val();
-      T wval=0;
-      for(int d=0;d<ndet;d++){
-        wval+=detwt(d).val()*detVal(f,d,0).val()*detVal(f,d,1).val();
-      }
-      deriv.gradient(n-q)/=wval;
-       
-      int se=0;
-      int oe=0;
-      for(int t=0;t<4;t++){
+      //See if it happens that the parameter doesn't exist in this determinant
+      int pass=((ni<Nocc(nd,ns))||(nj<Nocc(nd,ns)))?1:0;
+      if(!pass){
+        deriv.gradient(n-q)=0;
         for(int e=0;e<Nocc(0,0)+Nocc(0,1);e++){
-          if(e<Nocc(0,0)){se=0;oe=1;}
-          else{se=1;oe=0;}
-          
-          //grad_e(psi)
-          T tmp1=0;
-          for(int i=0;i<ndet;i++)
-            tmp1+=detwt(i).val()*lapDet(i,e,t).val()*detVal(f,i,oe).val();
-
-          //psi
-          T tmp2=0;
-          for(int i=0;i<ndet;i++)
-            tmp2+=detwt(i).val()*detVal(f,i,se).val()*detVal(f,i,oe).val();
-          
-          if(se==no){
-            //gradderiv when s(e)!=s(n),i.e. p_n and e in different spin spaces
-            deriv.gradderiv(n-q,e,t)=deriv.gradient(n-q)*(lapDet(nd,e,t).val()/detVal(f,nd,no).val());
-            deriv.gradderiv(n-q,e,t)-=deriv.gradient(n-q)*tmp1/tmp2;
-          }else{
-            //gradderiv when s(e)=s(n),i.e. p_n and e in same spin spaces
-            w.Resize(u.GetDim(0));
-            w=u;
-            w(e-ns*Nocc(nd,0))=0;
-
-            //Calculate elements of column we want to update
-            for(int c=0;c<Nact(nd,ns);c++){
-              w(e-ns*Nocc(nd,0))+=r(nd,ns)(nj,c)*moVal(t+1,e,activeoccupation(f,nd,ns)(c));
-            }
-
-            //Calculate trace of grad_e(psi)^-1 d/d_pn grad_e(psi) 
-            T tmp3=0;
-            for(int l=0;l<Nocc(nd,ns);l++){
-              tmp3+=lapInv(nd,e,t)(ni,l)*w(l);  
-            }
-
-            //Calculate gradderiv
-            deriv.gradderiv(n-q,e,t)=detwt(nd).val()*detVal(f,nd,no).val()*lapDet(nd,e,t).val()*tmp3;
-            deriv.gradderiv(n-q,e,t)-=deriv.gradient(n-q)*tmp1;
-            deriv.gradderiv(n-q,e,t)/=tmp2;
+          for(int t=0;t<4;t++){
+            deriv.gradderiv(n-q,e,t)=0;
           }
-        }//e loop
-      }//t loop
-    }else{
+        }
+      }else{
+        //Calculate elements of column we want to replace 
+        u.Resize(Nocc(nd,ns));
+        u=0;
+        for(int l=0;l<Nocc(nd,ns);l++){
+          for(int c=0;c<Nact(nd,ns);c++){
+            u(l)+=r(nd,ns)(nj,c)*moVal(0,l+ns*Nocc(nd,0),activeoccupation(f,nd,ns)(c));
+          }
+        }
+        
+        //Calculate trace of (psi^-1 d/d_pn psi) 
+        T tmp=0;
+        for(int l=0;l<Nocc(nd,ns);l++){
+          tmp+=inverse(f,nd,ns)(l,ni)*u(l);
+        }
+
+        //Calculate gradient
+        deriv.gradient(n-q)=tmp;
+        deriv.gradient(n-q)*=detwt(nd).val()*detVal(f,nd,ns).val()*detVal(f,nd,no).val();
+        T wval=0;
+        for(int d=0;d<ndet;d++){
+          wval+=detwt(d).val()*detVal(f,d,0).val()*detVal(f,d,1).val();
+        }
+        deriv.gradient(n-q)/=wval;
+         
+        int se=0;
+        int oe=0;
+        for(int t=0;t<4;t++){
+          for(int e=0;e<Nocc(0,0)+Nocc(0,1);e++){
+            if(e<Nocc(0,0)){se=0;oe=1;}
+            else{se=1;oe=0;}
+            
+            //grad_e(psi)
+            T tmp1=0;
+            for(int i=0;i<ndet;i++)
+              tmp1+=detwt(i).val()*lapDet(i,e,t).val()*detVal(f,i,oe).val();
+
+            //psi
+            T tmp2=0;
+            for(int i=0;i<ndet;i++)
+              tmp2+=detwt(i).val()*detVal(f,i,se).val()*detVal(f,i,oe).val();
+            
+            if(se==no){
+              //gradderiv when s(e)!=s(n),i.e. p_n and e in different spin spaces
+              deriv.gradderiv(n-q,e,t)=deriv.gradient(n-q)*(lapDet(nd,e,t).val()/detVal(f,nd,no).val());
+              deriv.gradderiv(n-q,e,t)-=deriv.gradient(n-q)*tmp1/tmp2;
+            }else{
+              //gradderiv when s(e)=s(n),i.e. p_n and e in same spin spaces
+              w.Resize(u.GetDim(0));
+              w=u;
+              w(e-ns*Nocc(nd,0))=0;
+
+              //Calculate elements of column we want to update
+              for(int c=0;c<Nact(nd,ns);c++){
+                w(e-ns*Nocc(nd,0))+=r(nd,ns)(nj,c)*moVal(t+1,e,activeoccupation(f,nd,ns)(c));
+              }
+
+              //Calculate trace of grad_e(psi)^-1 d/d_pn grad_e(psi) 
+              T tmp3=0;
+              for(int l=0;l<Nocc(nd,ns);l++){
+                tmp3+=lapInv(nd,e,t)(ni,l)*w(l);  
+              }
+
+              //Calculate gradderiv
+              deriv.gradderiv(n-q,e,t)=detwt(nd).val()*detVal(f,nd,no).val()*lapDet(nd,e,t).val()*tmp3;
+              deriv.gradderiv(n-q,e,t)-=deriv.gradient(n-q)*tmp1;
+              deriv.gradderiv(n-q,e,t)/=tmp2;
+            }
+          }//e loop
+        }//t loop
+      }//passed loop
+    }else{ //isactive(n) loop
       q++; 
     }
   }//n loop
+
+  //Restrict gradients
+  if(orthog){
+    Array1<doublevar> tmpgradient;
+    Array3<doublevar> tmpgradderiv;
+    tmpgradient.Resize(nparms_);
+    tmpgradderiv.Resize(nparms_,Nocc(0,0)+Nocc(0,1),4);
+    
+    for(int n=0;n<nparms_;n++){
+      for(int m=0;m<nparms_;m++){
+        tmpgradient(n)=0;
+        for(int e=0;e<Nocc(0,0)+Nocc(0,1);e++){
+          for(int t=0;t<4;t++){
+            tmpgradderiv(n,e,t)=0;
+          }
+        }
+      }
+    }
+
+    for(int n=0;n<nparms_;n++){
+      for(int m=0;m<nparms_;m++){
+        tmpgradient(n)+=restMat(n,m)*deriv.gradient(m);
+        for(int e=0;e<Nocc(0,0)+Nocc(0,1);e++){
+          for(int t=0;t<4;t++){
+            tmpgradderiv(n,e,t)+=restMat(n,m)*deriv.gradderiv(m,e,t);
+          }
+        }
+      }
+    }
+  
+    deriv.gradient.Resize(nparms());
+    deriv.gradderiv.Resize(nparms(),Nocc(0,0)+Nocc(0,1),4);
+    
+    for(int n=0;n<nparms();n++){
+      deriv.gradient(n)=tmpgradient(concomp[n][0]);
+      for(int e=0;e<Nocc(0,0)+Nocc(0,1);e++){
+        for(int t=0;t<4;t++){
+          deriv.gradderiv(n,e,t)=tmpgradderiv(concomp[n][0],e,t);
+        }
+      }
+    }
+  }
 }

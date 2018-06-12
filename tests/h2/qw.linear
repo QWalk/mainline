@@ -1,4 +1,4 @@
-method { linear total_nstep 1000  } 
+method { linear total_nstep 10000 total_fit 10000 minimum_psi0 0.5 } 
 
 include qw.sys
 
