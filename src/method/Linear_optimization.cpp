@@ -38,7 +38,7 @@ void Linear_optimization_method::read(vector <string> words,
   if(!readvalue(words,pos=0,sig_H_threshold,"SIG_H_THRESHOLD"))
     sig_H_threshold=0.5;
   if(!readvalue(words,pos=0,minimum_psi0,"MINIMUM_PSI0"))
-    minimum_psi0=0.4;
+    minimum_psi0=0.8;
   if(!readvalue(words, pos=0, max_vmc_nstep, "MAX_VMC_NSTEP"))
     max_vmc_nstep=2*vmc_nstep;
   if(!readvalue(words, pos=0, max_nconfig_eval, "MAX_FIT_NCONFIG"))
@@ -831,8 +831,8 @@ void Linear_optimization_method::wavefunction_derivative(
 
   H(0,0)=en(0);
   for(int i=0; i < n; i++) { 
-    H(i+1,0)=2*(deriv_avg.vals(i)-en(0)*deriv_avg.vals(n+i));
-    H(0,i+1)=(H(i+1,0)+2.*deriv_avg.vals(2*n+i));
+    H(i+1,0)=(deriv_avg.vals(i)-en(0)*deriv_avg.vals(n+i));
+    H(0,i+1)=(H(i+1,0)+deriv_avg.vals(2*n+i));
   }
   
   for(int i=0; i< n; i++) { 
