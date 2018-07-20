@@ -556,7 +556,10 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   for(int i=0; i < nstabil-1; i+=1) { 
     Array1 <doublevar> dptilde(Htilde.GetDim(0));
     doublevar prop_psi0=find_directions(Stilde,Htilde,dptilde,acc_stabils[i],linear);
-    recover_deltap(Pinv,dptilde,alphas(i));
+    if(svd_tolerance > 0)
+      recover_deltap(Pinv,dptilde,alphas(i));
+    else
+      alphas(i)=dptilde;
     prop_psi(i)=prop_psi0;
   }
   
@@ -594,7 +597,10 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   Array1 <doublevar> alphanew(alpha.GetDim(0));
   Array1 <doublevar> dptilde(Htilde.GetDim(0));
   doublevar prop_psi0=find_directions(Stilde,Htilde,dptilde,min_stabil,linear);
-  recover_deltap(Pinv,dptilde,alphanew);
+  if(svd_tolerance > 0) 
+    recover_deltap(Pinv,dptilde,alphanew);
+  else
+    alphanew=dptilde;
   
   for(int i=0; i< alpha.GetDim(0); i++) alphanew(i)+=alpha(i);
   
