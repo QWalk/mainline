@@ -1,5 +1,7 @@
-method { linear total_nstep 10000 total_fit 10000 minimum_psi0 0.5 } 
-
+method { linear total_nstep 1000 total_fit 10000 minimum_psi0 0.5 iterations 2 } 
+method { linear total_nstep 4000 total_fit 10000 minimum_psi0 0.5 iterations 2 }
+method { linear total_nstep 8000 total_fit 10000 minimum_psi0 0.5 iterations 2 }
+method { linear total_nstep 16000 total_fit 10000 minimum_psi0 0.5 iterations 2 }
 include qw.sys
 
 trialfunc { 

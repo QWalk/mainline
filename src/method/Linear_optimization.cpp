@@ -51,7 +51,7 @@ void Linear_optimization_method::read(vector <string> words,
     max_zero_iterations=2;
 
   if(!readvalue(words, pos=0, max_vmc_nstep, "SVD_TOLERANCE"))
-    svd_tolerance=1e-9;
+    svd_tolerance=-1;
   
   allocate(options.systemtext[0],  sys);
   sys->generatePseudo(options.pseudotext, pseudo);
@@ -518,7 +518,15 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   int n=S.GetDim(0);
 
   Array2 <doublevar> Pinv,Htilde,Stilde;
-  dimension_reduction(H,S,Pinv,Htilde,Stilde,svd_tolerance);
+  if(svd_tolerance > 0) 
+    dimension_reduction(H,S,Pinv,Htilde,Stilde,svd_tolerance);
+  else { 
+    Pinv.Resize(n,n);
+    Htilde=H;
+    Stilde=S;
+    Pinv=0.0;
+    for(int i=0; i< n; i++) Pinv=1.0;
+  }
   
   Array1 <bool> linear;
   wfdata->linearParms(linear);
