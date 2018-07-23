@@ -51,7 +51,7 @@ void Linear_optimization_method::read(vector <string> words,
     max_zero_iterations=2;
 
   if(!readvalue(words, pos=0, max_vmc_nstep, "SVD_TOLERANCE"))
-    svd_tolerance=1e-9;
+    svd_tolerance=-1;
   
   allocate(options.systemtext[0],  sys);
   sys->generatePseudo(options.pseudotext, pseudo);
@@ -518,7 +518,15 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   int n=S.GetDim(0);
 
   Array2 <doublevar> Pinv,Htilde,Stilde;
-  dimension_reduction(H,S,Pinv,Htilde,Stilde,svd_tolerance);
+  if(svd_tolerance > 0) 
+    dimension_reduction(H,S,Pinv,Htilde,Stilde,svd_tolerance);
+  else { 
+    Pinv.Resize(n,n);
+    Htilde=H;
+    Stilde=S;
+    Pinv=0.0;
+    for(int i=0; i< n; i++) Pinv=1.0;
+  }
   
   Array1 <bool> linear;
   wfdata->linearParms(linear);
@@ -548,7 +556,10 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   for(int i=0; i < nstabil-1; i+=1) { 
     Array1 <doublevar> dptilde(Htilde.GetDim(0));
     doublevar prop_psi0=find_directions(Stilde,Htilde,dptilde,acc_stabils[i],linear);
-    recover_deltap(Pinv,dptilde,alphas(i));
+    if(svd_tolerance > 0)
+      recover_deltap(Pinv,dptilde,alphas(i));
+    else
+      alphas(i)=dptilde;
     prop_psi(i)=prop_psi0;
   }
   
@@ -586,7 +597,10 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   Array1 <doublevar> alphanew(alpha.GetDim(0));
   Array1 <doublevar> dptilde(Htilde.GetDim(0));
   doublevar prop_psi0=find_directions(Stilde,Htilde,dptilde,min_stabil,linear);
-  recover_deltap(Pinv,dptilde,alphanew);
+  if(svd_tolerance > 0) 
+    recover_deltap(Pinv,dptilde,alphanew);
+  else
+    alphanew=dptilde;
   
   for(int i=0; i< alpha.GetDim(0); i++) alphanew(i)+=alpha(i);
   

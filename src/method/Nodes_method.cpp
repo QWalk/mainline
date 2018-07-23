@@ -232,17 +232,17 @@ void Nodes_method::run(Program_options & options, ostream & output)
            <<endl;
       count=0;
       for(int xx=0; xx<D_array1(0);xx++){
-	xyz(0)=minmax(0)+xx*resolution_array(0);  //move forward on x axis one resolution unit
-	max_value=min_value=0.0;
-	cout << "x ";
+        xyz(0)=minmax(0)+xx*resolution_array(0);  //move forward on x axis one resolution unit
+        max_value=min_value=0.0;
+        cout << "x ";
         cout.precision(5);
         cout.width(8);
         cout<< xyz(0);
-	for(int yy=0; yy<D_array1(1);yy++){
+        for(int yy=0; yy<D_array1(1);yy++){
           xyz(1)=minmax(2)+yy*resolution_array(1);  //move forward on y axis one resolution unit
-	  for(int zz=0;zz<D_array1(2);zz++){
-	    xyz(2)=minmax(4)+zz*resolution_array(2); //move forward on z axis one resolution unit
-	    // mywalker->getElectronPos(plots(i), oldpos);
+          for(int zz=0;zz<D_array1(2);zz++){
+            xyz(2)=minmax(4)+zz*resolution_array(2); //move forward on z axis one resolution unit
+            // mywalker->getElectronPos(plots(i), oldpos);
             mywalker->setElectronPos(plots(i)-1,xyz); //move elec#plots(i) to point specified by xyz
             wf->updateVal(wfdata, mywalker); //update wfdata
             wf->getVal(wfdata, 0, wfvals); //get wf value
@@ -257,18 +257,18 @@ void Nodes_method::run(Program_options & options, ostream & output)
             if (grid(i,count)>max_value) max_value=grid(i,count);
             if (grid(i,count)<min_value) min_value=grid(i,count);
             //  cout << "grid " << grid(i,count)<< " " << xyz(0) << endl;
-	    count++; //index for cycling through grid points
+            count++; //index for cycling through grid points
           }
         }
         cout.setf(ios::scientific| ios:: showpos);
         cout <<", max. value "<<max_value<<", min. value "<<min_value<< endl;
         cout.unsetf(ios::scientific| ios:: showpos);
-        
+
       }
       mywalker->setElectronPos(plots(i)-1, oldpos(plots(i)-1));
     }
-  
-  
+
+
     //Loop through and generate plot files for each orbital requested
     if(plots.GetSize()<=0)
       error("Number of requested plots is not a positive number");
@@ -305,8 +305,8 @@ void Nodes_method::run(Program_options & options, ostream & output)
         }
         for(int j=0; j<mywalker->electronSize(); j++){
           if (j!=plots(i)-1){
-            if (j<spin_up) os<<"     3   0.0000    ";
-            else os<<"     3     0.0000    ";
+            if (j<spin_up) os<<"     1   0.0000    ";
+            else os<<"     2     0.0000    ";
             os<< oldpos(j,0)<<"   "<<oldpos(j,1)<<"   "<< oldpos(j,2)<<endl;
           }
         }
