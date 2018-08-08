@@ -50,7 +50,8 @@ class Average_ldots:public Average_generator {
    Array1 <doublevar> init_grid;
    Array1 <doublevar> del_grid;
    Array1 <doublevar> num_grid;
- 
+   int at_i;
+   int at_f;
 };
 
 #endif 

@@ -8,6 +8,8 @@ void Average_ldots::read(System * sys, Wavefunction_data * wfdata,
   init_grid.Resize(2);
   del_grid.Resize(2);  // \delta_\theta, \delta_\phi
   num_grid.Resize(2);  // num_\theta, num_\phi
+  
+  int nions=sys->nIons();
 
   if(!readvalue(words, pos=0, init_grid(0), "INIT_THETA")) init_grid(0) = 0;
   if(!readvalue(words, pos=0, init_grid(1), "INIT_PHI")) init_grid(1) = -3.14159;
@@ -18,6 +20,9 @@ void Average_ldots::read(System * sys, Wavefunction_data * wfdata,
   if(!readvalue(words, pos=0, num_grid(0), "NUM_THETA")) num_grid(0) = 1;
   if(!readvalue(words, pos=0, num_grid(1), "NUM_PHI")) num_grid(1) = 1;
   
+  if(!readvalue(words, pos=0, at_i, "ATOM_I")) at_i = 1;
+  if(!readvalue(words, pos=0, at_f, "ATOM_F")) at_f = nions;
+  
 }
 
 void Average_ldots::read(vector <string> & words){
@@ -25,6 +30,7 @@ void Average_ldots::read(vector <string> & words){
 
 void Average_ldots::write_init(string & indent, ostream & os){
   os << indent << "LdotS\n";
+  os << indent << "from atom " << at_i << " to atom " << at_f << "\n";
 }
 
 void Average_ldots::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, System * sys,
@@ -36,7 +42,7 @@ void Average_ldots::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, Syst
   avg.vals.Resize(6*num_dir);
   int nelectrons=sample->electronSize();
   avg.vals=0.0;
-  int nions=sample->ionSize();
+  //int nions=sample->ionSize();
   Array1 <doublevar> e_pos(ndim);    
   Array1 <doublevar> ion_pos(ndim);
   
@@ -60,14 +66,15 @@ void Average_ldots::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, Syst
         if(e >= sys->nelectrons(0)) spin = -1;
         sample->getElectronPos(e,e_pos);
         wf->getLap(wfdata, e, temp_lap);
-        for(int at=0; at < nions; at++) {
+        //for(int at=0; at < nions; at++) {
+        for(int at=at_i-1; at < at_f; at++) {
           sample->getIonPos(at,ion_pos);
-          ls_real(0) += (e_pos(2)-ion_pos(2))*temp_lap.amp(0,2)*spin - (e_pos(1)-ion_pos(1))*temp_lap.amp(0,3)*spin;
-          ls_imag(0) += (e_pos(2)-ion_pos(2))*temp_lap.phase(0,2)*spin - (e_pos(1)-ion_pos(1))*temp_lap.phase(0,3)*spin; //Lx\cdot S
+          ls_real(0) += (e_pos(1)-ion_pos(1))*temp_lap.amp(0,3)*spin - (e_pos(2)-ion_pos(2))*temp_lap.amp(0,2)*spin;
+          ls_imag(0) += (e_pos(1)-ion_pos(1))*temp_lap.phase(0,3)*spin - (e_pos(2)-ion_pos(2))*temp_lap.phase(0,2)*spin; //Lx\cdot S, yz-zy
           ls_real(1) += (e_pos(2)-ion_pos(2))*temp_lap.amp(0,1)*spin - (e_pos(0)-ion_pos(0))*temp_lap.amp(0,3)*spin;
-          ls_imag(1) += (e_pos(2)-ion_pos(2))*temp_lap.phase(0,1)*spin - (e_pos(0)-ion_pos(0))*temp_lap.phase(0,3)*spin; //Ly \cdot S
+          ls_imag(1) += (e_pos(2)-ion_pos(2))*temp_lap.phase(0,1)*spin - (e_pos(0)-ion_pos(0))*temp_lap.phase(0,3)*spin; //Ly \cdot S, zx-xz??
           ls_real(2) += (e_pos(0)-ion_pos(0))*temp_lap.amp(0,2)*spin - (e_pos(1)-ion_pos(1))*temp_lap.amp(0,1)*spin;
-          ls_imag(2) += (e_pos(0)-ion_pos(0))*temp_lap.phase(0,2)*spin - (e_pos(1)-ion_pos(1))*temp_lap.phase(0,1)*spin; //Lz \cdot S
+          ls_imag(2) += (e_pos(0)-ion_pos(0))*temp_lap.phase(0,2)*spin - (e_pos(1)-ion_pos(1))*temp_lap.phase(0,1)*spin; //Lz \cdot S, xy-yx
   
         }  
       }
