@@ -194,7 +194,7 @@ public:
                         Array1 <doublevar> & y,
                         Array1 <doublevar> & z);
   /*!
-    \bief 
+    \brief 
     This set of Get... functions are for EKT calculations, for getting value of some private numbers. 
    */
   int getNumL(int at) {

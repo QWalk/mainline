@@ -32,7 +32,12 @@
  
  This is a struct, so access the member variables amp and phase  directly.
  See documentation of those member variables for the array locations.
- 
+
+ The values are (somewhat confusingly) as follows:
+
+amplitude: |Psi| Re(grad Psi/Psi) Re(lap Psi/Psi) 
+phase: arg(Psi) Imag(grad Psi/Psi) Imag(lap Psi/Psi)
+
  */
 struct Wf_return {
   Wf_return() {is_complex=0;}
