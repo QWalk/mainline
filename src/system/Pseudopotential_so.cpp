@@ -172,7 +172,7 @@ dcomplex Ylm(int l, int ml, Array1 <doublevar> r){
 
 dcomplex kron_del(int a, int b){
   if (a==b){ return dcomplex(1.,0.);}
-  else {return dcomplex(0.,0.);}
+  else { return dcomplex(0.,0.);}
 }
 
 dcomplex Ylm_c(int l, int m, Array1 <doublevar> r){
@@ -773,7 +773,8 @@ void Pseudopotential_so::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
 			dcomplex Y_o=Ylm(l,m,olddist);
                         for(int m_p=-l;m_p<=l;m_p++){
 			    dcomplex Y_n=Ylm_c(l,m_p,newdist);
-		            int temp_sign=pow(-1,j);
+		            int temp_sign=pow(-1,j)*pow(-1,spin); //TODO: check this term
+		            //int temp_sign=pow(-1,j);  // didn't take the spin direction into account.
                             dcomplex int_ls_x = integral_ls_x(l,m,m_p);
                             dcomplex int_ls_y = integral_ls_y(l,m,m_p);
                             dcomplex int_ls_z = integral_ls_z(l,m,m_p);
