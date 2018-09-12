@@ -192,6 +192,7 @@ public:
   doublevar timestep;
   string readconfig, storeconfig;
   string log_label;
+  string jsonfile;
   int nconfig;
   int nelectrons;
   int ndim;
