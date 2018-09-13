@@ -44,8 +44,13 @@ void Maximize_method::read(vector <string> words,
 
   if(!readvalue(words,pos=0,nconfig,"NCONFIG"))
     nconfig=100;
-  
 
+  sample_only=false;
+  if(haskeyword(words,pos=0,"SAMPLE"))
+    sample_only=true;
+
+  json_file = options.runid+".json";
+  cout << "filename " << json_file << endl;
 #ifdef USE_MPI
   int extra_configs = nconfig % mpi_info.nprocs;
   if(mpi_info.node < extra_configs) {
@@ -60,8 +65,255 @@ void Maximize_method::read(vector <string> words,
 }
 
 //----------------------------------------------------------------------
-
 void Maximize_method::run(Program_options & options, ostream & output) { 
+  Wavefunction * wf=NULL;
+  Sample_point * sample=NULL;
+  sys->generateSample(sample);
+  wfdata->generateWavefunction(wf);
+  sample->attachObserver(wf);
+  Properties_gather mygather;
+  Primary guidewf;
+
+  if(sample_only) {
+    run_sample(options, output);
+    delete sample;
+    delete wf;
+    return;
+  }
+#ifdef USE_MPI
+  if(mpi_info.nprocs<2) error("MAXIMIZE must be run with at least 2 processes to be run in parallel.");
+  if(mpi_info.node==0) {
+    master(wf, sample, output);
+  }
+  else {
+    worker(wf, sample);
+  }
+#else
+  run_old(options, output);
+#endif //USE_MPI
+
+  delete sample;
+  delete wf;
+}
+
+int Maximize_method::gen_max_conf(Wavefunction * wf, Sample_point * sample,
+    Config_save_point & config_pos, Maximize_config & maximize_config) {
+  Primary guidewf;
+  Properties_gather mygather;
+  Properties_point pt;
+  sys->generateSample(sample);
+  wfdata->generateWavefunction(wf);
+  sample->attachObserver(wf);
+  
+  Wf_return lap(1,5);
+  int nelectrons=sample->electronSize();
+  Array1 <doublevar> epos(3);
+  Array2 <doublevar> tempconfig(nelectrons,3);
+  Array1 <doublevar> tempgrad(3*nelectrons);
+  Array2 <doublevar> temphessian(3*nelectrons,3*nelectrons);
+  Array2 <doublevar> inverse_hessian(3*nelectrons,3*nelectrons);
+  pseudo->setDeterministic(1); 
+
+  config_pos.restorePos(sample);
+  
+  // Get initial info
+  for(int e=0; e< nelectrons; e++) {
+    sample->getElectronPos(e,epos);
+    for(int d=0; d< 3; d++) {
+      tempconfig(e,d) = epos(d);
+    }
+  }
+  mygather.gatherData(pt, pseudo, sys, wfdata, wf, sample, &guidewf);
+  
+  maximize_config.psi_init = pt.wf_val.amp(0,0);
+  maximize_config.energy_init = pt.energy(0);
+  maximize_config.config_init = tempconfig;
+
+  // Maximize Sample
+  maximize(sample,wf,temphessian);
+  
+  // Get maximized info
+  for(int e=0; e< nelectrons; e++) {
+    sample->getElectronPos(e,epos);
+    for(int d=0; d< 3; d++) {
+      tempconfig(e,d) = epos(d);
+    }
+  }
+  mygather.gatherData(pt, pseudo, sys, wfdata, wf, sample, &guidewf);
+  
+  // find gradient
+  int count=0;
+  doublevar psi_error=0;
+  wf->updateLap(wfdata,sample);
+  for(int e=0; e< nelectrons; e++) { 
+    wf->getLap(wfdata,e,lap);
+    for(int d=0; d< 3; d++) {
+      doublevar grad=-lap.amp(0,d+1);
+      tempgrad[count++]=grad;
+    }
+  }
+  // estimate error in psi by 0.5 * g.T * H_inv * g
+  InvertMatrix(temphessian, inverse_hessian, 3*nelectrons);
+  for(int j=0; j<3*nelectrons; j++) {
+    for(int k=0; k<3*nelectrons; k++) {
+      psi_error += 0.5*tempgrad(j)*inverse_hessian(j,k)*tempgrad(k);
+    }
+  }
+
+  maximize_config.nelectrons = nelectrons;
+  maximize_config.psi = lap.amp(0,0);
+  maximize_config.energy = pt.energy(0);
+  maximize_config.config = tempconfig;
+  maximize_config.hessian= temphessian;
+  maximize_config.error = psi_error;
+  
+}
+
+int Maximize_method::worker(Wavefunction * wf, Sample_point * sample) {
+#ifdef USE_MPI
+  Config_save_point tmpconfig;
+  tmpconfig.mpiReceive(0);
+  Maximize_config maximize_config;
+
+  while(true) {
+    gen_max_conf(wf, sample, tmpconfig, maximize_config);
+    int done=1;
+    MPI_Send(done,0);
+    maximize_config.mpiSend(0);
+    MPI_Recv(done,0);
+    if(done==0) break;
+    tmpconfig.mpiReceive(0);
+  }
+  cout << mpi_info.node <<  " : done " << endl;
+#endif //USE_MPI
+}
+
+int Maximize_method::master(Wavefunction * wf, Sample_point * sample, ostream & output) {
+#ifdef USE_MPI
+  Array1 <Config_save_point> config_pos(nconfig);
+  Properties_point pt;
+  pt.setSize(1);
+  Maximize_config maximize_config;
+  MPI_Status status;
+
+  Primary guidewf;
+  generate_sample(sample,wf,wfdata,&guidewf,nconfig,config_pos);
+  int nelectrons=sample->electronSize();
+  maximize_config.set_nelectrons(nelectrons);
+  int configcounter=0;
+  int totcount=0;
+  
+  cout << "Writing to " << json_file << endl;
+  ofstream os(json_file.c_str());
+  stringstream tempstream;
+  tempstream.precision(15);
+  os << '[';
+  //Get everyone started with data
+  for(int r=1; r < mpi_info.nprocs; r++) {
+    if(nconfig<r) {break;}
+    config_pos(configcounter++).mpiSend(r);
+  }
+
+  while( configcounter < config_pos.GetDim(0)) {
+    //Is anyone done?
+    //When done, receive completed maximize_config and send out new point
+    int done;
+    MPI_Recv(&done,1,MPI_INT,MPI_ANY_SOURCE,MPI_ANY_TAG,MPI_Comm_grp,&status);
+    done=1;
+    maximize_config.mpiReceive(status.MPI_SOURCE);
+    MPI_Send(done,status.MPI_SOURCE);
+    config_pos(configcounter++).mpiSend(status.MPI_SOURCE);
+    //write maximize_config
+    tempstream.clear();
+    tempstream.str("");
+    maximize_config.write(tempstream,false);
+    os << tempstream.str();
+    os << ',';
+    totcount++;
+    if(totcount%(1)==0) cout << "Completed " << totcount << " samples " << endl;
+  }
+
+  //Loop through all the nodes and collect their last maximize_configs
+  for(int r=1; r < mpi_info.nprocs; r++) {
+    int done;
+    MPI_Recv(done,r);
+    done=0;
+    maximize_config.mpiReceive(r);
+    MPI_Send(done,r);
+    maximize_config.write(os,false);
+    if(r!=mpi_info.nprocs-1) {
+      os << ',';
+    }
+    totcount++;
+    if(totcount%(1)==0) cout << "Completed " << totcount << " samples " << endl;
+  }
+  os << ']';
+  os.close();
+#endif //USE_MPI
+}
+
+void Maximize_method::run_sample(Program_options & options, ostream & output) { 
+  Wavefunction * wf=NULL;
+  Sample_point * sample=NULL;
+  sys->generateSample(sample);
+  wfdata->generateWavefunction(wf);
+  sample->attachObserver(wf);
+  
+  Wf_return lap(1,5);
+
+  Array1 <Config_save_point> config_pos(nconfigs_per_node);
+  Array1 <Maximize_config> maximize_config(nconfigs_per_node);
+  Array1 <doublevar> epos(3);
+
+  Primary guidewf;
+  generate_sample(sample,wf,wfdata,&guidewf,nconfig,config_pos);
+  int nelectrons=sample->electronSize();
+  Properties_gather mygather;
+  
+  Array2 <doublevar> tempconfig(nelectrons,3);
+  Array1 <doublevar> tempgrad(3*nelectrons);
+  Array2 <doublevar> temphessian(3*nelectrons,3*nelectrons);
+  pseudo->setDeterministic(1); 
+  
+  for(int i=0; i < nconfigs_per_node; i++) { 
+    config_pos(i).restorePos(sample);
+    stringstream tableout;
+    
+    // Get initial info
+    for(int e=0; e< nelectrons; e++) {
+      sample->getElectronPos(e,epos);
+      for(int d=0; d< 3; d++) {
+        tempconfig(e,d) = epos(d);
+      }
+    }
+
+    Properties_point pt0;
+    mygather.gatherData(pt0, pseudo, sys, wfdata, wf, 
+                            sample, &guidewf);
+    
+    maximize_config(i).psi_init = pt0.wf_val.amp(0,0);
+    maximize_config(i).energy_init = pt0.energy(0);
+    maximize_config(i).config_init = tempconfig;
+    
+    maximize_config(i).nelectrons = nelectrons;
+    maximize_config(i).psi = pt0.wf_val.amp(0,0);
+    maximize_config(i).energy = pt0.energy(0);
+    maximize_config(i).config = tempconfig;
+    maximize_config(i).hessian= temphessian;
+    maximize_config(i).error = 0;
+     
+    config_pos(i).write(cout);
+    cout << "node" << mpi_info.node << " " << "sample " << i << " of " << nconfigs_per_node << " finished" << endl; 
+  }
+  
+  write_configurations_maximize_json(json_file, maximize_config);
+  delete wf;
+  delete sample;
+}
+//----------------------------------------------------------------------
+
+
+void Maximize_method::run_old(Program_options & options, ostream & output) { 
   Wavefunction * wf=NULL;
   Sample_point * sample=NULL;
   sys->generateSample(sample);
@@ -101,7 +353,7 @@ void Maximize_method::run(Program_options & options, ostream & output) {
     mygather.gatherData(pt0, pseudo, sys, wfdata, wf, 
                             sample, &guidewf);
     
-    maximize_config(i).logpsi_init = pt0.wf_val.amp(0,0);
+    maximize_config(i).psi_init = pt0.wf_val.amp(0,0);
     maximize_config(i).energy_init = pt0.energy(0);
     maximize_config(i).config_init = tempconfig;
     
@@ -140,24 +392,24 @@ void Maximize_method::run(Program_options & options, ostream & output) {
     }
 
     maximize_config(i).nelectrons = nelectrons;
-    maximize_config(i).logpsi = lap.amp(0,0);
+    maximize_config(i).psi = lap.amp(0,0);
     maximize_config(i).energy = pt.energy(0);
     maximize_config(i).config = tempconfig;
     maximize_config(i).hessian= temphessian;
     maximize_config(i).error = psi_error;
      
     config_pos(i).write(cout);
+    cout << "node" << mpi_info.node << " " << "sample " << i << " of " << nconfigs_per_node << " finished" << endl; 
   }
   
-  string outfilename=options.runid+".json";
-  write_configurations_maximize_json(outfilename, maximize_config);
+  write_configurations_maximize_json(json_file, maximize_config);
   
   // Hessian steps
   // write Hessians calculated with different step sizes for the first configuration
   // int nsteps=10;
   // Array1 <Hessian_step> hessian_steps(nsteps);
   // hessian_vary_step(sample,wf,config_pos(0),hessian_steps);
-  // write_hessian_vary_step_json(outfilename, hessian_steps,maximize_config(0).config,maximize_config(0).logpsi);
+  // write_hessian_vary_step_json(outfilename, hessian_steps,maximize_config(0).config,maximize_config(0).psi);
   ////
 
   delete wf;
@@ -249,40 +501,75 @@ public:
   //-----------------------------------------
   void macoptII(double * x,int n) {
     Array1 <doublevar> grad(n+1);
+    Array1 <doublevar> prev_grad(n+1);
+    Array1 <doublevar> step_dir(n+1);
     //Array1 <doublevar> xnew(n+1);
+    stringstream os;
+    os.precision(15);
     int max_it = 100;
-    int max_big_it = 500;
+    int max_big_it = n*5;
+    int beta_counter=0;
     doublevar tol = 1e-9;
-    doublevar outer_tol = tol*10; // make outer loop tolerance looser than inner
+    doublevar outer_tol = 1e-4; // make outer loop tolerance looser than inner
+    doublevar beta;
+    os << "node" << mpi_info.node << " max_it=" << max_it << " tol=" << tol <<" max_big_it=" << max_big_it << " outer_tol=" << outer_tol << endl;
     for(int big_it=0; big_it < max_big_it; big_it++) {
       //find the direction of the gradient at x
+      //*prev_grad.v = *grad.v;
+      for(int i=1; i<=n;i++) {
+        prev_grad(i) = grad(i);
+      }
       dfunc(x,grad.v);
       doublevar gradlen = grad_abs(grad,n);
-      if (gradlen < outer_tol){cout << "node " << mpi_info.node << " gradient " << gradlen << endl; break;}
-      doublevar unit;
+      doublevar num=0;
+      doublevar den=0;
+      //find conjugate gradient direction
+      if(beta_counter%n==0) {
+        os << "node" << mpi_info.node << " big_it=" << big_it << " reset beta_counter=" << beta_counter << endl;
+        beta = 0.0;
+      } else {
+        for(int i=1; i<=n; i++) {
+          num += grad(i)*(grad(i)-prev_grad(i));
+          den += prev_grad(i)*prev_grad(i);
+        }
+        beta = num/den;
+        if(beta<0) {
+          os << "node" << mpi_info.node << " big_it=" << big_it << " reset beta=" << beta << endl;
+          beta = 0.0;
+          beta_counter = 0;
+        }
+      }
+      beta_counter++;
+      for(int i=1; i<=n; i++) {
+        step_dir(i) = grad(i) + beta*step_dir(i);
+      }
+      
+      //bracket the minimum in this direction (in 1D units of tstep) for bisection method
+      if (gradlen < outer_tol){ os << "node" << mpi_info.node << " func " << grad(0) << " gradlen " << gradlen << endl; break;}
       doublevar fbase=grad(0);
       doublevar bracket_tstep=0.0,last_func=fbase;
-      //bracket the minimum in this direction (in 1D units of tstep) for bisection method
-      for(doublevar tstep=1e-8; tstep < 20.0; tstep*=2.0) {
-        doublevar f=eval_tstep(x,tstep,grad,n);
-        //cout << "node" << mpi_info.node << " " << "tstep " << tstep << " func " << f << " fbase " << fbase << endl;
-        if(f > fbase or f > last_func) {
+      doublevar f_tol = 1e-14;
+      for(doublevar tstep=1e-4; tstep < 1e3; tstep*=2.0) {
+        doublevar f=eval_tstep(x,tstep,step_dir,n);
+        if(f > fbase+f_tol or f > last_func+f_tol) {
           bracket_tstep=tstep;
+          last_func=f;
           break;
         }
         else last_func=f;
       }
-      cout << "node" << mpi_info.node << " " << "bracket_tstep " << bracket_tstep << " gradlen " << gradlen << endl;
-      if (bracket_tstep==0){cout << "node " << mpi_info.node << " gradient too small, exiting loop" << endl; break;}
+      os << "node" << mpi_info.node << " big_it=" << big_it << " bracket_tstep=" << bracket_tstep << " gradlen=" << gradlen << " fbase=" << fbase << " f=" << last_func << " f-fbase=" << last_func-fbase << endl;
+      if (bracket_tstep==0){os << "node" << mpi_info.node << " gradient too small, bracket_tstep=0, exiting loop" << endl; break;}
       
       //bisection method works best using the golden ratio
       doublevar resphi=2.-(1.+sqrt(5.))/2.;
       doublevar a=0, b=resphi*bracket_tstep, c=bracket_tstep;
       doublevar af=fbase,
-      bf=eval_tstep(x,b,grad,n),
-      cf=eval_tstep(x,c,grad,n);
-      cout << "node" << mpi_info.node << " " << "first step  a,b,c " << a << " " << b << "  " << c
-      << " funcs " << af << " " << bf << " " << cf << endl;
+      bf=eval_tstep(x,b,step_dir,n),
+      cf=eval_tstep(x,c,step_dir,n);
+      doublevar unit;
+      os << "node" << mpi_info.node << " big_it=" << big_it << " " << "first step  a,b,c " 
+      << a << " " << b << "  " << c << " funcs " << af << " " << bf << " " << cf << endl;
       //bisection method iteration, (a, b, c)
       for(int it=0; it < max_it; it++) {
         doublevar d,df;
@@ -291,7 +578,7 @@ public:
           d=b+resphi*(c-b);
         else
           d=b-resphi*(b-a);
-        df=eval_tstep(x,d,grad,n);
+        df=eval_tstep(x,d,step_dir,n);
         //check if the function is smaller at d than at b to choose next bracket
         if(df < bf) {
           if( (c-b) > (b-a) ) {
@@ -300,7 +587,7 @@ public:
             //(af-bf) = log psi_a - log psi_b = log(psi_a/psi_b) ~ (psi_a-psi_b)/psi_b < tol
             //gradlen is abs(grad) at start, timesteps a, b, c, d are in units of grad, need to multiply to get actual distance a-b.
             unit = gradlen*(b-a);
-            if((af-bf)/unit<tol and (bf-af)/unit<tol or unit<1e-15) { cout << "node " << mpi_info.node << " break step " << it << " (af-bf)/(b-a)=" << af/unit-bf/unit << endl; break; }
+            if(((af-bf)/unit<tol and (bf-af)/unit<tol) or unit<1e-15) { os << "node" << mpi_info.node << " big_it=" << big_it << " break step " << it << " (af-bf)/(b-a)=" << af/unit-bf/unit << " unit=" << unit << endl; break; }
             a=b;
             af=bf;
             b=d;
@@ -308,7 +595,7 @@ public:
           }
           else {
             unit = gradlen*(c-b);
-            if((cf-bf)/unit<tol and (bf-cf)/unit<tol or unit<1e-15) { cout << "node " << mpi_info.node << " break step " << it << " (cf-bf)/(c-b)=" << cf/unit-bf/unit << endl; break; }
+            if(((cf-bf)/unit<tol and (bf-cf)/unit<tol) or unit<1e-15) { os << "node" << mpi_info.node << " big_it=" << big_it << " break step " << it << " (cf-bf)/(c-b)=" << cf/unit-bf/unit << " unit=" << unit << endl; break; }
             c=b;
             cf=bf;
             b=d;
@@ -319,39 +606,38 @@ public:
         else {
           if( (c-b) > (b-a) ) {
             unit = gradlen*(c-d);
-            if((cf-df)/unit<tol and (df-cf)/unit<tol or unit<1e-15) { cout << "node " << mpi_info.node << " break step " << it << " (df-cf)/(d-c)=" << df/unit-cf/unit << endl; break; }
+            if(((cf-df)/unit<tol and (df-cf)/unit<tol) or unit<1e-15) { os << "node" << mpi_info.node << " big_it=" << big_it << " break step " << it << " (df-cf)/(d-c)=" << df/unit-cf/unit << " unit=" << unit << endl; break; }
             c=d;
             cf=df;
           }
           else {
             unit = gradlen*(d-a);
-            if((af-df)/unit<tol and (df-af)/unit<tol or unit<1e-15) { cout << "node " << mpi_info.node << " break step " << it << " (af-df)/(d-a)=" << af/unit-df/unit << endl; break; }
+            if(((af-df)/unit<tol and (df-af)/unit<tol) or unit<1e-15) { os << "node" << mpi_info.node << " big_it=" << big_it << " break step " << it << " (af-df)/(d-a)=" << af/unit-df/unit << " unit=" << unit << endl; break; }
             a=d;
             af=df;
           }
         }
-        //cout << "node" << mpi_info.node << " " << "step " << it << " a,b,c " << a << " " << b << "  " << c
-        //<< " funcs " << af << " " << bf << " " << cf << endl;
         if(it==max_it-1) {
-          cout << "node" << mpi_info.node << " " << "Warning: inner loop did not reach tolerance" << endl;
+          os << "node" << mpi_info.node << " big_it=" << big_it << " " << "Warning: inner loop did not reach tolerance" << endl;
         }
       }
-      cout << "node" << mpi_info.node << " " << "last step b-a,c-b " << b-a << " " << c-b
-      << " func diffs " << (af-bf)/((b-a)*gradlen) << " " << (cf-bf)/((c-b)*gradlen) << " " << endl;
+      os << "node" << mpi_info.node << " big_it=" << big_it << " " << "last step b-a,c-b " << b-a << " " << c-b << " func diffs " << (af-bf)/((b-a)*gradlen) << " " << (cf-bf)/((c-b)*gradlen) << " " << endl;
       //finished bisection search, minimum at b; compute x for tstep b
       doublevar best_tstep=b;
       for(int i=1; i<=n; i++)
-        x[i]=x[i]-best_tstep*grad[i];
-
+        x[i]=x[i]-best_tstep*step_dir[i];
+      os << "node" << mpi_info.node << " big_it=" << big_it << " took step of size " << best_tstep*grad_abs(step_dir,n) << endl;
+      
       if(big_it==max_big_it-1) {
-        cout << "node" << mpi_info.node << " " << "Warning: outer loop did not reach tolerance." << endl;
+        os << "node" << mpi_info.node << " " << "Warning: outer loop did not reach tolerance." << endl;
       }
     }
-    newton_iteration(x, n, 3);
+    newton_iteration(x, n, 0, os);
+    cout << os.str(); 
   }
   
   //-----------------------------------------
-  void newton_iteration(double * x, int n, int nit=1) {
+  void newton_iteration(double * x, int n, int nit, stringstream& os) {
     Array2 <doublevar> hessian(n,n);
     Array2 <doublevar> inverse_hessian(n,n);
     Array1 <doublevar> grad(n+1);
@@ -371,8 +657,8 @@ public:
         grad_squared += grad(i)*grad(i);
         delta_x_squared += delta_x(i)*delta_x(i);
       }
-      cout << "node" << mpi_info.node << " " << "newton" << it << ", |grad| = " << sqrt(grad_squared);
-      cout << ", psi error = " << psi_error << ", x error = " << sqrt(delta_x_squared) << endl;
+      os << "node" << mpi_info.node << " " << "newton" << it << ", |grad| = " << sqrt(grad_squared);
+      os << ", psi error = " << psi_error << ", x error = " << sqrt(delta_x_squared) << endl;
       if(it<nit){ // don't update x on the last step, so that the ouput represents the final estimated error (and not one that has been corrected)
         for(int i=1; i<=n; i++)
           x[i]=x[i]-delta_x(i);
@@ -480,14 +766,14 @@ int Maximize_method::showinfo(ostream & os) {
 }
 
 //----------------------------------------------------------------------
-void write_hessian_vary_step_json(string & outfilename, Array1 <Hessian_step> hessian_steps,Array2 <doublevar> config, doublevar logpsi) {
+void write_hessian_vary_step_json(string & outfilename, Array1 <Hessian_step> hessian_steps,Array2 <doublevar> config, doublevar psi) {
   int nsteps = hessian_steps.GetDim(0);
   int nelectrons = config.GetDim(0);
   // write to file
   ofstream os(outfilename.c_str());
   os.precision(15);
   os << "[{";
-  os << "\"psi\": " << logpsi << ", ";
+  os << "\"psi\": " << psi << ", ";
   os << "\"config\": " << "[";
   for(int e=0; e<nelectrons; e++) {
     if(e!=0) { os << ", "; }
@@ -534,7 +820,7 @@ void write_configurations_maximize_json(string & filename, Array1 <Maximize_conf
   string backfilename=filename+".backup";
   if(mpi_info.node==0) { rename(tmpfilename.c_str(),backfilename.c_str()); }
 
-  #ifdef USE_MPI
+#ifdef USE_MPI
   stringstream os;
   os.precision(15);
   for(int i=0; i< nconfigs; i++) {
@@ -558,6 +844,7 @@ void write_configurations_maximize_json(string & filename, Array1 <Maximize_conf
       delete [] buf;
     }
     os << "]";
+    os.close();
   }
   else {
     MPI_Send(nthis_string,0);
@@ -592,7 +879,7 @@ void write_configurations_maximize_yaml(string & filename, Array1 <Maximize_conf
   string backfilename=filename+".backup";
   if(mpi_info.node==0) { rename(tmpfilename.c_str(),backfilename.c_str()); }
 
-  #ifdef USE_MPI
+#ifdef USE_MPI
   stringstream os;
   os.precision(15);
   for(int i=0; i< nconfigs; i++) {
@@ -647,7 +934,7 @@ void write_configurations_maximize(string & filename,
   string backfilename=filename+".backup";
   if(mpi_info.node==0) { rename(tmpfilename.c_str(),backfilename.c_str()); }
 
-  #ifdef USE_MPI
+#ifdef USE_MPI
   stringstream os;
   os.precision(15);
   for(int i=0; i< nconfigs; i++) {
@@ -666,7 +953,7 @@ void write_configurations_maximize(string & filename,
       }
     }
     os << "elocal" << " ";
-    os << "logpsi" << endl;
+    os << "psi" << endl;
     
     os << walkstr;
     MPI_Status status;
@@ -685,7 +972,7 @@ void write_configurations_maximize(string & filename,
     // and so...casting!
     MPI_Send((char *) walkstr.c_str(),nthis_string, MPI_CHAR, 0,0,MPI_Comm_grp);
   }
-  #else
+#else
     ofstream os(tmpfilename.c_str());
     os.precision(15);
     for(int i=0; i< nconfigs; i++) {
@@ -694,7 +981,7 @@ void write_configurations_maximize(string & filename,
       //os << " } \n";
     }
     os.close();
-  #endif
+#endif
     time_t endtime;
     time(&endtime);
     if(mpi_info.node==1) {
@@ -705,7 +992,7 @@ void write_configurations_maximize(string & filename,
 //---------------------------------------------------------------------
 //YAML format
 //void Maximize_config::write(ostream & os) {
-//  os << "- " << "psi: " << logpsi << endl;
+//  os << "- " << "psi: " << psi << endl;
 //  os << "  " << "energy: " << energy << endl;
 //  os << "  " << "config: " << endl;
 //  for(int e=0; e<nelectrons; e++) {
@@ -726,8 +1013,8 @@ void write_configurations_maximize(string & filename,
 // JSON format
 void Maximize_config::write(ostream & os,bool write_hessian) {
   os << "{";
-  os << "\"psi\": " << logpsi;
-  os << "," << "\"psi_init\": " << logpsi_init;
+  os << "\"psi\": " << psi;
+  os << "," << "\"psi_init\": " << psi_init;
   os << "," << "\"error\": " << error;
   os << "," << "\"energy\": " << energy;
   os << "," << "\"energy_init\": " << energy_init;
@@ -770,6 +1057,38 @@ void Maximize_config::write(ostream & os,bool write_hessian) {
 }
 
 void Maximize_config::read(istream & is) {}
-void Maximize_config::mpiSend(int node) {}
-void Maximize_config::mpiReceive(int node) {}
-
+void Maximize_config::mpiSend(int node) {
+#ifdef USE_MPI
+  MPI_Send(&psi, 1, MPI_DOUBLE, node, 0, MPI_Comm_grp);
+  MPI_Send(&psi_init, 1, MPI_DOUBLE, node, 0, MPI_Comm_grp);
+  MPI_Send(&error, 1, MPI_DOUBLE, node, 0, MPI_Comm_grp);
+  MPI_Send(&energy, 1, MPI_DOUBLE, node, 0, MPI_Comm_grp);
+  MPI_Send(&energy_init, 1, MPI_DOUBLE, node, 0, MPI_Comm_grp);
+  MPI_Send(config.v, config.GetSize(), MPI_DOUBLE, node, 0, MPI_Comm_grp);
+  MPI_Send(config_init.v, config_init.GetSize(), MPI_DOUBLE, node, 0, MPI_Comm_grp);
+  MPI_Send(hessian.v, hessian.GetSize(), MPI_DOUBLE, node, 0, MPI_Comm_grp);
+#else
+  //error("Maximize_config::mpiSend: not using MPI, this is most likely a bug");
+#endif
+}
+void Maximize_config::mpiReceive(int node) {
+#ifdef USE_MPI
+  MPI_Status status;
+  MPI_Recv(&psi, 1, MPI_DOUBLE, node, 0, MPI_Comm_grp, &status);
+  MPI_Recv(&psi_init, 1, MPI_DOUBLE, node, 0, MPI_Comm_grp, &status);
+  MPI_Recv(&error, 1, MPI_DOUBLE, node, 0, MPI_Comm_grp, &status);
+  MPI_Recv(&energy, 1, MPI_DOUBLE, node, 0, MPI_Comm_grp, &status);
+  MPI_Recv(&energy_init, 1, MPI_DOUBLE, node, 0, MPI_Comm_grp, &status);
+  MPI_Recv(config.v, config.GetSize(), MPI_DOUBLE, node, 0, MPI_Comm_grp, &status);
+  MPI_Recv(config_init.v, config_init.GetSize(), MPI_DOUBLE, node, 0, MPI_Comm_grp, &status);
+  MPI_Recv(hessian.v, hessian.GetSize(), MPI_DOUBLE, node, 0, MPI_Comm_grp, &status);
+#else
+  //error("Maximize_config::mpiReceive: not using MPI, this is most likely a bug");
+#endif
+}
+void Maximize_config::set_nelectrons(int nelec) {
+  nelectrons = nelec;
+  config.Resize(nelectrons,3);
+  config_init.Resize(nelectrons,3);
+  hessian.Resize(nelectrons*3,nelectrons*3);
+}

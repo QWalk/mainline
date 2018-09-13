@@ -305,6 +305,7 @@ void Dmc_method::run(Program_options & options, ostream & output) {
   if(!have_allocated_variables) 
     error("Must generate variables to use Dmc_method::run");
   string logfile=options.runid+".log";
+  jsonfile=options.runid+".json";
   
   if(mpi_info.node==0 ) {
     ofstream logout(logfile.c_str(), ios::app);
@@ -536,6 +537,16 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
 	     << totbranch << " times.  So a branch every " 
 	     << doublevar(totpoints)/doublevar(totbranch)
 	     << " steps " << endl;
+
+      Array1 <Properties_block> lastblock(1);
+      prop.getLastBlock(lastblock(0));
+      Properties_final_average avg;
+      avg.blockReduce(lastblock,0,1);
+      ofstream jsonout(jsonfile.c_str(),ios::app);
+      jsonout << "{" << endl;
+      avg.JsonOutput(jsonout,average_var);
+      jsonout << "}" << endl;
+      jsonout << "<RS>" << endl;
     }
     dyngen->resetStats();
   }
