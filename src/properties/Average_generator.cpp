@@ -10,6 +10,8 @@
 #include "Average_quadrupole.h"
 #include "Average_so.h"
 #include "Properties_point.h"
+#include "Average_so.h"
+#include "Average_ldots.h"
 #include "jsontools.h"
 
 //-----------------------------------------------------------------------------
@@ -60,6 +62,8 @@ int decide_averager(string & label, Average_generator *& avg) {
     avg=new Average_quadrupole;
   else if(caseless_eq(label,"PSP_SO"))
     avg=new Average_so;  
+  else if(caseless_eq(label,"LDOTS"))
+    avg=new Average_ldots;
   else 
     error("Didn't understand ", label, " in Average_generator.");
   
