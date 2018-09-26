@@ -50,10 +50,11 @@ void Average_derivative_dm::evaluate(Wavefunction_data * wfdata, Wavefunction * 
 
   //Calculate distance squared from node 
   doublevar d2=0.0;
-  for(int e=0;e<sys->nelectrons(0)+sys->nelectrons(1);e++){
-    Wf_return lap(wf->nfunc(),5);
+  assert(wf->nfunc()==1);
+  for(int e=0;e<sample->electronSize();e++){
+    Wf_return lap(1,5);
     wf->getLap(wfdata,e,lap);
-    for(int i=1;i<4;i++) d2+=1./(lap.amp(i)*lap.amp(i))
+    for(int i=1;i<4;i++) d2+=1./(lap.amp(0,i)*lap.amp(0,i));
   }
 
   avg.vals.Resize(2*nparms+nmo+ndm_elements+ndm_elements*nparms);
