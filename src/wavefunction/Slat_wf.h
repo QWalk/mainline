@@ -622,7 +622,13 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
       }
     }
 
-    //---------------
+    //--------------- calculate distance sq from node, should it be doublevar or logval?
+    doublevar d2=0;
+    for(int e=0; e< tote; e++) 
+      for(int d=1; d< 4; d++) 
+        d2+=1./(totgrads(e,d).val()*totgrads(e,d).val());
+   
+    //--------------- 
     int det=parent->CSF(0).GetDim(0)-1;
     derivatives.gradderiv=0.0;
     for(int csf=1; csf < parent->ncsf; csf++) { 
@@ -630,7 +636,11 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
         doublevar coeff=parent->CSF(csf)(j);
         int index=csf-1;
         log_value<doublevar> thisdet=detVal(0,det,0)*detVal(0,det,1);
-        derivatives.gradient(index)+=coeff*thisdet.val();
+
+        //Apply cutoff
+        if(d2>cutoff) derivatives.gradient(index)+=coeff*thisdet.val();
+        else derivatives.gradient(index)+=0;
+        
         for(int e=0; e< tote; e++) {
           for(int d=1; d< 5; d++) {
             derivatives.gradderiv(index,e,d-1)+=coeff
