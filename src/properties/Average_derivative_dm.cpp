@@ -47,13 +47,24 @@ void Average_derivative_dm::evaluate(Wavefunction_data * wfdata, Wavefunction * 
   //[2*nparms+nmo:2*nparms+nmo+ndm_elements] DM averages
   //[2*nparms+nmo+ndm_elements : 2*nparms+nmo+ndm_elements+ndm_elements*nparms]
 
+
+  //Calculate distance squared from node 
+  doublevar d2=0.0;
+  for(int e=0;e<sys->nelectrons(0)+sys->nelectrons(1);e++){
+    Wf_return lap(wf->nfunc(),5);
+    wf->getLap(wfdata,e,lap);
+    for(int i=1;i<4;i++) d2+=1./(lap.amp(i)*lap.amp(i))
+  }
+
   avg.vals.Resize(2*nparms+nmo+ndm_elements+ndm_elements*nparms);
   int count=0;
   for(int p=0; p < nparms; p++) {
-    avg.vals(count++)=deriv.gradient(p);
+    if(d2>cutoff) avg.vals(count++)=deriv.gradient(p);
+    else avg.vals(count++)=0.0;
   }
   for(int p=0; p < nparms; p++) {
-    avg.vals(count++)=deriv.gradient(p)*pt.energy(0);
+    if(d2>cutoff) avg.vals(count++)=deriv.gradient(p)*pt.energy(0);
+    else avg.vals(count++)=0.0;
   }
   
   for(int d=0; d< nmo+ndm_elements; d++) {
@@ -78,8 +89,7 @@ void Average_derivative_dm::read(System * sys, Wavefunction_data * wfdata, vecto
   nparms=wfdata->nparms();
   nmo=dm_eval.get_nmo();
   ndm_elements=dm_eval.get_val_size()-nmo;
-
-  
+  if(!readvalue(words,pos=0,cutoff,"DIST_CUT")) cutoff=0.0;
 }
 //-----------------------------------------------------------------------------
 void Average_derivative_dm::write_init(string & indent, ostream & os) { 
@@ -101,6 +111,7 @@ void Average_derivative_dm::read(vector <string> & words) {
   readvalue(words,pos=0,nmo,"NMO");
   readvalue(words,pos=0,ndm_elements,"NDM_ELEMENTS");
   readvalue(words,pos=0,nparms,"NPARMS");
+  if(!readvalue(words,pos=0,cutoff,"DIST_CUT")) cutoff=0.0;
 }
 //-----------------------------------------------------------------------------
 void Average_derivative_dm::write_summary(Average_return &avg ,Average_return & err,

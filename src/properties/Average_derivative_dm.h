@@ -51,7 +51,7 @@ class Average_derivative_dm:public Average_generator {
  private:
   Average_tbdm_basis dm_eval;
   int nparms,nmo,ndm_elements;
-
+  doublevar cutoff; //Cutoff for evaluating wf gradient wrt det coeff
 };
 
 
