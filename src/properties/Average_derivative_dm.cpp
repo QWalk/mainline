@@ -56,16 +56,24 @@ void Average_derivative_dm::evaluate(Wavefunction_data * wfdata, Wavefunction * 
     wf->getLap(wfdata,e,lap);
     for(int i=1;i<4;i++) d2+=1./(lap.amp(0,i)*lap.amp(0,i));
   }
+  cout<<d2<<","<<cutoff<<endl; //Print distance
+  if(abs(deriv.gradient(0)>1)) { cout<<"BIG: "<<deriv.gradient(0)<<endl; } //More debugging
+
+  if(d2<cutoff){
+    cout<<"Drop this point"<<endl;
+    for(int p=0;p<nparms;p++) {
+      cout<<deriv.gradient(p)<<endl; //More debuggin
+      deriv.gradient(p)=0.0;
+    }
+  }
 
   avg.vals.Resize(2*nparms+nmo+ndm_elements+ndm_elements*nparms);
   int count=0;
   for(int p=0; p < nparms; p++) {
-    if(d2>cutoff) avg.vals(count++)=deriv.gradient(p);
-    else avg.vals(count++)=0.0;
+    avg.vals(count++)=deriv.gradient(p);
   }
   for(int p=0; p < nparms; p++) {
-    if(d2>cutoff) avg.vals(count++)=deriv.gradient(p)*pt.energy(0);
-    else avg.vals(count++)=0.0;
+    avg.vals(count++)=deriv.gradient(p)*pt.energy(0);
   }
   
   for(int d=0; d< nmo+ndm_elements; d++) {
