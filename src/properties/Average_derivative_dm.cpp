@@ -48,7 +48,7 @@ void Average_derivative_dm::evaluate(Wavefunction_data * wfdata, Wavefunction * 
   //[2*nparms+nmo+ndm_elements : 2*nparms+nmo+ndm_elements+ndm_elements*nparms]
 
 
-  //Calculate distance squared from node 
+  //Calculate distance squared from node, per electron
   doublevar d2=0.0;
   assert(wf->nfunc()==1);
   for(int e=0;e<sample->electronSize();e++){
@@ -56,10 +56,12 @@ void Average_derivative_dm::evaluate(Wavefunction_data * wfdata, Wavefunction * 
     wf->getLap(wfdata,e,lap);
     for(int i=1;i<4;i++) d2+=1./(lap.amp(0,i)*lap.amp(0,i));
   }
-  cout<<d2<<","<<cutoff<<endl; //Print distance
-  if(abs(deriv.gradient(0)>1)) { cout<<"BIG: "<<deriv.gradient(0)<<endl; } //More debugging
+  d2/=(sample->electronSize()*sample->electronSize());
 
-  if(d2<cutoff){
+  if(abs(deriv.gradient(0)>1)) { cout<<"BIG: "<<deriv.gradient(0)<<endl; } //More debugging
+  cout<<d2<<","<<cutoff*cutoff<<endl; //Print distance and cutoff
+
+  if(d2<(cutoff*cutoff)){
     cout<<"Drop this point"<<endl;
     for(int p=0;p<nparms;p++) {
       cout<<deriv.gradient(p)<<endl; //More debuggin
