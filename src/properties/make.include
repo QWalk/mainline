@@ -4,6 +4,7 @@ MY_SOURCES:= \
              Average_derivative_dm.cpp \
              Average_enmoment.cpp \
              Average_generator.cpp \
+             Average_ldots.cpp   \
              Average_so.cpp   \
              Average_ekt.cpp	\
              Average_region_fluctuation.cpp \

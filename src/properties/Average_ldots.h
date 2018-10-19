@@ -17,13 +17,12 @@
  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  
  */
-#ifndef AVERAGE_SO_H_INCLUDED
-#define AVERAGE_SO_H_INCLUDED
+#ifndef AVERAGE_LDOTS_H_INCLUDED
+#define AVERAGE_LDOTS_H_INCLUDED
 #include "Average_generator.h"
-#include "Pseudopotential_so.h"
 #include <iostream>
 using namespace std; 
-class Average_so:public Average_generator { 
+class Average_ldots:public Average_generator { 
  public:
   virtual void evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
                         System * sys, Sample_point * sample, Average_return & );
@@ -37,22 +36,22 @@ class Average_so:public Average_generator {
   virtual void read(System * sys, Wavefunction_data * wfdata, vector
                     <string> & words);
   virtual void write_init(string & indent, ostream & os);
-  virtual void randomize(Wavefunction_data * wfdata, Wavefunction * wf,
-			 System * sys, Sample_point * sample);
+  //virtual void randomize(Wavefunction_data * wfdata, Wavefunction * wf,
+			 //System * sys, Sample_point * sample);
   virtual void read(vector <string> & words);
   virtual void write_summary(Average_return &,Average_return &, ostream & os);
   virtual void jsonOutput(Average_return &,Average_return &, ostream & os); 
-  virtual ~Average_so() { 
+  virtual ~Average_ldots() { 
   }
-  Average_so() { 
+  Average_ldots() { 
   }
-
- private:
-   Pseudopotential_so * psp_so; 
+  
+  private:
    Array1 <doublevar> init_grid;
    Array1 <doublevar> del_grid;
    Array1 <doublevar> num_grid;
- 
+   int at_i;
+   int at_f;
 };
 
 #endif 
