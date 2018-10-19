@@ -112,9 +112,7 @@ void Average_so::randomize(Wavefunction_data * wfdata, Wavefunction * wf,
 
 void Average_so::write_summary(Average_return & avg, Average_return & err, 
                                ostream & os) {
-  int ndim = avg.vals.GetDim(0);
-  assert(ndim <= err.vals.GetDim(0));
-//  psp_so->showinfo(os);
+  psp_so->showinfo(os);
   os << "First order energy correction due to spin-orbit interaction\n";
  
   for(int i=0;i<avg.vals.GetDim(0);i++)

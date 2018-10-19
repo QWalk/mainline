@@ -580,8 +580,10 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
     }
   }
   
-  if(parent->optimize_mo) {
+  if(parent->optimize_mo && !parent->optimize_det) {
     parent->orbrot->getParmDeriv<doublevar>(parent->detwt,moVal,inverse, detVal, derivatives);
+    derivatives.hessian=0;
+    
     return 1;
   }
   else if(parent->optimize_det) {
@@ -640,19 +642,38 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
           }
         }
         det++;
+        //Testing 
       }
     }
-    for(int csf=0; csf< nparms; csf++) {
-      derivatives.gradient(csf)*=detsum.val(); 
+    
+    //if optimize_mo and optimize_det
+    if(parent->optimize_mo){
+      int norbparms=parent->orbrot->nparms();
+      for(int csf=0; csf< nparms-norbparms; csf++){
+        derivatives.gradient(csf)*=detsum.val(); 
+      }
+      
+      Parm_deriv_return orbval;
+      orbval.gradient.Resize(norbparms);
+      orbval.hessian.Resize(norbparms, norbparms);
+      orbval.gradderiv.Resize(norbparms,tote,4);
+      orbval.val_gradient.Resize(tote,4);
+      orbval.need_hessian=derivatives.need_hessian;
+      parent->orbrot->getParmDeriv<doublevar>(parent->detwt,moVal,inverse, detVal, orbval);
+ 
+      for(int i=0;i<norbparms;i++){
+        derivatives.gradient(nparms-norbparms+i)=orbval.gradient(i);
+        for(int e=0;e<tote;e++){
+          for(int d=0;d<4;d++)
+            derivatives.gradderiv(nparms-norbparms+i,e,d)=orbval.gradderiv(i,e,d);
+        }
+      }
+    }else{
+      for(int csf=0; csf< nparms; csf++) 
+        derivatives.gradient(csf)*=detsum.val(); 
     }
     derivatives.hessian=0;
-    //for(int csf=0; csf < parent->ncsf; csf++) { 
-    //  for(int e=0; e< tote; e++) { 
-    //    for(int d=0; d< 4; d++) { 
-    //      cout << "deriv " << derivatives.gradderiv(csf,e,d) << endl;
-    //    }
-    //  }
-    //}
+
     return 1;
   }
   else { 

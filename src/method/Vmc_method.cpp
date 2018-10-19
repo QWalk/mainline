@@ -328,6 +328,7 @@ void Vmc_method::run(Program_options & options, ostream & output) {
     error("Must generate variables to use Vmc_method::run");
   
   string logfile=options.runid+".log";
+  jsonfile=options.runid+".json";
 
   if(mpi_info.node==0 ) {
     ofstream logout(logfile.c_str(), ios::app);
@@ -501,11 +502,6 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
         nldensplt(i)->write(log_label);
     }
     acceptance/=nstep*ndecorr*nelectrons;
-    //if(auto_timestep) { 
-    //  if(acceptance < 0.4) timestep -=0.1;
-    //  if(acceptance > 0.6) timestep +=0.1;
-    //  timestep=parallel_sum(timestep)/mpi_info.nprocs;
-    //}
     //Output for the block
     if(output) {
       if(global_options::rappture ) { 
@@ -527,6 +523,15 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
       sampler->resetStats();
       prop.printBlockSummary(output);
       output << endl;
+      Array1 <Properties_block> lastblock(1);
+      prop.getLastBlock(lastblock(0));
+      Properties_final_average avg;
+      avg.blockReduce(lastblock,0,1);
+      ofstream jsonout(jsonfile.c_str(),ios::app);
+      jsonout << "{" << endl;
+      avg.JsonOutput(jsonout,average_var);
+      jsonout << "}" << endl;
+      jsonout << "<RS>" << endl;
     }
   }              //blocks done
 

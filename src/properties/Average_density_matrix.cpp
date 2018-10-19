@@ -383,7 +383,8 @@ void Average_tbdm_basis::evaluate_tbdm(Wavefunction_data * wfdata, Wavefunction 
                         System * sys, Sample_point * sample, Average_return & avg) { 
   avg.type="tbdm_basis";
 
-  wf->updateVal(wfdata,sample);
+  //wf->updateVal(wfdata,sample);
+  wf->updateLap(wfdata,sample);
   Wf_return wfval_base(wf->nfunc(),2);
   wf->getVal(wfdata,0,wfval_base);
   int nup=sys->nelectrons(0);

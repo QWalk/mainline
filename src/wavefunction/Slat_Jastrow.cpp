@@ -184,12 +184,11 @@ int Slat_Jastrow::getParmDeriv(Wavefunction_data *  wfdata,
   int nslater=dataptr->slater->nparms();
   int njast=dataptr->jastrow->nparms();
   int nparms=nslater + njast;
-  
   derivatives.val_gradient.Resize(sample->electronSize(),5);
   slater_wf->getParmDeriv(dataptr->slater,sample, derivatives);
   jastrow_wf->getParmDeriv(dataptr->jastrow,sample, jastval);
   extend_parm_deriv(derivatives,jastval);
-  
+ 
   return 1;
 }
 

@@ -44,6 +44,24 @@ struct Hessian_step {
   doublevar step;
 };
 
+struct Maximize_config {
+  int nelectrons;
+  Array2 <doublevar> config, config_init;
+  Array2 <doublevar> hessian;
+  doublevar psi, psi_init;
+  doublevar error;
+  doublevar energy, energy_init;
+  
+  Maximize_config() {
+    nelectrons=0;
+  }
+  void mpiSend(int node);
+  void mpiReceive(int node);
+  void read(istream & is);
+  void write(ostream & os,bool write_hessian);
+  void set_nelectrons(int nelec);
+};
+
 class Maximize_method :public Qmc_method {
 public:
 
@@ -57,6 +75,8 @@ public:
             unsigned int & pos,
             Program_options & options);
   void run(Program_options & options, ostream & output);
+  void run_old(Program_options & options, ostream & output);
+  void run_sample(Program_options & options, ostream & output);
   
   int showinfo(ostream & os);
 
@@ -68,10 +88,16 @@ public:
   }
 
 private:
+  int gen_max_conf(Wavefunction * wf, Sample_point * sample, Config_save_point & config_pos, Maximize_config & maximize_config);
+  int worker(Wavefunction * wf, Sample_point * sample);
+  int master(Wavefunction * wf, Sample_point * sample, ostream & os);
   void maximize(Sample_point * sample,Wavefunction * wf,Array2 <doublevar> & hessian);
   void hessian_vary_step(Sample_point * sample,Wavefunction * wf,Config_save_point & pt,Array1 <Hessian_step> & hessian_steps);
+  
   int nconfig;
   int nconfigs_per_node;
+  bool sample_only;
+  string json_file;
   string guidetype;
   Guiding_function * guidewf;
   Pseudopotential * pseudo;
@@ -80,24 +106,7 @@ private:
   //void calc_hessian(double * x, Array2 <doublevar> & hessian, int n);
 };
 
-struct Maximize_config {
-  int nelectrons;
-  Array2 <doublevar> config, config_init;
-  Array2 <doublevar> hessian;
-  doublevar logpsi, logpsi_init;
-  doublevar error;
-  doublevar energy, energy_init;
-  
-  Maximize_config() {
-    nelectrons=0;
-  }
-  void mpiSend(int node);
-  void mpiReceive(int node);
-  void read(istream & is);
-  void write(ostream & os,bool write_hessian);
-};
-
-void write_hessian_vary_step_json(string & outfilename, Array1 <Hessian_step> hessian_steps,Array2 <doublevar> config, doublevar logpsi);
+void write_hessian_vary_step_json(string & outfilename, Array1 <Hessian_step> hessian_steps,Array2 <doublevar> config, doublevar psi);
 void write_configurations_maximize(string & filename, Array1 <Maximize_config> configs);
 void write_configurations_maximize_yaml(string & filename, Array1 <Maximize_config> configs);
 void write_configurations_maximize_json(string & filename, Array1 <Maximize_config> configs);

@@ -57,7 +57,9 @@ private:
   int max_nconfig_eval;
   int max_vmc_nstep;
   int max_zero_iterations;
+  double svd_tolerance;
   bool do_uncorrelated_evaluation;
+  bool pseudopotential_derivatives;
   doublevar sig_H_threshold;
   doublevar en_convergence;
   doublevar minimum_psi0;
@@ -71,11 +73,14 @@ private:
   void wavefunction_derivative(Array2<doublevar> & H,Array2 <doublevar> & S,Array1<doublevar> & en);
   void wavefunction_energy(Array1 <doublevar> & en);
   
+  double fit_stabil(Array1 <doublevar> & stabil, Array2 <doublevar> & energies,int nfit=5);
+  
   //returns the estimated energy change
   double line_minimization(Array2 <doublevar> & S, 
                            Array2 <doublevar> & Sinv, 
                            Array2 <doublevar> & H,
-                           Array1 <doublevar> & alpha);
+                           Array1 <doublevar> & alpha,
+                           ostream & os);
 
   void correlated_evaluation(Array1 <Array1 <doublevar> > & alphas,
                              int ref_alpha,

@@ -98,25 +98,6 @@ public:
   virtual void writeorb(ostream &, Array2 <doublevar> & rotation, Array1 <int> &)
   { error("writeorb not implemented"); } 
 
-  /*!
-    Get the molecular orbital coefficients
-   */
-  virtual void getMoCoeff(Array2 <T> & coeff) { 
-    error("getMoCoeff not implemented");
-  }
-  
-  /*!
-    
-   */
-  virtual void setMoCoeff(Array2 <T> & coeff){
-    error("setMoCoeff not implemented");
-  }
-  virtual int nMoCoeff() { 
-    error("nMoCoeff not implemented");
-    return 0;
-  }
-
-
   virtual void updateVal(
     Sample_point * sample,
     int e,
@@ -125,15 +106,6 @@ public:
     Array2 <T> & newvals
     //!< The return: in form (MO)
   )=0;
-
-  virtual void getBasisVal(
-    Sample_point * sample,
-    int e,
-    //!< electron number
-    Array1 <T> & newvals
-    ) { 
-    error("getBasisVal not implemented");
-  }
 
   virtual void updateLap(
     Sample_point * sample,
@@ -188,16 +160,6 @@ void rotate_Corb(istream & orbin, ostream & orbout,
 		 Array1 <int>  & moList, int nfunctions);
 
 
-/*
- Gets the coefficients and sets everything up from a formatted
- input file(ORB).  The file should look like: <br>
- MO#  AO#(for center) Center# Coeff# <br>
- for all MO's, then a listing of the coefficients in sequential order
-
-*/	    
-/*!
-
-*/
 //------------------------------------------------------------------------------------------
 #ifdef USE_MPI
 inline void overloaded_broadcast(Array1 <doublevar> & v) { 
@@ -289,6 +251,81 @@ template <class T> int readorb(istream & input, Center_set & centers,
 }
 
 
+template <class T> int readorb_noexpand(istream & input, Center_set & centers, 
+                                  int nmo, int maxbasis, Array1 <doublevar> & kpoint,
+                                  Array3 <int> & coeffmat, Array1 <T> & coeff) {
+  int nmo_read=0;
+  int maxlabel=0; 
+  coeffmat.clear(); //important to do this so that we know exactly how big the array v will be
+                    //This enables us to use relatively fast Bcast() operations.
+  coeff.clear();
+  if(mpi_info.node==0) { 
+    string dummy;
+    vector <int> mo,center,basis,label;
+    while(true) { 
+      input >> dummy;
+      if(dummy=="COEFFICIENTS") break;
+      int currmo=atoi(dummy.c_str())-1;
+      if(currmo > nmo) { 
+        input.ignore(300,'\n');
+      }
+      else { 
+        mo.push_back(currmo);
+        input >> dummy;
+        basis.push_back(atoi(dummy.c_str())-1);
+        if(basis.back() >= maxbasis) 
+          error("Basis function greater than maxbasis requested:",basis.back()+1);
+        else if(basis.back() < 0) 
+          error("Basis function cannot be less than 1:",basis.back()+1);
+        input >> dummy;
+        center.push_back(atoi(dummy.c_str())-1);
+        if(center.back() > centers.equiv_centers.GetDim(0) )
+          error("Center number in orb file greater than maximum number ", 
+                 centers.equiv_centers.GetDim(0));
+        
+        input >> dummy;
+        label.push_back(atoi(dummy.c_str())-1);
+      }
+      if(!input) 
+        error("Unexpected end of file; did not find COEFFICIENTS while reading orbitals");
+    }
+    nmo_read=*std::max_element(mo.begin(),mo.end())+1;
+    coeffmat.Resize(nmo_read, centers.equiv_centers.GetDim(0), maxbasis);
+    coeffmat=-1;
+    {
+      vector<int>::iterator m=mo.begin(),
+        c=center.begin(),
+        b=basis.begin(),
+        l=label.begin();
+
+      for(  ; m!=mo.end() && c!=center.end() && b!=basis.end() && l!=label.end();
+          m++,c++,b++,l++) { 
+        coeffmat(*m,*c,*b)=*l;
+        
+      }
+    }
+
+    maxlabel=*std::max_element(label.begin(),label.end())+1;
+    coeff.Resize(maxlabel);
+    for(int i=0; i< maxlabel; i++) { 
+      if(! (input >> coeff(i) ) )
+        error("unexpected end of file when reading orbital coefficients");
+    }
+  }
+#ifdef USE_MPI
+  MPI_Bcast(&nmo_read,1,MPI_INT,0,MPI_Comm_grp);
+  MPI_Bcast(&maxlabel,1,MPI_INT,0,MPI_Comm_grp);
+  int coeffmatsize;
+  
+  if(mpi_info.node!=0) { 
+    coeffmat.Resize(nmo_read,centers.equiv_centers.GetDim(0),maxbasis);
+    coeff.Resize(maxlabel);
+  }
+  MPI_Bcast(coeffmat.v,coeffmat.size,MPI_INT,0,MPI_Comm_grp);
+  overloaded_broadcast(coeff);
+#endif
+  return nmo_read;
+}
 
 //----------------------------------------------------------------------
 //A simple templated function to evaluate the k-point when it is real versus
@@ -342,10 +379,6 @@ template <> inline void eval_kpoint_deriv<doublevar>(Array1 <doublevar> & kpoint
 
 //----------------------------------------------------------------------------
 #include "qmc_io.h"
-//template<> inline void Complex_MO_matrix::read(vector <string> & words,
-//                     unsigned int & startpos,
-//                     System * sys) { 
-//}
 
 template<class T> inline void Templated_MO_matrix<T>::read(vector <string> & words,
                      unsigned int & startpos,
@@ -407,8 +440,7 @@ template<class T> inline void Templated_MO_matrix<T>::read(vector <string> & wor
   for(int i=0; i< centers.size(); i++)
   {
     int basiscent=0;
-    for(int j=0; j< centers.nbasis(i); j++)
-    {
+    for(int j=0; j< centers.nbasis(i); j++) {
       basiscent+=basis(centers.basis(i,j))->nfunc();
       //cout << "basiscent " << basiscent << endl;
     }

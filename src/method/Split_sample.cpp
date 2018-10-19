@@ -1042,64 +1042,6 @@ int SRK_dmc::sample(int e,
   //cout << "initial rk step " << endl;
   rk_step(e,sample, wf, wfdata, guidingwf, info, timestep, trace);
   
-  /*  
-  int pos=3;
-  Array1 <doublevar> err(ntrace,0.0);
-  err(2)=fabs(info.resample_gf/info.green_forward -1);
-  while(resample && 
-        fabs(info.resample_gf/info.green_forward-1) > resample_tol && 
-        pos < ntrace) {
-    //cout << "big error " << info.symm_gf/info.green_forward << endl;
-    Array1 <doublevar> newdrift(3), orig_drift(3);
-    orig_drift=trace(0).drift;
-    newdrift=trace(pos-1).drift;
-    limDrift(orig_drift, timestep, dtype);
-    limDrift(newdrift, timestep, dtype);
-    for(int d=0; d< 3; d++) {
-      trace(pos).gauss(d)=trace(0).gauss(d);
-      trace(pos).translation(d)=.5*(newdrift(d)+orig_drift(d))
-          +trace(0).gauss(d)*sqrt(timestep);//-trace(pos-1).translation(d);
-      trace(pos).pos(d)=trace(0).pos(d)+trace(pos).translation(d);
-    }
-    
-    sample->setElectronPos(e,trace(pos).pos);
-    trace(pos).sign=sample->overallSign();
-    wf->updateLap(wfdata, sample);
-    wf->getLap(wfdata, e, trace(pos).lap);
-    guidingwf->getLap(trace(pos).lap, trace(pos).drift);
-    
-    info.symm_gf=exp(runge_kutta_symm(trace(0), trace(pos), timestep, dtype));
-    info.resample_gf=exp(runge_kutta_resamp(trace(0), trace(pos), 
-                                            timestep, dtype));
-    info.new_pos=trace(pos).pos;
-
-    err(pos)=fabs(info.resample_gf/info.green_forward-1);
-    pos++;
-  }
-  
-  if(pos==ntrace) { 
-    nbottom++;
-    int bestindex=2; doublevar bestratio=err(bestindex);
-    for(int i=2; i < ntrace; i++) {
-      if(err(i) < bestratio) { bestindex=i; bestratio=err(i); } 
-    }
-    if(bestindex!=pos-1) {
-      //cout << " large remaining error "; write_array(cout, err); cout << endl;
-      //cout << "best index " << bestindex << endl;
-    
-    
-      info.symm_gf=exp(runge_kutta_symm(trace(0), trace(bestindex), 
-                                        timestep, dtype));
-      info.resample_gf=exp(runge_kutta_resamp(trace(0), trace(bestindex), 
-                                        timestep, dtype));
-      info.new_pos=trace(bestindex).pos;
-      sample->setElectronPos(e,trace(bestindex).pos);
-      pos=bestindex+1;
-    }
-  }
-  */
-  //if(pos > 3) cout << "final ratio " << info.symm_gf/info.green_forward << endl;
-  
   doublevar ratio=guidingwf->getTrialRatio(trace(2).lap,
                                            trace(0).lap)
     *trace(0).sign*trace(2).sign;

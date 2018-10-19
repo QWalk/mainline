@@ -1,4 +1,4 @@
-method { VMC } 
+method { VMC nstep 1000 } 
 include qw.sys
 trialfunc { include qw.slater } 
 
