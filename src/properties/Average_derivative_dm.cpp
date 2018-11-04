@@ -111,7 +111,7 @@ void Average_derivative_dm::read(System * sys, Wavefunction_data * wfdata, vecto
     cutoff_list(0)=1.0;
   }else{
     cutoff_list.Resize(cutsec.size());
-    for(int i=0;i<cutoff_list.GetDim(0);i++) cutoff_list(i)=stod(cutsec[i]);
+    for(int i=0;i<cutoff_list.GetDim(0);i++) cutoff_list(i)=atof(cutsec[i].c_str());
   }
 }
 //-----------------------------------------------------------------------------
@@ -147,7 +147,7 @@ void Average_derivative_dm::read(vector <string> & words) {
     cutoff_list(0)=1.0;
   }else{
     cutoff_list.Resize(cutsec.size());
-    for(int i=0;i<cutoff_list.GetDim(0);i++) cutoff_list(i)=stod(cutsec[i]);
+    for(int i=0;i<cutoff_list.GetDim(0);i++) cutoff_list(i)=atof(cutsec[i].c_str());
   }
 }
 //-----------------------------------------------------------------------------
