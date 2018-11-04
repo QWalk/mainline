@@ -22,6 +22,7 @@
 #include "Average_derivative_dm.h"
 #include <cmath>
 #include "Properties_point.h"
+
 //######################################################################
 
 
@@ -58,16 +59,29 @@ void Average_derivative_dm::evaluate(Wavefunction_data * wfdata, Wavefunction * 
   }
   d2/=(sample->electronSize()*sample->electronSize());
 
-  if(abs(deriv.gradient(0)>1)) { cout<<"BIG: "<<deriv.gradient(0)<<endl; } //More debugging
-  cout<<d2<<","<<cutoff*cutoff<<endl; //Print distance and cutoff
-
-  if(d2<(cutoff*cutoff)){
-    cout<<"Drop this point"<<endl;
+  //Zero out if inside cutoff
+  if(d2<(cutoff*cutoff)) { 
     for(int p=0;p<nparms;p++) {
-      cout<<deriv.gradient(p)<<endl; //More debuggin
       deriv.gradient(p)=0.0;
     }
   }
+
+  //Debugging 
+  char filename[255];
+  sprintf(filename,"dropped_%f",cutoff);
+  ofstream myfile;
+  myfile.open(filename,ofstream::out|ofstream::app); //Open to append 
+
+  if(myfile.is_open()){
+    if(d2<(cutoff*cutoff))
+      myfile<<"Drop this point"<<endl;
+    else
+      myfile<<"Good point"<<endl;
+  }else{
+    cout<<"Unable to open file"<<endl;
+  }
+  myfile.close();
+  //
 
   avg.vals.Resize(2*nparms+nmo+ndm_elements+ndm_elements*nparms);
   int count=0;
