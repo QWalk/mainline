@@ -40,68 +40,57 @@ void Average_derivative_dm::evaluate(Wavefunction_data * wfdata, Wavefunction * 
   if(!wf->getParmDeriv(wfdata, sample,deriv)) {
     error("Wave function needs to support parmderivs for Average_derivative_dm.");
   }
-  
+ 
+  avg.vals.Resize(cutoff_list.GetDim(0)*(2*nparms+nmo+ndm_elements+ndm_elements*nparms+1));
+  int count=0;
   //The serialization should be:
+  //For EACH cutoff, this block
   //[0:nparms] Average values of derivatives
   //[nparms:2*nparms] Correlation of parameter derivatives with local energy
   //[2*nparms:2*nparms+nmo] Orbital normalization
   //[2*nparms+nmo:2*nparms+nmo+ndm_elements] DM averages
   //[2*nparms+nmo+ndm_elements : 2*nparms+nmo+ndm_elements+ndm_elements*nparms]
+  //[2*2*nparms+nmo+ndm_elements+ndm_elements*nparms:2*nparms+nmo+ndm_elements+ndm_elements*nparms+1] Whether sample inside cutoff or not
 
-
-  //Calculate distance squared from node, per electron
-  doublevar d2=0.0;
-  assert(wf->nfunc()==1);
-  for(int e=0;e<sample->electronSize();e++){
-    Wf_return lap(1,5);
-    wf->getLap(wfdata,e,lap);
-    for(int i=1;i<4;i++) d2+=1./(lap.amp(0,i)*lap.amp(0,i));
-  }
-  d2/=(sample->electronSize()*sample->electronSize());
-
-  //Zero out if inside cutoff
-  if(d2<(cutoff*cutoff)) { 
-    for(int p=0;p<nparms;p++) {
-      deriv.gradient(p)=0.0;
+  //Loop over cutoffs
+  for(int i=0;i<cutoff_list.GetDim(0);i++){
+    //Calculate distance squared from node, per electron
+    doublevar d2=0.0;
+    assert(wf->nfunc()==1);
+    for(int e=0;e<sample->electronSize();e++){
+      Wf_return lap(1,5);
+      wf->getLap(wfdata,e,lap);
+      for(int i=1;i<4;i++) d2+=1./(lap.amp(0,i)*lap.amp(0,i));
     }
-  }
+    d2/=(sample->electronSize()*sample->electronSize());
+    int drop=(d2<(cutoff_list[i]*cutoff_list[i]));
 
-  //Debugging 
-  char filename[255];
-  sprintf(filename,"dropped_%f",cutoff);
-  ofstream myfile;
-  myfile.open(filename,ofstream::out|ofstream::app); //Open to append 
-
-  if(myfile.is_open()){
-    if(d2<(cutoff*cutoff))
-      myfile<<"Drop this point"<<endl;
-    else
-      myfile<<"Good point"<<endl;
-  }else{
-    cout<<"Unable to open file"<<endl;
-  }
-  myfile.close();
-  //
-
-  avg.vals.Resize(2*nparms+nmo+ndm_elements+ndm_elements*nparms);
-  int count=0;
-  for(int p=0; p < nparms; p++) {
-    avg.vals(count++)=deriv.gradient(p);
-  }
-  for(int p=0; p < nparms; p++) {
-    avg.vals(count++)=deriv.gradient(p)*pt.energy(0);
-  }
-  
-  for(int d=0; d< nmo+ndm_elements; d++) {
-    avg.vals(count++)=dmavg.vals(d);
-  }
-  
-  for(int p=0; p < nparms; p++) {
-    for(int d=0;d < ndm_elements; d++) {
-      avg.vals(count++)=deriv.gradient(p)*dmavg.vals(nmo+d);
+    //Zero out if inside cutoff
+    if(drop) { 
+      for(int p=0;p<nparms;p++) {
+        deriv.gradient(p)=0.0;
+      }
     }
+
+    //Tack into avg
+    for(int p=0; p < nparms; p++) {
+      avg.vals(count++)=deriv.gradient(p);
+    }
+    for(int p=0; p < nparms; p++) {
+      avg.vals(count++)=deriv.gradient(p)*pt.energy(0);
+    }
+    
+    for(int d=0; d< nmo+ndm_elements; d++) {
+      avg.vals(count++)=dmavg.vals(d);
+    }
+    
+    for(int p=0; p < nparms; p++) {
+      for(int d=0;d < ndm_elements; d++) {
+        avg.vals(count++)=deriv.gradient(p)*dmavg.vals(nmo+d);
+      }
+    }
+    avg.vals(count++)=drop; //Whether dropped or not
   }
-  
 }
 //-----------------------------------------------------------------------------
 void Average_derivative_dm::read(System * sys, Wavefunction_data * wfdata, vector
@@ -114,12 +103,27 @@ void Average_derivative_dm::read(System * sys, Wavefunction_data * wfdata, vecto
   nparms=wfdata->nparms();
   nmo=dm_eval.get_nmo();
   ndm_elements=dm_eval.get_val_size()-nmo;
-  if(!readvalue(words,pos=0,cutoff,"DIST_CUT")) cutoff=0.0;
+
+  //Initialize cutoff_list
+  vector<string> cutsec;
+  if(!readsection(words,pos=0,cutsec,"CUTOFF")){
+    cutoff_list.Resize(1);
+    cutoff_list(0)=1.0;
+  }else{
+    cutoff_list.Resize(cutsec.size());
+    for(int i=0;i<cutoff_list.GetDim(0);i++) cutoff_list(i)=stod(cutsec[i]);
+  }
 }
 //-----------------------------------------------------------------------------
 void Average_derivative_dm::write_init(string & indent, ostream & os) { 
   os << indent << "AVERAGE_DERIVATIVE_DM" << endl;
   os << indent << "AVERAGE { ";
+
+  //Print cutoffs
+  os << indent << "CUT { ";
+  for(int i=0;i<cutoff_list.GetDim(0);i++) os << cutoff_list(i) <<" ";
+  os << " }"<<endl;
+
   dm_eval.write_init(indent,os);
   os << indent << "}" << endl;
   os << indent << "NMO " << nmo << endl;
@@ -136,46 +140,64 @@ void Average_derivative_dm::read(vector <string> & words) {
   readvalue(words,pos=0,nmo,"NMO");
   readvalue(words,pos=0,ndm_elements,"NDM_ELEMENTS");
   readvalue(words,pos=0,nparms,"NPARMS");
-  if(!readvalue(words,pos=0,cutoff,"DIST_CUT")) cutoff=0.0;
+  
+  vector<string> cutsec;
+  if(!readsection(words,pos=0,cutsec,"CUTOFF")){
+    cutoff_list.Resize(1);
+    cutoff_list(0)=1.0;
+  }else{
+    cutoff_list.Resize(cutsec.size());
+    for(int i=0;i<cutoff_list.GetDim(0);i++) cutoff_list(i)=stod(cutsec[i]);
+  }
 }
 //-----------------------------------------------------------------------------
 void Average_derivative_dm::write_summary(Average_return &avg ,Average_return & err,
     ostream & os) {
   
   int count=0;
-  os << "Wave function derivatives" << endl;
-  for(int p=0; p < nparms; p++) {
-    os << avg.vals(count) << " +/- " << err.vals(count) << endl;
-    count++;
-  }
-  
-  os << "Derivative of the energy" << endl;
-  for(int p=0; p < nparms; p++) {
-    os << avg.vals(count) << " +/- " << err.vals(count) << endl;
-    count++;
-  }
+  for(int i=0;i<cutoff_list.GetDim(0);i++){
+    //Cutoff properties 
+    os << "Cutoff "<< cutoff_list(i) << endl;
+    
+    os << "Wave function derivatives" << endl;
+    for(int p=0; p < nparms; p++) {
+      os << avg.vals(count) << " +/- " << err.vals(count) << endl;
+      count++;
+    }
+    
+    os << "Derivative of the energy" << endl;
+    for(int p=0; p < nparms; p++) {
+      os << avg.vals(count) << " +/- " << err.vals(count) << endl;
+      count++;
+    }
 
-  Average_return tmpavg,tmperr;
-  tmpavg.vals.Resize(nmo+ndm_elements);
-  tmperr.vals.Resize(nmo+ndm_elements);
-  os << "Average density matrix values" << endl;
-  for(int d=0; d< nmo+ndm_elements; d++) {
-    tmpavg.vals(d)=avg.vals(count);
-    tmperr.vals(d)=err.vals(count);
-    count++;
-  }
-  dm_eval.write_summary(tmpavg,tmperr,os);
-  
-  
-
-  os << "Density matrix changes correlated with parameter derivatives" << endl;
-  for(int p=0; p < nparms; p++) {
-    for(int d=0;d < ndm_elements; d++) {
-      tmpavg.vals(nmo+d)=avg.vals(count);
-      tmperr.vals(nmo+d)=err.vals(count);
+    Average_return tmpavg,tmperr;
+    tmpavg.vals.Resize(nmo+ndm_elements);
+    tmperr.vals.Resize(nmo+ndm_elements);
+    os << "Average density matrix values" << endl;
+    for(int d=0; d< nmo+ndm_elements; d++) {
+      tmpavg.vals(d)=avg.vals(count);
+      tmperr.vals(d)=err.vals(count);
       count++;
     }
     dm_eval.write_summary(tmpavg,tmperr,os);
+    
+    
+
+    os << "Density matrix changes correlated with parameter derivatives" << endl;
+    for(int p=0; p < nparms; p++) {
+      for(int d=0;d < ndm_elements; d++) {
+        tmpavg.vals(nmo+d)=avg.vals(count);
+        tmperr.vals(nmo+d)=err.vals(count);
+        count++;
+      }
+      dm_eval.write_summary(tmpavg,tmperr,os);
+    }
+    
+    //More cutoff properties 
+    os << "Fraction cutoff: "<<avg.vals(count++)<<endl;
+    os << "\n";
+  
   }
 }
 
@@ -184,52 +206,59 @@ void Average_derivative_dm::jsonOutput(Average_return & avg,Average_return & err
   int counta=0;
   int counte=0;
   os <<"\""<< avg.type << "\":{" << endl;
-  os << "\"nmo\":" << nmo <<","<< endl;
-  os << "\"dpwf\":{" << endl;
-  os << "\"vals\":[";
-  for(int p=0; p < nparms-1; p++) os << avg.vals(counta++) << ",";
-  os << avg.vals(counta++) << "],";
-  os << "\"err\":[";
-  for(int p=0; p < nparms-1; p++) os << err.vals(counte++) << ",";
-  os << err.vals(counte++) << "]";
-  os << "}," << endl;
+  //Account for cutoffs in list
+  for(int i=0;i<cutoff_list.GetDim(0);i++){  
+    os << "\"" << cutoff_list(i) << "\":{"<<endl;  //Cutoff being applied
+    os << "\"nmo\":" << nmo <<","<< endl;
+    os << "\"dpwf\":{" << endl;
+    os << "\"vals\":[";
+    for(int p=0; p < nparms-1; p++) os << avg.vals(counta++) << ",";
+    os << avg.vals(counta++) << "],";
+    os << "\"err\":[";
+    for(int p=0; p < nparms-1; p++) os << err.vals(counte++) << ",";
+    os << err.vals(counte++) << "]";
+    os << "}," << endl;
 
-  os << "\"dpenergy\":{" << endl;
-  os << "\"vals\":[";
-  for(int p=0; p < nparms-1; p++) os << avg.vals(counta++) << ",";
-  os << avg.vals(counta++) << "],";
-  os << "\"err\":[";
-  for(int p=0; p < nparms-1; p++) os << err.vals(counte++) << ",";
-  os << err.vals(counte++) << "]";
-  os << "}," << endl;
+    os << "\"dpenergy\":{" << endl;
+    os << "\"vals\":[";
+    for(int p=0; p < nparms-1; p++) os << avg.vals(counta++) << ",";
+    os << avg.vals(counta++) << "],";
+    os << "\"err\":[";
+    for(int p=0; p < nparms-1; p++) os << err.vals(counte++) << ",";
+    os << err.vals(counte++) << "]";
+    os << "}," << endl;
 
-  
-  Average_return tmpavg,tmperr;
-  tmpavg.type="tbdm";
-  tmpavg.vals.Resize(nmo+ndm_elements);
-  tmperr.vals.Resize(nmo+ndm_elements);
-  for(int d=0; d< nmo+ndm_elements; d++) {
-    tmpavg.vals(d)=avg.vals(counta++);
-    tmperr.vals(d)=err.vals(counte++);
-  }
-  dm_eval.jsonOutput(tmpavg,tmperr,os);
-  os << ",";
-  
-  os << "\"dprdm\":[" << endl;
-  for(int p=0; p < nparms; p++) {
-    os << "{";
-    for(int d=0;d < ndm_elements; d++) {
-      tmpavg.vals(nmo+d)=avg.vals(counta++);
-      tmperr.vals(nmo+d)=err.vals(counte++);
+    
+    Average_return tmpavg,tmperr;
+    tmpavg.type="tbdm";
+    tmpavg.vals.Resize(nmo+ndm_elements);
+    tmperr.vals.Resize(nmo+ndm_elements);
+    for(int d=0; d< nmo+ndm_elements; d++) {
+      tmpavg.vals(d)=avg.vals(counta++);
+      tmperr.vals(d)=err.vals(counte++);
     }
     dm_eval.jsonOutput(tmpavg,tmperr,os);
-    os << "}";
-    if(p < nparms-1) os <<",";
+    os << ",";
+    
+    os << "\"dprdm\":[" << endl;
+    for(int p=0; p < nparms; p++) {
+      os << "{";
+      for(int d=0;d < ndm_elements; d++) {
+        tmpavg.vals(nmo+d)=avg.vals(counta++);
+        tmperr.vals(nmo+d)=err.vals(counte++);
+      }
+      dm_eval.jsonOutput(tmpavg,tmperr,os);
+      os << "}";
+      if(p < nparms-1) os <<",";
+    }
+    os << "]," << endl;
+    
+    os << "\"drop\":" << avg.vals(counta++)<<endl;
+    counte++;
+    os << "}," << endl; //End cutoff block
   }
-  os << "]" << endl;
 
   os << "}" << endl;
-
 }
 //-----------------------------------------------------------------------------
 
