@@ -60,11 +60,21 @@ void Average_derivative_dm::evaluate(Wavefunction_data * wfdata, Wavefunction * 
     for(int e=0;e<sample->electronSize();e++){
       Wf_return lap(1,5);
       wf->getLap(wfdata,e,lap);
-      for(int i=1;i<4;i++) d2+=1./(lap.amp(0,i)*lap.amp(0,i));
+      //for(int i=1;i<4;i++) d2+=1./(lap.amp(0,i)*lap.amp(0,i));
+      for(int i=1;i<4;i++) d2+=lap.amp(0,i)*lap.amp(0,i);
     }
+    d2=(1./d2);
     d2/=(sample->electronSize()*sample->electronSize());
     int drop=(d2<(cutoff_list[i]*cutoff_list[i]));
 
+    /*
+    //A lot of debugging!
+    cout<<d2<<" ";
+    for(int p=0;p<nparms;p++) cout<<deriv.gradient(p)<<" ";
+    cout<<" "<<pt.energy(0)<<endl;
+    //End debugging
+    */
+  
     //Zero out if inside cutoff
     if(drop) { 
       for(int p=0;p<nparms;p++) {
