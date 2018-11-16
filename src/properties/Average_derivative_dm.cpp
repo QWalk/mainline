@@ -52,30 +52,23 @@ void Average_derivative_dm::evaluate(Wavefunction_data * wfdata, Wavefunction * 
   //[2*nparms+nmo+ndm_elements : 2*nparms+nmo+ndm_elements+ndm_elements*nparms]
   //[2*2*nparms+nmo+ndm_elements+ndm_elements*nparms:2*nparms+nmo+ndm_elements+ndm_elements*nparms+1] Whether sample inside cutoff or not
 
+  //Calculate distance squared from node, per electron
+  doublevar d2=0.0;
+  assert(wf->nfunc()==1);
+  for(int e=0;e<sample->electronSize();e++){
+    Wf_return lap(1,5);
+    wf->getLap(wfdata,e,lap);
+    //for(int i=1;i<4;i++) d2+=1./(lap.amp(0,i)*lap.amp(0,i));
+    for(int i=1;i<4;i++) d2+=lap.amp(0,i)*lap.amp(0,i);
+  }
+  d2=(1./d2);
+  d2/=(sample->electronSize()*sample->electronSize());
+  
   //Loop over cutoffs
   for(int i=0;i<cutoff_list.GetDim(0);i++){
-    //Calculate distance squared from node, per electron
-    doublevar d2=0.0;
-    assert(wf->nfunc()==1);
-    for(int e=0;e<sample->electronSize();e++){
-      Wf_return lap(1,5);
-      wf->getLap(wfdata,e,lap);
-      //for(int i=1;i<4;i++) d2+=1./(lap.amp(0,i)*lap.amp(0,i));
-      for(int i=1;i<4;i++) d2+=lap.amp(0,i)*lap.amp(0,i);
-    }
-    d2=(1./d2);
-    d2/=(sample->electronSize()*sample->electronSize());
-    int drop=(d2<(cutoff_list[i]*cutoff_list[i]));
-
-    /*
-    //A lot of debugging!
-    cout<<d2<<" ";
-    for(int p=0;p<nparms;p++) cout<<deriv.gradient(p)<<" ";
-    cout<<" "<<pt.energy(0)<<endl;
-    //End debugging
-    */
-  
     //Zero out if inside cutoff
+    int drop=(d2<(cutoff_list[i]*cutoff_list[i]));
+    //cout<<d2<<","<<cutoff_list[i]*cutoff_list[i]<<","<<drop<<endl;
     if(drop) { 
       for(int p=0;p<nparms;p++) {
         deriv.gradient(p)=0.0;
