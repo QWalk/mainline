@@ -65,7 +65,7 @@ doublevar legendre_der(doublevar x, int n) {
   case 3:
     return .5*(15*x*x-3);
   case 4:
-    return 35*x*x*x-15*x;
+    return .5*(35*x*x*x-15*x);
   case 5:
     return .125*(315*x*x*x*x-210*x*x+15);
   default:
@@ -702,7 +702,6 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
             //when we're doing non-zero k-points.
             for(int d=0; d < 3; d++) 
               newpos(d)=integralpt(at,i,d)*olddist(0)-olddist(d+2);
-	    
             //cout << "translation " << newpos(0) << "   " 
              //   << newpos(1) << "   " << newpos(2) << endl;
             

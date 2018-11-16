@@ -142,33 +142,23 @@ dcomplex Ylm(int l, int ml, Array1 <doublevar> r){
   case 4:
     switch(ml){
       case -4:
-        return 3.00*sqrt(70.00)/16.00*dcomplex( ((r(2)*r(2)-r(3)*r(3))*(r(2)*(2)-r(3)*r(3))
-                                                -4*r(2)*r(2)*r(3)*r(3))/(r(1)*r(1)),
-                                                -4*r(2)*r(3)*(r(2)*r(2)-r(3)*r(3))/(r(1)*r(1)) );
+        return 3.00*sqrt(70.00)/16.00*pow(dcomplex(r(2),-r(3)),4)/pow(r(1),2);
       case -3:
-        return 3.00*sqrt(35.00)/4.00*dcomplex( r(2)*r(4)*(r(2)*r(2)-3*r(3)*r(3))/(r(1)*r(1)),
-                                               -r(3)*r(4)*(3*r(2)*r(2)-r(3)*r(3))/(r(1)*r(1)) );
+        return 3.00*sqrt(35.00)/4.00*pow(dcomplex(r(2),-r(3)),3)*r(4)/pow(r(1),2);
       case -2:
-        return 3.00*sqrt(10.00)/8.00*dcomplex( (r(2)*r(2)-r(3)*r(3))*(7*r(4)*r(4)-r(1))/(r(1)*r(1)),
-                                                -2*r(2)*r(3)*(7*r(4)*r(4)-r(1))/(r(1)*r(1))   );
+        return 3.00*sqrt(10.00)/8.00*pow(dcomplex(r(2),-r(3)),2)*(7*r(4)*r(4)-r(1))/pow(r(1),2);
       case -1:
-        return 3.00*sqrt(5.00)/4.00*dcomplex( r(2)*r(4)*(7*r(4)*r(4)-3*r(1))/(r(1)*r(1)),
-                                             -r(3)*r(4)*(7*r(4)*r(4)-3*r(1))/(r(1)*r(1)) );
+        return 3.00*sqrt(5.00)/4.00*dcomplex(r(2),-r(3))*r(4)*(7*r(4)*r(4)-3*r(1))/pow(r(1),2);
       case 0:
         return 3.00/8.00*dcomplex( (35*r(4)*r(4)*r(4)*r(4)-30*r(1)*r(4)*r(4)+3*r(1)*r(1))/(r(1)*r(1)), 0 );
       case 1:
-        return -3.00*sqrt(5.00)/4.00*dcomplex( r(2)*r(4)*(7*r(4)*r(4)-3*r(1))/(r(1)*r(1)),
-                                             r(3)*r(4)*(7*r(4)*r(4)-3*r(1))/(r(1)*r(1)) );
+        return -3.00*sqrt(5.00)/4.00*dcomplex(r(2),r(3))*r(4)*(7*r(4)*r(4)-3*r(1))/pow(r(1),2);
       case 2:
-        return 3.00*sqrt(10.00)/8.00*dcomplex( (r(2)*r(2)-r(3)*r(3))*(7*r(4)*r(4)-r(1))/(r(1)*r(1)),
-                                                2*r(2)*r(3)*(7*r(4)*r(4)-r(1))/(r(1)*r(1))   );
+        return 3.00*sqrt(10.00)/8.00*pow(dcomplex(r(2),r(3)),2)*(7*r(4)*r(4)-r(1))/pow(r(1),2);
       case 3:
-        return -3.00*sqrt(35.00)/4.00*dcomplex( r(2)*r(4)*(r(2)*r(2)-3*r(3)*r(3))/(r(1)*r(1)),
-                                               r(3)*r(4)*(3*r(2)*r(2)-r(3)*r(3))/(r(1)*r(1)) );
+        return -3.00*sqrt(35.00)/4.00*pow(dcomplex(r(2),r(3)),3)*r(4)/pow(r(1),2);
       case 4:
-        return 3.00*sqrt(70.00)/16.00*dcomplex( ((r(2)*r(2)-r(3)*r(3))*(r(2)*(2)-r(3)*r(3))
-                                                -4*r(2)*r(2)*r(3)*r(3))/(r(1)*r(1)),
-                                                4*r(2)*r(3)*(r(2)*r(2)-r(3)*r(3))/(r(1)*r(1)) );
+        return 3.00*sqrt(70.00)/16.00*pow(dcomplex(r(2),r(3)),4)/pow(r(1),2);
       default:
  //       error("Do not have spherical harmonics of order", ml);
         return 0;
@@ -180,9 +170,29 @@ dcomplex Ylm(int l, int ml, Array1 <doublevar> r){
   }
 }
 
+dcomplex kron_del(int a, int b){
+  if (a==b){ return dcomplex(1.,0.);}
+  else { return dcomplex(0.,0.);}
+}
+
 dcomplex Ylm_c(int l, int m, Array1 <doublevar> r){
   return conj(Ylm(l,m,r));
 }
+
+dcomplex integral_ls_x(int l, int m, int m_p){
+  return 0.5*sqrt((l-m_p)*(l+m_p+1))*kron_del(m,m_p+1)+0.5*sqrt((l+m_p)*(l-m_p+1))*kron_del(m,m_p-1);
+}
+
+dcomplex integral_ls_y(int l, int m, int m_p){
+  return dcomplex(0.,-0.5)*sqrt((l-m_p)*(l+m_p+1))*kron_del(m,m_p+1)
+         +dcomplex(0.,0.5)*sqrt((l+m_p)*(l-m_p+1))*kron_del(m,m_p-1);
+}
+
+dcomplex integral_ls_z(int l, int m, int m_p){
+  return dcomplex(m_p,0.0)*kron_del(m,m_p);
+}
+
+
 
 dcomplex Yl1(Array1 <doublevar> r, int l){
   assert(r.GetDim(0)==5); 
@@ -318,7 +328,7 @@ int Pseudopotential_so::nTest() {
 
 void Pseudopotential_so::calcNonloc(Wavefunction_data * wfdata, System * sys,
                                  Sample_point * sample, Wavefunction * wf,
-                                 Array1 <doublevar> & totalv) {
+                                 Array2 <doublevar> & totalv) {
   int tot=nTest();
   Array1 <doublevar> test(tot);
   for(int i=0; i< tot; i++) {
@@ -333,7 +343,7 @@ void Pseudopotential_so::calcNonloc(Wavefunction_data * wfdata, System * sys,
 void Pseudopotential_so::calcNonlocTmove(Wavefunction_data * wfdata, System * sys,
                      Sample_point * sample,
                      Wavefunction * wf,
-                     Array1 <doublevar> & totalv,  //total p.e. from the psp
+                     Array2 <doublevar> & totalv,  //total p.e. from the psp
                      vector <Tmove> & tmoves  //variables for T-moves of Casula
                      ) { 
   int tot=nTest();
@@ -342,12 +352,13 @@ void Pseudopotential_so::calcNonlocTmove(Wavefunction_data * wfdata, System * sy
     test(i)=rng.ulec();
   }
   Array1 <doublevar> parm_deriv;
-  Array2 <doublevar> totalv_alle(nelectrons, wf->nfunc());
+  Array3 <doublevar> totalv_alle(nelectrons, wf->nfunc(),3);  // the last dim: x,y,z
   totalv = 0.0; 
   calcNonlocWithAllvariables(wfdata,sys,sample, wf, test,totalv_alle, Tmoves::negative_tmove, tmoves,false, parm_deriv);
   for (int e=0; e<nelectrons; e++) 
     for (int w = 0; w < wf->nfunc(); w++)
-      totalv(w) += totalv_alle(e, w);
+      for (int idim = 0; idim <=2; idim++)
+        totalv(w,idim) += totalv_alle(e, w, idim);
 }
 
 //----------------------------------------------------------------------
@@ -355,7 +366,7 @@ void Pseudopotential_so::calcNonlocTmove(Wavefunction_data * wfdata, System * sy
 void Pseudopotential_so::calcNonlocSeparated(Wavefunction_data * wfdata, System * sys,
 					  Sample_point * sample,
 					  Wavefunction * wf,
-					  Array2 <doublevar> & totalv
+					  Array3 <doublevar> & totalv
 					  ) 
 { 
   int tot=nTest();
@@ -374,30 +385,33 @@ void Pseudopotential_so::calcNonlocSeparated(Wavefunction_data * wfdata, System 
 void Pseudopotential_so::calcNonlocWithTest(Wavefunction_data *wfdata , System * sys, 
                                          Sample_point * sample, Wavefunction *wf ,
                                          const Array1 <doublevar> & accept_var,
-                                         Array1 <doublevar> & totalv) { 
+                                         Array2 <doublevar> & totalv) { 
   vector<Tmove>  tmoves;
   Array1 <doublevar> parm_deriv;
-  Array2 <doublevar> totalv_alle(nelectrons, wf->nfunc());
-  totalv = 0.0; 
+  Array3 <doublevar> totalv_alle(nelectrons, wf->nfunc(),3);
+  totalv = 0.0;
+  //cout << "before calling withallvariables, see pspso:393" << endl; 
   calcNonlocWithAllvariables(wfdata,sys, sample, wf, accept_var,totalv_alle, Tmoves::no_tmove, tmoves,false, parm_deriv);
   for (int w = 0; w < wf->nfunc(); w++) 
     for (int e=0; e<nelectrons; e++) 
-      totalv(w) += totalv_alle(e, w);
+      for (int idim=0; idim<=2; idim++)
+        totalv(w,idim) += totalv_alle(e, w,idim);
 }
 
 void Pseudopotential_so::calcNonlocParmDeriv(Wavefunction_data * wfdata, System * sys,
                                           Sample_point * sample,
                                           Wavefunction * wf,
                                           const Array1 <doublevar> & accept_var,
-                                          Array1 <doublevar> & totalv, Array1 <doublevar> & parm_deriv) { 
+                                          Array2 <doublevar> & totalv, Array1 <doublevar> & parm_deriv) { 
   vector<Tmove>  tmoves;
   assert(totalv.GetDim(0)>=wf->nfunc());
-  Array2 <doublevar> totalv_alle(nelectrons,wf->nfunc());
+  Array3 <doublevar> totalv_alle(nelectrons,wf->nfunc(),3);
   calcNonlocWithAllvariables(wfdata,sys,sample, wf, accept_var,totalv_alle, Tmoves::no_tmove, tmoves,true, parm_deriv);
   totalv=0.0;
   for(int e=0; e< nelectrons; e++) 
     for(int w=0; w< wf->nfunc(); w++) 
-      totalv(w)+=totalv_alle(e,w);
+      for (int idim=0; idim<=2; idim++)
+        totalv(w,idim)+=totalv_alle(e,w,idim);
   
 }
 
@@ -593,7 +607,7 @@ void Pseudopotential_so::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
                                                  Sample_point * sample,
                                                  Wavefunction * wf,
                                                  const Array1 <doublevar> & accept_var,
-                                                 Array2 <doublevar> & totalv,
+                                                 Array3 <doublevar> & totalv, //TODO check dimension of this
                                                  Tmoves::tmove_type do_tmoves,vector <Tmove> & tmoves,
                                                  bool parm_derivatives, Array1 <doublevar> & parm_deriv
                                           )
@@ -605,8 +619,9 @@ void Pseudopotential_so::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
   int nwf=wf->nfunc();
 
   assert(accept_var.GetDim(0) >= nTest());
-  assert(totalv.GetDim(1) >= nwf);
   assert(totalv.GetDim(0) >= nelectrons);
+  assert(totalv.GetDim(1) >= nwf);
+  assert(totalv.GetDim(2) >= 3);
   assert(nelectrons == sample->electronSize());
 
   Array1 <doublevar> ionpos(3), oldpos(3), newpos(3);
@@ -629,7 +644,7 @@ void Pseudopotential_so::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
   int accept_counter=0;
   //deriv.Resize(natoms, 3);
   //deriv=0;
-  Array1 <doublevar>  nonlocal(nwf);
+  Array2 <doublevar>  nonlocal(nwf,3);
   Array2 <doublevar> integralpts_real(nwf, maxaip);
   Array2 <doublevar> integralpts_imag(nwf, maxaip);
   Array1 <doublevar> rDotR(maxaip);
@@ -669,7 +684,7 @@ void Pseudopotential_so::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
   
           for(int l=0; l<numL(at)-1; l++)
             for(int j=0;j<=1;j++)
-              strength+=calculate_threshold*(2*l+1)*fabs(v_jl(j,l));
+              strength+=calculate_threshold*(l-j+1)*fabs(v_jl(j,l));
    
           strength=min((doublevar) 1.0, strength);
   
@@ -737,9 +752,13 @@ void Pseudopotential_so::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
             }
             
             for(int w=0; w< nwf; w++)  {
-              doublevar tempsum_real=0;
+              doublevar tempsum_real_x=0;
+              doublevar tempsum_real_y=0;
+              doublevar tempsum_real_z=0;
           //    doublevar tempsum_real_AREP=0;
-              doublevar tempsum_imag=0;
+              doublevar tempsum_imag_x=0;
+              doublevar tempsum_imag_y=0;
+              doublevar tempsum_imag_z=0;
           //    doublevar tempsum_imag_AREP=0;
               for(int l=0; l< numL(at)-1; l++) {
                 for(int j=0;j<=1;j++){
@@ -752,12 +771,44 @@ void Pseudopotential_so::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
 		    //	m=round(mj+spin-1.0/2.0); 
 		    for(int m=-l;m<=l;m++){
 			dcomplex Y_o=Ylm(l,m,olddist);
-			dcomplex Y_n=Ylm_c(l,m,newdist);
-		        int temp_sign=pow(-1,j)*pow(-1,spin);	
-			tempsum_real+=temp_sign/(2*l+1.0)*v_jl(j,l)*m*(Y_o.real()*Y_n.real()
-				      -Y_o.imag()*Y_n.imag());
-			tempsum_imag+=temp_sign/(2*l+1.0)*v_jl(j,l)*m*(Y_o.imag()*Y_n.real()
-				      +Y_o.real()*Y_n.imag());  	 
+                        for(int m_p=-l;m_p<=l;m_p++){
+			    dcomplex Y_n=Ylm_c(l,m_p,newdist);
+		            int temp_sign=pow(-1,j)*pow(-1,spin); //TODO: check this term
+		            //int temp_sign=pow(-1,j);  // didn't take the spin direction into account.
+                            dcomplex int_ls_x = integral_ls_x(l,m,m_p);
+                            dcomplex int_ls_y = integral_ls_y(l,m,m_p);
+                            dcomplex int_ls_z = integral_ls_z(l,m,m_p);
+                         //   cout << "l=" << l << " m=" << m << " m_p=" << m_p << " ";
+			 //   cout << "ls_x " << int_ls_x << " ";
+			 //   cout << "ls_y " << int_ls_y << " ";
+			 //   cout << "ls_z " << int_ls_z << " ";
+ 			    
+  			    tempsum_real_x+=temp_sign/(2*l+1.0)*v_jl(j,l)*(int_ls_x.real()
+                                            *(Y_o.real()*Y_n.real()-Y_o.imag()*Y_n.imag())
+					    -int_ls_x.imag()
+					    *(Y_o.imag()*Y_n.real()+Y_o.real()*Y_n.imag()));
+			    tempsum_imag_x+=temp_sign/(2*l+1.0)*v_jl(j,l)*(int_ls_x.real()
+					    *(Y_o.imag()*Y_n.real()+Y_o.real()*Y_n.imag())
+					    +int_ls_x.imag()
+					    *(Y_o.real()*Y_n.real()-Y_o.imag()*Y_n.imag()));
+  			    tempsum_real_y+=temp_sign/(2*l+1.0)*v_jl(j,l)*(int_ls_y.real()
+                                            *(Y_o.real()*Y_n.real()-Y_o.imag()*Y_n.imag())
+					    -int_ls_y.imag()
+					    *(Y_o.imag()*Y_n.real()+Y_o.real()*Y_n.imag()));
+			    tempsum_imag_y+=temp_sign/(2*l+1.0)*v_jl(j,l)*(int_ls_y.real()
+					    *(Y_o.imag()*Y_n.real()+Y_o.real()*Y_n.imag())
+					    +int_ls_y.imag()
+					    *(Y_o.real()*Y_n.real()-Y_o.imag()*Y_n.imag()));
+  			    tempsum_real_z+=temp_sign/(2*l+1.0)*v_jl(j,l)*(int_ls_z.real()
+                                            *(Y_o.real()*Y_n.real()-Y_o.imag()*Y_n.imag())
+					    -int_ls_z.imag()
+					    *(Y_o.imag()*Y_n.real()+Y_o.real()*Y_n.imag()));
+			    tempsum_imag_z+=temp_sign/(2*l+1.0)*v_jl(j,l)*(int_ls_z.real()
+					    *(Y_o.imag()*Y_n.real()+Y_o.real()*Y_n.imag())
+					    +int_ls_z.imag()
+					    *(Y_o.real()*Y_n.real()-Y_o.imag()*Y_n.imag()));
+
+                        } //m_p
 		    }  //m
 	 	
 		 
@@ -792,22 +843,30 @@ void Pseudopotential_so::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
                 } //j
               }  //l
       
-              doublevar vxx=tempsum_real*integralpts_real(w,i)-tempsum_imag*integralpts_imag(w,i);
+              doublevar vxx_x=tempsum_real_x*integralpts_real(w,i)-tempsum_imag_x*integralpts_imag(w,i);
+              doublevar vxx_y=tempsum_real_y*integralpts_real(w,i)-tempsum_imag_y*integralpts_imag(w,i);
+              doublevar vxx_z=tempsum_real_z*integralpts_real(w,i)-tempsum_imag_z*integralpts_imag(w,i);
 	//		   -(tempsum_real_AREP*integralpts_real(w,i)-tempsum_imag_AREP*integralpts_imag(w,i));
             //  cout << "vxx=" << vxx << endl;
-              doublevar vxx_imag=tempsum_imag*integralpts_real(w,i)+tempsum_real*integralpts_imag(w,i);
+              doublevar vxx_imag_x=tempsum_imag_x*integralpts_real(w,i)+tempsum_real_x*integralpts_imag(w,i);
+              doublevar vxx_imag_y=tempsum_imag_y*integralpts_real(w,i)+tempsum_real_y*integralpts_imag(w,i);
+              doublevar vxx_imag_z=tempsum_imag_z*integralpts_real(w,i)+tempsum_real_z*integralpts_imag(w,i);
 	//	             +tempsum_real_AREP*integralpts_imag(w,i)+tempsum_imag_AREP*integralpts_real(w,i);
 
-              if(do_tmoves==Tmoves::no_tmove || w!=0 || (do_tmoves==Tmoves::negative_tmove && vxx >= 0.0) ) { 
-                nonlocal(w)+=vxx;
+              if(do_tmoves==Tmoves::no_tmove || w!=0 || (do_tmoves==Tmoves::negative_tmove && vxx_x >= 0.0 && vxx_y >=0.0 && vxx_z >= 0.0) ) { 
+                nonlocal(w,0)+=vxx_x;
+                nonlocal(w,1)+=vxx_y;
+                nonlocal(w,2)+=vxx_z;
+                //cout << "no tmoves" << endl;
               }
               else { 
                 Tmove nwtmove; nwtmove.pos.Resize(3);
                 //sample->getElectronPos(e,nwtmove.pos);
                 nwtmove.pos=newpos;
                 nwtmove.e=e;
-                nwtmove.vxx=vxx;
+                nwtmove.vxx=vxx_z;  //TODO check this
                 tmoves.push_back(nwtmove);
+                //cout << "do tmoves" << endl;
               }
               
               //-----------parameter derivatives
@@ -817,7 +876,7 @@ void Pseudopotential_so::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
                 wf->getParmDeriv(wfdata, sample, deriv);
                 int np=wfdata->nparms();
                 for(int p=0; p < np; p++) { 
-                  parm_deriv(p)+=(deriv.gradient(p)-base_deriv.gradient(p))*vxx;
+                  parm_deriv(p)+=(deriv.gradient(p)-base_deriv.gradient(p))*vxx_x; //TODO: this is probably wrong
                 }
               }
               //------
@@ -846,7 +905,9 @@ void Pseudopotential_so::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
         //accum_nonlocal+=nonlocal(w);
 
         for(int w=0; w< nwf; w++) {
-          totalv(e,w)+=vLocal(0)+vLocal(1)+nonlocal(w);   
+          totalv(e,w,0)+=nonlocal(w,0);   
+          totalv(e,w,1)+=nonlocal(w,1);   
+          totalv(e,w,2)+=nonlocal(w,2);   
         }
 
 
@@ -953,19 +1014,20 @@ void Pseudopotential_so::read(vector <vector <string> > & pseudotext, System * s
         vector <string> basistmp;
         if(!readsection(pseudotext[i], pos=0, basistmp, "BASIS"))
             error("Need Basis section in pseudopotential for ", pseudotext[i][0]);
-        allocate(basistmp, radial_basis(at,0,i)); 
+        allocate(basistmp, radial_basis(at,0,i%2)); 
         int basistmpSize=basistmp.size();
       //  for (int ibasistmp=0;ibasistmp<basistmpSize;ibasistmp++){
        //   cout << "basistmp[" << ibasistmp <<"]=" << basistmp[ibasistmp] << endl;}
 
-        allocate(basistmp, radial_basis(at,1,i));
+        allocate(basistmp, radial_basis(at,1,i%2));
+      
+        assert(radial_basis(at,0,0)->nfunc()==radial_basis(at,1,0)->nfunc());
+        int nlval=radial_basis(at,0,0)->nfunc();
+        if(maxL < nlval) maxL=nlval;
+        pos=0;
+        readvalue(pseudotext[i],pos,aip(at),"AIP");
+        if(haskeyword(pseudotext[i],pos=0,"ADD_ZEFF")){addzeff(at)=true;}
       }
-      assert(radial_basis(at,0,0)->nfunc()==radial_basis(at,1,0)->nfunc());
-      int nlval=radial_basis(at,0,0)->nfunc();
-      if(maxL < nlval) maxL=nlval;
-      pos=0;
-      readvalue(pseudotext[i],pos,aip(at),"AIP");
-      if(haskeyword(pseudotext[i],pos=0,"ADD_ZEFF")){addzeff(at)=true;}
     }
   }
 
