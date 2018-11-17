@@ -621,8 +621,8 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
         totgrads(e,d)*=detsum;
       }
     }
-
-    //---------------
+  
+    //--------------- 
     int det=parent->CSF(0).GetDim(0)-1;
     derivatives.gradderiv=0.0;
     for(int csf=1; csf < parent->ncsf; csf++) { 
@@ -631,6 +631,7 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
         int index=csf-1;
         log_value<doublevar> thisdet=detVal(0,det,0)*detVal(0,det,1);
         derivatives.gradient(index)+=coeff*thisdet.val();
+
         for(int e=0; e< tote; e++) {
           for(int d=1; d< 5; d++) {
             derivatives.gradderiv(index,e,d-1)+=coeff
