@@ -52,6 +52,12 @@ void Dmc_method::read(vector <string> words,
   int target_config;
   if(!readvalue(words,pos=0,target_config,"TARGET_CONFIG"))
     target_config=2048;
+  
+  if(!readvalue(words,pos=0,nsuballE,"NSUBALLE"))
+    nsuballE=1;
+
+  if(!readvalue(words,pos=0,nsuboneE,"NSUBONEE"))
+    nsuboneE=1;
 
   if(!readvalue(words, pos=0, nconfig, "NCONFIG"))
     nconfig=max(target_config/mpi_info.nprocs,1);
@@ -139,6 +145,8 @@ void Dmc_method::read(vector <string> words,
   low_io=0;
   if(haskeyword(words, pos=0,"LOW_IO")) low_io=1;
   
+ 
+
   allocate(dynamics_words, dyngen);
   dyngen->enforceNodes(1);
 
@@ -578,10 +586,13 @@ void Dmc_method::move_electron_by_electron(Wavefunction_data * wfdata,
                                            Dmc_point & pt,
                                            doublevar & acsum) { 
   Dynamics_info dinfo;
+  for(int suball=0; suball < nsuballE; suball++) {
   for(int e=0; e< nelectrons; e++) {
+    for(int subone=0; subone < nsuboneE; subone++) { 
     int acc;
+    doublevar efftstep=timestep/(nsuboneE*nsuballE);
     acc=dyngen->sample(e, sample, wf, wfdata, guidingwf,
-        dinfo, timestep);
+        dinfo, efftstep);
 
     if(dinfo.accepted) {               
       pt.age(e)=0;
@@ -589,7 +600,9 @@ void Dmc_method::move_electron_by_electron(Wavefunction_data * wfdata,
     else { 
       pt.age(e)++;
     }
-    if(acc>0) acsum++;
+    if(acc>0) acsum+=1./(nsuboneE*nsuballE);
+    }
+  }
   }
 
 }

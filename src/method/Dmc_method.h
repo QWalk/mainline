@@ -190,6 +190,8 @@ public:
   doublevar eref; //!< reference energy-best guess at dmc energy
   doublevar etrial; //!< current trial energy
   doublevar timestep;
+  int nsuballE; //Number of all electron substeps to take
+  int nsuboneE; //Number of single electron substeps to take
   string readconfig, storeconfig;
   string log_label;
   string jsonfile;
