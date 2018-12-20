@@ -841,22 +841,13 @@ int Pseudopotential::showinfo(ostream & os)
       if(numL(at)==0) { os << "No pseudopotential" << endl; }
       else {
         os << "Integration points " << aip(at) << endl;
-//os << setw(10) << "x" 
-//   << setw(10) << "y" 
-//   << setw(10) << "z"
-//   << setw(10) << "weight" << endl;
-//	for(int i=0; i< aip(at); i++)
-//	  {
-//	    os << setw(10) << integralpt(at,i,0)
-//	       << setw(10) << integralpt(at,i,1)
-//	       << setw(10) << integralpt(at,i,2)
-//	       << setw(10)  << integralweight(at, i) << endl;
-//	  }	
-        os << "Cutoff for static calculation "<<cutoff(at)<<endl;
+	if(deterministic)
+          os << "Cutoff for static calculation "<<cutoff(at)<<endl;
         os << "Pseudopotential for spin up: \n";
         radial_basis(at,0)->showinfo(indent, os);
         os << "Pseudopotential for spin down: \n";
         radial_basis(at,1)->showinfo(indent, os);
+	os << "Strength for random evaluation (cutoff_threshold): " << calculate_threshold << endl;
       }
     }
   }
