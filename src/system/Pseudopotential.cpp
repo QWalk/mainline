@@ -82,220 +82,6 @@ Pseudopotential::~Pseudopotential()  {
       if(radial_basis(i,j)) delete radial_basis(i,j);
 }
 
-/*
-
-int Pseudopotential::initializeStatic(Wavefunction_data *wfdata,
-                                      Sample_point * sample, Wavefunction * wf,
-                                      Pseudo_buffer & output)
-{
-
-  int natoms=sample->ionSize();
-
-  Array1 <doublevar> ionpos(3), oldpos(3), olddist(5), newpos(3);
-  Array1 <doublevar> staticvals(wfdata->valSize());
-  //Storage_container wfStore;
-  if(! wfStore.isInitialized())  {
-    wfStore.initialize(sample, wf);
-  }
-
-  for(int at=0; at< natoms; at++)  {
-    if(numL(at) != 0) {// if atom has psp
-      sample->getIonPos(at, ionpos);
-      for(int e=0; e < sample->electronSize(); e++) {
-        sample->getElectronPos(e, oldpos);
-        sample->updateEIDist();//kind of inefficient..
-        sample->getEIDist(e,at, olddist);
-	
-        //----------------------------------------
-        //Start integral
-
-        doublevar ratio=olddist(0)/cutoff(at);
-        int shouldCalculate= ratio < 1.0;
-
-        if(shouldCalculate) {
-          wfStore.saveUpdate(sample, wf, e);
-
-          for(int i=0; i< aip(at); i++) {
-            sample->setElectronPos(e,oldpos);
-            for(int d=0; d < 3; d++) 
-              newpos(d)=integralpt(at,i,d)*olddist(0)-olddist(d+2);
-            sample->translateElectron(e, newpos);
-            wf->storeParmIndVal(wfdata,sample, e, staticvals);
-            for(int i=0; i< staticvals.GetDim(0); i++)  {
-              output.push_value(staticvals(i));
-            }
-            sample->setElectronPos(e,oldpos);
-
-          } //integral done
-          wfStore.restoreUpdate(sample, wf, e);
-        }  //if we should calculate
-      }  //electron loop
-    }  //if atom has any psp's
-  }  //atom loop
-  //delete wfStore;
-  return 1;
-}
-*/
-//----------------------------------------------------------------------
-/*
-void Pseudopotential::calcNonlocWithFile(Wavefunction_data * wfdata,
-                                         System * sys,
-                                         Sample_point * sample,
-                                         Wavefunction * wf,
-                                         Array1 <doublevar> & totalv,
-                                         Pseudo_buffer & input)
-{
-  int natoms=sample->ionSize();
-  int nwf=wf->nfunc();
-
-  assert(totalv.GetDim(0) >= nwf);
-  assert(nelectrons == sample->electronSize());
-
-  Array1 <doublevar> ionpos(3), oldpos(3), newpos(3);
-  Array1 <doublevar> newdist(5), olddist(5);
-  Wf_return val(nwf,2);
-  Array1 <doublevar> staticval(wfdata->valSize());
-
-  totalv=0;
-
-  doublevar accum_local=0;
-  doublevar accum_nonlocal=0;
-
-  wf->updateVal(wfdata, sample);
-  if( ! wfStore.isInitialized() ) {
-    wfStore.initialize(sample, wf);
-  }
-
-  for(int at=0; at< natoms; at++) {
-    if(numL(at) != 0) {
-      sample->getIonPos(at, ionpos);
-      for(int e=0; e < sample->electronSize(); e++) {
-        sample->getElectronPos(e, oldpos);
-        sample->updateEIDist();//kind of inefficient..
-        sample->getEIDist(e,at, olddist);
-
-        Array1 <doublevar>  nonlocal(nwf);
-        nonlocal=0;
-
-        Array1 <doublevar> v_l(numL(at));
-        //cout << "getRadial " << endl;
-        int spin=1;
-        if(e < sys->nelectrons(0)) { 
-          spin=0;
-        }
-        getRadial(at,spin, sample, olddist, v_l);
-
-
-        //----------------------------------------
-        //For this one, we decide based on a cutoff, not randomly
-        if(olddist(0) < cutoff(at))  {
-          wfStore.saveUpdate(sample, wf, e);
-          Wf_return oldWfVal(nwf,2);
-          wf->getVal(wfdata, e,oldWfVal);
-
-
-          Array2 <doublevar> integralpts(nwf, aip(at));
-          Array1 <doublevar> rDotR(aip(at));
-          
-          //Gather the points for the integral
-          for(int i=0; i< aip(at); i++) {
-            
-            
-            sample->setElectronPos(e, oldpos);
-            doublevar base_sign=sample->overallSign();
-            doublevar base_phase=sample->overallPhase();
-            //Make sure to move the electron relative to the nearest neighbor
-            //in a periodic calculation(so subtract the distance rather than
-            //adding to the ionic position).  This actually only matters 
-            //when we're doing non-zero k-points.
-            for(int d=0; d < 3; d++) 
-              //newpos(d)=ionpos(d)+integralpt(at, i, d)*olddist(0)-oldpos(d);
-              newpos(d)=integralpt(at,i,d)*olddist(0)-olddist(d+2);
-                        
-
-            sample->translateElectron(e, newpos);
-            if(!sample->getEIDist_temp(e,at,newdist)) {
-              sample->updateEIDist();
-              sample->getEIDist(e,at,newdist);
-            }
-            
-
-            rDotR(i)=0;
-            for(int d=0; d < 3; d++) {
-              rDotR(i)+=newdist(d+2)*olddist(d+2);
-            }
-            rDotR(i)/=(newdist(0)*olddist(0));  
-            doublevar new_sign=sample->overallSign();
-            doublevar new_phase=sample->overallPhase();
-            for(int j=0; j< staticval.GetDim(0); j++) {
-              //fread(&staticval(j), sizeof(doublevar), 1, input);
-              staticval(j)=input.next_value();
-            }
-            
-            wf->getParmDepVal(wfdata, sample, e, staticval, val);
-            for(int w=0; w< nwf; w++) {
-              integralpts(w,i)=exp(val.amp(w,0)-oldWfVal.amp(w,0))
-                               *integralweight(at, i);
-              if ( val.is_complex==1 ) {
-                integralpts(w,i)*=cos(val.phase(w,0)+new_phase
-                                      -oldWfVal.phase(w,0)-base_phase);
-              } else {
-                integralpts(w,i)*=val.sign(w)*oldWfVal.sign(w)
-                                *base_sign*new_sign;
-              }
-            }
-            //sample->setElectronPos(e, oldpos);
-          }
-          
-          //Now do the integral
-          for(int w=0; w< nwf; w++) {
-            for(int i=0; i< aip(at); i++) {
-              doublevar tempsum=0;
-              for(int l=0; l< numL(at)-1; l++) {
-                tempsum+=(2*l+1)*v_l(l)*legendre(rDotR(i), l);
-              }
-              nonlocal(w)+=tempsum*integralpts(w,i);
-            }
-          }
-          wfStore.restoreUpdate(sample, wf, e);
-        }
-
-
-        //----------------------------------------------
-        //now do the local part
-        doublevar vLocal=0;
-        int localL=numL(at)-1; //The l-value of the local part is
-                               //the last part.
-
-        vLocal=v_l(localL);
-
-        accum_local+=vLocal;
-        accum_nonlocal+=nonlocal(0);
-
-        //cout << "vLocal  " << accum_local
-        // << "    nonlocal   " << accum_nonlocal
-        // << endl;
-        for(int w=0; w< nwf; w++)
-        {
-          totalv(w)+=vLocal+nonlocal(w);
-        }
-
-        //cout << "totalv " << totalv << endl;
-
-      }  //electron loop
-    }  //if atom has any psp's
-  }  //atom loop
-
-  //cout << "psp: local part " << accum_local
-  // << "  nonlocal part " << accum_nonlocal << endl;
-
-}
-
-*/
-
-//----------------------------------------------------------------------
-
-
 /*!
 Evaluates the radial part of the pseudopotential for a given
 atom and l-value.
@@ -500,7 +286,6 @@ void Pseudopotential::calcPseudoSeparated(Wavefunction_data * wfdata,
 	}
 	else {
 	  doublevar strength=0;
-	  const doublevar calculate_threshold=10;
 	  
 	  for(int l=0; l<numL(at)-1; l++)
 	    strength+=calculate_threshold*(2*l+1)*fabs(v_l(l));
@@ -669,7 +454,6 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
         }
         else {
           doublevar strength=0;
-          const doublevar calculate_threshold=10;
   
           for(int l=0; l<numL(at)-1; l++)
             strength+=calculate_threshold*(2*l+1)*fabs(v_l(l));
@@ -932,11 +716,12 @@ void Pseudopotential::read(vector <vector <string> > & pseudotext,
         assert(radial_basis(at,0)->nfunc()==radial_basis(at,1)->nfunc());
         int nlval=radial_basis(at,0)->nfunc();
         if(maxL < nlval) maxL=nlval;
-        pos=0;
-        readvalue(pseudotext[i], pos, aip(at), "AIP");
+        readvalue(pseudotext[i], pos=0, aip(at), "AIP");
         if(haskeyword(pseudotext[i], pos=0, "ADD_ZEFF")) {
           addzeff(at)=true;
         }
+	if(!readvalue(pseudotext[i],pos=0,calculate_threshold,"CALCULATE_THRESHOLD"))
+	  calculate_threshold=10;
 
       }
     }
