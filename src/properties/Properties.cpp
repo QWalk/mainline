@@ -437,13 +437,6 @@ void update_avgvar(doublevar & avg, doublevar & var, int pt_number, doublevar nw
 void Properties_manager::insertPoint(int step, 
                                      int walker, 
                                      const Properties_point & pt) {
-  //assert(walker < trace.GetDim(1));
-  //assert(step < trace.GetDim(0));
-  //cout << "insertpt " << pt.z_pol(0) << endl;
-  //trace(step, walker)=pt;
-  if(step >= 1 && pt.parent < 0) {
-    error("Problem in insertPoint; parent not set");
-  }
 
   //int nwf=pt.avgrets.GetDim(0);
   int navg=pt.avgrets.GetDim(1);

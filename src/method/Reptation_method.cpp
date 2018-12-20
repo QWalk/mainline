@@ -554,15 +554,11 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
       
       Properties_point avgpt;
       get_avg(curr_reptile.reptile, avgpt);
-      avgpt.parent=0; avgpt.nchildren=1; //just one walker
-      avgpt.children(0)=0;
       prop.insertPoint(step, 0, avgpt);
       
       int cpt=reptile_length/2+1;      
       Properties_point centpt;
       get_center_avg(curr_reptile.reptile, centpt);
-      centpt.parent=0; centpt.nchildren=1;
-      centpt.children(0)=0;
       
       prop_center.insertPoint(step, 0, centpt);
       

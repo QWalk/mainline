@@ -30,20 +30,11 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 struct Properties_point {
 
   Properties_point() {
-    //There are some possible problems with hard-coding maxchildren,
-    //but the only branching algorithm is DMC, and the way it is at
-    //the time of writing, one can only branch once per step, so
-    //it should really be safe at maxchildren=2.  Maybe we should
-    //use a vector instead; need to check memory usage.
-    maxchildren=3;
-    children.Resize(maxchildren);
     reset();
   }
   
   void setSize(int nwf);
   void reset() {
-    nchildren=0;
-    parent=-1;
     weight=0;
     count=0;
   }
@@ -61,9 +52,6 @@ struct Properties_point {
   //with an optional prefactor
   void unweighted_add(const Properties_point & pt,doublevar pre=1.0);
  
-  int nchildren;
-  int parent;
-  Array1 <int> children;
   int count; //whether to count this point or not
 
   //Properties to track
@@ -77,7 +65,6 @@ struct Properties_point {
   // and the second one is the Average_generator number
   
   private:
-  int maxchildren;
 };
 
 

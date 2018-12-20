@@ -687,21 +687,10 @@ void Rndmc_method::runWithVariables(Properties_manager & prop,
 	  pts(walker).weight*=pts(walker).prop.weight(0);
 	  //keep total weight in pts(walker).weight
 
-	  //MB: finnaly everything is put to pts(walker).prop for averaging
+	  //finally everything is put to pts(walker).prop for averaging
           pts(walker).prop.weight=pts(walker).weight;
-    //LKW: prop.sign() is redundant information..either the sign should be in 
-          //the weight or in wf_val.
-	  //pts(walker).prop.sign=pts(walker).sign;
-	  
-	  //cout <<"final weight is "<<pts(walker).prop.weight(0)<<endl;
-
-          //This is somewhat inaccurate..will need to change it later
-          //For the moment, the autocorrelation will be slightly
-          //underestimated
-          pts(walker).prop.parent=walker;
-          pts(walker).prop.nchildren=1;
-          pts(walker).prop.children(0)=walker;
-          pts(walker).prop.avgrets.Resize(1,average_var.GetDim(0));
+          
+	  pts(walker).prop.avgrets.Resize(1,average_var.GetDim(0));
           for(int i=0; i< average_var.GetDim(0); i++) { 
             average_var(i)->evaluate(wfdata, wf, sys, sample, pts(walker).prop.avgrets(0,i));
           }

@@ -432,12 +432,6 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
             pts(walker).prop.count=0;
           }
           pts(walker).prop.weight=pts(walker).weight;
-          //This is somewhat inaccurate..will need to change it later
-          //For the moment, the autocorrelation will be slightly
-          //underestimated
-          pts(walker).prop.parent=walker;
-          pts(walker).prop.nchildren=1;
-          pts(walker).prop.children(0)=walker;
           pts(walker).prop.avgrets.Resize(1,average_var.GetDim(0));
           for(int i=0; i< average_var.GetDim(0); i++) { 
             average_var(i)->randomize(wfdata,wf,sys,sample);
@@ -464,18 +458,13 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
 
       doublevar accept_ratio=acsum/(nconfig*nelectrons*npsteps);
       teff=timestep*accept_ratio; //deltar2/rf_diffusion; 
-      if(output) output << "Acceptance " << accept_ratio << endl;
-      
       updateEtrial(feedback);
-
       step+=npsteps;
-
       int nkilled;
       if(!pure_dmc)
         nkilled=calcBranch();
       else
         nkilled=0;
-      
       totkilled+=nkilled;
       totbranch+=nkilled;
     }
