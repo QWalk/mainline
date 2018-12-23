@@ -427,6 +427,7 @@ public:
   
 private:
   bool evaluate_pseudopotential;
+  doublevar nodal_cutoff;
   
 };
 

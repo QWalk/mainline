@@ -49,6 +49,8 @@ void Linear_optimization_method::read(vector <string> words,
   pseudopotential_derivatives=haskeyword(words,pos=0,"PSEUDOPOTENTIAL_DERIVATIVES");
   if(!readvalue(words, pos=0, max_nconfig_eval, "MAX_ZERO_ITERATIONS"))
     max_zero_iterations=2;
+  if(!readvalue(words,pos=0,nodal_cutoff, "NODAL_CUTOFF"))
+    nodal_cutoff=0;
 
   if(!readvalue(words, pos=0, max_vmc_nstep, "SVD_TOLERANCE"))
     svd_tolerance=-1;
@@ -806,6 +808,8 @@ void Linear_optimization_method::wavefunction_derivative(
   append_number(vmc_section,vmc_nstep);
   vmc_section+="  nblock 20 average { WF_PARMDERIV "; 
   if(pseudopotential_derivatives) vmc_section+="EVALUATE_PSEUDOPOTENTIAL";
+  vmc_section+=" nodal_cutoff ";
+  vmc_section+=to_string(nodal_cutoff);
   vmc_section+="} ";
   vector <string> words;
   string sep=" ";
