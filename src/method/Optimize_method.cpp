@@ -28,8 +28,11 @@ void Optimize_method::read(vector <string> words,
                            Program_options & options)
 {
 
+  int totconfig=2048;
+  readvalue(words,pos=0,totconfig,"TOT_CONFIG");
+
   if(!readvalue(words, pos=0, nconfig, "NCONFIG"))
-    nconfig=max(2048/mpi_info.nprocs,1);
+    nconfig=max(totconfig/mpi_info.nprocs,1);
   if(!readvalue(words,pos=0, eref, "EREF"))
     guess_eref=1;
   else guess_eref=0;
