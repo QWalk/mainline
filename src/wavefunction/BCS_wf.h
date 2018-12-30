@@ -37,25 +37,6 @@ class BCS_wf_data;
 class System;
 class BCS_jastrow_cofactor;
 
-class BCS_wf_storage : public Wavefunction_storage
-{
-public:
-  BCS_wf_storage() { jast_store=NULL; } 
-  virtual ~BCS_wf_storage()
-  {if(jast_store) delete jast_store; }
-  
-private:
-  friend class BCS_wf;
-  Wavefunction_storage * jast_store;
-  Array1 <Array2 <doublevar> > inverse;
-  //Array2 <doublevar> moVal;
-  Array2 <doublevar> derivatives;
-  //Added by Matous
-  Array2 <doublevar> derivatives_2;
-  Array1 <doublevar> detVal;
-
-};
-
 
 /*!
 \brief
@@ -99,13 +80,6 @@ public:
   virtual void getLap(Wavefunction_data *, int, Wf_return &);
 
 
-  virtual void saveUpdate(Sample_point *, int e, Wavefunction_storage *);
-  virtual void restoreUpdate(Sample_point *, int e, Wavefunction_storage *);
-
-  //Added by Matous
-  virtual void saveUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *);
-  virtual void restoreUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *);
-
 
   virtual int getParmDeriv(Wavefunction_data *, 
 			   Sample_point *,
@@ -119,9 +93,6 @@ public:
 			       vector <Array1 <doublevar> > &,
 			       vector <string> &,
 			       string );
-
-  void generateStorage(Wavefunction_storage * & wfstore);
-
 
   void init(Wavefunction_data *);
 

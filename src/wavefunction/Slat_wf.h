@@ -33,27 +33,6 @@ class Slat_wf_data;
 class System;
 
 
-//----------------------------------------------------------------------
-
-template <class T> class Slat_wf_storage : public Wavefunction_storage
-{
-public:
-  virtual ~Slat_wf_storage()
-  {}
-private:
-  friend class Slat_wf<T>;
-
-  //dimensions are [value gradient lap, MO]
-  Array2 <T>  moVal_temp;
-
-  // Added by Matous
-  Array2 <T>  moVal_temp_2;
- 
-  Array3 < Array2 <T> > inverse_temp;
-  Array3 <log_value<T> > detVal_temp;
-
-};
-
 
 /*!
 A slater wavefunction; \f$\Psi=\sum_i det_i(\Phi_1\Phi_2...)\f$
@@ -84,12 +63,6 @@ public:
   virtual void getLap(Wavefunction_data *, int, Wf_return &);
   virtual void evalTestPos(Array1 <doublevar> & pos, Sample_point *, Array1 <Wf_return> & wf);
 
-  virtual void saveUpdate(Sample_point *, int e, Wavefunction_storage *);
-  virtual void restoreUpdate(Sample_point *, int e, Wavefunction_storage *);
-
-  // Added by Matous
-  virtual void saveUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *);
-  virtual void restoreUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *);
   
 
   virtual int getParmDeriv(Wavefunction_data *, 
@@ -99,9 +72,6 @@ public:
   virtual void getSymmetricVal(Wavefunction_data *, 
 			       int, 
 			       Wf_return &);
-
-
-  void generateStorage(Wavefunction_storage * & wfstore);
 
 
   void init(Wavefunction_data *,Templated_MO_matrix<T> * molecorb);
@@ -185,37 +155,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "MatrixAlgebra.h"
 #include "Sample_point.h"
 #include "Slat_wf_data.h"
-
-//----------------------------------------------------------------------
-
-
-template <class T> 
-inline void Slat_wf<T>::generateStorage(Wavefunction_storage * & wfstore)
-{
-  wfstore=new Slat_wf_storage<T>;
-  Slat_wf_storage<T> * store;
-  recast(wfstore, store);
-  store->moVal_temp.Resize (5,   nmo);
-  
-  // Added by Matous
-  store->moVal_temp_2.Resize (5,   nmo);
-
-  store->detVal_temp.Resize(nfunc_, ndet, 2);
-  store->inverse_temp.Resize(nfunc_, ndet, 2);
-  for(int i=0; i< nfunc_; i++)
-  {
-    for(int det=0; det < ndet; det++)
-    {
-      for(int s=0; s<2; s++)
-      {
-        store->inverse_temp(i,det,s).Resize(nelectrons(s), nelectrons(s));
-        store->inverse_temp(i,det,s)=0;
-        //store->detVal_temp(i,det,s)=1;
-      }
-    }
-  }
-}
-
 
 //----------------------------------------------------------------------
 
@@ -327,166 +266,6 @@ template<class T> inline void Slat_wf<T>::notify(change_type change, int num)
 
 //----------------------------------------------------------------------
 
-template<class T>inline void Slat_wf<T>::saveUpdate(Sample_point * sample, int e,
-                                                    Wavefunction_storage * wfstore) {
-  
-  Slat_wf_storage<T> * store;
-  recast(wfstore, store);
-  
-  //presumably, if we care enough to save the update, we care enough
-  //to have the inverse up to date
-  if(inverseStale) {
-    detVal=lastDetVal;
-    updateInverse(parent, lastValUpdate);
-    inverseStale=0;
-  }
-  int s=spin(e);
-  
-  int ndet_save=ndet;
-  if(parent->use_clark_updates) ndet_save=1;
-  for(int f=0; f< nfunc_; f++) {
-    for(int det=0; det<ndet_save; det++) {
-      store->inverse_temp(f,det,s)=inverse(f,det,s);
-    }
-    for(int det=0; det < ndet; det++) {
-      store->detVal_temp(f,det,s)=detVal(f,det,s);
-    }
-  }
-  
-  
-  int norb=moVal.GetDim(2);
-  for(int d=0; d< 5; d++) {
-    for(int i=0; i< norb; i++) {
-      store->moVal_temp(d,i)=moVal(d,e,i);
-    }
-  }
-  
-
-}
-
-//----------------------------------------------------------------------
-
-template<class T>inline void Slat_wf<T>::restoreUpdate(Sample_point * sample, int e,
-                            Wavefunction_storage * wfstore) {
-
-  Slat_wf_storage<T> * store;
-  recast(wfstore, store);
-  int s=spin(e);
-  inverseStale=0;
-  
-  for(int j=0; j<5; j++) {
-    for(int i=0; i<moVal.GetDim(2); i++) {
-      moVal(j,e,i)=store->moVal_temp(j,i);
-    }
-  }
-  int ndet_save=ndet;
-  if(parent->use_clark_updates) ndet_save=1;
-  
-  for(int f=0; f< nfunc_; f++) {
-    for(int det=0; det < ndet_save; det++) {
-      inverse(f,det,s)=store->inverse_temp(f,det,s);
-    }
-    for(int det=0; det < ndet; det++) {
-      detVal(f,det,s)=store->detVal_temp(f,det,s);
-    }
-  }
-  //It seems to be faster to update the inverse than to save it and
-  //recover it.  However, it complicates the implementation too much.
-  //For now, we'll disable it.
-  //updateInverse(parent,e);
-  
-  electronIsStaleVal(e)=0;
-  electronIsStaleLap(e)=0;
-
-}
-
-//----------------------------------------------------------------------
-
-// Added by Matous
-template <class T>inline void Slat_wf<T>::saveUpdate(Sample_point * sample, int e1, int e2,
-                         Wavefunction_storage * wfstore) {
-
-  Slat_wf_storage<T> * store;
-  recast(wfstore, store);
-  
-  //presumably, if we care enough to save the update, we care enough
-  //to have the inverse up to date
-  if(inverseStale) {
-    detVal=lastDetVal;
-    updateInverse(parent, lastValUpdate);
-    inverseStale=0;
-  }
-  
-  int s1=spin(e1), s2=spin(e2);
-  
-  for(int f=0; f< nfunc_; f++) {
-    for(int det=0; det<ndet; det++) {
-      if ( s1 == s2 ) {
-        store->inverse_temp(f,det,s1)=inverse(f,det,s1);
-        store->detVal_temp(f,det,s1)=detVal(f,det,s1);
-      }
-      else {
-        store->inverse_temp(f,det,s1)=inverse(f,det,s1);
-        store->inverse_temp(f,det,s2)=inverse(f,det,s2);
-        store->detVal_temp(f,det,s1)=detVal(f,det,s1);
-        store->detVal_temp(f,det,s2)=detVal(f,det,s2);
-      }
-    }
-  }
-  
-  
-  for(int d=0; d< 5; d++) {
-    for(int i=0; i< moVal.GetDim(2); i++) {
-      store->moVal_temp(d,i)=moVal(d,e1,i);
-      store->moVal_temp_2(d,i)=moVal(d,e2,i);
-    }
-  }
-  
-
-}
-
-//----------------------------------------------------------------------
-
-// Added by Matous
-template<class T> inline void Slat_wf<T>::restoreUpdate(Sample_point * sample, int e1, int e2,
-                            Wavefunction_storage * wfstore)
-{
-
-  Slat_wf_storage<T> * store;
-  recast(wfstore, store);
-  
-  int s1=spin(e1), s2=spin(e2);
-  inverseStale=0;
-  
-  for(int j=0; j<5; j++) {
-    for(int i=0; i<moVal.GetDim(2); i++) {
-      moVal(j,e1,i)=store->moVal_temp(j,i);
-      moVal(j,e2,i)=store->moVal_temp_2(j,i);
-    }
-  }
-  for(int f=0; f< nfunc_; f++) {
-    for(int det=0; det < ndet; det++) {
-      if ( s1 == s2 ) {
-		      inverse(f,det,s1)=store->inverse_temp(f,det,s1);
-		      detVal(f,det,s1)=store->detVal_temp(f,det,s1);
-      }
-      else {
-		      inverse(f,det,s1)=store->inverse_temp(f,det,s1);
-		      inverse(f,det,s2)=store->inverse_temp(f,det,s2);
-		      detVal(f,det,s1)=store->detVal_temp(f,det,s1);
-		      detVal(f,det,s2)=store->detVal_temp(f,det,s2);
-      }
-    }
-  }
-  
-  electronIsStaleVal(e1)=0;
-  electronIsStaleLap(e1)=0;
-  electronIsStaleVal(e2)=0;
-  electronIsStaleLap(e2)=0;
-
-}
-
-//----------------------------------------------------------------------
 
 template <class T> inline void Slat_wf<T>::updateVal(Wavefunction_data * wfdata,
                         Sample_point * sample)

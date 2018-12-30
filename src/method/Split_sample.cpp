@@ -422,15 +422,9 @@ int Split_sampler::split_driver(int e,
   sample->translateElectron(e, trace(depth).translation);
   trace(depth).sign=sample->overallSign();
   
-  if(wfdata->supports(laplacian_update) ) {
-    wf->updateLap(wfdata, sample);
-    wf->getLap(wfdata, e, trace(depth).lap);
-  }
-  else {
-    wf->updateForceBias(wfdata, sample);
-    wf->getForceBias(wfdata, e, trace(depth).lap);
-  }
-  
+  wf->updateLap(wfdata, sample);
+  wf->getLap(wfdata, e, trace(depth).lap);
+
   guidingwf->getLap(trace(depth).lap, trace(depth).drift);
 
   //indent="";
@@ -488,11 +482,8 @@ int Split_sampler::sample(int e,
                           Dynamics_info & info,
                           doublevar & efftimestep) {
 
-  if(! wfStore.isInitialized())
-    wfStore.initialize(sample, wf);
   
   wf->updateLap(wfdata, sample);
-  wfStore.saveUpdate(sample, wf, e);
   trace.Resize(recursion_depth_+1);
 
   for(int i=0; i < recursion_depth_+1; i++) {
@@ -533,7 +524,11 @@ int Split_sampler::sample(int e,
   }
 
   if(!acc) {
-    wfStore.restoreUpdate(sample, wf, e);
+    //wfStore.restoreUpdate(sample, wf, e);
+    Array1 <doublevar> back=trace(depth).translation;
+    for(int i=0; i< back.GetDim(0); i++) 
+      back(i)*=-1;
+    sample->translateElectron(e, back);
   }
   //cout << "-----------split done" << endl;
   return acc;

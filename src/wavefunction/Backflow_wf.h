@@ -15,26 +15,6 @@ class Backflow_wf_data;
 class System;
 
 
-class Backflow_wf_storage : public Wavefunction_storage
-{
-public:
-  virtual ~Backflow_wf_storage()
-  {}
-private:
-  friend class Backflow_wf;
-
-   Array2 <doublevar> gradlap;
-  Array2 <doublevar> detVal;
-
-};
-
-
-/*!
-A slater wavefunction; \f$\Psi=\sum_i det_i(\Phi_1\Phi_2...)\f$
-where the \f$\Phi\f$'s are one-particle molecular orbitals.
-Also supports multiple states as a vector of wavefunction values.  Just
-specify multiple STATE keywords.
-*/
 class Backflow_wf : public  Wavefunction
 {
 
@@ -59,9 +39,6 @@ public:
 
   virtual void getDensity(Wavefunction_data *,int, Array2 <doublevar> &);
 
-  virtual void saveUpdate(Sample_point *, int e, Wavefunction_storage *);
-  virtual void restoreUpdate(Sample_point *, int e, Wavefunction_storage *);
-
   virtual int getParmDeriv(Wavefunction_data *, 
 			   Sample_point *,
 			   Parm_deriv_return & );
@@ -69,9 +46,6 @@ public:
   virtual void getSymmetricVal(Wavefunction_data *, 
 			       int, 
 			       Wf_return &);
-
-  void generateStorage(Wavefunction_storage * & wfstore);
-
 
   void init(Wavefunction_data *);
 

@@ -116,48 +116,7 @@ void extend_parm_deriv(Parm_deriv_return & ret1, const Parm_deriv_return & ret2)
 }
 //----------------------------------------------------------------------
 
-//----------------------------------------------------------------------
-
-
-//Default ForceBias to Lap methods, since that's the most
-//common behavior.
-
-void Wavefunction::updateForceBias(Wavefunction_data * wfdata,
-                              Sample_point * sample) {
-  updateLap(wfdata, sample);
-}
-
-void Wavefunction::getForceBias(Wavefunction_data * wfdata, int e,
-                           Wf_return & bias)
-{
-  assert(bias.amp.GetDim(0) >=nfunc());
-  assert(bias.amp.GetDim(1) >=4);
-
-  Wf_return bias_temp(nfunc(),5);
-  getLap(wfdata, e, bias_temp);
-  for(int f=0; f< nfunc(); f++)  {
-    for(int i=0; i< 4; i++) {
-      bias.amp(f,i)=bias_temp.amp(f,i);
-      bias.phase(f,i)=bias_temp.phase(f,i);
-    }
-  }
-}
-
-//----------------------------------------------------------------------
-
-
-
 int deallocate(Wavefunction * & wfptr)
-{
-  if(wfptr == NULL)
-    return 0;
-
-  delete wfptr;
-  wfptr=NULL;
-  return 1;
-}
-
-int deallocate(Wavefunction_storage * & wfptr)
 {
   if(wfptr == NULL)
     return 0;

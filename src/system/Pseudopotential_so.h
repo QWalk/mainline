@@ -216,8 +216,6 @@ public:
   vector <string> atomnames;
   Array1 <bool> addzeff; //!< whether or not to add Z_eff/r to the local function
   
-  Storage_container wfStore;
-  
   Array3 <Basis_function *> radial_basis; //atom, spin, j
   
 };

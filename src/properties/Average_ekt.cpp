@@ -20,6 +20,7 @@
 
 #include "Average_ekt.h"
 #include "ulec.h"
+#include "Sample_point.h"
 #include "Pseudopotential.h"
 //#include "System.h"
 void Average_ekt::randomize(Wavefunction_data * wfdata, Wavefunction * wf,
@@ -182,8 +183,6 @@ void Average_ekt::evaluate_valence(Wavefunction_data * wfdata, Wavefunction * wf
 
   Array1 <Wf_return> wfs(nelectrons);
 
-  Wavefunction_storage * store;
-  wf->generateStorage(store);
   for(int i=0; i< npoints_eval; i++) {
     Array1 <doublevar> oldpos(3);
     sample->getElectronPos(0,oldpos);
@@ -297,7 +296,6 @@ void Average_ekt::evaluate_valence(Wavefunction_data * wfdata, Wavefunction * wf
       }
     }
   }
-  delete store;
 }
 
 
@@ -329,8 +327,6 @@ void Average_ekt::evaluate_obdm(Wavefunction_data * wfdata, Wavefunction * wf,
   Array2 <dcomplex> movals1(nmo,1);
   Array1 <Wf_return> wfs(nelectrons);
 
-  Wavefunction_storage * store;
-  wf->generateStorage(store);
   for(int i=0; i< npoints_eval; i++) { 
     Array1 <doublevar> oldpos(3);
     sample->getElectronPos(0,oldpos);
@@ -345,18 +341,6 @@ void Average_ekt::evaluate_obdm(Wavefunction_data * wfdata, Wavefunction * wf,
     Array1 <Wf_return> wf_eval;
     wf->evalTestPos(saved_r(i),sample,wfs);
 
-    //Testing the evalTestPos
-    //for(int e=0; e< nelectrons; e++) { 
-    //  Wf_return test_wf(wf->nfunc(),2);
-    //  sample->getElectronPos(e,oldpos);
-    //  wf->saveUpdate(sample,e,store);
-    //  sample->setElectronPos(e,saved_r(i));
-    //  wf->updateVal(wfdata,sample);
-    //  wf->getVal(wfdata,e,test_wf);
-    //  sample->setElectronPos(e,oldpos);
-    //  wf->restoreUpdate(sample,e,store);
-    //  cout << "e " << e << " test " << test_wf.amp(0,0) << " evalTestPos " << wfs(e).amp(0,0) << endl;
-    //}
 
     doublevar dist1=0;
     for(int m=0; m < nmo; m++) 
@@ -396,7 +380,6 @@ void Average_ekt::evaluate_obdm(Wavefunction_data * wfdata, Wavefunction * wf,
 
     }
   }
-  delete store;
 }
 //----------------------------------------------------------------------
 

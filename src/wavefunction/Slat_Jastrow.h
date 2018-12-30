@@ -24,31 +24,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Wavefunction.h"
 #include "Slat_Jastrow_data.h"
 
-/*!
- 
-*/
-class Slat_Jastrow_storage : public Wavefunction_storage
-{
-  Slat_Jastrow_storage()
-  {
-    //cout << "creating Slat_jastrow" << endl;
-    slat_store=NULL;
-    jast_store=NULL;
-  }
-  ~Slat_Jastrow_storage()
-  {
-    //cout << "destroying Slat_jastrow" << endl;
-    if(slat_store)
-      delete slat_store;
-    if(jast_store)
-      delete jast_store;
-  }
-private:
-  friend class Slat_Jastrow;
-  Wavefunction_storage * slat_store;
-  Wavefunction_storage * jast_store;
-
-};
 
 /*!
 While this class is named Slat_Jastrow, it can be used with any
@@ -78,25 +53,14 @@ public:
 
   virtual void updateVal(Wavefunction_data *, Sample_point *);
   virtual void updateLap(Wavefunction_data *, Sample_point *);
-  virtual void updateForceBias(Wavefunction_data *, Sample_point *);
 
 
   virtual void getVal(Wavefunction_data *, int, Wf_return &);
   virtual void getLap(Wavefunction_data *, int, Wf_return &);
-  virtual void getForceBias(Wavefunction_data *, int, Wf_return &);
 
   virtual void evalTestPos(Array1 <doublevar> & pos, Sample_point * sample,Array1 <Wf_return> & wf);
   
 
-  virtual void generateStorage(Wavefunction_storage * & wfstore);
-  virtual void saveUpdate(Sample_point *, int e, Wavefunction_storage *);
-  virtual void restoreUpdate(Sample_point *, int e, Wavefunction_storage *);
-
-  //Added by Matous
-  virtual void saveUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *);
-  virtual void restoreUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *);
-
-  
   virtual int getParmDeriv(Wavefunction_data *, 
 			    Sample_point *,
 			    Parm_deriv_return & );

@@ -57,21 +57,6 @@ void FillPfaffianMatrix( Array2 <doublevar> & mopfaff_tot,
                          doublevar coef_eps
                          );
 
-class Pfaff_wf_storage : public Wavefunction_storage
-{
-public:
-  virtual ~Pfaff_wf_storage()
-  {}
-private:
-  friend class Pfaff_wf;
-
-  //dimensions are [value gradient lap, MO]
-  Array2 <doublevar>  moVal_temp;
-  Array1 < Array2 <doublevar> >  inverse_temp;
-  Array1 <doublevar> pfaffVal_temp;
-
-};
-
 
 /*!
 A Pfaffian wavefunction; \f$\Psi=Pf(\Phi(1,2)\Phi(3,4)...)\f$
@@ -99,10 +84,6 @@ public:
   virtual void getLap(Wavefunction_data *, int, Wf_return &);
 
 
-  virtual void saveUpdate(Sample_point *, int e, Wavefunction_storage *);
-  virtual void restoreUpdate(Sample_point *, int e, Wavefunction_storage *);
-
-
 
   virtual int getParmDeriv(Wavefunction_data *, 
 			   Sample_point *,
@@ -111,8 +92,6 @@ public:
   virtual void getSymmetricVal(Wavefunction_data *, 
 			       int, 
 			       Wf_return &);
-
-  void generateStorage(Wavefunction_storage * & wfstore);
 
 
   void init(Wavefunction_data *);

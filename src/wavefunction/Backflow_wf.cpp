@@ -11,14 +11,6 @@
 //----------------------------------------------------------------------
 
 
-void Backflow_wf::generateStorage(Wavefunction_storage * & wfstore)
-{
-  wfstore=new Backflow_wf_storage;
-  Backflow_wf_storage * store;
-  recast(wfstore, store);
-  store->gradlap=gradlap;
-  store->detVal=detVal;
-}
 
 
 //----------------------------------------------------------------------
@@ -132,34 +124,6 @@ void Backflow_wf::notify(change_type change, int num)
 
 }
 
-//----------------------------------------------------------------------
-
-
-void Backflow_wf::saveUpdate(Sample_point * sample, int e,
-                         Wavefunction_storage * wfstore)
-{
-  Backflow_wf_storage * store;
-  recast(wfstore, store);
-  store->gradlap=gradlap;
-  store->detVal=detVal;
-	
-}
-
-//----------------------------------------------------------------------
-
-void Backflow_wf::restoreUpdate(Sample_point * sample, int e,
-                            Wavefunction_storage * wfstore)
-{
-  Backflow_wf_storage * store;
-  recast(wfstore, store);
-  gradlap=store->gradlap;
-  detVal=store->detVal;
-	  
-  electronIsStaleLap=0;
-  electronIsStaleVal=0;
-  updateEverythingLap=0;
-  updateEverythingVal=0;
-}
 
 //----------------------------------------------------------------------
 

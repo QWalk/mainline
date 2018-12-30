@@ -203,7 +203,6 @@ class Split_sampler:public Dynamics_generator {
   Array1 <long int > tries;
 
   string indent; //for debugging..
-  Storage_container wfStore;
 };
 
 

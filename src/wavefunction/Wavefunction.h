@@ -46,18 +46,6 @@ enum change_type {sample_attach,//!< A sample point is reporting to this wf
                   };
 
 
-/*!
-Stores the state of the wavefunction.
-*/
-class Wavefunction_storage
-{
-public:
-  virtual ~Wavefunction_storage()
-  {}
-
-private:
-};
-
 typedef complex <doublevar> dcomplex;
 #include "MatrixAlgebra.h"
 #include "Wf_return.h"
@@ -70,7 +58,6 @@ typedef complex <doublevar> dcomplex;
 struct Parm_deriv_return { 
   int need_hessian;
   int need_lapderiv;
-  //int nparms_start,nparms_end;
   Array1 <doublevar> gradient;//!< of the wave function: DPsi/Psi
   Array2 <doublevar> hessian;  
   Array3 <doublevar> gradderiv; //Parameter derivative of the gradient of the wave function
@@ -106,12 +93,6 @@ where prop can be any of Val,  Lap, or ForceBias
 
 Val gives you only the value
 
-ForceBias is for vmc type methods, where you need importance sampling, but
-also want a fast evaluation, so ForceBias is a relatively fast approximation
-to the value and gradients.  It is not
-really used any more, though, and defaults to the Lap methods unless 
-overridden by the child class.
-
 Lap gives you all the quantities, exactly.
 */
 class Wavefunction
@@ -146,12 +127,8 @@ public:
   virtual void updateVal(Wavefunction_data *, Sample_point *)=0;
   virtual void updateLap(Wavefunction_data *, Sample_point *)=0;
 
-  virtual void updateForceBias(Wavefunction_data *, Sample_point *);
-
   virtual void getVal(Wavefunction_data *, int, Wf_return &)=0;
-
   virtual void getLap(Wavefunction_data *, int, Wf_return &)=0;
-  virtual void getForceBias(Wavefunction_data *, int, Wf_return &);
 
   /*!
     \brief 
@@ -182,42 +159,6 @@ public:
    */
   virtual void getSymmetricVal(Wavefunction_data *, int, Wf_return &)=0;
 
-
-  /*!
-    \brief
-    generate the correct Wavefunction_storage object to store an electron
-    update
-   */
-  virtual void generateStorage(Wavefunction_storage * & wfstore)=0;
-
-  /*!
-    \brief
-    saves an electron update to the storage object
-   */
-  virtual void saveUpdate(Sample_point *, int e, Wavefunction_storage *)=0;
-  
-  /*!
-    \brief
-    saves an two electron update to the storage object
-    */
-  virtual void saveUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *)
-  {error("This Wavefunction object doesn't have two electron storage");}
-   
-  /*!
-    \brief
-    restores an electron update from the storage object(previously stored      with saveUpdate).
-
-    Note that it only has a memory of one electron.  If you store,
-    move two or more electrons, and then restore, the behavior is undefined.
-   */
-  virtual void restoreUpdate(Sample_point *, int e, Wavefunction_storage *)=0;
-  
-  /*!
-   \brief
-   Restores  situation after two electron update
-   */
-  virtual void restoreUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *)
-  {error("This Wavefunction object doesn't have two electron storage");}
 
 
   /*! \brief
@@ -256,74 +197,6 @@ public:
 };
 
 int deallocate(Wavefunction * & wfptr);
-
-#include "Sample_point.h"
-
-/*!
-\brief
-Handles memory management of a sample point and wavefunction
-checkpoint.
-
-This helps avoid memory leaks and should simplify
-code.
- */
-class Storage_container
-{
-public:
-  Storage_container()
-  {
-    wfStore=NULL;
-    sampStore=NULL;
-    initialized=0;
-  }
-  ~Storage_container()
-  {
-    if(wfStore != NULL)
-      delete wfStore;
-    if(sampStore != NULL)
-      delete sampStore;
-  }
-
-  void initialize(Sample_point * sample, Wavefunction * wf) {
-    assert(wf != NULL);
-    if(wfStore != NULL) delete wfStore;
-    if(sampStore != NULL ) delete sampStore;
-    wfStore=NULL; sampStore=NULL;
-    sample->generateStorage(sampStore);
-    wf->generateStorage(wfStore);
-    initialized=1;
-  }
-
-  int isInitialized()
-  {
-    return initialized;
-  }
-
-  void saveUpdate(Sample_point * sample, Wavefunction * wf,
-                  int e)
-  {
-    wf->saveUpdate(sample, e, wfStore);
-    sample->saveUpdate(e, sampStore);
-  }
-  void restoreUpdate(Sample_point * sample, Wavefunction * wf,
-                     int e)
-  {
-    sample->restoreUpdate(e, sampStore);
-    wf->restoreUpdate(sample, e, wfStore);
-  }
-  void restoreUpdate(Sample_point * sample, int e)
-  {
-    sample->restoreUpdate(e, sampStore);
-  }  
-
-
-
-private:
-  int initialized;
-
-  Wavefunction_storage * wfStore;
-  Sample_storage * sampStore;
-};
 
 
 

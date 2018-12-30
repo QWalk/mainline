@@ -158,31 +158,6 @@ private:
 
 //######################################################################
 
-class Jastrow2_storage : public Wavefunction_storage {
-    Jastrow2_storage(int nelectrons) {
-      one_body_part.Resize(5);
-      two_body_part_e.Resize(nelectrons,5);
-      two_body_part_others.Resize(nelectrons,5);
-
-      one_body_part_2.Resize(5);
-      two_body_part_e_2.Resize(nelectrons,5);
-      two_body_part_others_2.Resize(nelectrons,5);
-    }
-  private:
-    friend class Jastrow2_wf;
-    vector <Wavefunction *> wfObserver;
-    Array1 <doublevar> one_body_part;
-    Array2 <doublevar> two_body_part_e; //!< parts with this electron as first index
-    Array2 <doublevar> two_body_part_others; //!< parts with this electron as second index
-    Array1 <Array3<doublevar> > eibasis;
-	
-    Array1 <doublevar> one_body_part_2;
-    Array2 <doublevar> two_body_part_e_2; //!< parts with this electron as first index
-    Array2 <doublevar> two_body_part_others_2; //!< parts with this electron as second index
-    Array1 <Array3<doublevar> > eibasis_2;
-};
-
-//######################################################################
 
 class Jastrow2_wf : public Wavefunction {
 public:
@@ -203,12 +178,6 @@ public:
   
 
 
-  virtual void generateStorage(Wavefunction_storage *&);
-  virtual void saveUpdate(Sample_point *, int e, Wavefunction_storage *);
-  virtual void restoreUpdate(Sample_point *, int e, Wavefunction_storage *);
-
-  virtual void saveUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *);
-  virtual void restoreUpdate(Sample_point *, int e1, int e2, Wavefunction_storage *);
  
   virtual int getParmDeriv(Wavefunction_data *, Sample_point *,
                            Parm_deriv_return & );

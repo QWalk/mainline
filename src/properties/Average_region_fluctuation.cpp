@@ -19,6 +19,7 @@
  */
 
 #include "Average_region_fluctuation.h"
+#include "Sample_point.h"
 #include "ulec.h"
 
 void Average_region_fluctuation::randomize(Wavefunction_data * wfdata, Wavefunction * wf,

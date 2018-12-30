@@ -250,7 +250,6 @@ void Pseudopotential::calcPseudoSeparated(Wavefunction_data * wfdata,
   //  doublevar accum_nonlocal=0;
   
   wf->updateVal(wfdata, sample);
-  wfStore.initialize(sample, wf);
   
   int accept_counter=0;
   //deriv.Resize(natoms, 3);
@@ -304,7 +303,6 @@ void Pseudopotential::calcPseudoSeparated(Wavefunction_data * wfdata,
 	
 	//bool localonly = true;
 	if(accept)  {
-	  wfStore.saveUpdate(sample, wf, e);
 	  Wf_return  oldWfVal(nwf,2);
 	  wf->getVal(wfdata, e,oldWfVal);
 	  
@@ -351,7 +349,6 @@ void Pseudopotential::calcPseudoSeparated(Wavefunction_data * wfdata,
 	  } 
 	  
 	  //--------------------
-	  wfStore.restoreUpdate(sample, wf, e);
 	}
 
       //----------------------------------------------
@@ -408,7 +405,6 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
   doublevar accum_nonlocal=0;
 
   wf->updateVal(wfdata, sample);
-  wfStore.initialize(sample, wf);
   Parm_deriv_return base_deriv;
   if(parm_derivatives) { 
     parm_deriv.Resize(wfdata->nparms());
@@ -472,7 +468,6 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
       
 
         if(accept)  {
-          wfStore.saveUpdate(sample, wf, e);
           Wf_return  oldWfVal(nwf,2);
           wf->getVal(wfdata, e,oldWfVal);
 
@@ -562,10 +557,6 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
           } 
 
           //--------------------
-
-
-
-          wfStore.restoreUpdate(sample, wf, e);
         }
 
         //----------------------------------------------

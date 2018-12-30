@@ -19,6 +19,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 
 #include "System.h"
+#include "Sample_point.h"
 #include "Molecular_system.h"
 #include "Periodic_system.h"
 #include "ulec.h"

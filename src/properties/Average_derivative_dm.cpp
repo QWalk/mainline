@@ -22,6 +22,7 @@
 #include "Average_derivative_dm.h"
 #include <cmath>
 #include "Properties_point.h"
+#include "Sample_point.h"
 
 //######################################################################
 

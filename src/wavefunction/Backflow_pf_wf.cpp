@@ -8,20 +8,6 @@
 #include "Sample_point.h"
 #include "Backflow_pf_wf_data.h"
 
-//----------------------------------------------------------------------
-
-
-void Backflow_pf_wf::generateStorage(Wavefunction_storage * & wfstore)
-{
-  wfstore=new  Backflow_pf_wf_storage;
-  Backflow_pf_wf_storage * store;
-  recast(wfstore, store);
-  store->gradlap=gradlap;
-  store->pfaffVal=pfaffVal;
-}
-
-
-
 
 //----------------------------------------------------------------------
 
@@ -88,12 +74,6 @@ void Backflow_pf_wf::init(Wavefunction_data * wfdata)
 
 //----------------------------------------------------------------------
 
-/*!
-Behavior under staticSample:  if sample_static is set, then
-we ignore all electron moves in the main algorithm, and the only way
-to update based on a move is by the getParmDepVal function.  The
-regular update functions will not work in this case.
-*/
 void Backflow_pf_wf::notify(change_type change, int num)
 {
   
@@ -101,23 +81,17 @@ void Backflow_pf_wf::notify(change_type change, int num)
   switch(change)
   {
   case electron_move:
-    //if(staticSample==0) {
       electronIsStaleVal(num)=1;
       electronIsStaleLap(num)=1;
-      //}
     break;
   case all_electrons_move:
-    //if(staticSample==0) {
       updateEverythingVal=1;
       updateEverythingLap=1;
-      //}
     break;
   case wf_parm_change:  
   case all_wf_parms_change:
-    //if(parent->optimize_backflow  ) {
       updateEverythingVal=1;
       updateEverythingLap=1;
-      //}
     break;
   case sample_attach:
     sampleAttached=1;
@@ -134,35 +108,6 @@ void Backflow_pf_wf::notify(change_type change, int num)
     updateEverythingLap=1;
   }
 
-}
-
-//----------------------------------------------------------------------
-
-
-void Backflow_pf_wf::saveUpdate(Sample_point * sample, int e,
-                         Wavefunction_storage * wfstore)
-{
-  Backflow_pf_wf_storage * store;
-  recast(wfstore, store);
-  store->gradlap=gradlap;
-  store->pfaffVal=pfaffVal;
-	
-}
-
-//----------------------------------------------------------------------
-
-void Backflow_pf_wf::restoreUpdate(Sample_point * sample, int e,
-                            Wavefunction_storage * wfstore)
-{
-  Backflow_pf_wf_storage * store;
-  recast(wfstore, store);
-  gradlap=store->gradlap;
-  pfaffVal=store->pfaffVal;
-	  
-  electronIsStaleLap=0;
-  electronIsStaleVal=0;
-  updateEverythingLap=0;
-  updateEverythingVal=0;
 }
 
 //----------------------------------------------------------------------

@@ -1,4 +1,5 @@
 #include "Average_so.h"
+#include "Sample_point.h"
 #include "Pseudopotential_so.h"
 #include "ulec.h"
 

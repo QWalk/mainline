@@ -11,29 +11,6 @@
 
 
 
-//----------------------------------------------------------------------
-void Pfaff_wf::generateStorage(Wavefunction_storage * & wfstore)
-{
-  wfstore=new Pfaff_wf_storage;
-  Pfaff_wf_storage * store;
-  recast(wfstore, store);
-  
-  store->inverse_temp.Resize(npf);
-  store->pfaffVal_temp.Resize(npf);
-  
-  for (int pf=0;pf<npf;pf++){
-    store->inverse_temp(pf).Resize(npairs, npairs);
-    store->inverse_temp(pf)=0;
-    store->pfaffVal_temp(pf)=1;
-  }
-  store->moVal_temp.Resize(5,updatedMoVal.GetDim(0));
-  for (int d=0;d<5;d++)
-    for (int i=0;i<updatedMoVal.GetDim(0);i++)
-      store->moVal_temp(d,i)=0;
-
- 
-}
-
 
 //----------------------------------------------------------------------
 
@@ -134,73 +111,6 @@ void Pfaff_wf::notify(change_type change, int num)
       updateEverythingVal=1;
       updateEverythingLap=1;
   }
-}
-
-//----------------------------------------------------------------------
-/*
-void Pfaff_wf::save_for_static() {
-  // cout<<"save_for_static\n";
-  assert(staticSample==0);
-
-  if(!parent->optimize_pf || !parent->optimize_pfwt) {
-    
-    int totelectrons=nelectrons(0)+nelectrons(1);
-    saved_laplacian.Resize(totelectrons, 1, 6);
-    
-    Wf_return templap(1,5);
-    
-    for(int e=0; e< totelectrons; e++) {
-      getLap(parent, e, templap);
-      for(int i=0; i< 5; i++) saved_laplacian(e,0,i)=templap.amp(0,i);
-      saved_laplacian(e,0,5)=templap.phase(0,0);
-    }
-    
-  }
-
-}*/
-
-//----------------------------------------------------------------------
-
-void Pfaff_wf::saveUpdate(Sample_point * sample, int e,
-                         Wavefunction_storage * wfstore)
-{
-  //cout<<"saveUpdate\n";
-  Pfaff_wf_storage * store;
-  recast(wfstore, store);
-  
-  for (int pf=0;pf<npf;pf++){
-    store->inverse_temp(pf)=inverse(pf);
-    store->pfaffVal_temp(pf)=pfaffVal(pf);
-  }   
-  
-  for(int d=0; d< 5; d++){
-    for(int i=0; i< moVal.GetDim(2); i++){
-      store->moVal_temp(d,i)=moVal(d,e,i);
-    }
-  }
-}
-
-//----------------------------------------------------------------------
-
-void Pfaff_wf::restoreUpdate(Sample_point * sample, int e,
-                            Wavefunction_storage * wfstore)
-{
-  //cout<<"restoreUpdate\n";
-  Pfaff_wf_storage * store;
-  recast(wfstore, store);
-  
-  for(int j=0; j<5; j++){
-    for(int i=0; i<moVal.GetDim(2); i++){
-      moVal(j,e,i)=store->moVal_temp(j,i);
-    }
-  }
-  
-  for (int pf=0;pf<npf;pf++){
-    inverse(pf)=store->inverse_temp(pf);
-    pfaffVal(pf)=store->pfaffVal_temp(pf);
-  }
-  electronIsStaleVal(e)=0;
-  electronIsStaleLap(e)=0;
 }
 
 //----------------------------------------------------------------------

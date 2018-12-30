@@ -19,6 +19,7 @@
  */
 
 #include "Average_density_matrix.h"
+#include "Sample_point.h"
 #include "ulec.h"
 
 void Average_tbdm_basis::randomize(Wavefunction_data * wfdata, Wavefunction * wf,
@@ -137,8 +138,6 @@ void Average_tbdm_basis::evaluate_obdm(Wavefunction_data * wfdata, Wavefunction 
   Array2 <dcomplex> movals1(nmo,1);
   Array1 <Wf_return> wfs(nelectrons);
 
-  Wavefunction_storage * store;
-  wf->generateStorage(store);
   for(int i=0; i< npoints_eval; i++) { 
     Array1 <doublevar> oldpos(3);
     sample->getElectronPos(0,oldpos);
@@ -194,7 +193,7 @@ void Average_tbdm_basis::evaluate_obdm(Wavefunction_data * wfdata, Wavefunction 
         for(int orbnum2=0; orbnum2 < nmo; orbnum2++) { 
           //tmp=movals1(orbnum,0)*conj(movals1_base(e)(orbnum2,0))*prefactor;
 	  /*!
-	    This is to based on my new definition: 
+	    This is to based on the definition: 
 	       \rho(r, r') = N\int dR psi*(r, R) psi(r', R) = \sum rho_{ij} phi_i*(r) phi_j(r')
 	       in this way, one will find that, the phase factor is cancelled
 	   */
@@ -208,7 +207,6 @@ void Average_tbdm_basis::evaluate_obdm(Wavefunction_data * wfdata, Wavefunction 
 
     }
   }
-  delete store;
 }
 
 
@@ -406,8 +404,6 @@ void Average_tbdm_basis::evaluate_tbdm(Wavefunction_data * wfdata, Wavefunction 
 
   avg.vals=0;
 
-  Wavefunction_storage * store;
-  wf->generateStorage(store);
  
 
   Wf_return wfval1(wf->nfunc(),2);
@@ -420,7 +416,6 @@ void Average_tbdm_basis::evaluate_tbdm(Wavefunction_data * wfdata, Wavefunction 
 
       //Evaluate all the quantities we will be needing here
       sample->getElectronPos(e1,oldpos1);
-      wf->saveUpdate(sample,e1,store);
       sample->setElectronPos(e1,saved_r(i));
       calc_mos(sample,e1,movals1);
       wf->updateVal(wfdata,sample);
@@ -433,7 +428,6 @@ void Average_tbdm_basis::evaluate_tbdm(Wavefunction_data * wfdata, Wavefunction 
       sample->setElectronPosNoNotify(0,oldpos2);
      
       sample->setElectronPos(e1,oldpos1);
-      wf->restoreUpdate(sample,e1,store);
       //Done evaluating
 
       //---Add to the OBDM
@@ -515,8 +509,6 @@ void Average_tbdm_basis::evaluate_tbdm(Wavefunction_data * wfdata, Wavefunction 
       }
     }
   }
-
-  delete store;
 
 }
 

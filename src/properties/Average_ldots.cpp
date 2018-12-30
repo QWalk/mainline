@@ -1,4 +1,5 @@
 #include "Average_ldots.h"
+#include "Sample_point.h"
 #include "ulec.h"
 
 void Average_ldots::read(System * sys, Wavefunction_data * wfdata,

@@ -5,6 +5,7 @@
 #include "qmc_io.h"
 #include "Backflow_wf_data.h"
 #include "Wavefunction_data.h"
+#include "Sample_point.h"
 #include "Backflow_wf.h"
 #include <algorithm>
 

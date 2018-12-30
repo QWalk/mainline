@@ -1,4 +1,5 @@
 #include "Average_quadrupole.h"
+#include "Sample_point.h"
 #include "jsontools.h"
 //----------------------------------------------------------------------
 
