@@ -523,13 +523,13 @@ int Split_sampler::sample(int e,
     }
   }
 
-  if(!acc) {
+  //if(!acc) {
     //wfStore.restoreUpdate(sample, wf, e);
-    Array1 <doublevar> back=trace(depth).translation;
-    for(int i=0; i< back.GetDim(0); i++) 
-      back(i)*=-1;
-    sample->translateElectron(e, back);
-  }
+  //  Array1 <doublevar> back=trace(depth).translation;
+  //  for(int i=0; i< back.GetDim(0); i++) 
+  //    back(i)*=-1;
+  //  sample->translateElectron(e, back);
+  //}
   //cout << "-----------split done" << endl;
   return acc;
 }
