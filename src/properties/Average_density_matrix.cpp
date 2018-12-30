@@ -404,8 +404,6 @@ void Average_tbdm_basis::evaluate_tbdm(Wavefunction_data * wfdata, Wavefunction 
 
   avg.vals=0;
 
- 
-
   Wf_return wfval1(wf->nfunc(),2);
   Array1 <Wf_return> wfval2(nelectrons);
   Array2 <dcomplex> movals1(nmo,1),movals2(nmo,1);
@@ -507,6 +505,8 @@ void Average_tbdm_basis::evaluate_tbdm(Wavefunction_data * wfdata, Wavefunction 
           }//offdiagonal tbdm
         }
       }
+      sample->setElectronPos(e1,oldpos1);
+      
     }
   }
 
