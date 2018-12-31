@@ -31,16 +31,16 @@ public:
 
   virtual void notify(change_type , int );
 
-  virtual void updateVal(Wavefunction_data *, Sample_point *);
-  virtual void updateLap(Wavefunction_data *, Sample_point *);
+  virtual void updateVal(Sample_point * const);
+  virtual void updateLap(Sample_point * const);
 
-  virtual void getVal(Wavefunction_data *, int, Wf_return &);
-  virtual void getLap(Wavefunction_data *, int, Wf_return &);
+  virtual void getVal(Wf_return &);
+  virtual void getLap(int, Wf_return &);
 
   virtual void getDensity(Wavefunction_data *,int, Array2 <doublevar> &);
 
   virtual int getParmDeriv(Wavefunction_data *, 
-			   Sample_point *,
+			   Sample_point * const,
 			   Parm_deriv_return & );
 
   virtual void getSymmetricVal(Wavefunction_data *, 
@@ -53,9 +53,9 @@ public:
 private:
 
 
-  void calcVal(Sample_point *);
-  void calcLap(Sample_point *);
-  void updateVal(int e, Sample_point *);
+  void calcVal(Sample_point * const);
+  void calcLap(Sample_point * const);
+  void updateVal(int e, Sample_point * const);
   Array1 <int> electronIsStaleVal;
   Array1 <int> electronIsStaleLap;
   int updateEverythingVal;

@@ -17,18 +17,16 @@
 void Pfaff_wf::init(Wavefunction_data * wfdata)
 {
 
-  Pfaff_wf_data * dataptr;
-  recast(wfdata, dataptr);
   recast(wfdata, parent);
-  nmo=dataptr->nmo;
-  npf=dataptr->npf;
-  nsfunc=dataptr->nsfunc;
-  coef_eps=dataptr->coef_eps;
+  nmo=parent->nmo;
+  npf=parent->npf;
+  nsfunc=parent->nsfunc;
+  coef_eps=parent->coef_eps;
   nelectrons.Resize(2);
-  nelectrons=dataptr->nelectrons;
-  int upuppairs=dataptr->npairs(0);
-  int downdownpairs=dataptr->npairs(1);
-  int nopairs=dataptr->npairs(2);
+  nelectrons=parent->nelectrons;
+  int upuppairs=parent->npairs(0);
+  int downdownpairs=parent->npairs(1);
+  int nopairs=parent->npairs(2);
   
   npairs=upuppairs+downdownpairs+nopairs;
   int tote=nelectrons(0)+nelectrons(1);
@@ -37,8 +35,8 @@ void Pfaff_wf::init(Wavefunction_data * wfdata)
   
   //Properties and intermediate calculation storage.
 
-  moVal.Resize(5, tote, dataptr->totoccupation(0).GetSize());
-  updatedMoVal.Resize(dataptr->totoccupation(0).GetSize(),5);
+  moVal.Resize(5, tote, parent->totoccupation(0).GetSize());
+  updatedMoVal.Resize(parent->totoccupation(0).GetSize(),5);
   
   inverse.Resize(npf);
   pfaffVal.Resize(npf);
@@ -115,29 +113,23 @@ void Pfaff_wf::notify(change_type change, int num)
 
 //----------------------------------------------------------------------
 
-void Pfaff_wf::updateVal(Wavefunction_data * wfdata,
-                        Sample_point * sample)
+void Pfaff_wf::updateVal(Sample_point * sample)
 {
   // cout << "updateVal-main part \n";
   
   assert(sampleAttached);
   assert(dataAttached);
 
-  
-
-  Pfaff_wf_data * pfaffdata;
-  recast(wfdata, pfaffdata);
-
   if(parent->optimize_pf ) {
     if(updateEverythingVal==1) {
-      calcVal(pfaffdata, sample);
+      calcVal(sample);
       updateEverythingVal=0;
       electronIsStaleVal=0;
     }
     else {
       for(int e=0; e< nelectrons(0)+nelectrons(1); e++) {
         if(electronIsStaleVal(e)) {
-          updateVal(pfaffdata, sample, e);
+          updateVal(sample, e);
           electronIsStaleVal(e)=0;
         }
       }
@@ -151,8 +143,7 @@ void Pfaff_wf::updateVal(Wavefunction_data * wfdata,
 //----------------------------------------------------------------------
 
 
-void Pfaff_wf::updateLap( Wavefunction_data * wfdata,
-                        Sample_point * sample)
+void Pfaff_wf::updateLap(Sample_point * sample)
 {
   //Array1 <doublevar> elecpos(3);
   assert(sampleAttached);
@@ -160,11 +151,9 @@ void Pfaff_wf::updateLap( Wavefunction_data * wfdata,
 
   //  cout << "updateLap-main part \n";
 
-  Pfaff_wf_data * pfaffdata;
-  recast(wfdata, pfaffdata);
   if(updateEverythingLap==1){
     //cout <<"calcLap" <<endl;
-    calcLap(pfaffdata, sample);
+    calcLap(sample);
     updateEverythingVal=0;
     updateEverythingLap=0;
     electronIsStaleLap=0;
@@ -179,7 +168,7 @@ void Pfaff_wf::updateLap( Wavefunction_data * wfdata,
       //  cout << "Checking electron: "<<e<<endl;
       if(electronIsStaleLap(e)){
         //cout <<"updateLap1" <<endl;
-        updateLap(pfaffdata, sample, e);
+        updateLap(sample, e);
         electronIsStaleLap(e)=0;
         electronIsStaleVal(e)=0;
       }
@@ -1477,34 +1466,27 @@ int Pfaff_wf::getParmDeriv(Wavefunction_data *  wfdata,
 
 //------------------------------------------------------------------------
 
-void Pfaff_wf::calcVal(Pfaff_wf_data * dataptr, Sample_point * sample)
-{
-  //cout << "calVal \n";
-  //Hmm, I don't completely understand why, but something is not 
-  //completely clean, so we can't just cycle through and updateVal
-  //This is actually probably the best way to do it anyway, since it 
-  //should in theory be faster, and it gives us a clean start
-  calcLap(dataptr, sample);
-
+void Pfaff_wf::calcVal(Sample_point * sample) {
+  calcLap(sample);
 }
 
 
-void Pfaff_wf::updateVal(Pfaff_wf_data * dataptr, Sample_point * sample, int e)
+void Pfaff_wf::updateVal(Sample_point * sample, int e)
 {
-  int upuppairs=dataptr->npairs(0);
-  int downdownpairs=dataptr->npairs(1);
-  int nopairs=dataptr->npairs(2);
+  int upuppairs=parent->npairs(0);
+  int downdownpairs=parent->npairs(1);
+  int nopairs=parent->npairs(2);
   int totelectrons=nelectrons(0)+nelectrons(1);
   Array3 <doublevar> moVal_temmp(5, totelectrons, updatedMoVal.GetDim(0));
   doublevar ratio;
   
 
   //cout << "updateVal" << endl;
-  assert(dataptr != NULL);
+  assert(parent != NULL);
   for (int pf=0;pf<npf;pf++){
     if(pfaffVal(pf)==0){
       cout << "updateVal::WARNING: pfaffian  zero!" << endl;
-      calcLap(dataptr, sample);
+      calcLap(sample);
       return;
     }
   }
@@ -1513,7 +1495,7 @@ void Pfaff_wf::updateVal(Pfaff_wf_data * dataptr, Sample_point * sample, int e)
     sample->updateEIDist();
     updatedMoVal=0;
     //update all the mo's that we will be using.
-    dataptr->molecorb->updateVal(sample, e,
+    parent->molecorb->updateVal(sample, e,
 				 0,
 				 updatedMoVal);
     
@@ -1539,14 +1521,14 @@ void Pfaff_wf::updateVal(Pfaff_wf_data * dataptr, Sample_point * sample, int e)
     UpdatePfaffianRowVal(mopfaff_row, 
                          e,  
                          moVal,
-                         dataptr->occupation_pos,
-                         dataptr->npairs, 
-                         dataptr->order_in_pfaffian(pf),
-                         dataptr->tripletorbuu, 
-                         dataptr->tripletorbdd,
-                         dataptr->singletorb,
-                         dataptr->unpairedorb,
-                         dataptr->normalization,
+                         parent->occupation_pos,
+                         parent->npairs, 
+                         parent->order_in_pfaffian(pf),
+                         parent->tripletorbuu, 
+                         parent->tripletorbdd,
+                         parent->singletorb,
+                         parent->unpairedorb,
+                         parent->normalization,
                          coef_eps
                          );
    
@@ -1567,8 +1549,7 @@ void Pfaff_wf::updateVal(Pfaff_wf_data * dataptr, Sample_point * sample, int e)
 
 //------------------------------------------------------------------------
 
-void Pfaff_wf::getVal(Wavefunction_data * wfdata, int e,
-                     Wf_return & val)
+void Pfaff_wf::getVal(Wf_return & val)
 {
   //cout << "getVal"<<endl;
   Array1 <doublevar> si(1, 0.0);
@@ -1578,14 +1559,10 @@ void Pfaff_wf::getVal(Wavefunction_data * wfdata, int e,
   assert(val.amp.GetDim(1) >= 1);
   assert(val.amp.GetDim(1) >= 1);
   
-  
-  
-  Pfaff_wf_data * dataptr;
-  recast(wfdata, dataptr);
   doublevar tempval=0;
   
   for (int pf=0;pf<npf;pf++){
-    tempval+=dataptr->pfwt(pf)*pfaffVal(pf);
+    tempval+=parent->pfwt(pf)*pfaffVal(pf);
   }
   si(0)=sign(tempval);
   
@@ -1611,15 +1588,15 @@ void Pfaff_wf::getSymmetricVal(Wavefunction_data * wfdata,
 //----------------------------------------------------------------------
 
 
-void Pfaff_wf::calcLap(Pfaff_wf_data * dataptr, Sample_point * sample)
+void Pfaff_wf::calcLap(Sample_point * sample)
 {
   Array1 <doublevar> elecpos(3);
   //cout << "calcLap" << endl;
-  // int upuppairs=dataptr->npairs(0);
-  // int downdownpairs=dataptr->npairs(1);
-  // int nopairs=dataptr->npairs(2);
-  //int ntote_pairs=dataptr->ntote_pairs;
-  int tote=dataptr->tote;
+  // int upuppairs=parent->npairs(0);
+  // int downdownpairs=parent->npairs(1);
+  // int nopairs=parent->npairs(2);
+  //int ntote_pairs=parent->ntote_pairs;
+  int tote=parent->tote;
 
   //cout << "calcLap " << endl;
   for(int e=0; e< tote; e++)
@@ -1631,7 +1608,7 @@ void Pfaff_wf::calcLap(Pfaff_wf_data * dataptr, Sample_point * sample)
       //update all the mo's that we will be using, using the lists made in
       //Pfaff_wf_data(one for each spin).
 
-      dataptr->molecorb->updateLap(sample, e,
+      parent->molecorb->updateLap(sample, e,
                                    0,
                                    updatedMoVal);
       
@@ -1640,7 +1617,7 @@ void Pfaff_wf::calcLap(Pfaff_wf_data * dataptr, Sample_point * sample)
       // cout << "updatedMoVal " << updatedMoVal(i,0) << endl;
       //}
       
-      assert(dataptr->totoccupation(0).GetSize()==updatedMoVal.GetDim(0));
+      assert(parent->totoccupation(0).GetSize()==updatedMoVal.GetDim(0));
     
       int size=updatedMoVal.GetDim(0);
       for(int d=0; d< 5; d++){
@@ -1661,24 +1638,24 @@ void Pfaff_wf::calcLap(Pfaff_wf_data * dataptr, Sample_point * sample)
   for (int pf=0;pf<npf;pf++){
   //for(int e=0; e< tote; e++){
   //  for(int i=0;i<updatedMoVal.GetDim(0);i++){
-       //cout <<dataptr->occupation_pos(pf)(i)<<" , "<<endl;
+       //cout <<parent->occupation_pos(pf)(i)<<" , "<<endl;
   //    cout <<moVal(0,e,i)<<" , "<<endl;
        
   //}
   //   cout <<endl;
   //}
-    //cout <<"dataptr->occupation_pos(pf).GetSize() "<<dataptr->occupation_pos(pf).GetSize()<<endl;
+    //cout <<"parent->occupation_pos(pf).GetSize() "<<parent->occupation_pos(pf).GetSize()<<endl;
     
     FillPfaffianMatrix( mopfaff_tot(pf),
                         moVal, 
-                        dataptr->occupation_pos,
-                        dataptr->npairs,
-                        dataptr->order_in_pfaffian(pf),
-                        dataptr->tripletorbuu, 
-                        dataptr->tripletorbdd,
-                        dataptr->singletorb,
-                        dataptr->unpairedorb,
-                        dataptr->normalization,
+                        parent->occupation_pos,
+                        parent->npairs,
+                        parent->order_in_pfaffian(pf),
+                        parent->tripletorbuu, 
+                        parent->tripletorbdd,
+                        parent->singletorb,
+                        parent->unpairedorb,
+                        parent->normalization,
                         coef_eps
                         );
     // cout << endl;
@@ -1706,10 +1683,10 @@ void Pfaff_wf::calcLap(Pfaff_wf_data * dataptr, Sample_point * sample)
   }
   //cout << "----------"<<endl;
   
-  //cout << dataptr->check_pfwt_sign<< endl;
-  if(dataptr->check_pfwt_sign && firstime ){
+  //cout << parent->check_pfwt_sign<< endl;
+  if(parent->check_pfwt_sign && firstime ){
     for (int pf=0;pf<npf;pf++)
-      cout << dataptr->pfwt(pf)*pfaffVal(pf)<<endl;
+      cout << parent->pfwt(pf)*pfaffVal(pf)<<endl;
     firstime=false;
   }
        
@@ -1718,20 +1695,17 @@ void Pfaff_wf::calcLap(Pfaff_wf_data * dataptr, Sample_point * sample)
 //------------------------------------------------------------------------
 
 
-void Pfaff_wf::getLap(Wavefunction_data * wfdata,
-                     int e, Wf_return & lap) {
+void Pfaff_wf::getLap(int e, Wf_return & lap) {
 
   //cout << "getLap"<<endl;
   Array1 <doublevar> si(1, 0.0);
   Array2 <doublevar> vals(1,5,0.0);
   
   
-  Pfaff_wf_data * dataptr;
-  recast(wfdata, dataptr);
-  int upuppairs=dataptr->npairs(0);
-  int downdownpairs=dataptr->npairs(1);
-  int nopairs=dataptr->npairs(2);
-  //int ntote_pairs=dataptr->ntote_pairs;
+  int upuppairs=parent->npairs(0);
+  int downdownpairs=parent->npairs(1);
+  int nopairs=parent->npairs(2);
+  //int ntote_pairs=parent->ntote_pairs;
   
   int shiftf=0;
   
@@ -1741,7 +1715,7 @@ void Pfaff_wf::getLap(Wavefunction_data * wfdata,
   
   doublevar funcval=0;
   for (int pf=0;pf<npf;pf++){
-    funcval+=dataptr->pfwt(pf)*pfaffVal(pf);
+    funcval+=parent->pfwt(pf)*pfaffVal(pf);
   }
   
   si(shiftf)=sign(funcval);
@@ -1760,14 +1734,14 @@ void Pfaff_wf::getLap(Wavefunction_data * wfdata,
     UpdatePfaffianRowLap(mopfaff_row(pf),
                          e,
                          moVal,
-                         dataptr->occupation_pos,
-                         dataptr->npairs,
-                         dataptr->order_in_pfaffian(pf),
-                         dataptr->tripletorbuu,
-                         dataptr->tripletorbdd,
-                         dataptr->singletorb,
-                         dataptr->unpairedorb,
-                         dataptr->normalization,
+                         parent->occupation_pos,
+                         parent->npairs,
+                         parent->order_in_pfaffian(pf),
+                         parent->tripletorbuu,
+                         parent->tripletorbdd,
+                         parent->singletorb,
+                         parent->unpairedorb,
+                         parent->normalization,
                          coef_eps
                          );
   }
@@ -1780,10 +1754,10 @@ void Pfaff_wf::getLap(Wavefunction_data * wfdata,
         temp+=mopfaff_row(pf)(j)(d)*inverse(pf)(j,e);
         //updated row*inverse matrix;
       }
-      if(dataptr->pfwt(pf)==0)
+      if(parent->pfwt(pf)==0)
         temp=0.0;
       if(npf >1)
-        temp*=dataptr->pfwt(pf)*pfaffVal(pf);
+        temp*=parent->pfwt(pf)*pfaffVal(pf);
       vals(shiftf,d)+=temp;
     }
     if(funcval==0)
@@ -1809,18 +1783,17 @@ void Pfaff_wf::getLap(Wavefunction_data * wfdata,
 /*!
 */
 void Pfaff_wf::updateLap(
-  Pfaff_wf_data * dataptr,
   Sample_point * sample,
   int e)
 {
   
   //cout << "updateLap: Single row-column update"<<endl;
-  assert(dataptr != NULL);
+  assert(parent != NULL);
 
-  int upuppairs=dataptr->npairs(0);
-  int downdownpairs=dataptr->npairs(1);
-  int nopairs=dataptr->npairs(2);
-  //  int ntote_pairs=dataptr->ntote_pairs;
+  int upuppairs=parent->npairs(0);
+  int downdownpairs=parent->npairs(1);
+  int nopairs=parent->npairs(2);
+  //  int ntote_pairs=parent->ntote_pairs;
   Array1 <doublevar> elecpos(3);
 
   
@@ -1828,7 +1801,7 @@ void Pfaff_wf::updateLap(
   for (int pf=0;pf<npf;pf++){
     if(pfaffVal(pf)==0){
       cout << "updateLap::WARNING: Pfaffian zero!" << endl;
-      calcLap(dataptr, sample);
+      calcLap(sample);
       return;
     }
   }
@@ -1837,7 +1810,7 @@ void Pfaff_wf::updateLap(
     sample->updateEIDist();
     //cout << "mo update\n";
     //update all the mo's that we will be using.
-    dataptr->molecorb->updateLap(sample, e,
+    parent->molecorb->updateLap(sample, e,
                                  0,
                                  updatedMoVal);
   
@@ -1867,14 +1840,14 @@ void Pfaff_wf::updateLap(
     UpdatePfaffianRowVal(mopfaff_row, 
                          e,  
                          moVal, 
-                         dataptr->occupation_pos,
-                         dataptr->npairs,
-                         dataptr->order_in_pfaffian(pf),
-                         dataptr->tripletorbuu, 
-                         dataptr->tripletorbdd,
-                         dataptr->singletorb,
-                         dataptr->unpairedorb,
-                         dataptr->normalization,
+                         parent->occupation_pos,
+                         parent->npairs,
+                         parent->order_in_pfaffian(pf),
+                         parent->tripletorbuu, 
+                         parent->tripletorbdd,
+                         parent->singletorb,
+                         parent->unpairedorb,
+                         parent->normalization,
                          coef_eps
                          );
   

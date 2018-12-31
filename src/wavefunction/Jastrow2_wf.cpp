@@ -831,7 +831,7 @@ void Jastrow2_wf::init(Wavefunction_data * wfdata) {
 
 //----------------------------------------------------------
 
-void Jastrow2_wf::updateVal(Wavefunction_data * wfdata, Sample_point * sample){
+void Jastrow2_wf::updateVal(Sample_point * sample){
 
   //cout << "updateVal " << endl;
   //cout << "everything " << updateEverythingVal << endl;
@@ -848,7 +848,7 @@ void Jastrow2_wf::updateVal(Wavefunction_data * wfdata, Sample_point * sample){
   for(int g=0; g< ngroups; g++) 
     has3b=parent->group(g).hasThreeBody() or has3b;
   if(has3b) 
-    update_eibasis_save(wfdata,sample);
+    update_eibasis_save(parent,sample);
 
   for(int e=0; e < nelectrons; e++) {
     if(electronIsStaleVal(e)) {
@@ -954,7 +954,7 @@ void Jastrow2_wf::update_eibasis_save(Wavefunction_data * wfdata, Sample_point *
   
 }
 
-void Jastrow2_wf::updateLap(Wavefunction_data * wfdata, Sample_point * sample){
+void Jastrow2_wf::updateLap(Sample_point * sample){
   //cout << "Jastrow2_wf::updateLap " << endl;
   if(updateEverythingLap) {
     electronIsStaleLap=1;
@@ -963,7 +963,7 @@ void Jastrow2_wf::updateLap(Wavefunction_data * wfdata, Sample_point * sample){
 
   int ngroups=parent->group.GetDim(0);
   Array3 <doublevar> eibasis(parent->natoms, maxeibasis ,5);
-  update_eibasis_save(wfdata,sample);
+  update_eibasis_save(parent,sample);
 
   for(int e=0; e < nelectrons; e++) {
     if(electronIsStaleLap(e)) {
@@ -1126,8 +1126,7 @@ void Jastrow2_wf::updateLap(Wavefunction_data * wfdata, Sample_point * sample){
 }
 //----------------------------------------------------------
 
-void Jastrow2_wf::getVal(Wavefunction_data * wfdata,
-                         int e, Wf_return & val) {
+void Jastrow2_wf::getVal(Wf_return & val) {
 
   //assert(val.amp.GetDim(1) >= 2);
   val.phase(0, 0)=0;
@@ -1148,19 +1147,18 @@ void Jastrow2_wf::getVal(Wavefunction_data * wfdata,
 //----------------------------------------------------------
 void Jastrow2_wf::getSymmetricVal(Wavefunction_data * wfdata,
 		     int e, Wf_return & val){
-  getVal(wfdata,e,val);
+  getVal(val);
 } 
 
 
 //----------------------------------------------------------
 
-void Jastrow2_wf::getLap(Wavefunction_data * wfdata, int e, 
-                         Wf_return & lap) {
+void Jastrow2_wf::getLap(int e, Wf_return & lap) {
 
   lap.amp=0;
   lap.phase=0;
 
-  getVal(wfdata, e, lap);
+  getVal(lap);
   doublevar dotproduct=0;
 
 

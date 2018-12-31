@@ -58,6 +58,10 @@ int allocate(vector <string> & wftext, System * sys, Wavefunction_data * & wfptr
   return 1;
 }
 
+
+
+
+
 int deallocate(Wavefunction_data * & wfptr)
 {
   if(wfptr == NULL)

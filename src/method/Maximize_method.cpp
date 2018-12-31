@@ -144,9 +144,9 @@ int Maximize_method::gen_max_conf(Wavefunction * wf, Sample_point * sample,
   // find gradient
   int count=0;
   doublevar psi_error=0;
-  wf->updateLap(wfdata,sample);
+  wf->updateLap(sample);
   for(int e=0; e< nelectrons; e++) { 
-    wf->getLap(wfdata,e,lap);
+    wf->getLap(e,lap);
     for(int d=0; d< 3; d++) {
       doublevar grad=-lap.amp(0,d+1);
       tempgrad[count++]=grad;
@@ -375,9 +375,9 @@ void Maximize_method::run_old(Program_options & options, ostream & output) {
     // find gradient
     int count=0;
     doublevar psi_error=0;
-    wf->updateLap(wfdata,sample);
+    wf->updateLap(sample);
     for(int e=0; e< nelectrons; e++) { 
-      wf->getLap(wfdata,e,lap);
+      wf->getLap(e,lap);
       for(int d=0; d< 3; d++) {
         doublevar grad=-lap.amp(0,d+1);
         tempgrad[count++]=grad;
@@ -443,24 +443,24 @@ public:
 
   double func(double * _p) { 
     update_positions(_p);
-    wf->updateVal(wfdata,sample);
+    wf->updateVal(sample);
     Wf_return wfret(1,2);
-    wf->getVal(wfdata,0,wfret);
+    wf->getVal(wfret);
     return -wfret.amp(0,0);
   }
   //-----------------------------------------
   
   double dfunc(double * _p, double * _g) { 
     update_positions(_p);
-    wf->updateLap(wfdata,sample);
+    wf->updateLap(sample);
     int count=0;
     int nelec=sample->electronSize();
     Wf_return lap(1,5);
-    wf->getVal(wfdata,0,lap);
+    wf->getVal(lap);
     //doublevar cutoff=0.2;
     _g[count++]=-lap.amp(0,0);
     for(int e=0; e< nelec; e++) { 
-      wf->getLap(wfdata,e,lap);
+      wf->getLap(e,lap);
       for(int d=0; d< 3; d++) {
         doublevar grad=-lap.amp(0,d+1);
         //if(abs(grad) > cutoff) {

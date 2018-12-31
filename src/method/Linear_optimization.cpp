@@ -533,7 +533,6 @@ doublevar Linear_optimization_method::line_minimization(Array2 <doublevar> & S,
   wfdata->linearParms(linear);
   Array1 <doublevar> alpha_tmp;
   alpha_tmp=alpha;
-  doublevar stabilmax=100.0*fabs(H(0,0));
   vector <doublevar> acc_stabils;
 
   int nstabil_test=15;
@@ -646,7 +645,7 @@ void Linear_optimization_method::uncorrelated_evaluation(Array1 <Array1 <doublev
 
     for(int config=0; config < nconfig_eval; config++) { 
       config_pos(config).restorePos(sample);
-      wf->updateLap(wfdata,sample);
+      wf->updateLap(sample);
       local=sys->calcLoc(sample);
       sys->calcKinetic(wfdata,sample,wf,kinetic);
       pseudo->calcNonloc(wfdata,sys,sample,wf,ecp);
@@ -704,9 +703,9 @@ void Linear_optimization_method::correlated_evaluation(Array1 <Array1 <doublevar
        pseudo_test(i)=rng.ulec();
      for(int w=0; w< nwfs; w++) {
        wfdata->setVarParms(alphas(w));
-       wf->updateLap(wfdata,sample);
+       wf->updateLap(sample);
        wf_vals(w,config).Resize(wf->nfunc(),2);
-       wf->getVal(wfdata,0,wf_vals(w,config));
+       wf->getVal(wf_vals(w,config));
        local=sys->calcLoc(sample);
        sys->calcKinetic(wfdata,sample,wf,kinetic);
        pseudo->calcNonlocWithTest(wfdata,sys,sample,wf,pseudo_test,ecp);

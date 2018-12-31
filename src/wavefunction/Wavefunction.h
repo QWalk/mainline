@@ -124,18 +124,18 @@ public:
   }
 
 
-  virtual void updateVal(Wavefunction_data *, Sample_point *)=0;
-  virtual void updateLap(Wavefunction_data *, Sample_point *)=0;
+  virtual void updateVal(Sample_point * const)=0;
+  virtual void updateLap(Sample_point * const)=0;
 
-  virtual void getVal(Wavefunction_data *, int, Wf_return &)=0;
-  virtual void getLap(Wavefunction_data *, int, Wf_return &)=0;
+  virtual void getVal(Wf_return &)=0;
+  virtual void getLap(int, Wf_return &)=0;
 
   /*!
     \brief 
     Evaluate the wave function values obtained by replacing each electron's position 
     with the one given in pos.
   */
-  virtual void evalTestPos(Array1 <doublevar> & pos, Sample_point *,Array1 <Wf_return> & wf) { 
+  virtual void evalTestPos(Array1 <doublevar> & pos, Sample_point * const,Array1 <Wf_return> & wf) { 
     error("evalTestPos() not implemented for this wave function");
   }
 
@@ -148,7 +148,7 @@ public:
     Will resize gradient and hessian in Parm_deriv_return to 
     the correct size.
   */
-  virtual int getParmDeriv(Wavefunction_data *, Sample_point *,
+  virtual int getParmDeriv(Wavefunction_data *, Sample_point * const,
 			    Parm_deriv_return & ) {
     return 0;
   }
@@ -186,7 +186,7 @@ public:
     development, you can define this for the function you're working
     on to do averages, etc. Don't depend on this in any way.
    */
-  virtual void developerAccess(Wavefunction_data *, Sample_point *,
+  virtual void developerAccess(Wavefunction_data *, Sample_point * const,
                                Array1 <doublevar> &, Array1 <doublevar> &)
   {
     error("developerAccess isn't defined for this wavefunction."

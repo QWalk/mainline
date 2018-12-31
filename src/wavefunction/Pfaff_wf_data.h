@@ -27,14 +27,6 @@ public:
   }
 
   
-  virtual int valSize()
-  {
-    if(optimize_pf) 
-      return totoccupation(0).GetSize();
-    else if(optimize_pfwt)
-      return pfwt.GetSize();
-    else return 2;
-  }
   
   /*
   doublevar Triplet_to_Singlet_ratio( Array1 <doublevar> & triplet_coef,
@@ -43,7 +35,6 @@ public:
                                       );
   */
 
-  //void Renormalization( Array1 <doublevar> & coef,doublevar & norm );
   void allocate_pairing_orbital(vector <string> & pf_place, int orbint);
   void Pfaffian_optimize_read(vector <string> & pf_place, int pf, unsigned int pos);
 

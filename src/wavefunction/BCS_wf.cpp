@@ -139,18 +139,16 @@ void BCS_wf::notify(change_type change, int num)
 //----------------------------------------------------------------------
 
 
-void BCS_wf::updateVal(Wavefunction_data * wfdata,
-                       Sample_point * sample)
+void BCS_wf::updateVal(Sample_point * const sample)
 {
-  updateLap(wfdata,sample);
+  updateLap(sample);
   return;
   
 }
 
 //----------------------------------------------------------------------
 
-void BCS_wf::updateLap( Wavefunction_data * wfdata,
-                       Sample_point * sample)
+void BCS_wf::updateLap(Sample_point * const sample)
 {
   assert(sampleAttached);
   assert(dataAttached);
@@ -185,8 +183,7 @@ void BCS_wf::updateLap( Wavefunction_data * wfdata,
 //-----------------------------------------------------------------------
 
 
-void BCS_wf::getVal(Wavefunction_data * wfdata, int e,
-                    Wf_return & val)
+void BCS_wf::getVal(Wf_return & val)
 {
   assert(val.amp.GetDim(0) >=1);
   assert(val.amp.GetDim(1) >= 1);
@@ -222,7 +219,7 @@ void BCS_wf::getSymmetricVal(Wavefunction_data * wfdata,
 
 //Note that the matrix is almost symmetric--
 //we can use that to halve the computational time
-void BCS_wf::calcLap(Sample_point * sample)
+void BCS_wf::calcLap(Sample_point * const sample)
 {
   
   int tote=nelectrons(0)+nelectrons(1);
@@ -240,7 +237,7 @@ void BCS_wf::calcLap(Sample_point * sample)
   }
   
   Array2 <doublevar> onebody;
-  jast.updateLap(&parent->jastdata,sample);
+  jast.updateLap(sample);
   jast.get_twobody(twobody);
   jast.get_onebody_save(onebody);
   
@@ -281,7 +278,7 @@ void BCS_wf::calcLap(Sample_point * sample)
 
 //------------------------------------------------------------------------
 
-void BCS_wf::updateLap(int e, Sample_point * sample ) {
+void BCS_wf::updateLap(int e, Sample_point * const sample ) {
   
   int s=spin(e);
   sample->updateEIDist();
@@ -294,7 +291,7 @@ void BCS_wf::updateLap(int e, Sample_point * sample ) {
   //}
   
   Array2 <doublevar> onebody;
-  jast.updateLap(&parent->jastdata,sample);
+  jast.updateLap(sample);
   jast.get_twobody(twobody);
   jast.get_onebody_save(onebody);
   
@@ -352,11 +349,10 @@ void BCS_wf::updateLap(int e, Sample_point * sample ) {
 /*!
  */
 
-void BCS_wf::getLap(Wavefunction_data * wfdata,
-                    int e, Wf_return & lap)
+void BCS_wf::getLap(int e, Wf_return & lap)
 {
   
-  getVal(wfdata,e,lap);
+  getVal(lap);
   
   for(int d=1; d< 5; d++) {
     if(spin(e)==0) {
@@ -401,7 +397,7 @@ void BCS_wf::getLap(Wavefunction_data * wfdata,
 
 //-------------------------------------------------------------------------
 
-int BCS_wf::getParmDeriv(Wavefunction_data *wfdata , Sample_point * sample,
+int BCS_wf::getParmDeriv(Wavefunction_data *wfdata , Sample_point * const sample,
                          Parm_deriv_return & parm_derivatives ) {
   
   // analytic expressions below are valid only if jastrow can provide
@@ -421,7 +417,7 @@ int BCS_wf::getParmDeriv(Wavefunction_data *wfdata , Sample_point * sample,
   
   // gradients of the two-body orbital
   Array3 <doublevar> twobody_parm_deriv;
-  jast.updateLap(&parent->jastdata,sample);
+  jast.updateLap(sample);
   jast.get_twobody_ParmDeriv(sample,twobody_parm_deriv);
   
   // gradient

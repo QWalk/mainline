@@ -115,9 +115,9 @@ void Average_tbdm_basis::evaluate(Wavefunction_data * wfdata, Wavefunction * wf,
 void Average_tbdm_basis::evaluate_obdm(Wavefunction_data * wfdata, Wavefunction * wf,
                         System * sys, Sample_point * sample, Average_return & avg) { 
   avg.type="tbdm_basis";
-  wf->updateVal(wfdata,sample);
+  wf->updateVal(sample);
   Wf_return wfval_base(wf->nfunc(),2);
-  wf->getVal(wfdata,0,wfval_base);
+  wf->getVal(wfval_base);
   int nup=sys->nelectrons(0);
   int ndown=sys->nelectrons(1);
   int nelectrons=nup+ndown;
@@ -227,12 +227,12 @@ void Average_tbdm_basis::evaluate_old(Wavefunction_data * wfdata, Wavefunction *
   avg.vals=0;
 
 
-  wf->updateVal(wfdata,sample);
+  wf->updateVal(sample);
 
   Array2 <dcomplex> movals1(nmo,1),movals2(nmo,1),movals1_old(nmo,1),movals2_old(nmo,1);
   Wf_return wfval_base(wf->nfunc(),2);
   Wf_return wfval_2b(wf->nfunc(),2),wfval_1b(wf->nfunc(),2); //
-  wf->getVal(wfdata,0,wfval_base);
+  wf->getVal(wfval_base);
   int nup=sys->nelectrons(0);
   int ndown=sys->nelectrons(1);
   int nupup=0,nupdown=0,ndownup=0,ndowndown=0;
@@ -259,8 +259,8 @@ void Average_tbdm_basis::evaluate_old(Wavefunction_data * wfdata, Wavefunction *
       dist1+=norm(movals1(m,0));
     
 
-    wf->updateVal(wfdata,sample);
-    wf->getVal(wfdata,0,wfval_1b);
+    wf->updateVal(sample);
+    wf->getVal(wfval_1b);
 
 
     dcomplex psiratio_1b=exp(dcomplex(wfval_1b.amp(0,0)-wfval_base.amp(0,0),
@@ -274,8 +274,8 @@ void Average_tbdm_basis::evaluate_old(Wavefunction_data * wfdata, Wavefunction *
       calc_mos(sample,l,movals2);
       for(int m=0; m < nmo; m++) 
         dist2+=norm(movals2(m,0));
-      wf->updateVal(wfdata,sample);
-      wf->getVal(wfdata,0,wfval_2b);
+      wf->updateVal(sample);
+      wf->getVal(wfval_2b);
 
       psiratio_2b=exp(dcomplex(wfval_2b.amp(0,0)-wfval_base.amp(0,0),
             wfval_2b.phase(0,0)-wfval_base.phase(0,0)));
@@ -382,9 +382,9 @@ void Average_tbdm_basis::evaluate_tbdm(Wavefunction_data * wfdata, Wavefunction 
   avg.type="tbdm_basis";
 
   //wf->updateVal(wfdata,sample);
-  wf->updateLap(wfdata,sample);
+  wf->updateLap(sample);
   Wf_return wfval_base(wf->nfunc(),2);
-  wf->getVal(wfdata,0,wfval_base);
+  wf->getVal(wfval_base);
   int nup=sys->nelectrons(0);
   int ndown=sys->nelectrons(1);
   int nelectrons=nup+ndown;
@@ -416,8 +416,8 @@ void Average_tbdm_basis::evaluate_tbdm(Wavefunction_data * wfdata, Wavefunction 
       sample->getElectronPos(e1,oldpos1);
       sample->setElectronPos(e1,saved_r(i));
       calc_mos(sample,e1,movals1);
-      wf->updateVal(wfdata,sample);
-      wf->getVal(wfdata,e1,wfval1);
+      wf->updateVal(sample);
+      wf->getVal(wfval1);
       wf->evalTestPos(saved_r(i+npoints_eval),sample,wfval2);
 
       sample->getElectronPos(0,oldpos2);

@@ -56,17 +56,17 @@ public:
 
   virtual void notify(change_type , int );
 
-  virtual void updateVal(Wavefunction_data *, Sample_point *);
-  virtual void updateLap(Wavefunction_data *, Sample_point *);
+  virtual void updateVal(Sample_point * const);
+  virtual void updateLap(Sample_point * const);
 
-  virtual void getVal(Wavefunction_data *, int, Wf_return &);
-  virtual void getLap(Wavefunction_data *, int, Wf_return &);
-  virtual void evalTestPos(Array1 <doublevar> & pos, Sample_point *, Array1 <Wf_return> & wf);
+  virtual void getVal(Wf_return &);
+  virtual void getLap(int, Wf_return &);
+  virtual void evalTestPos(Array1 <doublevar> & pos, Sample_point * const, Array1 <Wf_return> & wf);
 
   
 
   virtual int getParmDeriv(Wavefunction_data *, 
-			   Sample_point *,
+			   Sample_point * const,
 			   Parm_deriv_return & );
 
   virtual void getSymmetricVal(Wavefunction_data *, 
@@ -80,14 +80,14 @@ public:
 private:
 
 
-  void updateInverse(Slat_wf_data *, int e);
-  int updateValNoInverse(Slat_wf_data *, int e); 
+  void updateInverse(int e);
+  int updateValNoInverse(int e); 
   //!< update the value, but not the inverse.  Returns 0 if the determinant is zero and updates aren't possible
   
-  void calcVal(Slat_wf_data *, Sample_point *);
-  void updateVal(Slat_wf_data *, Sample_point *, int);
-  void calcLap(Slat_wf_data *, Sample_point *);
-  void updateLap(Slat_wf_data *, Sample_point *, int);
+  void calcVal(Sample_point * const);
+  void updateVal(Sample_point * const, int);
+  void calcLap(Sample_point * const);
+  void updateLap(Sample_point * const, int);
   void getDetLap(int e, Array3<log_value <T> > & vals );
   
 
@@ -131,25 +131,6 @@ private:
 };
 
 
-/*
- 
-Copyright (C) 2007 Lucas K. Wagner
-
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along
-with this program; if not, write to the Free Software Foundation, Inc.,
-51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- 
-*/
 
 #include "Qmc_std.h"
 #include "MatrixAlgebra.h"
@@ -163,14 +144,12 @@ template <class T> inline void Slat_wf<T>::init(Wavefunction_data * wfdata,
 {
 
   molecorb=orb;
-  Slat_wf_data * dataptr;
-  recast(wfdata, dataptr);
   recast(wfdata, parent);
-  nfunc_=dataptr->nfunc;
-  nmo=dataptr->nmo;
-  ndet=dataptr->ndet;
+  nfunc_=parent->nfunc;
+  nmo=parent->nmo;
+  ndet=parent->ndet;
   nelectrons.Resize(2);
-  nelectrons=dataptr->nelectrons;
+  nelectrons=parent->nelectrons;
 
   int tote=nelectrons(0)+nelectrons(1);
   ndim=3;
@@ -267,22 +246,22 @@ template<class T> inline void Slat_wf<T>::notify(change_type change, int num)
 //----------------------------------------------------------------------
 
 
-template <class T> inline void Slat_wf<T>::updateVal(Wavefunction_data * wfdata,
-                        Sample_point * sample)
+template <class T> inline void Slat_wf<T>::updateVal(
+                        Sample_point * const sample)
 {
 
   assert(sampleAttached);
   assert(dataAttached);
 
   if(updateEverythingVal==1) {
-    calcVal(parent, sample);
+    calcVal(sample);
     updateEverythingVal=0;
     electronIsStaleVal=0;
   }
   else {
     for(int e=0; e< nelectrons(0)+nelectrons(1); e++) {
       if(electronIsStaleVal(e)) {
-        updateVal(parent, sample, e);
+        updateVal(sample, e);
         electronIsStaleVal(e)=0;
       }
     }
@@ -292,14 +271,14 @@ template <class T> inline void Slat_wf<T>::updateVal(Wavefunction_data * wfdata,
 
 //----------------------------------------------------------------------
 
-template <class T> inline void Slat_wf<T>::updateLap( Wavefunction_data * wfdata,
-                        Sample_point * sample)
+template <class T> inline void Slat_wf<T>::updateLap(
+                        Sample_point * const sample)
 {
   assert(sampleAttached);
   assert(dataAttached);
   
   if(updateEverythingLap==1) {
-    calcLap(parent, sample);
+    calcLap(sample);
     updateEverythingVal=0;
     updateEverythingLap=0;
     electronIsStaleLap=0;
@@ -308,7 +287,7 @@ template <class T> inline void Slat_wf<T>::updateLap( Wavefunction_data * wfdata
   else {
     for(int e=0; e< nelectrons(0)+nelectrons(1); e++) {
       if(electronIsStaleLap(e)) {
-        updateLap(parent, sample, e);
+        updateLap(sample, e);
         electronIsStaleLap(e)=0;
         electronIsStaleVal(e)=0;
       }
@@ -325,20 +304,20 @@ template <class T> inline void Slat_wf<T>::updateLap( Wavefunction_data * wfdata
 
 
 template <> inline int Slat_wf<dcomplex>::getParmDeriv(Wavefunction_data *  wfdata, 
-			  Sample_point * sample ,
+			  Sample_point * const sample ,
 			  Parm_deriv_return & derivatives){
   error("parmderiv not supported for complex orbitals yet");
   return 0;
 }
 
 template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfdata, 
-			  Sample_point * sample ,
+			  Sample_point * const sample ,
 			  Parm_deriv_return & derivatives){
 // error("parmderiv not supported yet!"); 
   
   if(inverseStale) { 
     detVal=lastDetVal;
-    updateInverse(parent, lastValUpdate);
+    updateInverse(lastValUpdate);
     inverseStale=0;
   }
   
@@ -353,7 +332,7 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
 
   Wf_return lap(1,5);
   for(int e=0; e< tote; e++) {
-    getLap(wfdata,e,lap);
+    getLap(e,lap);
     for(int d=1; d< 5; d++) {
       derivatives.val_gradient(e,d-1)=lap.amp(0,d);
     }
@@ -469,21 +448,15 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
 //------------------------------------------------------------------------
 
 
-template <class T> inline void Slat_wf<T>::calcVal(Slat_wf_data * dataptr, Sample_point * sample)
-{
-  //Hmm, I don't completely understand why, but something is not 
-  //completely clean, so we can't just cycle through and updateVal
-  //This is actually probably the best way to do it anyway, since it 
-  //should in theory be faster, and it gives us a clean start
-  calcLap(dataptr, sample);
-
+template <class T> inline void Slat_wf<T>::calcVal(Sample_point * const sample) {
+  calcLap(sample);
 }
 
 //------------------------------------------------------------------------
 inline doublevar real_qw(doublevar & a) { return a; } 
 inline doublevar real_qw(dcomplex & a) { return real(a); } 
 
-template <class T>inline void Slat_wf<T>::updateInverse(Slat_wf_data * dataptr, int e) { 
+template <class T>inline void Slat_wf<T>::updateInverse(int e) { 
   int maxmatsize=max(nelectrons(0),nelectrons(1));
   Array1 <T> modet(maxmatsize);
   int s=spin(e);
@@ -497,19 +470,19 @@ template <class T>inline void Slat_wf<T>::updateInverse(Slat_wf_data * dataptr, 
         Array2 <T> allmos(nelectrons(s), nelectrons(s));
         for(int e=0; e< nelectrons(s); e++) {
           int curre=s*nelectrons(0)+e;
-          if(dataptr->optimize_mo){
+          if(parent->optimize_mo){
             Array1<T> orb;
             orb.Resize(parent->orbrot->Nact(det,s));
             for(int i=0;i<orb.GetDim(0);i++){
-              orb(i)=moVal(0,curre,dataptr->occupation(f,det,s)(i)); 
+              orb(i)=moVal(0,curre,parent->occupation(f,det,s)(i)); 
             }
-            dataptr->orbrot->rotMoVals<T>(det,s,orb);
+            parent->orbrot->rotMoVals<T>(det,s,orb);
             for(int i=0;i<nelectrons(s);i++){
               allmos(e,i)=orb(i);
             }
           }else{
             for(int i=0; i< nelectrons(s); i++) {
-              allmos(e,i)=moVal(0,curre, dataptr->occupation(f,det,s)(i));
+              allmos(e,i)=moVal(0,curre, parent->occupation(f,det,s)(i));
             }
           }
         }
@@ -533,19 +506,19 @@ template <class T>inline void Slat_wf<T>::updateInverse(Slat_wf_data * dataptr, 
 
       }
       else { 
-        if(dataptr->optimize_mo){
+        if(parent->optimize_mo){
           Array1<T> orb;
           orb.Resize(parent->orbrot->Nact(det,s));
           for(int i=0;i<orb.GetDim(0);i++){
-            orb(i)=moVal(0,e,dataptr->occupation(f,det,s)(i)); 
+            orb(i)=moVal(0,e,parent->occupation(f,det,s)(i)); 
           }
-          dataptr->orbrot->rotMoVals<T>(det,s,orb);
+          parent->orbrot->rotMoVals<T>(det,s,orb);
           for(int i=0;i<nelectrons(s);i++){
             modet(i)=orb(i);
           }
         }else{
           for(int i = 0; i < nelectrons(s); i++) {
-            modet(i)=moVal(0,e,dataptr->occupation(f,det,s)(i));
+            modet(i)=moVal(0,e,parent->occupation(f,det,s)(i));
           }
         }
         T ratio=1./InverseUpdateColumn(inverse(f,det,s),
@@ -578,7 +551,7 @@ template <class T>inline void Slat_wf<T>::updateInverse(Slat_wf_data * dataptr, 
 
 //------------------------------------------------------------------------
 
-template <class T> inline int Slat_wf<T>::updateValNoInverse(Slat_wf_data * dataptr, int e) { 
+template <class T> inline int Slat_wf<T>::updateValNoInverse(int e) { 
   int maxmatsize=max(nelectrons(0),nelectrons(1));
   Array1 <T> modet(maxmatsize);
   int s=spin(e);
@@ -595,19 +568,19 @@ template <class T> inline int Slat_wf<T>::updateValNoInverse(Slat_wf_data * data
     for(int det=0; det< ndet; det++)  {
       //fill the molecular orbitals for this
       //determinant
-      if(dataptr->optimize_mo){
+      if(parent->optimize_mo){
         Array1<T> orb;
-        orb.Resize(dataptr->orbrot->Nact(det,s));
+        orb.Resize(parent->orbrot->Nact(det,s));
         for(int i=0;i<orb.GetDim(0);i++){
-          orb(i)=moVal(0,e,dataptr->occupation(f,det,s)(i));
+          orb(i)=moVal(0,e,parent->occupation(f,det,s)(i));
         }
-        dataptr->orbrot->rotMoVals<T>(det,s,orb);
+        parent->orbrot->rotMoVals<T>(det,s,orb);
         for(int i=0;i<nelectrons(s);i++){
           modet(i)=orb(i);
         }
       }else{
         for(int i = 0; i < nelectrons(s); i++) {
-          modet(i)=moVal(0,e,dataptr->occupation(f,det,s)(i));
+          modet(i)=moVal(0,e,parent->occupation(f,det,s)(i));
         }
       }
       
@@ -635,19 +608,19 @@ template <class T> inline int Slat_wf<T>::updateValNoInverse(Slat_wf_data * data
 /*!
 
 */
-template <class T> inline void Slat_wf<T>::updateVal( Slat_wf_data * dataptr, Sample_point * sample,int e) {
+template <class T> inline void Slat_wf<T>::updateVal(Sample_point * const sample,int e) {
 
+  
   if(inverseStale && lastValUpdate!=e) { 
     inverseStale=0;
     detVal=lastDetVal;
-    updateInverse(dataptr, lastValUpdate);
+    updateInverse(lastValUpdate);
   }
   if(inverseStale && lastValUpdate==e) { 
-    inverseStale=0;
     detVal=lastDetVal;
   }
 
-  assert(dataptr != NULL);
+  assert(parent != NULL);
   sample->updateEIDist();
   int s=spin(e);
 
@@ -661,51 +634,34 @@ template <class T> inline void Slat_wf<T>::updateVal( Slat_wf_data * dataptr, Sa
   lastValUpdate=e;
   lastDetVal=detVal;
   if(!parent->use_clark_updates) { 
-    if(!updateValNoInverse(dataptr, e)) { 
+    if(!updateValNoInverse(e)) { 
       inverseStale=0;
-      updateInverse(dataptr,e);
+      updateInverse(e);
     }
   }
   else { 
-    updateInverse(dataptr,e);
+    updateInverse(e);
     inverseStale=0;
   } 
-//  for(int d=0; d< ndet; d++) { 
-//    cout << "orig " << detVal(0,d,s).val()  
-//       << " update " << ratios(d)*detVal(0,0,s).val()
-//       << " ratio " << detVal(0,d,s).val()/detVal(0,0,s).val() 
-//       << " computed ratio " << ratios(d) << endl;
-//  }
-  //----------------------------------
 }
 
 //------------------------------------------------------------------------
 
 
-template <class T>inline void Slat_wf<T>::getVal(Wavefunction_data * wfdata, int e,
-                     Wf_return & val)
+template <class T>inline void Slat_wf<T>::getVal(Wf_return & val)
 {
-  //Array1 <doublevar> si(nfunc_, 0.0);
   Array2 <log_value<T> > vals(nfunc_,1,T(0.0));
 
   assert(val.amp.GetDim(0) >=nfunc_);
   assert(val.amp.GetDim(1) >= 1);
- 
-  
-  Slat_wf_data * dataptr;
-  recast(wfdata, dataptr);
-  
-  int s=spin(e);
-  int opp=opspin(e);
+  int s=0,opp=1;
   
   for(int f=0; f< nfunc_; f++) {
     Array1 <log_value<T> > detvals(ndet);
     for(int det=0; det < ndet; det++) {
-      detvals(det) = dataptr->detwt(det)*detVal(f,det,s)*detVal(f,det,opp);
+      detvals(det) = parent->detwt(det)*detVal(f,det,s)*detVal(f,det,opp);
     }
     log_value<T> totval=sum(detvals);
-    //vals(f,0)=totval.logval;
-    //si(f)=totval.sign;
     vals(f,0)=totval;
   }
 
@@ -725,7 +681,7 @@ template <class T> inline void Slat_wf<T>::getSymmetricVal(Wavefunction_data * w
 
 
 
-template <class T> inline void Slat_wf<T>::calcLap(Slat_wf_data * dataptr, Sample_point * sample)
+template <class T> inline void Slat_wf<T>::calcLap(Sample_point * const sample)
 {
   //cout << "calcLap " << endl;
   inverseStale=0;
@@ -760,20 +716,20 @@ template <class T> inline void Slat_wf<T>::calcLap(Slat_wf_data * dataptr, Sampl
           int curre=s*nelectrons(0)+e;
           
           //----NEW----
-          if(dataptr->optimize_mo){
+          if(parent->optimize_mo){
             Array1<T> orb;
             orb.Resize(parent->orbrot->Nact(det,s));
             for(int i=0;i<orb.GetDim(0);i++){
-              orb(i)=moVal(0,curre,dataptr->occupation(f,det,s)(i)); 
+              orb(i)=moVal(0,curre,parent->occupation(f,det,s)(i)); 
             }
-            dataptr->orbrot->rotMoVals<T>(det,s,orb);
+            parent->orbrot->rotMoVals<T>(det,s,orb);
             for(int i=0;i<nelectrons(s);i++){
               modet(e,i)=orb(i);
             }
           //----------
           }else{
             for(int i=0; i< nelectrons(s); i++) {
-              modet(e,i)=moVal(0,curre, dataptr->occupation(f,det,s)(i));
+              modet(e,i)=moVal(0,curre, parent->occupation(f,det,s)(i));
             }
           }
         }
@@ -890,8 +846,7 @@ template <class T> void Slat_wf<T>::getDetLap(int e, Array3<log_value <T> > &  v
 /*!
 */
 
-template <class T> void Slat_wf<T>::getLap(Wavefunction_data * wfdata,
-                     int e, Wf_return & lap)
+template <class T> void Slat_wf<T>::getLap(int e, Wf_return & lap)
 {
 
   //Array1 <doublevar> si(nfunc_, 0.0);
@@ -922,20 +877,20 @@ template <class T> void Slat_wf<T>::getLap(Wavefunction_data * wfdata,
 
 /*!
 */
-template <class T> inline void Slat_wf<T>::updateLap(Slat_wf_data * dataptr,
-                        Sample_point * sample,
+template <class T> inline void Slat_wf<T>::updateLap(
+                        Sample_point * const sample,
                         int e ) {
   
   if(inverseStale && lastValUpdate!=e) { 
     inverseStale=0;
     detVal=lastDetVal;
-    updateInverse(dataptr, lastValUpdate);
+    updateInverse(lastValUpdate);
   }
   if(inverseStale && lastValUpdate==e) { 
     detVal=lastDetVal;
     inverseStale=0;
   }
-  assert(dataptr != NULL);
+  assert(parent != NULL);
 
   int s=spin(e);
   sample->updateEIDist();
@@ -948,18 +903,18 @@ template <class T> inline void Slat_wf<T>::updateLap(Slat_wf_data * dataptr,
     for(int i=0; i< updatedMoVal.GetDim(0); i++)
       moVal(d,e,i)=updatedMoVal(i,d);
   
-  updateInverse(dataptr,e);
+  updateInverse(e);
 }
 
 //-------------------------------------------------------------------------
 
 template <class T> inline void Slat_wf<T>::evalTestPos(Array1 <doublevar> & pos, 
-    Sample_point * sample, Array1 <Wf_return> & wf) {
+    Sample_point * const sample, Array1 <Wf_return> & wf) {
   
   if(inverseStale) { 
     inverseStale=0;
     detVal=lastDetVal;
-    updateInverse(parent, lastValUpdate);
+    updateInverse(lastValUpdate);
   }
 
   int nspin=2;

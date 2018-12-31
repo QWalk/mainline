@@ -524,8 +524,8 @@ void Rndmc_method::runWithVariables(Properties_manager & prop,
   Wf_return wf_val(nwf,1);
   for(int walker=0; walker < nconfig; walker++) {
     pts(walker).config_pos.restorePos(sample);
-    wf->updateVal(wfdata, sample);
-    wf->getVal(wfdata,0,wf_val);
+    wf->updateVal(sample);
+    wf->getVal(wf_val);
     pts(walker).sign=wf_val.sign(0);
     tmp_value+=exp(2*wf_val.amp(0,0));
     //cout <<"value "<<exp(wf_val.amp(0,0))<<endl;
@@ -574,7 +574,7 @@ void Rndmc_method::runWithVariables(Properties_manager & prop,
       for(int walker=0; walker < nconfig; walker++) {
 	
         pts(walker).config_pos.restorePos(sample);
-        wf->updateLap(wfdata, sample);
+        wf->updateLap(sample);
 	//------Do several steps without branching
         for(int p=0; p < npsteps; p++) {
           pseudo->randomize();
@@ -607,7 +607,7 @@ void Rndmc_method::runWithVariables(Properties_manager & prop,
           doublevar subtract_out_enwt=0;
           if(tmoves) {  //------------------T-moves
             pt.setSize(nwf);
-            wf->getVal(wfdata,0,pt.wf_val);
+            wf->getVal(pt.wf_val);
             sys->calcKinetic(wfdata,sample,wf,pt.kinetic);
             pt.potential=sys->calcLoc(sample);
             pt.weight=1.0; //this gets set later anyway
@@ -640,7 +640,6 @@ void Rndmc_method::runWithVariables(Properties_manager & prop,
                 }
               }
             }
-            //wf->updateLap(wfdata, sample);
           } ///---------------------------------done with the T-moves
           else { 
 	    //MB: this is where all the properties at the new step are evaluated

@@ -49,8 +49,8 @@ void Properties_gather::gatherData(Properties_point & myprop,
   myprop.setSize(nwf);
   
 
-  wf->updateLap(wfdata, sample);
-  wf->getVal(wfdata, 0, myprop.wf_val);
+  wf->updateLap(sample);
+  wf->getVal( myprop.wf_val);
 
   sys->calcKinetic(wfdata, sample, wf, myprop.kinetic);
   myprop.potential=sys->calcLoc(sample);

@@ -241,9 +241,9 @@ void Average_region_density_matrix::evaluate(Wavefunction_data * wfdata, Wavefun
   avg.type="region_density_matrix";
   avg.vals.Resize(nmax*nmax*nregion*nregion*2*2);//the two is for the spins, two more for complex
   avg.vals=0.0;
-  wf->updateVal(wfdata,sample);
+  wf->updateVal(sample);
   Wf_return wfval_base(wf->nfunc(),2);
-  wf->getVal(wfdata,0,wfval_base);
+  wf->getVal(wfval_base);
   int nup=sys->nelectrons(0);
   int ndown=sys->nelectrons(1);
   int nelectrons=nup+ndown;

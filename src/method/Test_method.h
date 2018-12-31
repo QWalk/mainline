@@ -54,7 +54,6 @@ public:
 
   int showinfo(ostream & os);
  private:
-  void testBackflow();
   void plotCusp(Wavefunction * mywf, Sample_point * sample);
   void testParmDeriv(Wavefunction * mywf, Sample_point * sample);
   int nelectrons; //!< Number of electrons

@@ -1124,12 +1124,12 @@ void Average_linear_derivative::evaluate(Wavefunction_data * wfdata, Wavefunctio
   avg.vals=0.0;
 
   if(!unr){
-    wf->updateVal(wfdata, sample);
-    wf->getVal(wfdata, 0, vals);
+    wf->updateVal(sample);
+    wf->getVal( vals);
   }
   else{
-    wf->updateLap(wfdata, sample);
-    wf->getLap(wfdata, 0, vals);
+    wf->updateLap(sample);
+    wf->getLap(0, vals);
   }
     
   
@@ -1214,12 +1214,12 @@ void Average_linear_delta_derivative::evaluate(Wavefunction_data * wfdata, Wavef
   avg.vals=0.0;
 
   if(!unr){
-    wf->updateVal(wfdata, sample);
-    wf->getVal(wfdata, 0, vals);
+    wf->updateVal(sample);
+    wf->getVal( vals);
   }
   else{
-    wf->updateLap(wfdata, sample);
-    wf->getLap(wfdata, 0, vals);
+    wf->updateLap(sample);
+    wf->getLap(0, vals);
   }
     
   wf->getSymmetricVal(wfdata, 0, symvals);
@@ -1809,12 +1809,12 @@ void Average_wf_parmderivs::evaluate(Wavefunction_data * wfdata, Wavefunction * 
     error("WF needs to support parmderivs for now.");
   }
   //Calculate distance squared from node, per electron
-  wf->updateLap(wfdata,sample);
+  wf->updateLap(sample);
   doublevar d2=0.0;
   assert(wf->nfunc()==1);
   Wf_return lap(1,5);  
   for(int e=0;e<sample->electronSize();e++){
-    wf->getLap(wfdata,e,lap);
+    wf->getLap(e,lap);
     for(int i=1;i<4;i++) d2+=lap.amp(0,i)*lap.amp(0,i);
   }
   d2=(1./d2);

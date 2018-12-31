@@ -78,11 +78,6 @@ public:
     if(molecorb != NULL ) delete molecorb;
   }
 
-  virtual int valSize() {
-    //if(optimize_mo) return 0;
-    if(optimize_det) return 2*detwt.GetDim(0);
-    else return nfunc*2;
-  }
   virtual void lockInParms(Array1<doublevar> & parms){
     if(optimize_mo && optimize_det){
       Array1<doublevar> orbital_parms;

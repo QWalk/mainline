@@ -47,18 +47,14 @@ void Slat_Jastrow::init(Wavefunction_data * wfdata)
 
 
 
-void Slat_Jastrow::getVal(Wavefunction_data * wfdata,
-                          int e, Wf_return & val)
+void Slat_Jastrow::getVal(Wf_return & val)
 {
   assert(val.amp.GetDim(0) >= nfunc_);
   Wf_return slat_val(nfunc_, 2);
   Wf_return jast_val(nfunc_, 2);
-  Slat_Jastrow_data * dataptr;
-  recast(wfdata, dataptr);
-  assert(dataptr != NULL);
   
-  slater_wf->getVal(dataptr->slater, e, slat_val);
-  jastrow_wf->getVal(dataptr->jastrow, e, jast_val);
+  slater_wf->getVal(slat_val);
+  jastrow_wf->getVal(jast_val);
 
   if ( slat_val.is_complex==1 || jast_val.is_complex==1 )
     val.is_complex=1;
@@ -141,27 +137,20 @@ int Slat_Jastrow::getParmDeriv(Wavefunction_data *  wfdata,
   return 1;
 }
 
+//----------------------------------------------------------------------
 
 
-// JK: complex wavefunctions still behave weird, let's try to rewrite even
-// this one, not touching cvals now, though
-// The most important is setting is_complex, but I do differ at other places
-// too.
-void Slat_Jastrow::getLap(Wavefunction_data * wfdata, int e,
-                          Wf_return & lap)
+void Slat_Jastrow::getLap(int e,Wf_return & lap)
 {
   //cout << "getLap\n";
   assert(lap.amp.GetDim(0) >= nfunc_);
   assert(lap.amp.GetDim(1) >= 5);
-  Slat_Jastrow_data * dataptr;
-  recast(wfdata, dataptr);
-  assert(dataptr != NULL);
 
   Wf_return slat_lap(nfunc_,5);
   Wf_return jast_lap(nfunc_,5);
 
-  slater_wf->getLap(dataptr->slater, e, slat_lap);
-  jastrow_wf->getLap(dataptr->jastrow, e, jast_lap);
+  slater_wf->getLap(e, slat_lap);
+  jastrow_wf->getLap(e, jast_lap);
 
   if ( slat_lap.is_complex==1 || jast_lap.is_complex==1 )
     lap.is_complex=1;
@@ -196,22 +185,16 @@ void Slat_Jastrow::getLap(Wavefunction_data * wfdata, int e,
 
 //----------------------------------------------------------------------
 
-void Slat_Jastrow::updateVal(Wavefunction_data * wfdata, Sample_point * sample)
+void Slat_Jastrow::updateVal(Sample_point * sample)
 {
-  Slat_Jastrow_data * dataptr;
-  recast(wfdata, dataptr);
-  assert(dataptr != NULL);
-  slater_wf->updateVal(dataptr->slater, sample);
-  jastrow_wf->updateVal(dataptr->jastrow, sample);
+  slater_wf->updateVal(sample);
+  jastrow_wf->updateVal(sample);
 }
 
-void Slat_Jastrow::updateLap(Wavefunction_data * wfdata, Sample_point * sample)
+void Slat_Jastrow::updateLap(Sample_point * sample)
 {
-  Slat_Jastrow_data * dataptr;
-  recast(wfdata, dataptr);
-  assert(dataptr != NULL);
-  slater_wf->updateLap(dataptr->slater, sample);
-  jastrow_wf->updateLap(dataptr->jastrow, sample);
+  slater_wf->updateLap(sample);
+  jastrow_wf->updateLap(sample);
 }
 
 

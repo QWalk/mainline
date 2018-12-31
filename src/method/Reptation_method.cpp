@@ -474,7 +474,7 @@ void Reptation_method::runWithVariables(Properties_manager & prop,
       reptiles[r].direction=1;
       configs(r).restorePos(sample);
       wf->notify(all_electrons_move,0);
-      wf->updateLap(wfdata,sample);
+      wf->updateLap(sample);
       for(int i=0; i< reptile_length; i++) {
         doublevar main_diffusion;
         slither(1,reptiles[r].reptile, mygather,pt,main_diffusion);

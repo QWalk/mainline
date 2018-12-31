@@ -441,7 +441,7 @@ void Pseudopotential_so::calcPseudoSeparated(Wavefunction_data * wfdata,
   //  doublevar accum_local=0;
   //  doublevar accum_nonlocal=0;
   
-  wf->updateVal(wfdata, sample);
+  wf->updateVal(sample);
   
   int accept_counter=0;
   //deriv.Resize(natoms, 3);
@@ -498,7 +498,7 @@ void Pseudopotential_so::calcPseudoSeparated(Wavefunction_data * wfdata,
 	//bool localonly = true;
 	if(accept)  {
 	  Wf_return  oldWfVal(nwf,2);
-	  wf->getVal(wfdata, e,oldWfVal);
+	  wf->getVal(oldWfVal);
 	  
 	  for(int i=0; i< aip(at); i++) {
 	    sample->setElectronPos(e, oldpos);
@@ -531,8 +531,8 @@ void Pseudopotential_so::calcPseudoSeparated(Wavefunction_data * wfdata,
  //                         +sin(theta_i)*sin(phi_i)*newdist(3)
  //                         +cos(theta_i)*newdist(4); 
 	    
-            wf->updateVal(wfdata, sample);
-	    wf->getVal(wfdata, e, val); 
+            wf->updateVal(sample);
+	    wf->getVal( val); 
 	    //----
 	    for(int w=0; w< nwf; w++) {
 	      integralpts_real(w,i)=exp(val.amp(w, 0) - oldWfVal.amp(w, 0))*integralweight(at, i);
@@ -629,7 +629,7 @@ void Pseudopotential_so::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
   doublevar accum_local=0;
   doublevar accum_nonlocal=0;
 
-  wf->updateVal(wfdata, sample);
+  wf->updateVal(sample);
   Parm_deriv_return base_deriv;
   if(parm_derivatives) { 
     parm_deriv.Resize(wfdata->nparms());
@@ -696,7 +696,7 @@ void Pseudopotential_so::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
 
         if(accept)  {
           Wf_return  oldWfVal(nwf,2);
-          wf->getVal(wfdata, e,oldWfVal);  //ignore the index e here.
+          wf->getVal(oldWfVal);  //ignore the index e here.
 
           for(int i=0; i< aip(at); i++) {
             sample->setElectronPos(e, oldpos);
@@ -725,8 +725,8 @@ void Pseudopotential_so::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
             
 
  
-            wf->updateVal(wfdata, sample);
-            wf->getVal(wfdata, e, val); 
+            wf->updateVal(sample);
+            wf->getVal( val); 
             //----
             for(int w=0; w< nwf; w++) {
               integralpts_real(w,i)=exp(val.amp(w,0)-oldWfVal.amp(w,0))

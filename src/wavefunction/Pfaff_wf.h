@@ -77,11 +77,11 @@ public:
 
   virtual void notify(change_type , int );
 
-  virtual void updateVal(Wavefunction_data *, Sample_point *);
-  virtual void updateLap(Wavefunction_data *, Sample_point *);
+  virtual void updateVal(Sample_point * const);
+  virtual void updateLap(Sample_point * const);
 
-  virtual void getVal(Wavefunction_data *, int, Wf_return &);
-  virtual void getLap(Wavefunction_data *, int, Wf_return &);
+  virtual void getVal(Wf_return &);
+  virtual void getLap(int, Wf_return &);
 
 
 
@@ -102,10 +102,10 @@ private:
 
  // void save_for_static();
 
-  void calcVal(Pfaff_wf_data *, Sample_point *);
-  void updateVal(Pfaff_wf_data *, Sample_point *, int);
-  void calcLap(Pfaff_wf_data *, Sample_point *);
-  void updateLap(Pfaff_wf_data *, Sample_point *, int);
+  void calcVal(Sample_point * const );
+  void updateVal(Sample_point * const, int);
+  void calcLap(Sample_point * const);
+  void updateLap(Sample_point * const, int);
 
   Array1 <doublevar> electronIsStaleVal;
   Array1 <doublevar> electronIsStaleLap;

@@ -8,7 +8,6 @@
 #include "Sample_point.h"
 #include "Backflow_pf_wf_data.h"
 
-
 //----------------------------------------------------------------------
 
 void Backflow_pf_wf::init(Wavefunction_data * wfdata)
@@ -112,15 +111,12 @@ void Backflow_pf_wf::notify(change_type change, int num)
 
 //----------------------------------------------------------------------
 
-void Backflow_pf_wf::updateVal(Wavefunction_data * wfdata,
-                        Sample_point * sample)
+void Backflow_pf_wf::updateVal(Sample_point * const sample)
 {
 
   assert(sampleAttached);
   assert(dataAttached);
 
-  Backflow_pf_wf_data * pfaffdata;
-  recast(wfdata, pfaffdata);
 
   if(updateEverythingVal){ 
     calcVal(sample);
@@ -143,8 +139,7 @@ void Backflow_pf_wf::updateVal(Wavefunction_data * wfdata,
 
 //----------------------------------------------------------------------
 
-void Backflow_pf_wf::updateLap( Wavefunction_data * wfdata,
-                        Sample_point * sample)
+void Backflow_pf_wf::updateLap(Sample_point * const sample)
 {
   assert(sampleAttached);
   assert(dataAttached);
@@ -176,7 +171,7 @@ void Backflow_pf_wf::updateLap( Wavefunction_data * wfdata,
 //-----------------------------------------------------------------------
 
 int Backflow_pf_wf::getParmDeriv(Wavefunction_data *  wfdata, 
-			  Sample_point * sample ,
+			  Sample_point * const sample ,
 			  Parm_deriv_return & derivatives){
   return 0; 
 }
@@ -184,14 +179,14 @@ int Backflow_pf_wf::getParmDeriv(Wavefunction_data *  wfdata,
 
 //------------------------------------------------------------------------
 
-void Backflow_pf_wf::updateVal(int e, Sample_point * sample) { 
+void Backflow_pf_wf::updateVal(int e, Sample_point * const sample) { 
   int nlist; Array1 <int> list;
   parent->bfwrapper.getNeighbors(sample,jast,e,list,nlist);
   cout << "nlist " << nlist << endl;
   calcVal(sample);
 }
 
-void Backflow_pf_wf::calcVal(Sample_point * sample)
+void Backflow_pf_wf::calcVal(Sample_point * const sample)
 {
   int tote=nelectrons(0)+nelectrons(1);
 
@@ -228,8 +223,7 @@ void Backflow_pf_wf::calcVal(Sample_point * sample)
 
 //------------------------------------------------------------------------
 
-void Backflow_pf_wf::getVal(Wavefunction_data * wfdata, int e,
-                     Wf_return & val)
+void Backflow_pf_wf::getVal(Wf_return & val)
 {
 
   Array1 <doublevar> si(1, 0.0);
@@ -268,7 +262,7 @@ void Backflow_pf_wf::getSymmetricVal(Wavefunction_data * wfdata,
 
 //Watch out that some of the indices are reversed from Kwon--
 //this is to make the updates a bit more convienent.
-void Backflow_pf_wf::calcLap(Sample_point * sample)
+void Backflow_pf_wf::calcLap(Sample_point * const sample)
 {
 
   //cout <<"Start Backflow_pf_wf::calcLap"<<endl;
@@ -533,10 +527,9 @@ void Backflow_pf_wf::calcLap(Sample_point * sample)
 /*!
 */
 
-void Backflow_pf_wf::getLap(Wavefunction_data * wfdata,
-                     int e, Wf_return & lap)
+void Backflow_pf_wf::getLap(int e, Wf_return & lap)
 {
-  getVal(wfdata,e,lap);
+  getVal(lap);
   for(int d=0; d< ndim+1; d++) {
     lap.amp(0,d+1)=gradlap(e,d);
     //cout <<"lap.amp(0,d+1) "<<lap.amp(0,d+1)<<endl;

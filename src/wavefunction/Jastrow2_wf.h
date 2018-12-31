@@ -61,8 +61,8 @@ public:
   }
 
   void set_up(vector <string> & words, System * sys);
-  void updateEIBasis(int e, Sample_point * sample, Array3 <doublevar> & );
-  void updateEEBasis(int e, Sample_point * sample, Array3 <doublevar> & );
+  void updateEIBasis(int e, Sample_point * const sample, Array3 <doublevar> & );
+  void updateEEBasis(int e, Sample_point * const sample, Array3 <doublevar> & );
 
   int maxEIBasis() { return maxbasis_on_center; }
   int nEEBasis() { return n_eebasis; }
@@ -163,18 +163,18 @@ public:
   void init(Wavefunction_data *);
 
   virtual void notify(change_type , int );
-  virtual void updateVal(Wavefunction_data *, Sample_point *);
-  virtual void updateLap(Wavefunction_data *, Sample_point *);
+  virtual void updateVal(Sample_point * const);
+  virtual void updateLap(Sample_point * const);
 
-  virtual void getVal(Wavefunction_data *, int, Wf_return &);
-  virtual void getLap(Wavefunction_data *, int, Wf_return &);
+  virtual void getVal(Wf_return &);
+  virtual void getLap(int, Wf_return &);
 
-  virtual void evalTestPos(Array1 <doublevar> & pos, Sample_point * sample,Array1 <Wf_return> & wf);
+  virtual void evalTestPos(Array1 <doublevar> & pos, Sample_point * const sample,Array1 <Wf_return> & wf);
   
 
 
  
-  virtual int getParmDeriv(Wavefunction_data *, Sample_point *,
+  virtual int getParmDeriv(Wavefunction_data *, Sample_point * const,
                            Parm_deriv_return & );
 
   virtual void getSymmetricVal(Wavefunction_data *, 
@@ -189,7 +189,7 @@ public:
 
   // JK: to implement analytical derivatives in BCS_wf (which uses two-body
   // Jastrow piece as a pair orbital), "electron-resolved" ParamDeriv is needed
-  int get_twobody_ParmDeriv(Sample_point *, Array3<doublevar> & );
+  int get_twobody_ParmDeriv(Sample_point * const, Array3<doublevar> & );
     
     
   void get_twobody(Array3 <doublevar>& twobody) { 
@@ -235,7 +235,7 @@ private:
   //!< save two-body parts(see Jastrow_twobody_piece for explanation)
   doublevar u_twobody;
   //!< save for the total value of the two-body terms
-  void update_eibasis_save(Wavefunction_data * wfdata, Sample_point * sample);
+  void update_eibasis_save(Wavefunction_data * wfdata, Sample_point * const sample);
 
   Array1 <  Array4 <doublevar> > eibasis_save; 
   //!< first array is group, 4d array is (electron, ion, basis#, valgradlap)

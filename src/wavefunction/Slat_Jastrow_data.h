@@ -50,8 +50,6 @@ public:
     return slater->nparms()+jastrow->nparms();
   }
 
-
-
   int showinfo(ostream & os);
   int writeinput(string &, ostream &);
 

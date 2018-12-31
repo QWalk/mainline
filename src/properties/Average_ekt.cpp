@@ -150,9 +150,9 @@ void Average_ekt::evaluate_valence(Wavefunction_data * wfdata, Wavefunction * wf
   /*
      This is to evaluate the v_ij in extended Koopmans' theorem -- for valence bands
      */
-  wf->updateVal(wfdata,sample);
+  wf->updateVal(sample);
   Wf_return wfval_base(wf->nfunc(),2);
-  wf->getVal(wfdata,0,wfval_base);
+  wf->getVal(wfval_base);
   int nup=sys->nelectrons(0);
   int ndown=sys->nelectrons(1);
   int nelectrons=nup+ndown;
@@ -303,9 +303,9 @@ void Average_ekt::evaluate_obdm(Wavefunction_data * wfdata, Wavefunction * wf,
     System * sys, Sample_point * sample, Average_return & avg) { 
 
 
-  wf->updateVal(wfdata,sample);
+  wf->updateVal(sample);
   Wf_return wfval_base(wf->nfunc(),2);
-  wf->getVal(wfdata,0,wfval_base);
+  wf->getVal(wfval_base);
   int nup=sys->nelectrons(0);
   int ndown=sys->nelectrons(1);
   int nelectrons=nup+ndown;

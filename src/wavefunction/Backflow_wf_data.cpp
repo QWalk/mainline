@@ -132,7 +132,7 @@ void Backflow_wrapper::updateVal(Sample_point * sample,
 
   int nelectrons=sample->electronSize();
   Array3<doublevar> jast_corr;
-  jast.updateVal(&jdata,sample);
+  jast.updateVal(sample);
   jast.get_twobody(jast_corr);
   Array3 <doublevar> onebody;
   jast.get_onebody(onebody);
@@ -157,7 +157,7 @@ void Backflow_wrapper::getNeighbors(Sample_point * sample,
   int nelectrons=sample->electronSize();
   list.Resize(nelectrons);
   Array3 <doublevar> jast_corr;
-  jast.updateLap(&jdata,sample);
+  jast.updateLap(sample);
   jast.get_twobody(jast_corr);
   doublevar threshold=1e-10;
   for(int j=0; j< 3; j++) { 
@@ -191,7 +191,7 @@ void Backflow_wrapper::updateLap(Sample_point * sample,
   int natoms=sample->ionSize();
   
   Array3 <doublevar> jast_corr;
-  jast.updateLap(&jdata,sample);
+  jast.updateLap(sample);
   jast.get_twobody(jast_corr);
   Array3 <doublevar> onebody;
   jast.get_onebody(onebody);

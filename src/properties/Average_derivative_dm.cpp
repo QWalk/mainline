@@ -58,7 +58,7 @@ void Average_derivative_dm::evaluate(Wavefunction_data * wfdata, Wavefunction * 
   assert(wf->nfunc()==1);
   for(int e=0;e<sample->electronSize();e++){
     Wf_return lap(1,5);
-    wf->getLap(wfdata,e,lap);
+    wf->getLap(e,lap);
     //for(int i=1;i<4;i++) d2+=1./(lap.amp(0,i)*lap.amp(0,i));
     for(int i=1;i<4;i++) d2+=lap.amp(0,i)*lap.amp(0,i);
   }

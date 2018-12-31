@@ -244,8 +244,8 @@ void Nodes_method::run(Program_options & options, ostream & output)
             xyz(2)=minmax(4)+zz*resolution_array(2); //move forward on z axis one resolution unit
             // mywalker->getElectronPos(plots(i), oldpos);
             mywalker->setElectronPos(plots(i)-1,xyz); //move elec#plots(i) to point specified by xyz
-            wf->updateVal(wfdata, mywalker); //update wfdata
-            wf->getVal(wfdata, 0, wfvals); //get wf value
+            wf->updateVal(mywalker); //update wfdata
+            wf->getVal(wfvals); //get wf value
             const doublevar cutoff=15;
             if(wfvals.amp(0,0)<cutoff) { 
               grid(i,count)=wfvals.sign(0)*exp(wfvals.amp(0,0));
@@ -396,8 +396,8 @@ void Nodes_method::run(Program_options & options, ostream & output)
             //to point specified by xyz
             mywalker->setElectronPos(plots(i+1)-1,xyz2);//move elec#plots(i) 
             //to point specified by xyz
-            wf->updateVal(wfdata, mywalker); //update wfdata
-            wf->getVal(wfdata, 0, wfvals); //get wf value
+            wf->updateVal(mywalker); //update wfdata
+            wf->getVal(wfvals); //get wf value
             grid(i,count)=wfvals.sign(0)*exp(wfvals.amp(0,0));
             //grid(i,count)=exp(2.0*wfvals(0,1));//!square of wavefunction
             //  cout << "grid " << grid(i,count)<< " " << xyz(0) << endl;

@@ -78,7 +78,7 @@ void System::calcKinetic(Wavefunction_data * wfdata,
     for(int e=0; e< nelectrons; e++)
     {
 
-      wf->getLap(wfdata, e, temp);
+      wf->getLap(e, temp);
       lap(w)+=temp.amp(w,4);
       if ( temp.is_complex==1 ) {
         lap(w)-=(  temp.phase(w,1)*temp.phase(w,1)
@@ -112,13 +112,13 @@ void System::calcKineticSeparated(Wavefunction_data * wfdata,
   //  assert(lap.GetDim(0)>= wf->nfunc());
   int nelectrons=sample->electronSize();
   int nwf=wf->nfunc();
-  wf->updateLap(wfdata,sample);
+  wf->updateLap(sample);
   Wf_return temp(nwf,5);
   Kin.Resize(nelectrons, nwf);
 
   for(int w=0; w< nwf; w++) {
     for(int e=0; e< nelectrons; e++) {
-      wf->getLap(wfdata, e, temp);
+      wf->getLap(e, temp);
       //  lap(e, w)+=temp.amp(w,4);
       Kin(e, w) = temp.amp(w, 4); 
       if ( temp.is_complex==1 ) {

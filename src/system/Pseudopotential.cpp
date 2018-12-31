@@ -249,7 +249,7 @@ void Pseudopotential::calcPseudoSeparated(Wavefunction_data * wfdata,
   //  doublevar accum_local=0;
   //  doublevar accum_nonlocal=0;
   
-  wf->updateVal(wfdata, sample);
+  wf->updateVal(sample);
   
   int accept_counter=0;
   //deriv.Resize(natoms, 3);
@@ -304,7 +304,7 @@ void Pseudopotential::calcPseudoSeparated(Wavefunction_data * wfdata,
 	//bool localonly = true;
 	if(accept)  {
 	  Wf_return  oldWfVal(nwf,2);
-	  wf->getVal(wfdata, e,oldWfVal);
+	  wf->getVal(oldWfVal);
 	  
 	  for(int i=0; i< aip(at); i++) {
 	    sample->setElectronPos(e, oldpos);
@@ -323,8 +323,8 @@ void Pseudopotential::calcPseudoSeparated(Wavefunction_data * wfdata,
 	    doublevar new_phase=sample->overallPhase();
 	    
 	    rDotR(i)/=(newdist(0)*olddist(0));  //divide by the magnitudes
-	    wf->updateVal(wfdata, sample);
-	    wf->getVal(wfdata, e, val); 
+	    wf->updateVal(sample);
+	    wf->getVal(val); 
 	    //----
 	    //cout << "signs " << base_sign << "  " << new_sign << endl;;
 	    for(int w=0; w< nwf; w++) {
@@ -345,9 +345,9 @@ void Pseudopotential::calcPseudoSeparated(Wavefunction_data * wfdata,
 	      //if (vxx>=0.0)
 	      nonlocal(w) += vxx; 
 	    }
-	    sample->setElectronPos(e, oldpos);
 	  } 
-	  
+	  sample->setElectronPos(e, oldpos);
+	  wf->updateVal(sample);
 	  //--------------------
 	}
 
@@ -404,7 +404,7 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
   doublevar accum_local=0;
   doublevar accum_nonlocal=0;
 
-  wf->updateVal(wfdata, sample);
+  wf->updateVal(sample);
   Parm_deriv_return base_deriv;
   if(parm_derivatives) { 
     parm_deriv.Resize(wfdata->nparms());
@@ -469,7 +469,8 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
 
         if(accept)  {
           Wf_return  oldWfVal(nwf,2);
-          wf->getVal(wfdata, e,oldWfVal);
+	  wf->updateVal(sample);
+          wf->getVal(oldWfVal);
 
           for(int i=0; i< aip(at); i++) {
             sample->setElectronPos(e, oldpos);
@@ -507,8 +508,8 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
             doublevar new_phase=sample->overallPhase();
             
             rDotR(i)/=(newdist(0)*olddist(0));  //divide by the magnitudes
-            wf->updateVal(wfdata, sample);
-            wf->getVal(wfdata, e, val); 
+            wf->updateVal(sample);
+            wf->getVal( val); 
             //----
             //cout << "signs " << base_sign << "  " << new_sign << endl;;
             for(int w=0; w< nwf; w++) {
@@ -553,9 +554,9 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
               }
               //------
             }
-            sample->setElectronPos(e, oldpos);
           } 
 
+          sample->setElectronPos(e, oldpos);
           //--------------------
         }
 
@@ -575,9 +576,6 @@ void Pseudopotential::calcNonlocWithAllvariables(Wavefunction_data * wfdata,
           //totalv(w)+=vLocal+nonlocal(w);
           totalv(e,w)+=vLocal+nonlocal(w);
         }
-
-
-
       }  //electron loop
 
     }  //if atom has any psp's

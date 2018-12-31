@@ -47,7 +47,7 @@ void Average_ldots::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, Syst
   Array1 <doublevar> e_pos(ndim);    
   Array1 <doublevar> ion_pos(ndim);
   
-  wf->updateLap(wfdata, sample);
+  wf->updateLap(sample);
   Wf_return temp_lap;
   temp_lap.Resize(1,5);
 
@@ -66,7 +66,7 @@ void Average_ldots::evaluate(Wavefunction_data * wfdata, Wavefunction * wf, Syst
         int spin = 1;
         if(e >= sys->nelectrons(0)) spin = -1;
         sample->getElectronPos(e,e_pos);
-        wf->getLap(wfdata, e, temp_lap);
+        wf->getLap(e, temp_lap);
         //for(int at=0; at < nions; at++) {
         for(int at=at_i-1; at < at_f; at++) {
           sample->getIonPos(at,ion_pos);

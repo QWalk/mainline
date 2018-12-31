@@ -395,7 +395,7 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
       
       for(int walker=0; walker < nconfig; walker++) {
         pts(walker).config_pos.restorePos(sample);
-        wf->updateLap(wfdata, sample);
+        wf->updateLap(sample);
 	//------Do several steps without branching
         for(int p=0; p < npsteps; p++) {
           pseudo->randomize();
@@ -605,7 +605,7 @@ void Dmc_method::move_all_electron(Wavefunction_data * wfdata,
                          Guiding_function * guidingwf,
                          Dmc_point & pt,
                          doublevar & acsum) { 
-  wf->updateLap(wfdata,sample);
+  wf->updateLap(sample);
   Wf_return lap(wf->nfunc(),5),vali(wf->nfunc(),1),valf(wf->nfunc(),1);
   doublevar signi,signf;
   int ndim=sample->ndim();
@@ -625,10 +625,10 @@ void Dmc_method::move_all_electron(Wavefunction_data * wfdata,
   }
 
   signi=sample->overallSign();
-  wf->getVal(wfdata,0,vali);
+  wf->getVal(vali);
   
   for(int e=0; e < nelectrons; e++) { 
-    wf->getLap(wfdata,e,lap);
+    wf->getLap(e,lap);
     guidingwf->getLap(lap,drift1(e));
     limDrift(drift1(e),timestep,drift_cyrus);
     for(int d=0; d< ndim; d++) {
@@ -640,11 +640,11 @@ void Dmc_method::move_all_electron(Wavefunction_data * wfdata,
     sample->translateElectron(e,translate1(e));
   }
   wf->notify(all_electrons_move,0);
-  wf->updateLap(wfdata,sample);
+  wf->updateLap(sample);
 
 
   for(int e=0; e < nelectrons; e++) { 
-    wf->getLap(wfdata,e,lap);
+    wf->getLap(e,lap);
     guidingwf->getLap(lap,drift2(e));
     limDrift(drift2(e),timestep,drift_cyrus);
     for(int d=0; d< ndim; d++) {
@@ -659,9 +659,9 @@ void Dmc_method::move_all_electron(Wavefunction_data * wfdata,
   wf->notify(all_electrons_move,0);
   
 
-  wf->updateLap(wfdata,sample);
+  wf->updateLap(sample);
   signf=sample->overallSign();
-  wf->getVal(wfdata,0,valf);
+  wf->getVal(valf);
 
   doublevar ratio=guidingwf->getTrialRatio(valf,vali)*signi*signf;
   if(ratio <0 and false) { 
@@ -854,7 +854,7 @@ void Dmc_method::doTmove(Properties_point & pt,Pseudopotential * pseudo, System 
                          Guiding_function * guideingwf) {
   vector <Tmove> tmov;
   pt.setSize(nwf);
-  wf->getVal(wfdata,0,pt.wf_val);
+  wf->getVal(pt.wf_val);
   sys->calcKinetic(wfdata,sample,wf,pt.kinetic);
   pt.potential=sys->calcLoc(sample);
   pt.weight=1.0; //this gets set later anyway

@@ -236,13 +236,13 @@ doublevar Dynamics_generator::greenFunction(Sample_point * sample, Wavefunction 
   //cout << "auxillary " << endl;
   drift_type dtype=drift_cyrus;
   assert(newpos.GetDim(0) >= 3);
-  wf->updateLap(wfdata, sample);
+  wf->updateLap(sample);
   Point p1; p1.lap.Resize(wf->nfunc(), 5);
   p1.sign=sample->overallSign();
   int ndim=sample->ndim();
 
   sample->getElectronPos(e,p1.pos);
-  wf->getLap(wfdata, e, p1.lap);
+  wf->getLap(e, p1.lap);
   guidingwf->getLap(p1.lap, p1.drift);  
   
   
@@ -250,11 +250,11 @@ doublevar Dynamics_generator::greenFunction(Sample_point * sample, Wavefunction 
     p1.translation(d)=newpos(d)-p1.pos(d);
   
   sample->translateElectron(e,p1.translation);
-  wf->updateLap(wfdata, sample);
+  wf->updateLap(sample);
   Point p2; p2.lap.Resize(wf->nfunc(), 5);
   p2.sign=sample->overallSign();
   p2.pos=newpos;
-  wf->getLap(wfdata, e, p2.lap);
+  wf->getLap(e, p2.lap);
   guidingwf->getLap(p2.lap, p2.drift);  
   
 
@@ -422,8 +422,8 @@ int Split_sampler::split_driver(int e,
   sample->translateElectron(e, trace(depth).translation);
   trace(depth).sign=sample->overallSign();
   
-  wf->updateLap(wfdata, sample);
-  wf->getLap(wfdata, e, trace(depth).lap);
+  wf->updateLap(sample);
+  wf->getLap(e, trace(depth).lap);
 
   guidingwf->getLap(trace(depth).lap, trace(depth).drift);
 
@@ -478,7 +478,7 @@ int Split_sampler::sample(int e,
                           doublevar & efftimestep) {
 
   
-  wf->updateLap(wfdata, sample);
+  wf->updateLap(sample);
   trace.Resize(recursion_depth_+1);
 
   for(int i=0; i < recursion_depth_+1; i++) {
@@ -496,7 +496,7 @@ int Split_sampler::sample(int e,
   int depth=0;
 
   sample->getElectronPos(e,trace(depth).pos);
-  wf->getLap(wfdata, e, trace(depth).lap);
+  wf->getLap(e, trace(depth).lap);
   trace(depth).sign=sample->overallSign();
 
   guidingwf->getLap(trace(depth).lap, trace(depth).drift);
@@ -676,9 +676,9 @@ int UNR_sampler::sample(int e, Sample_point * sample,
   tries++;
   Point p1; p1.lap.Resize(wf->nfunc(), 5);
   
-  wf->updateLap(wfdata, sample);
+  wf->updateLap(sample);
   sample->getElectronPos(e,p1.pos);
-  wf->getLap(wfdata, e, p1.lap);
+  wf->getLap(e, p1.lap);
   p1.sign=sample->overallSign();
   guidewf->getLap(p1.lap, p1.drift);
 
@@ -721,8 +721,8 @@ int UNR_sampler::sample(int e, Sample_point * sample,
   Array1 <doublevar> translate(3);
   for(int d=0; d< 3; d++) translate(d)=p2.pos(d)-p1.pos(d);
   sample->translateElectron(e,translate);
-  wf->updateLap(wfdata, sample);
-  wf->getLap(wfdata, e, p2.lap);
+  wf->updateLap(sample);
+  wf->getLap(e, p2.lap);
   p2.sign=sample->overallSign();
   guidewf->getLap(p2.lap, p2.drift);
 
@@ -835,13 +835,13 @@ doublevar SRK_dmc::greenFunction(Sample_point * sample, Wavefunction * wf,
   //cout << "auxillary " << endl;
   //drift_type dtype=drift_cyrus;
   assert(newpos.GetDim(0) >= 3);
-  wf->updateLap(wfdata, sample);
+  wf->updateLap(sample);
   Point p1; p1.lap.Resize(wf->nfunc(), 5);
   p1.sign=sample->overallSign();
   int ndim=sample->ndim();
 
   sample->getElectronPos(e,p1.pos);
-  wf->getLap(wfdata, e, p1.lap);
+  wf->getLap(e, p1.lap);
   guidingwf->getLap(p1.lap, p1.drift);  
   
   
@@ -849,11 +849,11 @@ doublevar SRK_dmc::greenFunction(Sample_point * sample, Wavefunction * wf,
     p1.translation(d)=newpos(d)-p1.pos(d);
   
   sample->translateElectron(e,p1.translation);
-  wf->updateLap(wfdata, sample);
+  wf->updateLap(sample);
   Point p2; p2.lap.Resize(wf->nfunc(), 5);
   p2.sign=sample->overallSign();
   p2.pos=newpos;
-  wf->getLap(wfdata, e, p2.lap);
+  wf->getLap(e, p2.lap);
   guidingwf->getLap(p2.lap, p2.drift);  
   
 
@@ -920,8 +920,8 @@ int SRK_dmc::rk_step(int e,
   sample->translateElectron(e, trace(1).translation);
   trace(1).sign=sample->overallSign();
 
-  wf->updateLap(wfdata, sample);
-  wf->getLap(wfdata, e, trace(1).lap);
+  wf->updateLap(sample);
+  wf->getLap(e, trace(1).lap);
   guidingwf->getLap(trace(1).lap, trace(1).drift);
 
   //Calculate second move
@@ -937,8 +937,8 @@ int SRK_dmc::rk_step(int e,
   
   sample->translateElectron(e,trace(2).translation);
   trace(2).sign=sample->overallSign();
-  wf->updateLap(wfdata, sample);
-  wf->getLap(wfdata, e, trace(2).lap);
+  wf->updateLap(sample);
+  wf->getLap(e, trace(2).lap);
   guidingwf->getLap(trace(2).lap, trace(2).drift);
 
   int last_point=2;
@@ -956,8 +956,8 @@ int SRK_dmc::rk_step(int e,
 
     sample->translateElectron(e,trace(3).translation);
     trace(3).sign=sample->overallSign();
-    wf->updateLap(wfdata, sample);
-    wf->getLap(wfdata, e, trace(3).lap);
+    wf->updateLap(sample);
+    wf->getLap(e, trace(3).lap);
     guidingwf->getLap(trace(3).lap, trace(3).drift);
 
 
@@ -1015,9 +1015,9 @@ int SRK_dmc::sample(int e,
   }
 
   
-  wf->updateLap(wfdata, sample);
+  wf->updateLap(sample);
   sample->getElectronPos(e,trace(0).pos);
-  wf->getLap(wfdata, e, trace(0).lap);
+  wf->getLap(e, trace(0).lap);
   trace(0).sign=sample->overallSign();
   guidingwf->getLap(trace(0).lap, trace(0).drift);
   
@@ -1040,7 +1040,7 @@ int SRK_dmc::sample(int e,
     //cout << "rejecting node crossing " <<  endl;
     info.accepted=0;
     sample->setElectronPos(e, trace(0).pos);
-    wf->updateLap(wfdata, sample);
+    wf->updateLap(sample);
     return 0;
   } 
   acceptances++;

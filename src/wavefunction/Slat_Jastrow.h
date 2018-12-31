@@ -51,18 +51,18 @@ public:
 
   virtual void notify(change_type , int );
 
-  virtual void updateVal(Wavefunction_data *, Sample_point *);
-  virtual void updateLap(Wavefunction_data *, Sample_point *);
+  virtual void updateVal(Sample_point * const);
+  virtual void updateLap(Sample_point * const);
 
 
-  virtual void getVal(Wavefunction_data *, int, Wf_return &);
-  virtual void getLap(Wavefunction_data *, int, Wf_return &);
+  virtual void getVal(Wf_return &);
+  virtual void getLap(int, Wf_return &);
 
-  virtual void evalTestPos(Array1 <doublevar> & pos, Sample_point * sample,Array1 <Wf_return> & wf);
+  virtual void evalTestPos(Array1 <doublevar> & pos, Sample_point * const sample,Array1 <Wf_return> & wf);
   
 
   virtual int getParmDeriv(Wavefunction_data *, 
-			    Sample_point *,
+			    Sample_point * const,
 			    Parm_deriv_return & );
 
   virtual void getSymmetricVal(Wavefunction_data *, 

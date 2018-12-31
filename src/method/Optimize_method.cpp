@@ -207,8 +207,8 @@ void Optimize_method::run(Program_options & options, ostream & output)
     config_pos(walker).restorePos(sample);
     nfunctions=wf->nfunc();
     orig_vals(walker).Resize(nfunctions, 2);
-    wf->updateLap(wfdata, sample);
-    wf->getVal(wfdata, 0, orig_vals(walker));
+    wf->updateLap(sample);
+    wf->getVal(orig_vals(walker));
     psp_test(walker).Resize(pseudo->nTest());
     for(int i=0; i< pseudo->nTest(); i++) { 
       psp_test(walker)(i)=rng.ulec();
@@ -304,13 +304,13 @@ doublevar Optimize_method::variance(int n, Array1 <double> & parms, double & val
   //cout << "loop " << endl;
   for(int walker=0; walker< nconfig; walker++) {
     config_pos(walker).restorePos(sample);
-    wf->updateLap(wfdata, sample);
+    wf->updateLap(sample);
     sys->calcKinetic(wfdata, sample, wf, kinetic);
     doublevar coulpot=local_energy(walker);
     nonloc=0;
     if(update_psp) 
       pseudo->calcNonlocWithTest(wfdata,sys, sample, wf,psp_test(walker),nonloc );    
-    wf->getVal(wfdata, 0, wfval);
+    wf->getVal(wfval);
     for(int w=0; w< nfunctions; w++) {
       doublevar energy=kinetic(w) + coulpot+ nonloc(w);
       avgkin+=kinetic(w);
@@ -401,7 +401,7 @@ doublevar Optimize_method::derivatives(int n, Array1 <double> & parms, Array1 <d
   last_ens.Resize(nconfig);
   for(int walker=0; walker< nconfig; walker++) {
     config_pos(walker).restorePos(sample);
-    wf->updateLap(wfdata, sample);
+    wf->updateLap(sample);
     Array1 <doublevar> kin_deriv(nparms);
     sys->calcKinetic(wfdata, sample, wf, kinetic);
     
@@ -425,7 +425,7 @@ doublevar Optimize_method::derivatives(int n, Array1 <double> & parms, Array1 <d
       Array1<doublevar> tparms=temp_parms;
       tparms(p)+=del;
       wfdata->setVarParms(tparms);
-      wf->updateLap(wfdata,sample);
+      wf->updateLap(sample);
       sys->calcKinetic(wfdata, sample,wf,kin_tmp);
       if(!wfdata->supports(parameter_derivatives) && update_psp) { 
         //cout << "calculating pseudo non-analytically! " << endl;
@@ -441,7 +441,7 @@ doublevar Optimize_method::derivatives(int n, Array1 <double> & parms, Array1 <d
     //------end kinetic energy derivative
     
     doublevar coulpot=local_energy(walker);
-    wf->getVal(wfdata, 0, wfval);
+    wf->getVal(wfval);
     assert(nfunctions==1); //note that we implicitly assume this throughout
     for(int w=0; w< nfunctions; w++)
     {
