@@ -1104,9 +1104,9 @@ void Cubic_spline::calcHessian(const Array1 <doublevar> & r,
   }
   else
   {
-    register doublevar v, h, v1, v2, v3, v4, v5, u2;
-    register doublevar dgdx, dgdy, dgdz, d2gdxdx, d2gdydy, d2gdzdz, d2gdxdy, d2gdxdz, d2gdydz;
-    register doublevar func, fdir, f2dir;
+    doublevar v, h, v1, v2, v3, v4, v5, u2;
+    doublevar dgdx, dgdy, dgdz, d2gdxdx, d2gdydy, d2gdzdz, d2gdxdy, d2gdxdz, d2gdydz;
+    doublevar func, fdir, f2dir;
     int totf=startfill;
     doublevar ovr2=1.0/r(1);
     doublevar x2r2=r(2)*r(2)*ovr2;

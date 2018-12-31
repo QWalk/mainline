@@ -300,8 +300,6 @@ void Pseudopotential::calcPseudoSeparated(Wavefunction_data * wfdata,
 	  }
 	  accept=strength>rand;
 	}
-	
-	//bool localonly = true;
 	if(accept)  {
 	  Wf_return  oldWfVal(nwf,2);
 	  wf->getVal(oldWfVal);

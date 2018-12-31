@@ -28,7 +28,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "Pfaff_wf_data.h"
 #include "BCS_wf_data.h"
 #include "qmc_io.h"
-
+#include <memory>
 int allocate(vector <string> & wftext, System * sys, Wavefunction_data * & wfptr)
 {
   assert(wfptr == NULL);
@@ -52,14 +52,10 @@ int allocate(vector <string> & wftext, System * sys, Wavefunction_data * & wfptr
     error("Error parsing the trial wavefunction section; unknown keyword ",
           wftext[0]);
 
-
   unsigned int pos=1;
   wfptr->read(wftext,pos,sys);
   return 1;
 }
-
-
-
 
 
 int deallocate(Wavefunction_data * & wfptr)
