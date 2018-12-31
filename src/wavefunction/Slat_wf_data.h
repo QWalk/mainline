@@ -81,16 +81,16 @@ public:
   virtual void lockInParms(Array1<doublevar> & parms){
     if(optimize_mo && optimize_det){
       Array1<doublevar> orbital_parms;
-      orbital_parms.Resize(orbrot->nparms());
-      for(int i=0;i<orbrot->nparms();i++){
+      orbital_parms.Resize(orbrot.nparms());
+      for(int i=0;i<orbrot.nparms();i++){
         orbital_parms[i]=parms[ncsf-1+i];
       }
-      orbrot->lockIn(orbital_parms);
-      for(int i=0;i<orbrot->nparms();i++){
+      orbrot.lockIn(orbital_parms);
+      for(int i=0;i<orbrot.nparms();i++){
         parms[ncsf-1+i]=orbital_parms[i];
       }
     }else if(optimize_mo){
-      orbrot->lockIn(parms);
+      orbrot.lockIn(parms);
     }
     return; 
   }
@@ -112,8 +112,8 @@ public:
 
   int nparms()
   {
-    if(optimize_mo && optimize_det) return ncsf - 1 + orbrot->nparms();
-    else if(optimize_mo) return orbrot->nparms();
+    if(optimize_mo && optimize_det) return ncsf - 1 + orbrot.nparms();
+    else if(optimize_mo) return orbrot.nparms();
     else if(optimize_det){ return ncsf-1; } 
     else return 0;
   }
@@ -156,7 +156,7 @@ private:
   bool use_clark_updates; //!<Use Bryan Clark's updates.
   Excitation_list excitations;
   Complex_MO_matrix * cmolecorb;
-  Orbital_rotation * orbrot;
+  Orbital_rotation  orbrot;
 
 };
 

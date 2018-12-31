@@ -339,7 +339,7 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
   }
   
   if(parent->optimize_mo && !parent->optimize_det) {
-    parent->orbrot->getParmDeriv<doublevar>(parent->detwt,moVal,inverse, detVal, derivatives);
+    parent->orbrot.getParmDeriv<doublevar>(parent->detwt,moVal,inverse, detVal, derivatives);
     derivatives.hessian=0;
     
     return 1;
@@ -407,7 +407,7 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
     
     //if optimize_mo and optimize_det
     if(parent->optimize_mo){
-      int norbparms=parent->orbrot->nparms();
+      int norbparms=parent->orbrot.nparms();
       for(int csf=0; csf< nparms-norbparms; csf++){
         derivatives.gradient(csf)*=detsum.val(); 
       }
@@ -418,7 +418,7 @@ template <> inline int Slat_wf<doublevar>::getParmDeriv(Wavefunction_data *  wfd
       orbval.gradderiv.Resize(norbparms,tote,4);
       orbval.val_gradient.Resize(tote,4);
       orbval.need_hessian=derivatives.need_hessian;
-      parent->orbrot->getParmDeriv<doublevar>(parent->detwt,moVal,inverse, detVal, orbval);
+      parent->orbrot.getParmDeriv<doublevar>(parent->detwt,moVal,inverse, detVal, orbval);
  
       for(int i=0;i<norbparms;i++){
         derivatives.gradient(nparms-norbparms+i)=orbval.gradient(i);
@@ -472,11 +472,11 @@ template <class T>inline void Slat_wf<T>::updateInverse(int e) {
           int curre=s*nelectrons(0)+e;
           if(parent->optimize_mo){
             Array1<T> orb;
-            orb.Resize(parent->orbrot->Nact(det,s));
+            orb.Resize(parent->orbrot.Nact(det,s));
             for(int i=0;i<orb.GetDim(0);i++){
               orb(i)=moVal(0,curre,parent->occupation(f,det,s)(i)); 
             }
-            parent->orbrot->rotMoVals<T>(det,s,orb);
+            parent->orbrot.rotMoVals<T>(det,s,orb);
             for(int i=0;i<nelectrons(s);i++){
               allmos(e,i)=orb(i);
             }
@@ -508,11 +508,11 @@ template <class T>inline void Slat_wf<T>::updateInverse(int e) {
       else { 
         if(parent->optimize_mo){
           Array1<T> orb;
-          orb.Resize(parent->orbrot->Nact(det,s));
+          orb.Resize(parent->orbrot.Nact(det,s));
           for(int i=0;i<orb.GetDim(0);i++){
             orb(i)=moVal(0,e,parent->occupation(f,det,s)(i)); 
           }
-          parent->orbrot->rotMoVals<T>(det,s,orb);
+          parent->orbrot.rotMoVals<T>(det,s,orb);
           for(int i=0;i<nelectrons(s);i++){
             modet(i)=orb(i);
           }
@@ -570,11 +570,11 @@ template <class T> inline int Slat_wf<T>::updateValNoInverse(int e) {
       //determinant
       if(parent->optimize_mo){
         Array1<T> orb;
-        orb.Resize(parent->orbrot->Nact(det,s));
+        orb.Resize(parent->orbrot.Nact(det,s));
         for(int i=0;i<orb.GetDim(0);i++){
           orb(i)=moVal(0,e,parent->occupation(f,det,s)(i));
         }
-        parent->orbrot->rotMoVals<T>(det,s,orb);
+        parent->orbrot.rotMoVals<T>(det,s,orb);
         for(int i=0;i<nelectrons(s);i++){
           modet(i)=orb(i);
         }
@@ -718,11 +718,11 @@ template <class T> inline void Slat_wf<T>::calcLap(Sample_point * const sample)
           //----NEW----
           if(parent->optimize_mo){
             Array1<T> orb;
-            orb.Resize(parent->orbrot->Nact(det,s));
+            orb.Resize(parent->orbrot.Nact(det,s));
             for(int i=0;i<orb.GetDim(0);i++){
               orb(i)=moVal(0,curre,parent->occupation(f,det,s)(i)); 
             }
-            parent->orbrot->rotMoVals<T>(det,s,orb);
+            parent->orbrot.rotMoVals<T>(det,s,orb);
             for(int i=0;i<nelectrons(s);i++){
               modet(e,i)=orb(i);
             }
@@ -791,11 +791,11 @@ template <class T> void Slat_wf<T>::getDetLap(int e, Array3<log_value <T> > &  v
           T temp=0;
           if(parent->optimize_mo){  
             Array1<T> orb;
-            orb.Resize(parent->orbrot->Nact(det,s));
+            orb.Resize(parent->orbrot.Nact(det,s));
             for(int j=0;j<orb.GetDim(0);j++){
               orb(j)=moVal(i,e,parent->occupation(f,det,s)(j)); 
             }
-            parent->orbrot->rotMoVals<T>(det,s,orb);
+            parent->orbrot.rotMoVals<T>(det,s,orb);
             for(int j=0;j<nelectrons(s);j++){
               temp+=orb(j)*inverse(f,det,s)(rede(e),j);
             }
@@ -946,11 +946,11 @@ template <class T> inline void Slat_wf<T>::evalTestPos(Array1 <doublevar> & pos,
       for(int det=0; det< ndet; det++)  {
         if(parent->optimize_mo){
           Array1<T> orb;
-          orb.Resize(parent->orbrot->Nact(det,s));
+          orb.Resize(parent->orbrot.Nact(det,s));
           for(int i=0;i<orb.GetDim(0);i++){
             orb(i)=movals(s)(parent->occupation(f,det,s)(i),0);
           }
-          parent->orbrot->rotMoVals<T>(det,s,orb);
+          parent->orbrot.rotMoVals<T>(det,s,orb);
           for(int i=0;i<nelectrons(s);i++){
             modet(i)=orb(i);
           }

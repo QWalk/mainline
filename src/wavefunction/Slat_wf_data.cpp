@@ -276,9 +276,9 @@ void Slat_wf_data::read(vector <string> & words, unsigned int & pos,
       error("Require section OPTIMIZE_DATA with option optimize_mo");
     }
     //Read and initialize Orbital_rotation
-    orbrot=new Orbital_rotation;
-    orbrot->read(optstring, detwt.GetDim(0), occupation_orig, occupation, totoccupation);
-    nmo=orbrot->getnmo();
+    //orbrot=new Orbital_rotation;
+    orbrot.read(optstring, detwt.GetDim(0), occupation_orig, occupation, totoccupation);
+    nmo=orbrot.getnmo();
   }
 
   //Decide on the updating scheme:
@@ -356,7 +356,7 @@ void Slat_wf_data::init_mo() {
         " than requested NMO's.");
   
   if(optimize_mo){
-    nmo=orbrot->getnmo();
+    nmo=orbrot.getnmo();
   }
   genmolecorb->buildLists(totoccupation);
 
@@ -558,7 +558,7 @@ int Slat_wf_data::writeinput(string & indent, ostream & os) {
     os << "}" << endl;
   }
   if(optimize_mo) {
-    orbrot->writeinput(indent,os);
+    orbrot.writeinput(indent,os);
   }
 
   if(use_complexmo) os << indent << "CORBITALS { \n";
@@ -582,8 +582,8 @@ void Slat_wf_data::getVarParms(Array1 <doublevar> & parms)
     }
     
     Array1<doublevar> orbital_parms;
-    orbital_parms.Resize(orbrot->nparms());
-    orbrot->getParms(orbital_parms);
+    orbital_parms.Resize(orbrot.nparms());
+    orbrot.getParms(orbital_parms);
     
     parms.Resize(det_parms.GetDim(0)+orbital_parms.GetDim(0));
     for(int i=0;i<det_parms.GetDim(0);i++)
@@ -594,7 +594,7 @@ void Slat_wf_data::getVarParms(Array1 <doublevar> & parms)
       parms(i)=orbital_parms(i-det_parms.GetDim(0));
 
   }else if(optimize_mo) {
-    orbrot->getParms(parms);
+    orbrot.getParms(parms);
   }
   else if(optimize_det) {
     parms.Resize(ncsf-1);
@@ -623,14 +623,14 @@ void Slat_wf_data::setVarParms(Array1 <doublevar> & parms)
     assert(counter==ndet);
     
     Array1<doublevar> orbital_parms;
-    orbital_parms.Resize(orbrot->nparms());
-    for(int i=0;i<orbrot->nparms();i++){
+    orbital_parms.Resize(orbrot.nparms());
+    for(int i=0;i<orbrot.nparms();i++){
       orbital_parms[i]=parms[ncsf-1+i];
     }
 
-    orbrot->setParms(orbital_parms);
+    orbrot.setParms(orbital_parms);
   }else if(optimize_mo) {
-    orbrot->setParms(parms);
+    orbrot.setParms(parms);
   }
   else if(optimize_det) {
     for(int csf=1; csf< ncsf; csf++) 
