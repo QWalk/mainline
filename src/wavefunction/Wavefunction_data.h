@@ -121,9 +121,6 @@ public:
     wfObserver.clear();
   }
 
-  //Used in virtual copy constructor
-  virtual Wavefunction_data * clone() const = 0;
-
 protected:
   vector <Wavefunction *> wfObserver;
 };

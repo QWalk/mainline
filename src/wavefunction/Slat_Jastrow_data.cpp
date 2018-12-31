@@ -57,8 +57,7 @@ int Slat_Jastrow_data::supports(wf_support_type support) {
 
 
 //------------------------------------------------------------------------
-void Slat_Jastrow_data::generateWavefunction(Wavefunction *& wf)
-{
+void Slat_Jastrow_data::generateWavefunction(Wavefunction *& wf) {
   assert(wf == NULL);
 
   wf=new Slat_Jastrow;
