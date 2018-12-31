@@ -70,9 +70,7 @@ void Average_derivative_dm::evaluate(Wavefunction_data * wfdata, Wavefunction * 
     int drop=(d2<(cutoff_list[i]*cutoff_list[i]));
     //cout<<d2<<","<<cutoff_list[i]*cutoff_list[i]<<","<<drop<<endl;
     if(drop) { 
-      for(int p=0;p<nparms;p++) {
-        deriv.gradient(p)=0.0;
-      }
+      deriv.gradient=0.0;
     }
 
     //Tack into avg

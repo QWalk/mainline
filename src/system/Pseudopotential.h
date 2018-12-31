@@ -246,6 +246,7 @@ public:
   Array3 <doublevar> integralpt_orig;
   Array2 <doublevar> integralweight;
   Array1 <doublevar> cutoff;
+  doublevar calculate_threshold;
   vector <string> atomnames;
   Array1 <bool> addzeff; //!< whether or not to add Z_eff/r to the local function
   

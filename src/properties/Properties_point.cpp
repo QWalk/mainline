@@ -41,10 +41,6 @@ void Properties_point::mpiSend(int node) {
   int nwf=kinetic.GetDim(0);
 
   MPI_Send(&nwf, 1, MPI_INT, node, 0, MPI_Comm_grp);
-  MPI_Send(children.v, children.GetDim(0), MPI_INT,
-           node, 0,MPI_Comm_grp);
-  MPI_Send(&nchildren, 1, MPI_INT, node, 0, MPI_Comm_grp);
-  MPI_Send(&parent, 1, MPI_INT, node, 0, MPI_Comm_grp);
   MPI_Send(&count, 1, MPI_INT, node, 0, MPI_Comm_grp);
   MPI_Send(kinetic.v, kinetic.GetDim(0), MPI_DOUBLE, 
            node, 0, MPI_Comm_grp);
@@ -87,11 +83,6 @@ void Properties_point::mpiReceive(int node) {
   //cout << mpi_info.node << "  " << nwf << endl;
 
   setSize(nwf);
-  MPI_Recv(children.v, children.GetDim(0), MPI_INT,
-           node, 0,MPI_Comm_grp, &status);
-  MPI_Recv(&nchildren, 1, MPI_INT, node, 0, MPI_Comm_grp, &status);
-  MPI_Recv(&parent, 1, MPI_INT, node, 0, MPI_Comm_grp, &status);
-
   MPI_Recv(&count, 1, MPI_INT, node, 0, MPI_Comm_grp, &status);
   MPI_Recv(kinetic.v, kinetic.GetDim(0), MPI_DOUBLE, 
            node, 0, MPI_Comm_grp, & status);

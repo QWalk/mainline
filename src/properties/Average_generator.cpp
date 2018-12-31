@@ -2130,6 +2130,23 @@ void Average_wf_parmderivs::evaluate(Wavefunction_data * wfdata, Wavefunction * 
   if(!wf->getParmDeriv(wfdata, sample,deriv)) { 
     error("WF needs to support parmderivs for now.");
   }
+  //Calculate distance squared from node, per electron
+  wf->updateLap(wfdata,sample);
+  doublevar d2=0.0;
+  assert(wf->nfunc()==1);
+  Wf_return lap(1,5);  
+  for(int e=0;e<sample->electronSize();e++){
+    wf->getLap(wfdata,e,lap);
+    for(int i=1;i<4;i++) d2+=lap.amp(0,i)*lap.amp(0,i);
+  }
+  d2=(1./d2);
+  d2/=(sample->electronSize()*sample->electronSize());
+  if(d2 < nodal_cutoff*nodal_cutoff) { 
+    cout << d2 << " " << nodal_cutoff << endl;
+    deriv.gradient=0.0;
+    deriv.gradderiv=0.0;
+  }
+
   Array1<doublevar> psp_der(nparms),test(psp->nTest()),totalv(wf->nfunc());
   for(int i=0; i< psp->nTest(); i++) test(i)=rng.ulec();
   psp_der=0;
@@ -2182,17 +2199,22 @@ void Average_wf_parmderivs::read(System * sys, Wavefunction_data * wfdata, vecto
                    <string> & words) { 
   unsigned int pos=0;
   evaluate_pseudopotential=haskeyword(words,pos=0,"EVALUATE_PSEUDOPOTENTIAL");
+  if(!readvalue(words,pos=0,nodal_cutoff,"NODAL_CUTOFF"))
+    nodal_cutoff=1e-6;
 
 }
 //-----------------------------------------------------------------------------
 void Average_wf_parmderivs::write_init(string & indent, ostream & os) { 
   os << indent << "WF_PARMDERIV" << endl;
   if(evaluate_pseudopotential) os <<indent << "EVALUATE_PSEUDOPOTENTIAL" << endl;
+  os << indent << "NODAL_CUTOFF " << nodal_cutoff << endl;
 }
 //-----------------------------------------------------------------------------
 void Average_wf_parmderivs::read(vector <string> & words) { 
   unsigned int pos=0;
   evaluate_pseudopotential=haskeyword(words,pos=0,"EVALUATE_PSEUDOPOTENTIAL");
+  nodal_cutoff=0;
+  readvalue(words,pos=0,nodal_cutoff,"NODAL_CUTOFF");
   
 }
 //-----------------------------------------------------------------------------

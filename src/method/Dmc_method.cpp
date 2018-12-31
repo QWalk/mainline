@@ -52,6 +52,12 @@ void Dmc_method::read(vector <string> words,
   int target_config;
   if(!readvalue(words,pos=0,target_config,"TARGET_CONFIG"))
     target_config=2048;
+  
+  if(!readvalue(words,pos=0,nsuballE,"NSUBALLE"))
+    nsuballE=1;
+
+  if(!readvalue(words,pos=0,nsuboneE,"NSUBONEE"))
+    nsuboneE=1;
 
   if(!readvalue(words, pos=0, nconfig, "NCONFIG"))
     nconfig=max(target_config/mpi_info.nprocs,1);
@@ -139,6 +145,8 @@ void Dmc_method::read(vector <string> words,
   low_io=0;
   if(haskeyword(words, pos=0,"LOW_IO")) low_io=1;
   
+ 
+
   allocate(dynamics_words, dyngen);
   dyngen->enforceNodes(1);
 
@@ -424,12 +432,6 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
             pts(walker).prop.count=0;
           }
           pts(walker).prop.weight=pts(walker).weight;
-          //This is somewhat inaccurate..will need to change it later
-          //For the moment, the autocorrelation will be slightly
-          //underestimated
-          pts(walker).prop.parent=walker;
-          pts(walker).prop.nchildren=1;
-          pts(walker).prop.children(0)=walker;
           pts(walker).prop.avgrets.Resize(1,average_var.GetDim(0));
           for(int i=0; i< average_var.GetDim(0); i++) { 
             average_var(i)->randomize(wfdata,wf,sys,sample);
@@ -456,18 +458,13 @@ void Dmc_method::runWithVariables(Properties_manager & prop,
 
       doublevar accept_ratio=acsum/(nconfig*nelectrons*npsteps);
       teff=timestep*accept_ratio; //deltar2/rf_diffusion; 
-      if(output) output << "Acceptance " << accept_ratio << endl;
-      
       updateEtrial(feedback);
-
       step+=npsteps;
-
       int nkilled;
       if(!pure_dmc)
         nkilled=calcBranch();
       else
         nkilled=0;
-      
       totkilled+=nkilled;
       totbranch+=nkilled;
     }
@@ -578,10 +575,13 @@ void Dmc_method::move_electron_by_electron(Wavefunction_data * wfdata,
                                            Dmc_point & pt,
                                            doublevar & acsum) { 
   Dynamics_info dinfo;
+  for(int suball=0; suball < nsuballE; suball++) {
   for(int e=0; e< nelectrons; e++) {
+    for(int subone=0; subone < nsuboneE; subone++) { 
     int acc;
+    doublevar efftstep=timestep/(nsuboneE*nsuballE);
     acc=dyngen->sample(e, sample, wf, wfdata, guidingwf,
-        dinfo, timestep);
+        dinfo, efftstep);
 
     if(dinfo.accepted) {               
       pt.age(e)=0;
@@ -589,7 +589,9 @@ void Dmc_method::move_electron_by_electron(Wavefunction_data * wfdata,
     else { 
       pt.age(e)++;
     }
-    if(acc>0) acsum++;
+    if(acc>0) acsum+=1./(nsuboneE*nsuballE);
+    }
+  }
   }
 
 }

@@ -464,8 +464,6 @@ void Vmc_method::runWithVariables(Properties_manager & prop,
           average_var(i)->randomize(wfdata,wf,sys,sample);
           average_var(i)->evaluate(wfdata, wf, sys, psp, sample,pt, pt.avgrets(0,i));
         }
-        pt.parent=walker;
-        pt.nchildren=1; pt.children(0)=1;
         prop.insertPoint(step, walker, pt);
         
         //This may screw up if we have >1 walker!
