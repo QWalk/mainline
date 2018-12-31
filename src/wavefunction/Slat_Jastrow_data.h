@@ -38,7 +38,6 @@ public:
            );
   virtual int supports(wf_support_type );
   void generateWavefunction(Wavefunction *&);
-  int valSize();
   void lockInParms(Array1<doublevar> & );
   void getVarParms(Array1 <doublevar> & );
   void setVarParms(Array1 <doublevar> & );
@@ -55,17 +54,6 @@ public:
 
   int showinfo(ostream & os);
   int writeinput(string &, ostream &);
-
-  void renormalize()
-  {
-    slater->renormalize();
-    jastrow->renormalize();
-  }
-  void resetNormalization()
-  {
-    slater->resetNormalization();
-    jastrow->resetNormalization();
-  }
 
   Slat_Jastrow_data():slater(NULL), jastrow(NULL)
   {}

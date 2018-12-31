@@ -457,23 +457,6 @@ int Jastrow_group::nparms() {
 
 //----------------------------------------------------------------------
 
-int Jastrow_group::valSize() {
-  int tot=0;
-  return 0; //Temporarily turn off the saving feature..
-  //if we're optimizing the basis, we need to recalculate everything
-  if(!optimize_basis) {
-    if(has_one_body)
-      tot+=one_body.nparms();
-
-    if(has_two_body)
-      tot+=two_body->nparms();
-  }
-
-
-  return tot;
-}
-
-//----------------------------------------------------------------------
 void Jastrow_group::getVarParms(Array1 <doublevar> & parms) {
 
   parms.Resize(nparms());
@@ -721,20 +704,6 @@ int Jastrow2_wf_data::nparms() {
 
 //----------------------------------------------------------------------
 
-int Jastrow2_wf_data::valSize() {
-  if(nparms()==0) { 
-    return 1; 
-  }
-  else { 
-    int tot=0;
-    for(int g=0; g< group.GetDim(0); g++) {
-      tot+=group(g).valSize();
-    }
-    return tot;
-  }
-}
-
-//----------------------------------------------------------------------
 
 int Jastrow2_wf_data::writeinput(string & indent, ostream & os) {
   os << indent << "JASTROW2" << endl;
@@ -1156,11 +1125,6 @@ void Jastrow2_wf::updateLap(Wavefunction_data * wfdata, Sample_point * sample){
 
 }
 //----------------------------------------------------------
-void Jastrow2_wf::updateForceBias(Wavefunction_data * wfdata,
-                                  Sample_point * sample){
-  updateVal(wfdata, sample);
-}
-//----------------------------------------------------------
 
 void Jastrow2_wf::getVal(Wavefunction_data * wfdata,
                          int e, Wf_return & val) {
@@ -1221,14 +1185,6 @@ void Jastrow2_wf::getLap(Wavefunction_data * wfdata, int e,
 }
 
 //----------------------------------------------------------
-
-void Jastrow2_wf::getForceBias(Wavefunction_data *wfdata, int e,
-                               Wf_return & force){
-  assert(force.amp.GetDim(1) >= 5);
-  force.amp=0;
-  force.phase=0;
-  getVal(wfdata, e, force);
-}
 
 
 //Note that one could implement this as updates to improve speed further.

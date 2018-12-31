@@ -78,7 +78,6 @@ public:
     if(molecorb != NULL ) delete molecorb;
   }
 
-  int optimize_mo; //!< whether to optimize MO basis
   virtual int valSize() {
     //if(optimize_mo) return 0;
     if(optimize_det) return 2*detwt.GetDim(0);
@@ -103,8 +102,6 @@ public:
   virtual void getVarParms(Array1 <doublevar> & parms);
   virtual void setVarParms(Array1 <doublevar> & parms);
   virtual void linearParms(Array1 <bool> & is_linear);
-
-  virtual void renormalize();
 
   virtual void read(vector <string> & words,
                     unsigned int & pos,
@@ -136,6 +133,8 @@ private:
   friend class Slat_wf<dcomplex>;
   friend class Cslat_wf;
 
+  int optimize_mo; //!< whether to optimize MO basis
+  
   Array3 < Array1 <int> > occupation;
   //!< The place in totoccupation for the molecular orbitals for (fn, det, spin) Used to look up the right MO from MO_matrix.
   Array3 < Array1 <int> > occupation_orig;

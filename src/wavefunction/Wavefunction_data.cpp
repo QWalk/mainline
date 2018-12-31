@@ -68,8 +68,4 @@ int deallocate(Wavefunction_data * & wfptr)
   return 1;
 }
 
-Wavefunction_data * duplicate(Wavefunction_data * wfdata){
-  return wfdata->clone();
-}
-
 //------------------------------------------------------------------------

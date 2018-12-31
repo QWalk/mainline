@@ -250,7 +250,6 @@ void write_wf(Array1 <doublevar> & parms, string & wfoutputfile, Wavefunction_da
   if( mpi_info.node==0 ){
     string indent="";
     wfdata->setVarParms(parms);
-    wfdata->renormalize();
     ofstream wfoutput(wfoutputfile.c_str());
     wfoutput.precision(15);
     wfdata->writeinput(indent,wfoutput);
@@ -266,7 +265,6 @@ void Shdmc_method::wf_printout(Array1 <doublevar> & parms, int iter,
 			       doublevar & weight_variance, 
 			       ostream & output){
   wfdata->setVarParms(parms);
-  wfdata->renormalize();
   int field=output.precision()+2;
   if( mpi_info.node==0 ){
     if (use_extended_output){
@@ -335,7 +333,6 @@ void Shdmc_method::get_averages(Array1 <doublevar> & parms,
 
   for (int mc_size=0; mc_size<mc_words.size(); mc_size++){
     wfdata->setVarParms(parms);
-    wfdata->renormalize();
     string log_label=mc_words[mc_size][0];
     char strbuff2[40];
     sprintf(strbuff2,  "%d", iter);
@@ -503,8 +500,6 @@ void Shdmc_method::run(Program_options & options, ostream & output)
   new_parms=0.0;
   Array1 <doublevar> local_energy(nconfig);
 
-  //normalize before starting process
-  wfdata->renormalize();
   wfdata->getVarParms(parms);
   nfunctions=wf->nfunc();
 

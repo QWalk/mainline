@@ -79,7 +79,6 @@ public:
 
   int writeinput(string &, ostream &);
   int showinfo(string &, ostream &);
-  int valSize();
   int nparms();
 
   void getVarParms(Array1 <doublevar> & parms);
@@ -139,7 +138,6 @@ public:
   virtual void getVarParms(Array1 <doublevar> &);
   virtual void setVarParms(Array1 <doublevar> &);
   virtual int nparms();
-  virtual int valSize();
   virtual int writeinput(string &, ostream &);
   virtual int showinfo(ostream &);
   virtual void generateWavefunction(Wavefunction * &);
@@ -167,12 +165,9 @@ public:
   virtual void notify(change_type , int );
   virtual void updateVal(Wavefunction_data *, Sample_point *);
   virtual void updateLap(Wavefunction_data *, Sample_point *);
-  virtual void updateForceBias(Wavefunction_data *, Sample_point *);
 
   virtual void getVal(Wavefunction_data *, int, Wf_return &);
   virtual void getLap(Wavefunction_data *, int, Wf_return &);
-
-  virtual void getForceBias(Wavefunction_data *, int, Wf_return &);
 
   virtual void evalTestPos(Array1 <doublevar> & pos, Sample_point * sample,Array1 <Wf_return> & wf);
   

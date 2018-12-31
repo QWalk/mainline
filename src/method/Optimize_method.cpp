@@ -249,7 +249,6 @@ void Optimize_method::run(Program_options & options, ostream & output)
   if(output) {
     output << "Optimization finished.  ";
     output << "New wave function is in " << wfoutputfile << endl;
-    wfdata->renormalize();
     string indentation="";
     ofstream wfoutput(wfoutputfile.c_str());
     wfoutput.precision(15);

@@ -68,10 +68,6 @@ void Slat_Jastrow_data::generateWavefunction(Wavefunction *& wf)
   attachObserver(sjwf);
 }
 
-int Slat_Jastrow_data::valSize()
-{
-  return slater->valSize()+jastrow->valSize();
-}
 
 void Slat_Jastrow_data::lockInParms(Array1 <doublevar> & parms){
   Array1<doublevar> wf1parms;

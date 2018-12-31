@@ -430,7 +430,6 @@ int Split_sampler::split_driver(int e,
   //indent="";
   //cout << "#######################acceptance for " << depth << endl;
   doublevar acc=get_acceptance(guidingwf, 0,depth);
-  //cout << "acceptance for " << depth << " : " <<  acc << endl;    
 
   info.green_forward=exp(transition_prob(0,depth,timesteps(depth), dtype));
   //cout << "green_forward " << info.green_forward << endl;
@@ -447,10 +446,6 @@ int Split_sampler::split_driver(int e,
   
   info.symm_gf=exp(linear_symm(trace(0), trace(depth), timesteps(depth), dtype));
   info.resample_gf=info.symm_gf;
-  //trying a better gf
-  //info.green_forward*=info.acceptance;
-  //--------
-  
   
   if (acc+rng.ulec() > 1.0) {
     info.accepted=1;
@@ -523,14 +518,6 @@ int Split_sampler::sample(int e,
     }
   }
 
-  //if(!acc) {
-    //wfStore.restoreUpdate(sample, wf, e);
-  //  Array1 <doublevar> back=trace(depth).translation;
-  //  for(int i=0; i< back.GetDim(0); i++) 
-  //    back(i)*=-1;
-  //  sample->translateElectron(e, back);
-  //}
-  //cout << "-----------split done" << endl;
   return acc;
 }
 

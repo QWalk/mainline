@@ -9,7 +9,7 @@
 #include "MO_matrix.h"
 #include "Backflow_wf.h"
 #include "Jastrow2_wf.h"
-
+#include "Sample_point.h"
 
 //######################################################################
 

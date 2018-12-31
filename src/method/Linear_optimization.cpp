@@ -164,7 +164,6 @@ void Linear_optimization_method::run(Program_options & options, ostream & output
     }
     wfdata->setVarParms(alpha);
     wfdata->lockInParms(alpha);
-    wfdata->renormalize();
    
     if(mpi_info.node==0) { 
       string indentation="";

@@ -239,34 +239,6 @@ int Vmc_method::showinfo(ostream & os)
 //----------------------------------------------------------------------
 
 void Vmc_method::readcheck(string & filename) {
-  /*
-  int configsread=0;
-
-  config_pos.Resize(nconfig);
-
-  if(filename != "") { 
-
-    ifstream checkfile(filename.c_str());
-    if(!checkfile) 
-      error("Couldn't open ", filename);
-    
-    long int is1, is2;
-    string dummy;
-    checkfile >> dummy;
-    if(dummy != "RANDNUM") error("Expected RANDNUM in checkfile");
-    checkfile >> is1 >> is2;
-    rng.seed(is1, is2);  
-
-
-    while(checkfile >>dummy && configsread < nconfig) {
-      if(read_config(dummy, checkfile, sample)) {
-        config_pos(configsread++).savePos(sample);
-      }
-      
-    }
-    checkfile.close();
-  }
-   */
   config_pos.Resize(0);
   if(filename!="") { 
     ifstream test(filename.c_str());
@@ -296,27 +268,6 @@ void Vmc_method::readcheck(string & filename) {
 void Vmc_method::storecheck(string & filename, int append) {
   
   if(filename=="") return;
-/*
-  ofstream checkfile;
-  if(append) checkfile.open(filename.c_str(), ios::app);
-  else checkfile.open(filename.c_str());
-  if(!checkfile) error("Couldn't open ", filename);
-  checkfile.precision(15);
-  
-  long int is1, is2;
-  rng.getseed(is1, is2);
-  checkfile << "RANDNUM " << is1 << "  " << is2 << endl;
-  for(int i=0; i< nconfig; i++) {
-    checkfile << "SAMPLE_POINT { \n";
-    config_pos(i).restorePos(sample);
-    write_config(checkfile, sample);
-    checkfile << "}\n\n";
-  }
-
-  checkfile.close();  
-
-  string tmpfilename="tmp.config";
-   */
   write_configurations(filename, config_pos);
 }
 

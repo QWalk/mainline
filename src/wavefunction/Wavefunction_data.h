@@ -91,11 +91,6 @@ public:
    */
   virtual int nparms()=0;
 
-  /*!
-    The size of the array that is stored when doing
-    Wavefunction::storeDepVal()
-   */
-  virtual int valSize()=0;
 
   /*!
     Print out a pretty output that is informative about the 
@@ -107,24 +102,6 @@ public:
     "class hasn't implemented it yet.\n";
     return 1;
   }
-
-
-  /*!
-    Use the wave function objects that this _data is linked to
-    to find a normalization. 
-   */
-  virtual void renormalize()
-  {}
-  ;
-
-  /*!
-    Resets the normalization back to the original value.  
-    Useful if a parameter has changed, and we want to restart
-    the normalization procedure.
-   */
-  virtual void resetNormalization()
-  {}
-  ;
 
   /*!
     Write an input section with the current parameters for this 
@@ -157,9 +134,6 @@ protected:
 int allocate(vector <string> & wftext, System * sys,
              Wavefunction_data * & wfptr);
 int deallocate(Wavefunction_data * & wfptr);
-
-//Used in virtual copy constructor
-Wavefunction_data * duplicate(Wavefunction_data * wfdata);
 
 #endif //WAVEFUNCTION_DATA_H_INCLUDED
 //------------------------------------------------------------------------
