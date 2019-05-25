@@ -109,7 +109,7 @@ void Average_derivative_dm::read(System * sys, Wavefunction_data * wfdata, vecto
   vector<string> cutsec;
   if(!readsection(words,pos=0,cutsec,"CUTOFF")){
     cutoff_list.Resize(1);
-    cutoff_list(0)=1.0;
+    cutoff_list(0)=1e-6;
   }else{
     cutoff_list.Resize(cutsec.size());
     for(int i=0;i<cutoff_list.GetDim(0);i++) cutoff_list(i)=atof(cutsec[i].c_str());
