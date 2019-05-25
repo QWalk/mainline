@@ -256,7 +256,10 @@ void Average_derivative_dm::jsonOutput(Average_return & avg,Average_return & err
     
     os << "\"drop\":" << avg.vals(counta++)<<endl;
     counte++;
-    os << "}," << endl; //End cutoff block
+    if(i<cutoff_list.GetDim(0)-1)
+      os << "}," << endl; //End cutoff block
+    else
+      os << "}" << endl; //Last cutoff block
   }
 
   os << "}" << endl;
