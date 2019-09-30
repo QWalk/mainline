@@ -325,12 +325,18 @@ int main(int argc, char ** argv) {
         
         if(nfiles < 2) { 
           if(options.json){
+            if(lab==0) 
+              cout<<"["<<endl;
             cout<< "{" << endl;
             cout<<  "\"label\":\"" << labels[lab] << "\"," << endl;
             cout<<  "\"total blocks\":" << allblocks(lab).GetDim(0) <<"," << endl;
             cout<<  "\"reblocking\":" <<  options.reblock <<"," << endl;
             avg.JsonOutput(cout, avg_gen(lab));
             cout << "}" << endl;
+            if(lab+1<nlabels)
+              cout<<","<<endl;
+            else
+              cout<<"]"<<endl;
         }
           else{
           cout << "#####################" << endl;
